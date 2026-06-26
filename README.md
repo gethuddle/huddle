@@ -2,7 +2,7 @@
 
 **Find your people for every match.**
 
-Huddle is a social app that connects sports fans around the games they love — turning solo fandom into shared, in-person experiences through **watch parties** and **local events**, hosted by fellow fans and by venues like sports bars.
+Huddle is a social website that connects sports fans around the games they love — turning solo fandom into shared, in-person experiences through **watch parties** and **local events**, hosted by fellow fans and by venues like sports bars. Open it in your browser, follow your teams, and find your people — no download required.
 
 > A two-person final project for the **Full-Stack & AI** course.
 
@@ -78,26 +78,13 @@ A focused first version that demonstrates the full stack end to end:
 
 ## Future ideas (post-MVP)
 
-- 💬 In-app chat per event and live match-day threads.
+- 💬 On-site chat per event and live match-day threads.
 - 🔔 Push/email/SMS reminders before kickoff.
 - 🤖 **AI-powered discovery** — smart recommendations ("watch parties you'll love near you"), natural-language event creation ("Arsenal game Sunday at my place"), and automatic moderation of user-posted content.
 - ⭐ Ratings & reviews for venues and hosts; trust/reputation.
 - 🎟️ Ticketed or paid events for venues (premium match nights).
 - 🗺️ Map view of everything happening tonight.
 - 📅 Live fixtures pulled from a sports data API, so events attach to real matches automatically.
-
-## Tech stack (planned)
-
-Built on the stack taught in the course:
-
-- **Frontend:** Next.js (App Router) + React + TypeScript + Tailwind CSS / Radix UI
-- **State & data:** TanStack Query (server state) · Zustand (client state) · Zod (validation)
-- **Backend:** Node.js + Express (with a realtime service) · REST API
-- **Database:** PostgreSQL **+ PostGIS** (geo "near me") via Prisma · Redis (sessions, caching, realtime)
-- **Realtime:** Socket.IO for live attendee counts & event chat
-- **Auth:** session- or JWT-based, with OAuth 2.0 social login and bcrypt
-- **AI:** Anthropic SDK (Claude) for recommendations & moderation
-- **Infra:** Docker · GitHub Actions (CI/CD) · Vercel + managed Postgres (Supabase / Neon) · Sentry + PostHog
 
 ## Status
 
