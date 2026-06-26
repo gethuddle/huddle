@@ -1,8 +1,8 @@
-# ⚽ Kickoff
+# ⚽ Huddle
 
 **Find your people for every match.**
 
-Kickoff is a social app that connects sports fans around the games they love — turning solo fandom into shared, in-person experiences through **watch parties** and **local events**, hosted by fellow fans and by venues like sports bars.
+Huddle is a social app that connects sports fans around the games they love — turning solo fandom into shared, in-person experiences through **watch parties** and **local events**, hosted by fellow fans and by venues like sports bars.
 
 > A two-person final project for the **Full-Stack & AI** course.
 
@@ -16,9 +16,9 @@ The energy of sport is collective. Watching with others is the whole point. But 
 
 > **"Who, near me, is watching *this* match — and where can I join them?"**
 
-## What Kickoff does
+## What Huddle does
 
-Kickoff makes that question answerable. You tell it what you care about, and it surfaces the people and places watching the same thing.
+Huddle makes that question answerable. You tell it what you care about, and it surfaces the people and places watching the same thing.
 
 1. **Subscribe** to your favorite sports, tournaments, leagues, and teams.
 2. **Discover** a personalized feed of upcoming matches and the **events & watch parties** built around them — near you, matched to your interests.
@@ -31,7 +31,7 @@ Two kinds of hosts make the map come alive:
 
 ## Who it's for
 
-| Persona | What they want | How Kickoff helps |
+| Persona | What they want | How Huddle helps |
 |---------|----------------|-------------------|
 | 🧣 **The dedicated fan** | To watch the big game surrounded by people who care as much as they do | Finds nearby watch parties and bars showing *their* team's match |
 | 🏑 **The niche enthusiast** | Community around a sport few people locally follow (handball, cricket, NFL abroad, esports…) | Connects the scattered few who *do* follow it into real meetups |
@@ -61,9 +61,9 @@ Two kinds of hosts make the map come alive:
 
 ## How it works — two scenarios
 
-**🍻 El Clásico at a bar.** A sports bar has one screen and decides to show *Real Madrid vs. Barcelona*. They post it on Kickoff as a Real Madrid–leaning watch party. Every nearby user subscribed to La Liga, Real Madrid, or El Clásico sees it in their feed and can RSVP. The bar fills up with the right crowd; fans find their people.
+**🍻 El Clásico at a bar.** A sports bar has one screen and decides to show *Real Madrid vs. Barcelona*. They post it on Huddle as a Real Madrid–leaning watch party. Every nearby user subscribed to La Liga, Real Madrid, or El Clásico sees it in their feed and can RSVP. The bar fills up with the right crowd; fans find their people.
 
-**🏐 A niche sport at home.** Maya is one of the few handball fans in her city. The European Championship semifinal is on, and no bar is showing it. She creates a home watch party on Kickoff. The handful of other local handball followers — who'd never have found each other otherwise — get notified, join, and a tiny community is born.
+**🏐 A niche sport at home.** Maya is one of the few handball fans in her city. The European Championship semifinal is on, and no bar is showing it. She creates a home watch party on Huddle. The handful of other local handball followers — who'd never have found each other otherwise — get notified, join, and a tiny community is born.
 
 ## MVP scope (for the final project)
 
