@@ -1,91 +1,161 @@
-# ⚽ Huddle
+# Huddle
 
 **Find your people for every match.**
 
-Huddle is a social website that connects sports fans around the games they love — turning solo fandom into shared, in-person experiences through **watch parties** and **local events**, hosted by fellow fans and by venues like sports bars. Open it in your browser, follow your teams, and find your people — no download required.
+Huddle is a social web application for finding safe, relevant places and communities to watch sports. Fans follow sports, competitions, teams, and venues, and join supporter groups; Huddle then connects upcoming fixtures to nearby watch events they are actually allowed to see and attend.
 
-> A two-person final project for the **Full-Stack & AI** course.
-
----
+This is a two-person final project for the **Full-Stack & AI** course. The submitted application is an English-language pilot for Israel.
 
 ## The problem
 
-Being a sports fan can be surprisingly lonely. If you love a team — or worse, a *niche* sport that few people around you follow — it's hard to share the excitement. The big moments happen, and you have no one to celebrate (or suffer) with. Unless you already have a friend group or a community built around that team, your fandom stays stuck in a group chat or, more often, by yourself on the couch.
+Sports are better with other people, but it can be difficult to find nearby fans of the same team or a venue showing a particular match. The problem is especially noticeable for people who are new to a city, support a foreign team, or follow a less popular competition.
 
-The energy of sport is collective. Watching with others is the whole point. But there's no easy way to answer a simple question:
+Huddle answers:
 
-> **"Who, near me, is watching *this* match — and where can I join them?"**
+> **Who near me is watching this match, and where may I safely join them?**
 
-## What Huddle does
+## The core experience
 
-Huddle makes that question answerable. You tell it what you care about, and it surfaces the people and places watching the same thing.
+1. Create and verify an account, complete a profile, and accept the community rules.
+2. Follow sports, competitions, teams, and venues, and join supporter groups.
+3. Browse synchronized upcoming fixtures and discover eligible watch events nearby.
+4. Join a public venue event, or request access to an eligible private event.
+5. Host and manage a gathering, its capacity, invitations, and attendance.
+6. Download an approved event as an `.ics` calendar file.
 
-1. **Subscribe** to your favorite sports, tournaments, leagues, and teams.
-2. **Discover** a personalized feed of upcoming matches and the **events & watch parties** built around them — near you, matched to your interests.
-3. **Join** an event hosted by another fan or a local venue, or **host your own**.
+## People, groups, and venues
 
-Two kinds of hosts make the map come alive:
+Huddle has two intentionally different hosting models.
 
-- **Fans** can arrange watch parties at home and open them up for others to join.
-- **Businesses** (sports bars, cafés, clubs) can advertise exactly what they're showing — which match, on how many screens, and which side of the rivalry they're catering to.
+### Private people
 
-## Who it's for
+Private people can create events for:
 
-| Persona | What they want | How Huddle helps |
-|---------|----------------|-------------------|
-| 🧣 **The dedicated fan** | To watch the big game surrounded by people who care as much as they do | Finds nearby watch parties and bars showing *their* team's match |
-| 🏑 **The niche enthusiast** | Community around a sport few people locally follow (handball, cricket, NFL abroad, esports…) | Connects the scattered few who *do* follow it into real meetups |
-| 🏠 **The host** | To gather friends — and fill empty seats on the couch — for a match | Creates a home watch party and invites the wider community |
-| 🍻 **The venue / sports bar** | To fill the room on match nights and reach the right fans | Publishes its fixtures, screens, and target crowd; gets discovered by nearby fans |
+- a supporter group they belong to;
+- accepted friends;
+- specifically invited Huddle members.
 
-## Core features
+A private person cannot publish an event to the general public or to every follower of a team, even when the event takes place in a café or another public place.
 
-### For everyone
+Home events require host approval, are limited to 12 registered Huddle accounts, do not allow anonymous plus-ones, and keep their exact address in protected storage. Friendship or group membership alone never reveals a home address.
 
-- **Interest subscriptions** — follow sports, tournaments, leagues, and specific teams. Your feed is built from these.
-- **Personalized discovery feed** — upcoming fixtures plus the events/watch parties tied to them, filtered by what you follow and where you are.
-- **Location-aware search** — "what's on near me tonight?" Browse parties and venues by distance and match.
-- **RSVP & attendance** — join an event, see who else is going, get reminders before kickoff.
-- **Profiles** — your teams, your history, the events you've hosted and attended.
+### Supporter groups
 
-### For fan-hosts
+Groups provide the community layer between a private friendship and a public venue listing. They support:
 
-- **Create a watch party** — pick the match, set a place (home or public), capacity, and whether it's open or invite-only.
-- **Manage guests** — approve joiners, share details, post updates.
+- discoverable and unlisted groups;
+- membership applications and expiring invite links;
+- `owner`, `admin`, and `member` roles;
+- rules, bans, and group-event approval;
+- duplicate-group suggestions based on team and city.
 
-### For venues / businesses
+Members may propose group events, but an owner or admin approves publication. A new discoverable group must meet a minimum safety and activity threshold before appearing in search.
 
-- **Venue profile** — location, vibe, number of screens, capacity.
-- **Fixture listings** — "We're showing **El Clásico** this Sunday." If a venue has only one screen, it declares which match (and even which side) it's catering to — e.g. a **Real Madrid** night vs. a **Barcelona** night.
-- **Reach the right fans** — appear in the feeds of people who subscribe to that team or competition.
+### Businesses and venues
 
-## How it works — two scenarios
+Venue profiles represent sports bars, cafés, and similar businesses. Venue-hosted events may be:
 
-**🍻 El Clásico at a bar.** A sports bar has one screen and decides to show *Real Madrid vs. Barcelona*. They post it on Huddle as a Real Madrid–leaning watch party. Every nearby user subscribed to La Liga, Real Madrid, or El Clásico sees it in their feed and can RSVP. The bar fills up with the right crowd; fans find their people.
+- `public` — visible and joinable by eligible Huddle members;
+- `team_followers` — publicly visible, but attendance normally requires following the selected team.
 
-**🏐 A niche sport at home.** Maya is one of the few handball fans in her city. The European Championship semifinal is on, and no bar is showing it. She creates a home watch party on Huddle. The handful of other local handball followers — who'd never have found each other otherwise — get notified, join, and a tiny community is born.
+The course MVP allows an eligible user to create a visibly **unverified** venue profile without payment. Paid venue subscriptions, promotions, menus, analytics, and commercial entitlements are later business features.
 
-## MVP scope (for the final project)
+## Sports data: synchronized, normalized, and stored locally
 
-A focused first version that demonstrates the full stack end to end:
+Huddle does **not** call a sports API whenever somebody opens a page. External sports data is imported on a schedule, normalized, and stored in Supabase PostgreSQL. Normal application requests read this local catalog, so browsing remains fast and previously synchronized fixtures remain usable if a provider is temporarily unavailable.
 
-- **Auth & profiles** — sign up / log in, set your favorite sports & teams.
-- **Subscriptions** — follow sports / tournaments / teams.
-- **Events** — fans and venues can create events tied to a match, with time, place, and capacity.
-- **Discovery feed** — personalized, location-aware list of upcoming events.
-- **RSVP** — join/leave an event and see the attendee count.
-- **Core entities:** `User`, `Sport`, `Tournament`, `Team`, `Venue`, `Event`, `Subscription`, `RSVP`.
+```mermaid
+flowchart LR
+    Cron[Scheduled sync<br/>about every 6 hours] --> Adapters[Provider adapters]
+    Football[football-data.org] --> Adapters
+    NBA[BALLDONTLIE<br/>future NBA adapter] --> Adapters
+    Adapters --> Normalize[Validate and normalize]
+    Normalize --> Catalog[(Supabase PostgreSQL<br/>sports, competitions,<br/>teams, matches)]
+    Catalog --> Huddle[Huddle pages and discovery]
+```
 
-## Future ideas (post-MVP)
+The scheduled job runs approximately every six hours—four times per day—and synchronizes a bounded window from yesterday through roughly 45 days ahead. It upserts changed records instead of downloading the entire catalog on every request. A failed run records the error and freshness state without deleting the last good data.
 
-- 💬 On-site chat per event and live match-day threads.
-- 🔔 Push/email/SMS reminders before kickoff.
-- 🤖 **AI-powered discovery** — smart recommendations ("watch parties you'll love near you"), natural-language event creation ("Arsenal game Sunday at my place"), and automatic moderation of user-posted content.
-- ⭐ Ratings & reviews for venues and hosts; trust/reputation.
-- 🎟️ Ticketed or paid events for venues (premium match nights).
-- 🗺️ Map view of everything happening tonight.
-- 📅 Live fixtures pulled from a sports data API, so events attach to real matches automatically.
+The backup unit is the whole PostgreSQL database, not a separate sports-data dump. Whole-database backups preserve the relationships between matches and Huddle events. The schema and deterministic seed data live in Git migrations; provider-owned catalog data can also be rebuilt by rerunning synchronization. Matches referenced by Huddle events are retained rather than deleted when they leave the active synchronization window.
 
-## Status
+This is an operational local copy/cache, not a dump of raw provider responses. Huddle stores only the normalized fields the product needs:
 
-🚧 Early planning. Product vision defined; implementation not yet started. Course study roadmap and full stack rationale are kept in local working notes.
+| Table | Examples of stored data |
+|---|---|
+| `sports` | Football, basketball |
+| `competitions` | Premier League, Champions League, NBA |
+| `teams` | Arsenal, Real Madrid, Boston Celtics |
+| `matches` | Competition, home team, away team, UTC start time, status, season/stage |
+| `provider_sync_runs` | Provider, sync window, outcome, request count, changed rows, safe error summary |
+
+Football fixtures and NBA games use the **same `matches` table**. They are not stored in separate football and basketball schemas. A provider adapter converts each API response into the same internal shape, while `(provider, provider_external_id)` preserves the source identity and prevents ID collisions between APIs.
+
+The primary match indexes are:
+
+- `(competition_id, starts_at)` for a league or tournament schedule;
+- `(home_team_id, starts_at)` and `(away_team_id, starts_at)` for a team's fixtures;
+- `(starts_at, status)` for upcoming scheduled matches;
+- unique `(provider, provider_external_id)` for safe repeated upserts.
+
+The submitted implementation remains **football-first**: [football-data.org](https://www.football-data.org/documentation/quickstart) is the first adapter. The storage and provider contract are deliberately sport-neutral so an NBA adapter using [BALLDONTLIE](https://docs.balldontlie.io/) writes to the same catalog without changing events, follows, or discovery. NBA integration itself remains a post-MVP extension unless the core football flow is completed early.
+
+## Submitted MVP
+
+- Email/password authentication with verified email, 18+ attestation, current community-rules acceptance, and profile completion.
+- Football catalog and upcoming fixtures synchronized from an external provider.
+- Follows for sports, competitions, teams, and venues.
+- Mutual friendships with no friends-of-friends visibility.
+- Discoverable and unlisted supporter groups with applications, roles, invitations, bans, and event review.
+- Private-person events limited to group, friends, or invite-only audiences.
+- Business-venue events with public or team-follower audiences.
+- Israel city-based discovery, optional browser geolocation, and PostGIS distance queries.
+- Attendance request, approval, decline, removal, and leave flows with atomic capacity enforcement.
+- Protected home locations, blocking, reporting, moderation, and audit records.
+- RFC 5545 `.ics` calendar download.
+- Automated tests, CI, public Vercel deployment, and Supabase-managed Auth/PostgreSQL.
+
+## Architecture and course stack
+
+Huddle is designed as a modular monolith: one Next.js application contains the UI and backend boundaries, while Supabase provides managed authentication and PostgreSQL.
+
+| Area | Technology | Responsibility |
+|---|---|---|
+| Web application | Next.js App Router, React, strict TypeScript | Pages, Server Components, Server Actions, and Route Handlers |
+| UI | Tailwind CSS, Radix UI primitives | Responsive and accessible interface |
+| Validation | Zod | Forms, environment variables, route input, and provider responses |
+| Authentication | Supabase Auth | Verified users and cookie-based SSR sessions |
+| Database | Supabase PostgreSQL, RLS, PostGIS | Durable data, authorization, atomic attendance, and nearby discovery |
+| Sports ingestion | Provider adapters, Supabase Cron, protected Next.js route | Scheduled fixture synchronization and normalization |
+| Testing | Vitest, React Testing Library, Playwright, pgTAP | Domain, UI, end-to-end, schema, and RLS coverage |
+| Delivery | GitHub Actions, Vercel, Supabase | CI, deployment, database, and hosting |
+
+There is no separate Express service, ORM, Redis cache, WebSocket layer, payment system, or microservice architecture in the MVP. The expected course scale is better served by a clear Next.js backend, indexed PostgreSQL queries, scheduled sports-data synchronization, and cursor pagination.
+
+## Safety boundaries
+
+- Row Level Security is enabled on every exposed Supabase table and access is denied by default.
+- Public views contain only safe venue, match, group, and event summaries.
+- Exact home locations live separately and are exposed only through an audited authorization check.
+- Blocks immediately end private interaction and can revoke future event/address access.
+- Attendance approval is atomic, so concurrent approvals cannot exceed capacity.
+- Reports are confidential from the reported user and group administrators; moderation actions are auditable and appealable.
+- Provider keys, service credentials, private addresses, session data, and invite tokens are never sent to the browser or committed to Git.
+
+## Deferred beyond the MVP
+
+- NBA provider integration and live scores;
+- chat, realtime match threads, and notifications;
+- ratings, reviews, and numeric reputation;
+- maps and paid address autocomplete;
+- Google Calendar OAuth;
+- Stripe subscriptions, payments, ticketing, menus, offers, analytics, and promoted listings;
+- AI recommendations, automatic event creation, and AI moderation.
+
+The database and provider boundaries may be future-ready, but deferred features will not appear as fake controls or half-implemented product flows.
+
+## Project status
+
+The product and implementation architecture are specified; application scaffolding and implementation have not started.
+
+- [Product and architecture vision](./docs/HUDDLE-ARCHITECTURE.md)
+- [Implementation-ready engineering specification](./docs/HUDDLE-IMPLEMENTATION-SPEC.md)

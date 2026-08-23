@@ -1,2 +1,5 @@
-# Course roadmap working directory (gitignored for now)
+# Course roadmap working directory
 course-roadmap/
+
+# macOS metadata
+.DS_Store
