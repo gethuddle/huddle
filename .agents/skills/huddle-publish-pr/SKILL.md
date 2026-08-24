@@ -1,6 +1,6 @@
 ---
 name: huddle-publish-pr
-description: Finalize and publish a Huddle package or bounded repository-workflow branch for reciprocal partner review. Use when the active writer is asked to hand off, push, or open or update a Huddle pull request; do not use to review or merge the partner's PR.
+description: Finalize and publish a Huddle package or bounded repository-workflow branch for reciprocal partner review. Use automatically when the active writer finishes the agreed slice and current gates pass, or when the writer is asked to hand off, push, or open or update a Huddle pull request; do not use to review or merge the partner's PR.
 ---
 
 # Huddle Publish PR
@@ -9,9 +9,9 @@ Move one completed Huddle package or bounded repository-workflow change from the
 
 ## Authorization boundary
 
-An explicit request to use this skill to publish authorizes the necessary package commit, push, pull-request create or update, issue or PR evidence comment, and reciprocal review request. It does not authorize merging, deployment, hosted-service changes, force-pushing, or approving the writer's own pull request.
+`AGENTS.md` provides standing user-approved authority for the active writer to invoke this skill automatically when the agreed slice appears review-ready. An explicit request to publish provides the same authority. In either case, run verification first; only passing evidence authorizes the necessary package commit, push, pull-request create or update, issue or PR evidence comment, and reciprocal review request.
 
-If the request asks only whether the branch is ready, perform the checks and stop before any mutation.
+This authority never includes merging, deployment, hosted-service changes, force-pushing, or approving the writer's own pull request. If the user asks only whether the branch is ready, readiness is uncertain, or any required gate fails, perform the checks and stop before any mutation.
 
 ## Establish the handoff
 

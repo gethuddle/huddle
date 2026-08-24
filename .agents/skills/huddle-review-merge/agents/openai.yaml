@@ -1,4 +1,4 @@
 interface:
-  display_name: "Huddle Review and Merge"
-  short_description: "Review and merge the other partner's Huddle PR"
-  default_prompt: "Use $huddle-review-merge to review and merge the requested Huddle pull request."
+  display_name: "Huddle Reciprocal Review"
+  short_description: "Review the other partner's Huddle pull request"
+  default_prompt: "Use $huddle-review-merge to review the requested Huddle pull request without editing its branch."
