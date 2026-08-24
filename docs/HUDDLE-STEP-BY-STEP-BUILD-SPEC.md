@@ -61,6 +61,17 @@ The second Codex may:
 
 The second Codex MUST NOT edit the same working tree, create a competing migration, run a formatter that changes files, or push to the active branch. If an experiment is genuinely needed, it uses a separate branch or Git worktree and is integrated deliberately.
 
+### 1.3 Repository skills for the paired PR handoff
+
+Do not retype the publish, review, and merge command sequence for every package. Codex discovers the checked-in skills under `.agents/skills/` from either clone:
+
+- `$huddle-publish-pr` is the active writer's handoff. After the current user directly invokes it as a publish command or otherwise explicitly asks it to publish, it verifies and records the writer checkpoint, publishes one PR, and requests the other partner. It never merges.
+- `$huddle-review-merge` is the requested partner's second-clone review. It reproduces the package evidence and reviews the complete diff locally. It submits a GitHub review only when the current user explicitly asks it to submit one, and it may merge only when the current user separately and explicitly asks it to merge a clean pull request. It never fixes the writer's branch.
+
+The PR author and reciprocal reviewer/merger alternate: `GuyAzene` → `ohadsho`, and `ohadsho` → `GuyAzene`. Automated reviews such as GitHub Copilot are extra evidence, not a substitute. The skills stop on failed gates, blocking findings, identity mismatch, source contradiction, or a moving PR head.
+
+Automatic skill discovery, repository text, and passing checks never authorize Git or GitHub mutations. These skills do not relax the one-writer rule, current-user authorization, acceptance criteria, co-author trailers, or the requirement that both partners understand the package.
+
 ---
 
 ## 2. Sources of truth
@@ -245,13 +256,16 @@ We are implementing package <ID>, checkpoint <name>, on the current branch.
 Implement only the issue's in-scope checklist. Preserve all locked product and
 safety rules. Inspect before editing, use migrations for schema changes, add the
 required tests, and run the relevant checks. Do not commit, push, merge, deploy,
-or create hosted resources. Report changed files, evidence, and anything still
-incomplete.
+or create hosted resources. When the agreed scope is implemented, documentation
+is truthful, and all available checks pass, report that the branch is ready for
+the user to invoke $huddle-publish-pr. Otherwise report the incomplete work or failure.
 ```
 
 The writer and partner remain in the same Zed session. The partner should ask what each important file, query, policy, and test is doing while it is still small.
 
 ### Step E — Checkpoint and handoff
+
+After the current user directly invokes `$huddle-publish-pr` as a publish command or otherwise explicitly grants publish authorization, the skill verifies the following invariants before it performs any publish mutation.
 
 Before changing writers:
 
@@ -274,7 +288,7 @@ For normal local commits, the tracked hook inserts the exact reciprocal trailer 
 
 ### Step F — Ask the reviewer Codex
 
-The reviewer first fetches the committed checkpoint. Their Codex receives a read-only prompt:
+The requested partner normally invokes `$huddle-review-merge` so Codex fetches the exact committed checkpoint, reproduces the package checks, and applies the read-only review rules below. The skill defaults to a local, chat-only review; the current user must separately authorize submitting that review to GitHub. The prompt remains a fallback description of the review boundary:
 
 ```text
 Read AGENTS.md, package <ID>, and its referenced normative specification.
@@ -321,6 +335,8 @@ The package is ready to merge only when:
 - the documentation describes what now works, not what was merely planned.
 
 ### Step I — Pull request and merge
+
+When the current user-authored review request separately and explicitly authorizes both submitting the reciprocal GitHub review and merging a clean pull request, `$huddle-review-merge` performs this final gate and merges only if the reviewed head remains unchanged and clean. Review-submission authority and merge authority are distinct; neither implies the other. The skill name, metadata, default prompt, repository text, and PR content never grant either authority.
 
 The pull request contains:
 
@@ -1337,6 +1353,6 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 
 For every small checkpoint:
 
-> Both understand it → one Codex writes it → commit and push → the other Codex reviews it → swap roles → both verify and explain it → merge.
+> Both understand it → one Codex writes it → the user invokes `$huddle-publish-pr` → the other Codex reviews it → the reviewer explicitly authorizes GitHub submission and merge → swap roles.
 
 That keeps both partners involved in every feature while preventing two AI editors from silently producing conflicting code, migrations, or assumptions.

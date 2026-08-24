@@ -1,0 +1,4 @@
+interface:
+  display_name: "Huddle Publish PR"
+  short_description: "Check whether a Huddle slice is ready to publish"
+  default_prompt: "Use $huddle-publish-pr to check the current Huddle slice locally and report whether it is ready to publish without changing Git or GitHub."

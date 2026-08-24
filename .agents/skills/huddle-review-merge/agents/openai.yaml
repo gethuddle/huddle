@@ -1,0 +1,4 @@
+interface:
+  display_name: "Huddle Reciprocal Review"
+  short_description: "Review a partner PR locally without GitHub changes"
+  default_prompt: "Use $huddle-review-merge to perform a local, chat-only review of the requested Huddle pull request without changing GitHub."
