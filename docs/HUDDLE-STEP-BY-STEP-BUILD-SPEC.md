@@ -1291,8 +1291,8 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 
 | Package | Status | Issue/PR |
 |---|---|---|
-| F00 Baseline and scope | not started | — |
-| F01 Next.js scaffold | not started | — |
+| F00 Baseline and scope | done | [#1](https://github.com/GuyAzene/huddle/issues/1) |
+| F01 Next.js scaffold | review | [#2](https://github.com/GuyAzene/huddle/issues/2) |
 | F02 Environment and app shell | not started | — |
 | F03 Local Supabase foundation | not started | — |
 | F04 CI foundation | not started | — |

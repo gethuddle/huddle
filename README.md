@@ -155,7 +155,29 @@ The database and provider boundaries may be future-ready, but deferred features 
 
 ## Project status
 
-The product and implementation architecture are specified; application scaffolding and implementation have not started.
+The initial Next.js application foundation is implemented. Product features, authentication, database migrations, and hosted environments have not started yet.
+
+### Local application setup
+
+The F01 toolchain baseline is Node.js `24.19.0` (Krypton LTS) with npm `11.17.0`. Both versions are recorded in the repository, and application dependencies use exact versions in `package.json` and `package-lock.json`.
+
+Install dependencies and start the development server:
+
+```bash
+npm install
+npm run dev
+```
+
+Before handing off a change, run the available foundation checks:
+
+```bash
+npm run format:check
+npm run lint
+npm run typecheck
+npm run build
+```
+
+Local Supabase, database reset, database tests, and end-to-end commands will be added by their dependency-ready Foundation packages; they are not claimed by the current scaffold.
 
 - [Product and architecture vision](./docs/HUDDLE-ARCHITECTURE.md)
 - [Implementation-ready engineering specification](./docs/HUDDLE-IMPLEMENTATION-SPEC.md)
