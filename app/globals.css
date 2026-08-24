@@ -27,3 +27,8 @@ body {
   background: #b7d9a8;
   color: #102117;
 }
+
+:focus-visible {
+  outline-color: #173f2a;
+  outline-offset: 3px;
+}

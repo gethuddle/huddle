@@ -155,29 +155,33 @@ The database and provider boundaries may be future-ready, but deferred features 
 
 ## Project status
 
-The initial Next.js application foundation is implemented. Product features, authentication, database migrations, and hosted environments have not started yet.
+The Next.js application foundation and the F02 environment, Supabase-client, safe-error, request-ID, and application-shell boundaries are implemented. Authentication flows, product features, database migrations, local Supabase, CI, and hosted environments have not started yet.
 
 ### Local application setup
 
 The F01 toolchain baseline is Node.js `24.19.0` (Krypton LTS) with npm `11.17.0`. Both versions are recorded in the repository, and application dependencies use exact versions in `package.json` and `package-lock.json`.
 
-Install dependencies and start the development server:
+Install dependencies, create a local environment file, and replace every placeholder needed by the runtime you are exercising:
 
 ```bash
-npm install
+cp .env.example .env.local
+npm ci
 npm run dev
 ```
+
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `NEXT_PUBLIC_APP_URL` are browser-safe. `SUPABASE_SERVICE_ROLE_KEY`, `FOOTBALL_DATA_API_TOKEN`, and `SPORTS_SYNC_SECRET` are server-only and must never enter Client Components or logs. F02 reserves the protected service-role boundary but does not call it. F03 will add repository-managed local Supabase configuration; no local or hosted project is claimed yet.
 
 Before handing off a change, run the available foundation checks:
 
 ```bash
+npm test
 npm run format:check
 npm run lint
 npm run typecheck
 npm run build
 ```
 
-Local Supabase, database reset, database tests, and end-to-end commands will be added by their dependency-ready Foundation packages; they are not claimed by the current scaffold.
+Local Supabase, database reset, database tests, CI, and end-to-end commands will be added by their dependency-ready Foundation packages; they are not claimed by F02.
 
 - [Product and architecture vision](./docs/HUDDLE-ARCHITECTURE.md)
 - [Implementation-ready engineering specification](./docs/HUDDLE-IMPLEMENTATION-SPEC.md)
