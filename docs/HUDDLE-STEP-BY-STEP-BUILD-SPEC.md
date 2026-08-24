@@ -61,6 +61,17 @@ The second Codex may:
 
 The second Codex MUST NOT edit the same working tree, create a competing migration, run a formatter that changes files, or push to the active branch. If an experiment is genuinely needed, it uses a separate branch or Git worktree and is integrated deliberately.
 
+### 1.3 Repository skills for the paired PR handoff
+
+Do not retype the publish, review, and merge command sequence for every package. Codex discovers the checked-in skills under `.agents/skills/` from either clone:
+
+- `$huddle-publish-pr` is the active writer's handoff. It verifies and records the writer checkpoint, publishes one PR, and requests the other partner. It never merges.
+- `$huddle-review-merge` is the requested partner's second-clone review. It reproduces the package evidence, reviews the complete diff, and may approve and merge only when the user explicitly asks it to review and merge. It never fixes the writer's branch.
+
+The PR author and reciprocal reviewer/merger alternate: `GuyAzene` → `ohadsho`, and `ohadsho` → `GuyAzene`. Automated reviews such as GitHub Copilot are extra evidence, not a substitute. The skills stop on failed gates, blocking findings, identity mismatch, source contradiction, or a moving PR head.
+
+These skills operationalize the steps below. They do not relax the one-writer rule, external-action authorization, acceptance criteria, co-author trailers, or the requirement that both partners understand the package.
+
 ---
 
 ## 2. Sources of truth
@@ -253,6 +264,8 @@ The writer and partner remain in the same Zed session. The partner should ask wh
 
 ### Step E — Checkpoint and handoff
 
+The active writer normally invokes `$huddle-publish-pr`; the following checklist defines the invariants that skill must satisfy.
+
 Before changing writers:
 
 1. Inspect `git status` and the full diff.
@@ -274,7 +287,7 @@ For normal local commits, the tracked hook inserts the exact reciprocal trailer 
 
 ### Step F — Ask the reviewer Codex
 
-The reviewer first fetches the committed checkpoint. Their Codex receives a read-only prompt:
+The requested partner normally invokes `$huddle-review-merge` so Codex fetches the exact committed checkpoint, reproduces the package checks, and applies the read-only review rules below. The prompt remains a fallback description of the review boundary:
 
 ```text
 Read AGENTS.md, package <ID>, and its referenced normative specification.
@@ -321,6 +334,8 @@ The package is ready to merge only when:
 - the documentation describes what now works, not what was merely planned.
 
 ### Step I — Pull request and merge
+
+When the review request explicitly includes merge authorization, `$huddle-review-merge` performs this final gate and merges only if the reviewed head remains unchanged and clean.
 
 The pull request contains:
 

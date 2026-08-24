@@ -1,0 +1,4 @@
+interface:
+  display_name: "Huddle Publish PR"
+  short_description: "Publish a verified Huddle slice for partner review"
+  default_prompt: "Use $huddle-publish-pr to verify and publish the current Huddle slice for partner review."

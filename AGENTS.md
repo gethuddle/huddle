@@ -85,6 +85,17 @@ For each small vertical slice:
 
 Never run two write-enabled Codex tasks against the same files or database migration simultaneously. If the second Codex needs to experiment, use an isolated Git worktree or branch and integrate the result explicitly.
 
+### Project pull-request skills
+
+Use the repository-scoped skills under `.agents/skills/` for the repetitive paired handoff:
+
+- The active writer uses `$huddle-publish-pr` to verify the package, update truthful checklist/status evidence, commit and push the checkpoint, open or update the pull request, and request the other partner.
+- The requested partner uses `$huddle-review-merge` to fetch the exact pull-request head in an isolated review checkout, reproduce the package gates, review the complete diff, and—only when explicitly asked to review and merge—approve and merge a clean pull request.
+
+The PR opener never approves or merges their own PR. `GuyAzene` requests `ohadsho`; `ohadsho` requests `GuyAzene`. A blocking finding or failed gate stops the merge and returns the branch to its original writer. GitHub Copilot and other automated reviews are supplementary and never replace the reciprocal human/Codex review.
+
+The skills automate the mechanics but do not override the one-writer rule, acceptance criteria, source-of-truth order, external-mutation authorization, or partner understanding required above.
+
 ## Git and collaboration rules
 
 - Treat GitHub as the source of truth and `main` as the stable branch.
@@ -98,6 +109,7 @@ Never run two write-enabled Codex tasks against the same files or database migra
 - The partner running `git commit` is the primary author, and the other partner is added exactly once with the reciprocal trailer:
   - Guy Azene (`azene.guy@gmail.com`) commits with `Co-authored-by: Ohad Shoshani Levi <ohadsho34@gmail.com>`.
   - Ohad Shoshani Levi (`ohadsho34@gmail.com`) commits with `Co-authored-by: Guy Azene <azene.guy@gmail.com>`.
+- The reciprocal GitHub logins are Guy `GuyAzene` and Ohad `ohadsho`; use them for review requests and reject any attempt to approve or merge one's own PR.
 - Use the tracked `.githooks/prepare-commit-msg` hook to add that trailer automatically from the clone's repository-local `user.email`. Each clone must activate it with `git config --local core.hooksPath .githooks` and configure one of the two exact repository-local identities.
 - The hook rejects missing or unknown repository-local identities. A GitHub-generated squash or merge commit does not run the local hook, so its final message must be checked and given the reciprocal trailer manually.
 - Keep secrets in ignored local environment files and managed secret stores. Commit only safe examples such as `.env.example` with placeholder values.
