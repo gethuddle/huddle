@@ -1,6 +1,6 @@
 # Huddle: Step-by-Step Team Build Specification
 
-**Purpose:** turn Huddle's architecture and implementation specification into small, ordered work packages that two people using two separate Codex sessions can complete together.
+**Purpose:** turn Huddle's remaining architecture and implementation scope into 12 ordered delivery milestones that two people using two separate Codex sessions can complete together. The existing `F`, `A`, `S`, `G`, `E`, `T`, `M`, and `D` IDs remain detailed requirement modules inside those milestones; they are not separate issue, branch, pull-request, or review cycles.
 
 **Status:** execution plan only. This document does not mean any application feature is implemented.
 
@@ -14,20 +14,20 @@
 
 Both partners participate in every feature, but they do not both edit the same feature at the same time.
 
-For each work package:
+For each delivery milestone:
 
-1. Both partners read the package and the referenced authoritative sections.
+1. Both partners read the milestone, every included requirement module, and the referenced authoritative sections.
 2. Both explain the expected user behavior in their own words.
 3. Both Codex sessions may inspect and propose a plan.
 4. The partners reconcile those plans into one short checklist.
-5. One Codex becomes the only writer for the first checkpoint.
+5. One Codex becomes the only writer for the complete milestone branch.
 6. The other partner watches, asks questions, navigates, and challenges decisions in the shared Zed session.
-7. The writer runs the required checks, commits, and pushes the checkpoint.
+7. At the user-authorized handoff, the writer runs the combined checks and publishes the completed milestone as one pull request.
 8. The other Codex reviews the committed diff without editing it.
 9. The partners discuss every blocking finding and accept or reject it with a reason.
-10. The roles swap for the next checkpoint wherever the package has another coherent implementation surface.
+10. The original writer addresses review findings; the reviewer becomes the initial writer for the next milestone after merge.
 11. Both partners run or observe the final acceptance flow and explain the data and authorization path.
-12. The pull request is merged only after both agree that the package is done.
+12. The pull request is merged only after both agree that the milestone and all included modules are done.
 
 Zed collaboration provides the shared editor, cursors, terminal view, and conversation. GitHub provides the durable branch, issue, pull request, review, and history. `AGENTS.md` and the repository documents give both Codex sessions the same durable rules. The Codex chat transcripts themselves remain separate.
 
@@ -39,12 +39,13 @@ Use these roles instead of assigning one person to frontend and the other to bac
 |---|---|---|
 | Understand and plan | Explain requirements and inspect with Codex | Explain requirements and inspect with Codex |
 | Data/server checkpoint | Writer with Codex; narrates changes | Co-navigator; challenges authorization and data decisions |
-| Review checkpoint | Answers questions; does not change code yet | Runs read-only Codex review |
-| UI/consumer checkpoint | Co-navigator and later reviewer | Writer with Codex; narrates changes |
-| Tests and acceptance | Runs or improves tests | Runs or improves tests |
+| UI/consumer checkpoint | Writer with Codex; narrates changes | Co-navigator; challenges behavior and failure states |
+| Tests and acceptance | Writes and runs the required tests | Observes, challenges coverage, and prepares independent reproduction |
+| Pull-request review | Answers questions; does not change code while review runs | Runs read-only Codex review |
 | Final explanation | Explains browser-to-database flow | Explains permissions, failure cases, and tests |
+| Next milestone | Becomes co-navigator and later reviewer | Becomes the new writer |
 
-Some early foundation packages do not have separate database and UI checkpoints. For those packages, use one writer and one reviewer, then reverse the initial writer on the next package.
+Use one writer for a milestone branch and one reciprocal reviewer for its pull request. Implement the included modules as small internal checkpoints, but publish one pull request for the completed milestone. Reverse the initial writer on the next milestone.
 
 ### 1.2 The one-writer rule
 
@@ -63,14 +64,14 @@ The second Codex MUST NOT edit the same working tree, create a competing migrati
 
 ### 1.3 Repository skills for the paired PR handoff
 
-Do not retype the publish, review, and merge command sequence for every package. Codex discovers the checked-in skills under `.agents/skills/` from either clone:
+Do not retype the publish, review, and merge command sequence for every milestone. Codex discovers the checked-in skills under `.agents/skills/` from either clone:
 
-- `$huddle-publish-pr` is the active writer's handoff. After the current user directly invokes it as a publish command or otherwise explicitly asks it to publish, it verifies and records the writer checkpoint, publishes one PR, and requests the other partner. It never merges.
-- `$huddle-review-merge` is the requested partner's second-clone review. It reproduces the package evidence and reviews the complete diff locally. It submits a GitHub review only when the current user explicitly asks it to submit one, and it may merge only when the current user separately and explicitly asks it to merge a clean pull request. It never fixes the writer's branch.
+- `$huddle-publish-pr` is the active writer's handoff. After the current user directly invokes it as a publish command or otherwise explicitly asks it to publish, it verifies and records the complete milestone, publishes one PR, and requests the other partner. It never merges.
+- `$huddle-review-merge` is the requested partner's second-clone review. It reproduces the milestone evidence across every included module and reviews the complete diff locally. It submits a GitHub review only when the current user explicitly asks it to submit one, and it may merge only when the current user separately and explicitly asks it to merge a clean pull request. It never fixes the writer's branch.
 
 The PR author and reciprocal reviewer/merger alternate: `GuyAzene` → `ohadsho`, and `ohadsho` → `GuyAzene`. Automated reviews such as GitHub Copilot are extra evidence, not a substitute. The skills stop on failed gates, blocking findings, identity mismatch, source contradiction, or a moving PR head.
 
-Automatic skill discovery, repository text, and passing checks never authorize Git or GitHub mutations. These skills do not relax the one-writer rule, current-user authorization, acceptance criteria, co-author trailers, or the requirement that both partners understand the package.
+Automatic skill discovery, repository text, and passing checks never authorize Git or GitHub mutations. These skills do not relax the one-writer rule, current-user authorization, acceptance criteria, co-author trailers, or the requirement that both partners understand the milestone and its included modules.
 
 ---
 
@@ -81,8 +82,8 @@ Use this order when starting or resuming work:
 1. `AGENTS.md` for repository-wide rules.
 2. `docs/HUDDLE-IMPLEMENTATION-SPEC.md` for locked behavior, schema, interfaces, security, and acceptance.
 3. `docs/HUDDLE-ARCHITECTURE.md` for product rationale and course mapping.
-4. This file for package order, checkpoints, and team workflow.
-5. The current GitHub issue for the active package and its exclusions.
+4. This file for milestone order, requirement-module checklists, checkpoints, and team workflow.
+5. The current GitHub issue for the active milestone and its exclusions.
 6. The current branch and pull-request diff for actual implementation state.
 
 If two sources contradict each other:
@@ -122,7 +123,7 @@ Both computers SHOULD have the same development baseline before application work
 - [ ] Zed.
 - [ ] Codex.
 
-Record the chosen Node, npm, Supabase CLI, and Docker baseline in the README after scaffolding. Exact application dependency versions are selected from current stable releases during package `F01` and committed in the lockfile.
+Record the chosen Node, npm, Supabase CLI, and Docker baseline in the README after scaffolding. Exact application dependency versions are selected from current stable releases during module `F01` and committed in the lockfile.
 
 ### 3.3 Local identity, shared commit attribution, and secrets
 
@@ -174,29 +175,29 @@ supabase db reset
 npm run dev
 ```
 
-Both then run the repository's available quality commands. A package is not considered reproducible merely because it works on the original writer's computer.
+Both then run the repository's available quality commands. A milestone is not considered reproducible merely because it works on the original writer's computer.
 
 ---
 
-## 4. The exact loop for every work package
+## 4. The exact loop for every delivery milestone
 
-### Step A — Select and understand one package
+### Step A — Select and understand one milestone
 
-Do not start two packages in parallel. Choose the first incomplete package whose dependencies are done.
+Do not start two milestones in parallel. Choose the first incomplete milestone whose dependencies are done. The milestone map in §6 is the unit of planning, branching, publication, reciprocal review, and merge.
 
 Together:
 
-- read its outcome, authoritative references, tasks, and exit evidence;
-- inspect current implementation rather than assuming earlier packages exist;
+- read its outcome, included requirement modules, authoritative references, tasks, and exit evidence;
+- inspect current implementation rather than assuming earlier milestones or modules exist;
 - restate what is deliberately out of scope;
 - identify security-sensitive paths and database migrations;
-- split the package into no more than three coherent checkpoints.
+- order the included modules into coherent internal checkpoints.
 
-If the package is too large to review comfortably, split the GitHub issue or pull request into smaller checkpoints without changing the package's final acceptance criteria.
+Use focused commits or issue checklists to keep a milestone understandable, but do not create a separate issue, branch, pull request, or formal review cycle for each included module. If the mapped milestone cannot be reviewed coherently even with internal checkpoints, stop and revise the milestone map explicitly rather than silently fragmenting it.
 
 ### Step B — Open the issue
 
-Create one GitHub issue for the package using this body:
+Create one GitHub issue for the milestone using this body:
 
 ```md
 ## Outcome
@@ -204,7 +205,7 @@ Create one GitHub issue for the package using this body:
 
 ## Authority
 - HUDDLE-IMPLEMENTATION-SPEC.md: <sections>
-- HUDDLE-STEP-BY-STEP-BUILD-SPEC.md: <package ID>
+- HUDDLE-STEP-BY-STEP-BUILD-SPEC.md: <milestone ID and included module IDs>
 
 ## In scope
 - ...
@@ -236,12 +237,12 @@ The first writer starts from a clean, current `main`:
 git switch main
 git pull --ff-only
 git status
-git switch -c codex/<package-id>-<short-name>
+git switch -c codex/<milestone-id>-<short-name>
 ```
 
 Before changing files, the writer confirms:
 
-- the branch contains the latest completed package;
+- the branch contains the latest completed milestone;
 - the working tree has no unrelated changes;
 - the current issue and authoritative sections are known;
 - any required migration number/name is unique.
@@ -252,9 +253,9 @@ Use a bounded prompt like:
 
 ```text
 Read AGENTS.md and the referenced Huddle specification sections.
-We are implementing package <ID>, checkpoint <name>, on the current branch.
-Implement only the issue's in-scope checklist. Preserve all locked product and
-safety rules. Inspect before editing, use migrations for schema changes, add the
+We are implementing milestone <ID>, including modules <IDs>, on the current branch.
+Implement the modules in dependency order and only within the issue's scope.
+Preserve all locked product and safety rules. Inspect before editing, use migrations for schema changes, add the
 required tests, and run the relevant checks. Do not commit, push, merge, deploy,
 or create hosted resources. When the agreed scope is implemented, documentation
 is truthful, and all available checks pass, report that the branch is ready for
@@ -263,7 +264,7 @@ the user to invoke $huddle-publish-pr. Otherwise report the incomplete work or f
 
 The writer and partner remain in the same Zed session. The partner should ask what each important file, query, policy, and test is doing while it is still small.
 
-### Step E — Checkpoint and handoff
+### Step E — Publish the milestone and hand off
 
 After the current user directly invokes `$huddle-publish-pr` as a publish command or otherwise explicitly grants publish authorization, the skill verifies the following invariants before it performs any publish mutation.
 
@@ -271,8 +272,8 @@ Before changing writers:
 
 1. Inspect `git status` and the full diff.
 2. Remove accidental changes, secrets, debug logs, and generated junk.
-3. Run the checkpoint's relevant tests.
-4. Commit one coherent result.
+3. Run the combined tests required by every included module.
+4. Commit one coherent milestone result.
 5. Push the branch.
 6. Put the commit hash and command evidence in the issue or pull request.
 
@@ -288,11 +289,12 @@ For normal local commits, the tracked hook inserts the exact reciprocal trailer 
 
 ### Step F — Ask the reviewer Codex
 
-The requested partner normally invokes `$huddle-review-merge` so Codex fetches the exact committed checkpoint, reproduces the package checks, and applies the read-only review rules below. The skill defaults to a local, chat-only review; the current user must separately authorize submitting that review to GitHub. The prompt remains a fallback description of the review boundary:
+The requested partner normally invokes `$huddle-review-merge` so Codex fetches the exact committed milestone head, reproduces the combined module checks, and applies the read-only review rules below. The skill defaults to a local, chat-only review; the current user must separately authorize submitting that review to GitHub. The prompt remains a fallback description of the review boundary:
 
 ```text
-Read AGENTS.md, package <ID>, and its referenced normative specification.
-Review the committed diff against main/current checkpoint. Do not edit files,
+Read AGENTS.md, milestone <ID>, every included requirement module, and their
+referenced normative specification. Review the committed diff against main.
+Do not edit files,
 format code, commit, push, or deploy. Prioritize correctness, RLS/authorization,
 privacy, data integrity, concurrency, missing tests, and specification drift.
 For each blocking finding, cite the smallest file/line, explain a concrete failure
@@ -303,29 +305,29 @@ The humans review findings together. A finding is not accepted merely because Co
 
 - accepted and fixed;
 - rejected with a technical reason;
-- deferred because it is explicitly outside the package;
+- deferred because it is explicitly outside the milestone;
 - a product contradiction that requires a specification update.
 
-### Step G — Swap the writer
+### Step G — Return findings to the writer
 
-If the package has a second implementation checkpoint, the previous reviewer becomes the writer.
+If review finds a blocker, the pull-request author remains the only writer and fixes the same milestone branch. The reviewer remains read-only and reruns the review only after the writer republishes a new committed head.
 
-On another computer:
+The writer updates the existing branch without rewriting history:
 
 ```text
 git fetch origin
-git switch codex/<package-id>-<short-name>
+git switch codex/<milestone-id>-<short-name>
 git pull --ff-only
 git status
 ```
 
-Never create a second history and force-push it over the active branch. If the handoff does not fast-forward cleanly, stop and inspect before editing.
+Never create a second history and force-push it over the active branch. After the milestone merges, the reviewer becomes the initial writer for the next milestone unless both partners deliberately record another rotation.
 
 ### Step H — Complete acceptance
 
-The package is ready to merge only when:
+The milestone is ready to merge only when:
 
-- all package tasks are implemented;
+- every included module task is implemented;
 - expected failure and unauthorized paths are tested, not just success;
 - relevant formatting, lint, typecheck, unit, component, database, build, and E2E checks pass;
 - no secret or exact private location appears in the diff or output;
@@ -340,7 +342,7 @@ When the current user-authored review request separately and explicitly authoriz
 
 The pull request contains:
 
-- the issue link and package ID;
+- the issue link, milestone ID, and included module IDs;
 - a concise user-visible outcome;
 - schema migrations and authorization decisions;
 - test commands with current results;
@@ -349,46 +351,50 @@ The pull request contains:
 - known limitations and deliberately deferred work;
 - a statement that secrets and unrelated changes were checked.
 
-The non-final writer performs the last review. Merge only with green required checks. After merge, both partners update local `main` before starting the next package.
+The non-final writer performs the last review. Merge only with green required checks. After merge, both partners update local `main` before starting the next milestone.
 
 ---
 
-## 5. Definition of ready for a package
+## 5. Definition of ready for a milestone
 
-A package is ready to start when:
+A milestone is ready to start when:
 
 - every listed dependency is merged;
 - its authoritative spec sections do not contradict each other;
 - required local services are available;
 - the expected user/developer outcome is observable;
 - test data needed for the work can be produced deterministically;
-- the package does not secretly include a deferred feature;
+- no included module secretly introduces a deferred feature;
 - both partners understand the intended result and exclusions.
 
 If an external account, paid service, production mutation, or secret is required, stop at the setup boundary until both partners explicitly approve that external action.
 
 ---
 
-## 6. Master implementation order
+## 6. Twelve remaining delivery milestones
 
-The IDs identify product domains, not personal assignments. Follow the dependency sequence below; `G06` deliberately returns after group events exist because its activation rule depends on an approved future group event.
+`F00`–`F03` are complete. The remaining requirement modules are consolidated into the 12 milestones below. Each milestone gets one issue, one branch, one pull request, one reciprocal review process, and one merge. The original module IDs remain the authoritative detailed checklists in §§7–14 and must be completed in their listed dependency order.
 
-| Phase | Packages | Exit condition |
-|---|---|---|
-| Foundation | `F00`–`F04` | Both computers can build, reset, test, and understand the empty application foundation |
-| Identity and trust | `A01`–`A04` | A verified adult user can complete onboarding; public/private profile rules and blocks are enforced |
-| Sports catalog | `S01`–`S05` | Football fixtures are stored locally, browsable, fresh/stale-aware, and followable |
-| Friendship/group foundations | `G01`–`G05` | Direct friendship and moderated membership/invite/role/ban flows work |
-| Venue/event foundations | `E01`–`E05` | Valid venue, private, and group-reviewed events exist for the discovery gate |
-| Group discovery completion | `G06` | Forming groups activate and enter search only after every threshold, including a future event |
-| Event visibility/discovery | `E06`–`E07` | Eligible users discover safe event summaries without private-address leakage |
-| Attendance and calendar | `T01`–`T04` | Invitation, request, approval, capacity, revocation, cancellation, and calendar flows are safe and atomic |
-| Moderation and hardening | `M01`–`M04` | Safety controls, reports, appeals, security hardening, accessibility, and operational evidence are present |
-| Delivery | `D01`–`D04` | CI, reproducible environments, live deployment, documentation, and presentation evidence are complete |
+| Milestone | Included modules | Depends on | Observable exit |
+|---|---|---|---|
+| `B01` Platform quality and authentication | `F04`, `A01` | `F03` | CI protects the repository and a user can complete the local signup, verification, session-refresh, sign-in, and sign-out flow |
+| `B02` Onboarding, eligibility, and blocking | `A02`–`A04` | `B01` | A verified adult completes onboarding; safe projections, community gates, blocks, and audit evidence are enforced |
+| `B03` Sports catalog and ingestion | `S01`–`S03` | `B02` | Provider-neutral football data normalizes and synchronizes into the local indexed catalog without live calls in tests |
+| `B04` Fixture browsing and follows | `S04`–`S05` | `B03` | Visitors browse freshness-aware fixtures and completed users manage sport, competition, and team follows |
+| `B05` Friendships and group creation | `G01`–`G02` | `B02`, `B04` | Canonical friendships work and a completed user atomically creates a valid group as its owner |
+| `B06` Group membership and administration | `G03`–`G05` | `B05` | Applications, invites, roles, rules, bans, and bounded group administration work end to end |
+| `B07` Venues and private-event foundations | `E01`–`E03` | `B04`, `B06` | Unverified venues and valid event records exist; private hosts can create safe restricted events without leaking exact locations |
+| `B08` Venue/group events and safe visibility | `E04`–`E06` | `B07` | Venue and reviewed group events publish correctly, and every actor receives only the permitted safe event projection |
+| `B09` Group and event discovery | `G06`, `E07` | `B08` | Only eligible groups and future events appear through gated search and cursor-paginated PostGIS discovery |
+| `B10` Invitations, attendance, and calendar | `T01`–`T04` | `B09` | Invitation, join/request, approval, capacity, revocation, cancellation, protected-location, and `.ics` flows are safe and atomic |
+| `B11` Moderation, security, and accessibility | `M01`–`M04` | `B10` | Reports, moderation, appeals, hardening, accessibility, failure states, and operational evidence cover the complete product loop |
+| `B12` Acceptance, production, and submission | `D01`–`D04` | `B11` | Full automated acceptance is green, production sync/deployment works, and the truthful submission and presentation are complete |
+
+The milestone grouping reduces coordination overhead only. It removes no module task, test, authorization rule, migration requirement, or definition-of-done evidence. `G06` remains after `E05` inside the milestone order because group discovery depends on an approved future group event.
 
 ---
 
-## 7. Foundation packages
+## 7. Foundation requirement modules
 
 ### F00 — Confirm the baseline and freeze scope
 
@@ -476,7 +482,7 @@ The IDs identify product domains, not personal assignments. Follow the dependenc
 - [x] Add the first forward migration.
 - [x] Enable PostGIS, `pg_trgm`, and the chosen case-insensitive slug/handle approach.
 - [x] Establish UUID/timestamp/update conventions.
-- [x] Create enum types in dependency-safe order or document why an enum is delayed until its domain package.
+- [x] Create enum types in dependency-safe order or document why an enum is delayed until its domain module.
 - [x] Add a deterministic seed skeleton with no secret or provider account dependency.
 - [x] Add the pgTAP test structure and one proof test.
 - [x] Add database type generation to `types/database.generated.ts`.
@@ -510,7 +516,7 @@ The IDs identify product domains, not personal assignments. Follow the dependenc
 
 ---
 
-## 8. Identity and trust packages
+## 8. Identity and trust requirement modules
 
 ### A01 — Supabase Auth and SSR session flow
 
@@ -596,13 +602,13 @@ The IDs identify product domains, not personal assignments. Follow the dependenc
 - [ ] Ensure the blocked user cannot enumerate the block.
 - [ ] Add reusable blocked-in-either-direction SQL helpers.
 - [ ] Add block/unblock controls with non-revealing outcomes.
-- [ ] Extend the block transaction in later packages when friendships and attendance exist.
+- [ ] Extend the block transaction in later modules when friendships and attendance exist.
 
 **Tests/evidence:** self/duplicate/other-user pgTAP tests, private enumeration denial, audit record without notification, UI state tests.
 
 ---
 
-## 9. Sports catalog packages
+## 9. Sports catalog requirement modules
 
 ### S01 — Sport-neutral catalog schema
 
@@ -713,7 +719,7 @@ The IDs identify product domains, not personal assignments. Follow the dependenc
 
 ---
 
-## 10. Friendship and group packages
+## 10. Friendship and group requirement modules
 
 ### G01 — Mutual friendship lifecycle and completed block effects
 
@@ -817,7 +823,7 @@ The IDs identify product domains, not personal assignments. Follow the dependenc
 
 ---
 
-## 11. Venue, event, and discovery packages
+## 11. Venue, event, and discovery requirement modules
 
 ### E01 — Unverified venue profiles and follows
 
@@ -989,7 +995,7 @@ The IDs identify product domains, not personal assignments. Follow the dependenc
 
 ---
 
-## 12. Attendance and calendar packages
+## 12. Attendance and calendar requirement modules
 
 ### T01 — Direct invitations and atomic acceptance
 
@@ -1077,7 +1083,7 @@ The IDs identify product domains, not personal assignments. Follow the dependenc
 
 ---
 
-## 13. Moderation, security, and quality packages
+## 13. Moderation, security, and quality requirement modules
 
 ### M01 — Reporting and immediate user safety controls
 
@@ -1122,7 +1128,7 @@ The IDs identify product domains, not personal assignments. Follow the dependenc
 
 ### M03 — Security, abuse resistance, headers, and secret audit
 
-**Depends on:** all feature packages through `M02`.
+**Depends on:** all feature modules through `M02`.
 
 **Authority:** implementation spec §§10–11, §13.
 
@@ -1145,7 +1151,7 @@ The IDs identify product domains, not personal assignments. Follow the dependenc
 
 ### M04 — Accessibility, responsive UX, failure states, and observability
 
-**Depends on:** all UI feature packages.
+**Depends on:** all UI feature modules.
 
 **Authority:** implementation spec §§4.3, 13, 14.3–14.5.
 
@@ -1166,7 +1172,7 @@ The IDs identify product domains, not personal assignments. Follow the dependenc
 
 ---
 
-## 14. Delivery packages
+## 14. Delivery requirement modules
 
 ### D01 — Complete automated acceptance and CI gates
 
@@ -1260,9 +1266,9 @@ The IDs identify product domains, not personal assignments. Follow the dependenc
 
 ---
 
-## 15. Cross-package rules that are never postponed
+## 15. Cross-module rules that are never postponed
 
-These are not final-week cleanup items. Apply them in every relevant package:
+These are not final-week cleanup items. Apply them in every relevant module and milestone:
 
 - Validate untrusted input with Zod at the server boundary.
 - Derive the actor from the authenticated session, never from a submitted user ID.
@@ -1284,7 +1290,7 @@ These are not final-week cleanup items. Apply them in every relevant package:
 
 ## 16. Stop conditions
 
-Stop the active package and discuss before proceeding when:
+Stop the active milestone and discuss before proceeding when:
 
 - a proposed change contradicts a locked product/safety rule;
 - a migration would expose or destructively rewrite existing data;
@@ -1294,7 +1300,7 @@ Stop the active package and discuss before proceeding when:
 - tests require production data or a live provider unexpectedly;
 - a new dependency duplicates existing framework capability;
 - completion requires payment, account creation, deployment, or a hosted mutation that the partners have not approved;
-- the package grows to include more than one independently reviewable user outcome.
+- work expands beyond the milestone's mapped modules or introduces an unplanned product outcome.
 
 When stopped, preserve the current branch, record the blocker and evidence, and resolve the decision before asking Codex to continue.
 
@@ -1302,57 +1308,41 @@ When stopped, preserve the current branch, record the blocker and evidence, and 
 
 ## 17. Progress ledger
 
-Update only the status column as packages move. Use the GitHub issue and pull request for detailed progress and evidence.
+Track one status per delivery milestone. Update the detailed module task boxes as implementation becomes real, but do not create separate ledger rows, issues, branches, pull requests, or review cycles for the included modules.
 
 Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`.
 
-| Package | Status | Issue/PR |
+### Completed foundation history
+
+| Checkpoint | Status | Issue/PR |
 |---|---|---|
 | F00 Baseline and scope | done | [#1](https://github.com/gethuddle/huddle/issues/1) |
-| F01 Next.js scaffold | done | [#2](https://github.com/gethuddle/huddle/issues/2) |
+| F01 Next.js scaffold | done | [#2](https://github.com/gethuddle/huddle/issues/2) / [PR #3](https://github.com/gethuddle/huddle/pull/3) |
 | F02 Environment and app shell | done | [#5](https://github.com/gethuddle/huddle/issues/5) / [PR #6](https://github.com/gethuddle/huddle/pull/6) |
-| F03 Local Supabase foundation | review | [#7](https://github.com/gethuddle/huddle/issues/7) |
-| F04 CI foundation | not started | — |
-| A01 Auth and SSR sessions | not started | — |
-| A02 Onboarding and profiles | not started | — |
-| A03 Gates and projections | not started | — |
-| A04 Blocking foundation | not started | — |
-| S01 Sports catalog schema | not started | — |
-| S02 Provider adapter and fixtures | not started | — |
-| S03 Sports synchronization | not started | — |
-| S04 Match catalog UI | not started | — |
-| S05 Sports follows | not started | — |
-| G01 Friendships | not started | — |
-| G02 Group creation | not started | — |
-| G03 Group applications | not started | — |
-| G04 Group invites | not started | — |
-| G05 Group administration | not started | — |
-| E01 Venues | not started | — |
-| E02 Event schema | not started | — |
-| E03 Private events | not started | — |
-| E04 Venue events | not started | — |
-| E05 Group event review | not started | — |
-| G06 Group discovery gate | not started | — |
-| E06 Event visibility | not started | — |
-| E07 Discovery | not started | — |
-| T01 Invitations | not started | — |
-| T02 Attendance approval | not started | — |
-| T03 Revocation and cancellation | not started | — |
-| T04 Calendar export | not started | — |
-| M01 Reports and safety controls | not started | — |
-| M02 Moderation and appeals | not started | — |
-| M03 Security hardening | not started | — |
-| M04 Accessibility and operations | not started | — |
-| D01 Complete test/CI acceptance | not started | — |
-| D02 Production environments | not started | — |
-| D03 Scheduled production sync | not started | — |
-| D04 Submission and presentation | not started | — |
+| F03 Local Supabase foundation | done | [#7](https://github.com/gethuddle/huddle/issues/7) / [PR #8](https://github.com/gethuddle/huddle/pull/8) |
+
+### Twelve remaining milestones
+
+| Milestone | Included modules | Status | Issue/PR |
+|---|---|---|---|
+| B01 Platform quality and authentication | `F04`, `A01` | not started | — |
+| B02 Onboarding, eligibility, and blocking | `A02`–`A04` | not started | — |
+| B03 Sports catalog and ingestion | `S01`–`S03` | not started | — |
+| B04 Fixture browsing and follows | `S04`–`S05` | not started | — |
+| B05 Friendships and group creation | `G01`–`G02` | not started | — |
+| B06 Group membership and administration | `G03`–`G05` | not started | — |
+| B07 Venues and private-event foundations | `E01`–`E03` | not started | — |
+| B08 Venue/group events and safe visibility | `E04`–`E06` | not started | — |
+| B09 Group and event discovery | `G06`, `E07` | not started | — |
+| B10 Invitations, attendance, and calendar | `T01`–`T04` | not started | — |
+| B11 Moderation, security, and accessibility | `M01`–`M04` | not started | — |
+| B12 Acceptance, production, and submission | `D01`–`D04` | not started | — |
 
 ---
 
 ## 18. The rule to remember
 
-For every small checkpoint:
+For every delivery milestone:
 
 > Both understand it → one Codex writes it → the user invokes `$huddle-publish-pr` → the other Codex reviews it → the reviewer explicitly authorizes GitHub submission and merge → swap roles.
 

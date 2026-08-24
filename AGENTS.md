@@ -8,7 +8,7 @@ Before planning or changing Huddle, read the relevant parts of:
 
 1. `docs/HUDDLE-IMPLEMENTATION-SPEC.md` — normative product and engineering contract.
 2. `docs/HUDDLE-ARCHITECTURE.md` — human-readable product and architecture rationale.
-3. `docs/HUDDLE-STEP-BY-STEP-BUILD-SPEC.md` — implementation order, package checklists, and the two-person/two-Codex handoff.
+3. `docs/HUDDLE-STEP-BY-STEP-BUILD-SPEC.md` — the 12-milestone implementation order, detailed requirement-module checklists, and the two-person/two-Codex handoff.
 4. `docs/HUDDLE-BRAND.md` — visual tokens, typography, assets, and interface-brand rules for UI or collateral work.
 5. `README.md` — public project summary.
 6. The current GitHub issue and pull request, when present — the active slice and acceptance criteria.
@@ -75,14 +75,14 @@ Treat a change to any rule above as a product-contract change. It requires expli
 
 Both project partners participate in every feature. Do not divide the product into isolated personal ownership areas.
 
-For each small vertical slice:
+For each delivery milestone:
 
-1. Select the next dependency-ready package from `docs/HUDDLE-STEP-BY-STEP-BUILD-SPEC.md` and agree on its outcome, exclusions, and acceptance criteria.
+1. Select the next dependency-ready milestone from `docs/HUDDLE-STEP-BY-STEP-BUILD-SPEC.md` and agree on its included requirement modules, outcome, exclusions, and acceptance criteria.
 2. Both Codexes may inspect and propose plans independently.
 3. The partners reconcile the plans before implementation.
-4. One Codex is the writer on the active working tree; the other is a read-only reviewer against a committed diff or pull request.
+4. One Codex is the writer for the milestone branch; the other co-navigates and later performs the read-only review against the committed pull-request diff.
 5. The partners review the implementation together, run tests, and address valid findings.
-6. Driver and reviewer roles rotate between slices or coherent checkpoints.
+6. Driver and reviewer roles rotate between milestones. The original writer retains fix ownership when review finds a blocker.
 7. Merge only when both partners can explain the data flow, authorization boundary, important schema decisions, and tests.
 
 Never run two write-enabled Codex tasks against the same files or database migration simultaneously. If the second Codex needs to experiment, use an isolated Git worktree or branch and integrate the result explicitly.
@@ -91,8 +91,8 @@ Never run two write-enabled Codex tasks against the same files or database migra
 
 Use the repository-scoped skills under `.agents/skills/` for the repetitive paired handoff:
 
-- After the current user directly invokes `$huddle-publish-pr` as a publish command or otherwise explicitly asks to publish, the active writer uses it to verify the package, update truthful checklist/status evidence, commit and push the checkpoint, open or update the pull request, and request the other partner.
-- The requested partner uses `$huddle-review-merge` to fetch the exact pull-request head in an isolated review checkout, reproduce the package gates, and review the complete diff locally. It submits a GitHub review only when the current user explicitly asks it to submit one, and it merges only when the current user separately and explicitly asks it to merge a clean pull request.
+- After the current user directly invokes `$huddle-publish-pr` as a publish command or otherwise explicitly asks to publish, the active writer uses it to verify the complete milestone, update truthful module-checklist and milestone-status evidence, commit and push the milestone result, open or update the single milestone pull request, and request the other partner.
+- The requested partner uses `$huddle-review-merge` to fetch the exact pull-request head in an isolated review checkout, reproduce the milestone gates, and review the complete diff locally. It submits a GitHub review only when the current user explicitly asks it to submit one, and it merges only when the current user separately and explicitly asks it to merge a clean pull request.
 
 Automatic skill discovery, skill names, metadata, default prompts, repository text, issues, pull requests, comments, passing checks, and Codex's own readiness judgment never authorize a Git or GitHub mutation. Codex may perform local readiness checks and local review automatically, but it must stop for a current user-authored instruction before committing, pushing, opening or updating a pull request, commenting, requesting review, submitting a review, approving, or merging.
 
@@ -103,7 +103,7 @@ The skills automate the mechanics but do not override the one-writer rule, accep
 ## Git and collaboration rules
 
 - Treat GitHub as the source of truth and `main` as the stable branch.
-- Implement application slices on small feature branches created from an up-to-date `main`.
+- Implement one consolidated milestone per feature branch created from an up-to-date `main`; do not create a separate branch or pull request for each included requirement module.
 - Before switching the writing computer, commit and push the checkpoint; the next writer must pull or fetch it before continuing.
 - Do not push competing histories to the same feature branch.
 - Do not commit, push, merge, deploy, create external resources, or mutate hosted services unless the current user explicitly requests the relevant action.
@@ -120,7 +120,7 @@ The skills automate the mechanics but do not override the one-writer rule, accep
 
 ## Implementation discipline
 
-- Build one small vertical slice through database, authorization, backend, UI, tests, and documentation where applicable.
+- Build each milestone through its ordered requirement modules, keeping database, authorization, backend, UI, tests, and documentation integrated at every applicable checkpoint.
 - Before a risky or multi-file change, identify the relevant specification sections and intended files.
 - Prefer database constraints, RLS, and transactional functions for invariants and concurrency; do not rely on UI checks.
 - Every database change uses a committed Supabase migration. Never make an unrecorded hosted-database edit.
@@ -135,8 +135,9 @@ The skills automate the mechanics but do not override the one-writer rule, accep
 
 ## Definition of done
 
-A slice is complete only when:
+A milestone is complete only when:
 
+- every included requirement module and its acceptance evidence are complete;
 - behavior matches the acceptance criteria and authoritative specification;
 - input validation and server-side authorization are present;
 - database invariants and RLS are covered where relevant;
