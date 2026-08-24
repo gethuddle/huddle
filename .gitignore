@@ -23,6 +23,11 @@ course-roadmap/
 # deployment
 .vercel
 
+# local Supabase runtime state
+/supabase/.branches/
+/supabase/.temp/
+/types/database.generated.ts.tmp
+
 # logs
 npm-debug.log*
 yarn-debug.log*

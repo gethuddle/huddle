@@ -472,16 +472,16 @@ The IDs identify product domains, not personal assignments. Follow the dependenc
 
 **Tasks:**
 
-- [ ] Initialize local Supabase configuration.
-- [ ] Add the first forward migration.
-- [ ] Enable PostGIS, `pg_trgm`, and the chosen case-insensitive slug/handle approach.
-- [ ] Establish UUID/timestamp/update conventions.
-- [ ] Create enum types in dependency-safe order or document why an enum is delayed until its domain package.
-- [ ] Add a deterministic seed skeleton with no secret or provider account dependency.
-- [ ] Add the pgTAP test structure and one proof test.
-- [ ] Add database type generation to `types/database.generated.ts`.
-- [ ] Add scripts for database reset, database tests, and type generation.
-- [ ] Verify a full reset from an empty local state.
+- [x] Initialize local Supabase configuration.
+- [x] Add the first forward migration.
+- [x] Enable PostGIS, `pg_trgm`, and the chosen case-insensitive slug/handle approach.
+- [x] Establish UUID/timestamp/update conventions.
+- [x] Create enum types in dependency-safe order or document why an enum is delayed until its domain package.
+- [x] Add a deterministic seed skeleton with no secret or provider account dependency.
+- [x] Add the pgTAP test structure and one proof test.
+- [x] Add database type generation to `types/database.generated.ts`.
+- [x] Add scripts for database reset, database tests, and type generation.
+- [x] Verify a full reset from an empty local state.
 
 **Writer rotation:** one partner writes migration/config; the other writes the first pgTAP tests and verifies reset/type generation.
 
@@ -1311,7 +1311,7 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 | F00 Baseline and scope | done | [#1](https://github.com/gethuddle/huddle/issues/1) |
 | F01 Next.js scaffold | done | [#2](https://github.com/gethuddle/huddle/issues/2) |
 | F02 Environment and app shell | done | [#5](https://github.com/gethuddle/huddle/issues/5) / [PR #6](https://github.com/gethuddle/huddle/pull/6) |
-| F03 Local Supabase foundation | not started | — |
+| F03 Local Supabase foundation | review | [#7](https://github.com/gethuddle/huddle/issues/7) |
 | F04 CI foundation | not started | — |
 | A01 Auth and SSR sessions | not started | — |
 | A02 Onboarding and profiles | not started | — |

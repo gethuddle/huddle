@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import { getPublicEnvironment } from "@/lib/env/public";
 import { REQUEST_ID_HEADER, requestIdFromHeaders } from "@/lib/request-id";
+import type { Database } from "@/types/database.generated";
 
 /**
  * Refresh the cookie-backed Supabase session and propagate a request ID.
@@ -24,7 +25,7 @@ export async function refreshSession(request: NextRequest): Promise<NextResponse
   });
   response.headers.set(REQUEST_ID_HEADER, requestId);
 
-  const supabase = createServerClient(
+  const supabase = createServerClient<Database>(
     environment.NEXT_PUBLIC_SUPABASE_URL,
     environment.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
     {
