@@ -448,16 +448,16 @@ The IDs identify product domains, not personal assignments. Follow the dependenc
 
 **Tasks:**
 
-- [ ] Add Zod environment schemas separating browser-safe and server-only variables.
-- [ ] Add `.env.example` with placeholders only.
-- [ ] Confirm all real `.env*` files are ignored while `.env.example` is tracked.
-- [ ] Add browser and request-scoped server Supabase client modules.
-- [ ] Add a separate server-only service-role module with import protection; do not use it yet.
-- [ ] Add middleware for session refresh only, with comments/tests making clear it is not authorization.
-- [ ] Define `ActionResult<T>` and stable domain error types.
-- [ ] Add error mapping that never returns stacks, SQL details, policy names, or secrets.
-- [ ] Add root layout, navigation shell, footer placeholder, `error.tsx`, `not-found.tsx`, and basic empty/error components.
-- [ ] Add request-ID plumbing at server boundaries where practical.
+- [x] Add Zod environment schemas separating browser-safe and server-only variables.
+- [x] Add `.env.example` with placeholders only.
+- [x] Confirm all real `.env*` files are ignored while `.env.example` is tracked.
+- [x] Add browser and request-scoped server Supabase client modules.
+- [x] Add a separate server-only service-role module with import protection; do not use it yet.
+- [x] Add middleware for session refresh only, with comments/tests making clear it is not authorization.
+- [x] Define `ActionResult<T>` and stable domain error types.
+- [x] Add error mapping that never returns stacks, SQL details, policy names, or secrets.
+- [x] Add root layout, navigation shell, footer placeholder, `error.tsx`, `not-found.tsx`, and basic empty/error components.
+- [x] Add request-ID plumbing at server boundaries where practical.
 
 **Tests/evidence:** environment validation tests, server-only import/build proof, error-result unit tests, lint/typecheck/build.
 
@@ -1308,8 +1308,8 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 | Package | Status | Issue/PR |
 |---|---|---|
 | F00 Baseline and scope | done | [#1](https://github.com/GuyAzene/huddle/issues/1) |
-| F01 Next.js scaffold | review | [#2](https://github.com/GuyAzene/huddle/issues/2) |
-| F02 Environment and app shell | not started | — |
+| F01 Next.js scaffold | done | [#2](https://github.com/GuyAzene/huddle/issues/2) |
+| F02 Environment and app shell | review | [#5](https://github.com/GuyAzene/huddle/issues/5) |
 | F03 Local Supabase foundation | not started | — |
 | F04 CI foundation | not started | — |
 | A01 Auth and SSR sessions | not started | — |
