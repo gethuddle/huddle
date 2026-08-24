@@ -159,3 +159,4 @@ The product and implementation architecture are specified; application scaffoldi
 
 - [Product and architecture vision](./docs/HUDDLE-ARCHITECTURE.md)
 - [Implementation-ready engineering specification](./docs/HUDDLE-IMPLEMENTATION-SPEC.md)
+- [Step-by-step two-person build specification](./docs/HUDDLE-STEP-BY-STEP-BUILD-SPEC.md)

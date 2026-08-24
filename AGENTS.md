@@ -8,8 +8,9 @@ Before planning or changing Huddle, read the relevant parts of:
 
 1. `docs/HUDDLE-IMPLEMENTATION-SPEC.md` — normative product and engineering contract.
 2. `docs/HUDDLE-ARCHITECTURE.md` — human-readable product and architecture rationale.
-3. `README.md` — public project summary.
-4. The current GitHub issue and pull request, when present — the active slice and acceptance criteria.
+3. `docs/HUDDLE-STEP-BY-STEP-BUILD-SPEC.md` — implementation order, package checklists, and the two-person/two-Codex handoff.
+4. `README.md` — public project summary.
+5. The current GitHub issue and pull request, when present — the active slice and acceptance criteria.
 
 When sources disagree, stop and report the contradiction. Do not silently choose one. The implementation specification is authoritative only when the other documents have not deliberately recorded a newer approved decision.
 
@@ -74,7 +75,7 @@ Both project partners participate in every feature. Do not divide the product in
 
 For each small vertical slice:
 
-1. Both partners agree on the outcome, exclusions, and acceptance criteria.
+1. Select the next dependency-ready package from `docs/HUDDLE-STEP-BY-STEP-BUILD-SPEC.md` and agree on its outcome, exclusions, and acceptance criteria.
 2. Both Codexes may inspect and propose plans independently.
 3. The partners reconcile the plans before implementation.
 4. One Codex is the writer on the active working tree; the other is a read-only reviewer against a committed diff or pull request.
