@@ -26,54 +26,56 @@ export default function Home() {
     <>
       <section className="grid flex-1 items-center gap-14 py-20 lg:grid-cols-[1.3fr_0.7fr] lg:py-28">
         <div>
-          <p className="mb-6 text-sm font-semibold uppercase tracking-[0.2em] text-[#3e694d]">
+          <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-border-dark bg-surface-deep px-4 py-2 text-sm font-medium text-muted-dark">
+            <span aria-hidden="true" className="size-1.5 rounded-full bg-court" />
             Israel pilot · Football first
           </p>
           <h1 className="max-w-4xl text-5xl font-semibold leading-[0.98] tracking-[-0.055em] sm:text-7xl lg:text-[5.8rem]">
             Match day is better together.
           </h1>
-          <p className="mt-8 max-w-2xl text-lg leading-8 text-[#425148] sm:text-xl">
+          <p className="mt-8 max-w-2xl text-lg leading-8 text-muted-dark sm:text-xl">
             Huddle will help sports fans follow their interests, discover suitable nearby watch
             events, and join or host them through clear attendance and privacy boundaries.
           </p>
         </div>
 
-        <aside className="rounded-[2rem] border border-[#173f2a]/15 bg-[#173f2a] p-8 text-[#f8f4e9] shadow-[0_24px_80px_rgba(23,63,42,0.18)] sm:p-10">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#b9d9bd]">
+        <aside className="rounded-[2rem] border border-border-dark bg-surface-raised p-8 shadow-2xl shadow-black/20 sm:p-10">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sand">
             Foundation status
           </p>
           <h2 className="mt-5 text-3xl font-semibold tracking-[-0.04em]">
             The groundwork comes first.
           </h2>
-          <p className="mt-5 leading-7 text-[#d8e6d8]">
+          <p className="mt-5 leading-7 text-muted-dark">
             We are establishing the application, database, authorization, and test foundations
             before opening accounts or publishing events.
           </p>
-          <dl className="mt-8 grid grid-cols-2 gap-5 border-t border-white/15 pt-7 text-sm">
+          <dl className="mt-8 grid grid-cols-2 gap-5 border-t border-border-strong pt-7 text-sm">
             <div>
-              <dt className="text-[#a9c8ae]">Interface</dt>
+              <dt className="text-muted-dark">Interface</dt>
               <dd className="mt-1 font-semibold">English</dd>
             </div>
             <div>
-              <dt className="text-[#a9c8ae]">Display time</dt>
+              <dt className="text-muted-dark">Display time</dt>
               <dd className="mt-1 font-semibold">Jerusalem</dd>
             </div>
           </dl>
         </aside>
       </section>
 
-      <section aria-labelledby="journey-heading" className="border-t border-[#17211b]/15 py-12">
+      <section aria-labelledby="journey-heading" className="border-t border-border-dark py-12">
         <h2 id="journey-heading" className="sr-only">
           The Huddle journey
         </h2>
         <ol className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {journey.map((step) => (
-            <li key={step.number} className="border-l border-[#173f2a]/25 pl-5">
-              <span className="text-xs font-bold tracking-[0.18em] text-[#4c7657]">
-                {step.number}
-              </span>
+            <li
+              key={step.number}
+              className="rounded-2xl border border-border-dark bg-surface-deep p-5"
+            >
+              <span className="text-xs font-bold tracking-[0.18em] text-court">{step.number}</span>
               <h3 className="mt-3 text-lg font-semibold tracking-[-0.02em]">{step.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-[#566159]">{step.description}</p>
+              <p className="mt-2 text-sm leading-6 text-muted-dark">{step.description}</p>
             </li>
           ))}
         </ol>

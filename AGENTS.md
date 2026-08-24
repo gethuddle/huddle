@@ -9,8 +9,9 @@ Before planning or changing Huddle, read the relevant parts of:
 1. `docs/HUDDLE-IMPLEMENTATION-SPEC.md` — normative product and engineering contract.
 2. `docs/HUDDLE-ARCHITECTURE.md` — human-readable product and architecture rationale.
 3. `docs/HUDDLE-STEP-BY-STEP-BUILD-SPEC.md` — implementation order, package checklists, and the two-person/two-Codex handoff.
-4. `README.md` — public project summary.
-5. The current GitHub issue and pull request, when present — the active slice and acceptance criteria.
+4. `docs/HUDDLE-BRAND.md` — visual tokens, typography, assets, and interface-brand rules for UI or collateral work.
+5. `README.md` — public project summary.
+6. The current GitHub issue and pull request, when present — the active slice and acceptance criteria.
 
 When sources disagree, stop and report the contradiction. Do not silently choose one. The implementation specification is authoritative only when the other documents have not deliberately recorded a newer approved decision.
 
@@ -31,6 +32,7 @@ Keep implementation slices tied to this loop and the official course deliverable
 - Next.js App Router, React, and strict TypeScript form one modular-monolith application.
 - Next.js Server Components handle server reads; Server Actions handle application mutations; narrow Route Handlers provide discovery JSON, sports synchronization, and calendar files.
 - Tailwind CSS and Radix UI primitives provide the interface.
+- UI work consumes the named Tailwind tokens and replaceable brand assets in `docs/HUDDLE-BRAND.md`. Do not scatter raw brand hex values through components or treat the current provisional mark as permanent.
 - TanStack Query is limited to location-aware discovery, cursor pagination, and attendance mutations. Use local React state for ordinary forms and dialogs; do not add Zustand.
 - Zod validates all untrusted form, route, environment, and provider data.
 - Supabase owns Auth, PostgreSQL, Row Level Security, PostGIS, SQL migrations, and generated database types.

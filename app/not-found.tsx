@@ -7,7 +7,7 @@ export default function NotFound() {
     <EmptyState
       action={
         <Link
-          className="inline-flex rounded-full bg-[#173f2a] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#22563a] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#173f2a]"
+          className="inline-flex rounded-xl bg-court px-6 py-3 text-sm font-semibold text-ink transition hover:bg-court-hover focus-visible:outline-2 focus-visible:outline-offset-2"
           href="/"
         >
           Return home

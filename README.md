@@ -155,7 +155,13 @@ The database and provider boundaries may be future-ready, but deferred features 
 
 ## Project status
 
-The Next.js application foundation and the F02 environment, Supabase-client, safe-error, request-ID, and application-shell boundaries are implemented. Authentication flows, product features, database migrations, local Supabase, CI, and hosted environments have not started yet.
+The Next.js application foundation and the F02 environment, Supabase-client, safe-error, request-ID, application-shell, and brand-system boundaries are implemented. Authentication flows, product features, database migrations, local Supabase, CI, and hosted environments have not started yet.
+
+### Visual system
+
+Huddle uses a dark-first visual language built from Ink, Linen, Court Green, Forest, and warm supporting neutrals, with Familjen Grotesk as the interface typeface. Every approved swatch is available as a named Tailwind token, and shared UI consumes replaceable brand components rather than hard-coded logo geometry or colors. The palette and typography are adopted; the exact website mark remains intentionally easy to replace.
+
+See the [Huddle brand system](./docs/HUDDLE-BRAND.md) for tokens, assets, accessibility constraints, and usage rules.
 
 ### Local application setup
 
@@ -186,3 +192,4 @@ Local Supabase, database reset, database tests, CI, and end-to-end commands will
 - [Product and architecture vision](./docs/HUDDLE-ARCHITECTURE.md)
 - [Implementation-ready engineering specification](./docs/HUDDLE-IMPLEMENTATION-SPEC.md)
 - [Step-by-step two-person build specification](./docs/HUDDLE-STEP-BY-STEP-BUILD-SPEC.md)
+- [Brand system and asset rules](./docs/HUDDLE-BRAND.md)

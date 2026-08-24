@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
+  <rect width="1280" height="640" fill="#0B1210" />
+  <g fill="#2CE07B" transform="translate(430 300) scale(1.9) translate(-48 -48)">
+    <rect x="40" y="6" width="16" height="28" rx="8" transform="rotate(0 48 48) rotate(16 48 34)" />
+    <rect x="40" y="6" width="16" height="28" rx="8" transform="rotate(60 48 48) rotate(16 48 34)" />
+    <rect x="40" y="6" width="16" height="28" rx="8" transform="rotate(120 48 48) rotate(16 48 34)" />
+    <rect x="40" y="6" width="16" height="28" rx="8" transform="rotate(180 48 48) rotate(16 48 34)" />
+    <rect x="40" y="6" width="16" height="28" rx="8" transform="rotate(240 48 48) rotate(16 48 34)" />
+    <rect x="40" y="6" width="16" height="28" rx="8" transform="rotate(300 48 48) rotate(16 48 34)" />
+  </g>
+  <text x="530" y="336" fill="#F2EEE4" font-family="'Familjen Grotesk','Helvetica Neue',Arial,sans-serif" font-size="112" font-weight="600" letter-spacing="-4">Huddle</text>
+  <text x="640" y="452" fill="#8A948E" font-family="'Familjen Grotesk','Helvetica Neue',Arial,sans-serif" font-size="34" font-weight="500" text-anchor="middle">Find your people for every match.</text>
+</svg>

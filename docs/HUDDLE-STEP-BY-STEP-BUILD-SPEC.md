@@ -458,8 +458,9 @@ The IDs identify product domains, not personal assignments. Follow the dependenc
 - [x] Add error mapping that never returns stacks, SQL details, policy names, or secrets.
 - [x] Add root layout, navigation shell, footer placeholder, `error.tsx`, `not-found.tsx`, and basic empty/error components.
 - [x] Add request-ID plumbing at server boundaries where practical.
+- [x] Apply the approved Tailwind palette, Familjen Grotesk typography, replaceable brand assets, and shared-shell styling without adding fake feature controls.
 
-**Tests/evidence:** environment validation tests, server-only import/build proof, error-result unit tests, lint/typecheck/build.
+**Tests/evidence:** environment validation tests, server-only import/build proof, error-result unit tests, brand-token/asset contract tests, lint/typecheck/build.
 
 ### F03 — Local Supabase, extensions, migrations, seed, and type generation
 
@@ -1307,9 +1308,9 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 
 | Package | Status | Issue/PR |
 |---|---|---|
-| F00 Baseline and scope | done | [#1](https://github.com/GuyAzene/huddle/issues/1) |
-| F01 Next.js scaffold | done | [#2](https://github.com/GuyAzene/huddle/issues/2) |
-| F02 Environment and app shell | review | [#5](https://github.com/GuyAzene/huddle/issues/5) |
+| F00 Baseline and scope | done | [#1](https://github.com/gethuddle/huddle/issues/1) |
+| F01 Next.js scaffold | done | [#2](https://github.com/gethuddle/huddle/issues/2) |
+| F02 Environment and app shell | done | [#5](https://github.com/gethuddle/huddle/issues/5) / [PR #6](https://github.com/gethuddle/huddle/pull/6) |
 | F03 Local Supabase foundation | not started | — |
 | F04 CI foundation | not started | — |
 | A01 Auth and SSR sessions | not started | — |

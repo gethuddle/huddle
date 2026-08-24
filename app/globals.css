@@ -1,8 +1,28 @@
 @import "tailwindcss";
 
+@theme static {
+  --color-ink: #0b1210;
+  --color-court: #2ce07b;
+  --color-court-hover: #6ff0a6;
+  --color-forest: #0f7a42;
+  --color-linen: #f2eee4;
+  --color-sand: #c9b48f;
+  --color-muted-dark: #8a948e;
+  --color-muted-light: #5c665f;
+  --color-border-dark: #232b27;
+  --color-border-strong: #2a332e;
+  --color-surface-raised: #151d18;
+  --color-surface-deep: #0e1512;
+}
+
+@theme inline {
+  --font-sans: var(--font-familjen-grotesk), "Helvetica Neue", Arial, sans-serif;
+}
+
 :root {
-  --page-background: #f4f1e9;
-  --page-foreground: #17211b;
+  --page-background: var(--color-ink);
+  --page-foreground: var(--color-linen);
+  color-scheme: dark;
 }
 
 * {
@@ -19,16 +39,16 @@ body {
   margin: 0;
   background: var(--page-background);
   color: var(--page-foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-familjen-grotesk), "Helvetica Neue", Arial, sans-serif;
   text-rendering: optimizeLegibility;
 }
 
 ::selection {
-  background: #b7d9a8;
-  color: #102117;
+  background: var(--color-court);
+  color: var(--color-ink);
 }
 
 :focus-visible {
-  outline-color: #173f2a;
+  outline-color: var(--color-court);
   outline-offset: 3px;
 }
