@@ -155,7 +155,7 @@ The database and provider boundaries may be future-ready, but deferred features 
 
 ## Project status
 
-The Next.js application foundation and the F02 environment, Supabase-client, safe-error, request-ID, application-shell, and brand-system boundaries are implemented. Authentication flows, product features, database migrations, local Supabase, CI, and hosted environments have not started yet.
+The Next.js application foundation, F02 application boundaries, and F03 local Supabase foundation are implemented. The repository now carries a pinned Supabase CLI, local configuration, initial extension migration, deterministic seed skeleton, pgTAP proof, and generated database types. Authentication flows, product tables, CI, and hosted environments have not started yet.
 
 ### Visual system
 
@@ -165,29 +165,40 @@ See the [Huddle brand system](./docs/HUDDLE-BRAND.md) for tokens, assets, access
 
 ### Local application setup
 
-The F01 toolchain baseline is Node.js `24.19.0` (Krypton LTS) with npm `11.17.0`. Both versions are recorded in the repository, and application dependencies use exact versions in `package.json` and `package-lock.json`.
+The F01 toolchain baseline is Node.js `24.19.0` (Krypton LTS) with npm `11.17.0`. Both versions are recorded in the repository, application dependencies use exact versions in `package.json` and `package-lock.json`, and F03 pins the project-local Supabase CLI. A running Docker-compatible runtime is required for local Supabase.
 
-Install dependencies, create a local environment file, and replace every placeholder needed by the runtime you are exercising:
+Install dependencies and start the local stack:
 
 ```bash
 cp .env.example .env.local
 npm ci
+npm run db:start
+npm run db:reset
+```
+
+The first database start downloads the pinned local images. Copy only the local `API URL` and `Publishable` value printed by `db:start` into the matching browser-safe entries in `.env.local`; keep all real hosted values and secret/service-role keys out of Git. Then start Next.js:
+
+```bash
 npm run dev
 ```
 
-`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `NEXT_PUBLIC_APP_URL` are browser-safe. `SUPABASE_SERVICE_ROLE_KEY`, `FOOTBALL_DATA_API_TOKEN`, and `SPORTS_SYNC_SECRET` are server-only and must never enter Client Components or logs. F02 reserves the protected service-role boundary but does not call it. F03 will add repository-managed local Supabase configuration; no local or hosted project is claimed yet.
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `NEXT_PUBLIC_APP_URL` are browser-safe. `SUPABASE_SERVICE_ROLE_KEY`, `FOOTBALL_DATA_API_TOKEN`, and `SPORTS_SYNC_SECRET` are server-only and must never enter Client Components or logs. F02 reserves the protected service-role boundary but does not call it. F03 uses the repository-managed local stack only; no hosted project is linked or mutated.
+
+The local stack is recreated entirely from tracked migrations and seed data. It is not linked to the shared Supabase organization and must not be exposed externally. See the [local database contract](./supabase/README.md) for schema conventions and database commands.
 
 Before handing off a change, run the available foundation checks:
 
 ```bash
 npm test
+npm run test:db
+npm run db:types:check
 npm run format:check
 npm run lint
 npm run typecheck
 npm run build
 ```
 
-Local Supabase, database reset, database tests, CI, and end-to-end commands will be added by their dependency-ready Foundation packages; they are not claimed by F02.
+CI and end-to-end commands will be added by their dependency-ready Foundation packages; they are not claimed by F03.
 
 - [Product and architecture vision](./docs/HUDDLE-ARCHITECTURE.md)
 - [Implementation-ready engineering specification](./docs/HUDDLE-IMPLEMENTATION-SPEC.md)

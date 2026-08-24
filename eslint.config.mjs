@@ -15,5 +15,6 @@ export default defineConfig([
     "out/**",
     "playwright-report/**",
     "test-results/**",
+    "types/database.generated.ts",
   ]),
 ]);
