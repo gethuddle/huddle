@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+:root {
+  --page-background: #f4f1e9;
+  --page-foreground: #17211b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  background: var(--page-background);
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--page-background);
+  color: var(--page-foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: #b7d9a8;
+  color: #102117;
+}
