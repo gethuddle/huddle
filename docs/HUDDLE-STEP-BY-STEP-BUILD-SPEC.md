@@ -384,14 +384,14 @@ The IDs identify product domains, not personal assignments. Follow the dependenc
 
 **Tasks:**
 
-- [ ] Read the README, architecture document, implementation specification, this plan, and `AGENTS.md` together.
-- [ ] Explain the core loop: follow → discover → request/join → host/manage.
-- [ ] Explain why private people cannot publish `public` or `team_followers` events.
-- [ ] Explain why only business venues use those two audiences.
-- [ ] Explain the 18+ attestation, no-plus-one rule, 12-person home cap, protected location, and revocation rules.
-- [ ] Confirm football-first and that NBA remains deferred.
-- [ ] Confirm the modular-monolith stack and the explicit non-decisions.
-- [ ] Open the first milestone and issue sequence in GitHub.
+- [x] Read the README, architecture document, implementation specification, this plan, and `AGENTS.md` together.
+- [x] Explain the core loop: follow → discover → request/join → host/manage.
+- [x] Explain why private people cannot publish `public` or `team_followers` events.
+- [x] Explain why only business venues use those two audiences.
+- [x] Explain the 18+ attestation, no-plus-one rule, 12-person home cap, protected location, and revocation rules.
+- [x] Confirm football-first and that NBA remains deferred.
+- [x] Confirm the modular-monolith stack and the explicit non-decisions.
+- [x] Open the first milestone and issue sequence in GitHub.
 
 **Team checkpoint:** each partner independently explains one complete user journey and one denial journey.
 
@@ -407,16 +407,16 @@ The IDs identify product domains, not personal assignments. Follow the dependenc
 
 **Tasks:**
 
-- [ ] Record the selected Node.js LTS and npm versions.
-- [ ] Scaffold Next.js App Router with TypeScript and Tailwind.
-- [ ] Enable and confirm `strict: true`.
-- [ ] Install only the planned initial dependencies: Supabase SSR/client, Zod, Radix primitives as first needed, and testing/quality tools.
-- [ ] Do not add Express, Prisma, Zustand, Redis, Socket.IO, payments, AI, or microservice tooling.
-- [ ] Add Prettier and compatible ESLint configuration.
-- [ ] Create scripts for `dev`, `build`, `typecheck`, `lint`, `format`, and `format:check`.
-- [ ] Commit the dependency lockfile.
-- [ ] Preserve the planned feature-oriented folder direction; avoid empty speculative modules.
-- [ ] Add a simple public shell that clearly says the product is under development.
+- [x] Record the selected Node.js LTS and npm versions.
+- [x] Scaffold Next.js App Router with TypeScript and Tailwind.
+- [x] Enable and confirm `strict: true`.
+- [x] Install only the planned initial dependencies: Supabase SSR/client, Zod, Radix primitives as first needed, and testing/quality tools.
+- [x] Do not add Express, Prisma, Zustand, Redis, Socket.IO, payments, AI, or microservice tooling.
+- [x] Add Prettier and compatible ESLint configuration.
+- [x] Create scripts for `dev`, `build`, `typecheck`, `lint`, `format`, and `format:check`.
+- [x] Commit the dependency lockfile.
+- [x] Preserve the planned feature-oriented folder direction; avoid empty speculative modules.
+- [x] Add a simple public shell that clearly says the product is under development.
 
 **Writer rotation:** first partner scaffolds/configures; second partner owns script verification and the first read-only review.
 
