@@ -94,7 +94,12 @@ Never run two write-enabled Codex tasks against the same files or database migra
 - Do not commit, push, merge, deploy, create external resources, or mutate hosted services unless the user explicitly requests it.
 - Never use destructive Git commands to remove changes unless the user explicitly authorizes the exact action.
 - Preserve unrelated and pre-existing worktree changes.
-- Use co-authored commit trailers when both partners genuinely paired on the committed work, using each partner's GitHub-linked email.
+- Every human-authored Huddle commit must represent work in which both partners genuinely participated. Do not create the commit until that is true.
+- The partner running `git commit` is the primary author, and the other partner is added exactly once with the reciprocal trailer:
+  - Guy Azene (`azene.guy@gmail.com`) commits with `Co-authored-by: Ohad Shoshani Levi <ohadsho34@gmail.com>`.
+  - Ohad Shoshani Levi (`ohadsho34@gmail.com`) commits with `Co-authored-by: Guy Azene <azene.guy@gmail.com>`.
+- Use the tracked `.githooks/prepare-commit-msg` hook to add that trailer automatically from the clone's repository-local `user.email`. Each clone must activate it with `git config --local core.hooksPath .githooks` and configure one of the two exact repository-local identities.
+- The hook rejects missing or unknown repository-local identities. A GitHub-generated squash or merge commit does not run the local hook, so its final message must be checked and given the reciprocal trailer manually.
 - Keep secrets in ignored local environment files and managed secret stores. Commit only safe examples such as `.env.example` with placeholder values.
 
 ## Implementation discipline

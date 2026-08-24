@@ -1,0 +1,42 @@
+#!/bin/sh
+
+set -eu
+
+commit_message_file=$1
+primary_name=$(git config --local --get user.name || true)
+primary_email=$(git config --local --get user.email || true)
+
+case "$primary_email" in
+  azene.guy@gmail.com)
+    expected_name='Guy Azene'
+    coauthor_trailer='Co-authored-by: Ohad Shoshani Levi <ohadsho34@gmail.com>'
+    ;;
+  ohadsho34@gmail.com)
+    expected_name='Ohad Shoshani Levi'
+    coauthor_trailer='Co-authored-by: Guy Azene <azene.guy@gmail.com>'
+    ;;
+  *)
+    printf '%s\n' \
+      'Huddle commits require one of the two approved repository-local Git identities.' \
+      'Configure this clone with:' \
+      '  git config --local user.name "Guy Azene"' \
+      '  git config --local user.email "azene.guy@gmail.com"' \
+      'or:' \
+      '  git config --local user.name "Ohad Shoshani Levi"' \
+      '  git config --local user.email "ohadsho34@gmail.com"' >&2
+    exit 1
+    ;;
+esac
+
+if [ "$primary_name" != "$expected_name" ]; then
+  printf 'Huddle Git identity mismatch: email %s requires user.name "%s".\n' \
+    "$primary_email" "$expected_name" >&2
+  exit 1
+fi
+
+git interpret-trailers \
+  --in-place \
+  --if-exists addIfDifferent \
+  --if-missing add \
+  --trailer "$coauthor_trailer" \
+  "$commit_message_file"

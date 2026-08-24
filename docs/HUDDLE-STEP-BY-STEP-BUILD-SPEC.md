@@ -94,7 +94,7 @@ Both computers SHOULD have the same development baseline before application work
 
 - [ ] Both partners can clone and pull the GitHub repository.
 - [ ] Both partners can create branches and push them to the shared repository.
-- [ ] Both partners have Git names and GitHub-linked commit emails configured.
+- [ ] Both partners have the exact repository-local Git identities and shared commit hook configured as described in §3.3.
 - [ ] Both partners can open a pull request and comment on it.
 - [ ] Both partners can join the same Zed collaboration session.
 - [ ] Both partners can open the repository in Codex.
@@ -113,7 +113,38 @@ Both computers SHOULD have the same development baseline before application work
 
 Record the chosen Node, npm, Supabase CLI, and Docker baseline in the README after scaffolding. Exact application dependency versions are selected from current stable releases during package `F01` and committed in the lockfile.
 
-### 3.3 Local identity and secrets
+### 3.3 Local identity, shared commit attribution, and secrets
+
+Every human-authored Huddle commit is joint work under this workflow. The person running `git commit` remains the primary author; the tracked hook adds the other partner as the co-author. Do not create a commit until both partners have genuinely participated in the work it represents.
+
+Activate the project hook once in every clone:
+
+```text
+git config --local core.hooksPath .githooks
+```
+
+On Guy's clone, configure:
+
+```text
+git config --local user.name "Guy Azene"
+git config --local user.email "azene.guy@gmail.com"
+```
+
+On Ohad's clone, configure:
+
+```text
+git config --local user.name "Ohad Shoshani Levi"
+git config --local user.email "ohadsho34@gmail.com"
+```
+
+`.githooks/prepare-commit-msg` reads that repository-local email and adds exactly one reciprocal trailer:
+
+| Primary author | Required trailer |
+|---|---|
+| Guy Azene | `Co-authored-by: Ohad Shoshani Levi <ohadsho34@gmail.com>` |
+| Ohad Shoshani Levi | `Co-authored-by: Guy Azene <azene.guy@gmail.com>` |
+
+The hook rejects a missing or unknown repository-local identity instead of guessing. GitHub-generated squash or merge commits do not run local hooks; before completing one, edit or verify the final message contains the reciprocal trailer. Both email addresses must remain verified on the corresponding GitHub accounts for GitHub attribution.
 
 - [ ] Copy `.env.example` to an ignored local environment file only after the example exists.
 - [ ] Never send `.env` contents through chat, screenshots, issues, commits, or review comments.
@@ -239,7 +270,7 @@ Suggested commit form:
 Co-authored-by: Partner Name <github-linked-email>
 ```
 
-Use the co-author trailer only when both partners genuinely participated in that commit.
+For normal local commits, the tracked hook inserts the exact reciprocal trailer automatically. Do not create a human-authored Huddle commit before both partners have genuinely participated in it. When GitHub creates the final squash or merge commit, verify or add the same reciprocal trailer manually before completing the merge.
 
 ### Step F — Ask the reviewer Codex
 
