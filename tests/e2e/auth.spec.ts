@@ -219,6 +219,12 @@ test("a block is private, directional, auditable, and reversible", async ({
     await page.getByRole("button", { name: `Unblock @${secondHandle}` }).click();
     await expect(page.getByRole("status")).toHaveText("Safety preference updated.");
     await expect(page.getByRole("button", { name: `Block @${secondHandle}` })).toBeVisible();
+
+    await page.getByRole("button", { name: `Block @${secondHandle}` }).click();
+    await expect(page.getByRole("alertdialog")).toContainText("They will not be notified");
+    await page.getByRole("button", { name: "Confirm block" }).click();
+    await expect(page.getByRole("status")).toHaveText("Safety preference updated.");
+    await expect(page.getByRole("button", { name: `Unblock @${secondHandle}` })).toBeVisible();
   } finally {
     await secondContext.close();
   }

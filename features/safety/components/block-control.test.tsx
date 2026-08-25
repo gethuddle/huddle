@@ -28,7 +28,7 @@ describe("BlockControl", () => {
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 
-  it("moves to the unblock state after the generic successful result", async () => {
+  it("supports block, unblock, and re-block without a reload", async () => {
     mocks.setBlockPreferenceAction
       .mockResolvedValueOnce({
         ok: true,
@@ -45,6 +45,14 @@ describe("BlockControl", () => {
           intent: "unblock",
           targetHandle: "fan_two",
         },
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        data: {
+          message: "Safety preference updated.",
+          intent: "block",
+          targetHandle: "fan_two",
+        },
       });
     const user = userEvent.setup();
     render(<BlockControl initiallyBlocked={false} targetHandle="fan_two" />);
@@ -59,6 +67,13 @@ describe("BlockControl", () => {
     await user.click(screen.getByRole("button", { name: "Unblock @fan_two" }));
     expect(await screen.findByRole("button", { name: "Block @fan_two" })).toBeVisible();
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Block @fan_two" }));
+    expect(screen.getByRole("alertdialog")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Confirm block" }));
+
+    await waitFor(() => expect(mocks.setBlockPreferenceAction).toHaveBeenCalledTimes(3));
+    expect(await screen.findByRole("button", { name: "Unblock @fan_two" })).toBeVisible();
   });
 
   it("offers only the caller's outgoing unblock control when already blocked", () => {

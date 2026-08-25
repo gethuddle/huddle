@@ -20,8 +20,6 @@ export function BlockControl({ targetHandle, initiallyBlocked }: BlockControlPro
   );
   const [confirmingBlock, setConfirmingBlock] = useState(false);
   const isBlocked = state?.ok === true ? state.data.intent === "block" : initiallyBlocked;
-  const showBlockConfirmation =
-    confirmingBlock && !(state?.ok === true && state.data.intent === "unblock");
 
   if (isBlocked) {
     return (
@@ -44,7 +42,7 @@ export function BlockControl({ targetHandle, initiallyBlocked }: BlockControlPro
 
   return (
     <div className="space-y-3">
-      {showBlockConfirmation ? (
+      {confirmingBlock ? (
         <div
           aria-describedby="block-confirmation-description"
           aria-labelledby="block-confirmation-title"
@@ -57,7 +55,11 @@ export function BlockControl({ targetHandle, initiallyBlocked }: BlockControlPro
           <p className="mt-2 text-sm leading-6 text-muted-dark" id="block-confirmation-description">
             They will not be notified. Future direct interactions between you will be unavailable.
           </p>
-          <form action={formAction} className="mt-4 flex flex-wrap gap-3">
+          <form
+            action={formAction}
+            className="mt-4 flex flex-wrap gap-3"
+            onSubmit={() => setConfirmingBlock(false)}
+          >
             <input name="targetHandle" type="hidden" value={targetHandle} />
             <input name="intent" type="hidden" value="block" />
             <button
@@ -79,11 +81,12 @@ export function BlockControl({ targetHandle, initiallyBlocked }: BlockControlPro
         </div>
       ) : (
         <button
-          className="rounded-xl border border-border-strong px-5 py-3 text-sm font-semibold text-muted-dark transition hover:border-sand hover:text-sand focus-visible:outline-2 focus-visible:outline-offset-2"
+          className="rounded-xl border border-border-strong px-5 py-3 text-sm font-semibold text-muted-dark transition hover:border-sand hover:text-sand focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-wait disabled:opacity-70"
+          disabled={pending}
           onClick={() => setConfirmingBlock(true)}
           type="button"
         >
-          Block @{targetHandle}
+          {pending ? "Updating…" : `Block @${targetHandle}`}
         </button>
       )}
       <ActionFeedback state={state} />
