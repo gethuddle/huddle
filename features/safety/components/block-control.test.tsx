@@ -28,6 +28,38 @@ describe("BlockControl", () => {
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 
+  it("contains keyboard focus, closes on Escape, and restores focus to the trigger", async () => {
+    const user = userEvent.setup();
+    render(<BlockControl initiallyBlocked={false} targetHandle="fan_two" />);
+    const trigger = screen.getByRole("button", { name: "Block @fan_two" });
+
+    trigger.focus();
+    await user.keyboard("{Enter}");
+
+    const dialog = screen.getByRole("alertdialog");
+    const confirm = screen.getByRole("button", { name: "Confirm block" });
+    const cancel = screen.getByRole("button", { name: "Cancel" });
+    await waitFor(() => expect(cancel).toHaveFocus());
+
+    await user.tab();
+    expect(confirm).toHaveFocus();
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
+
+    await user.tab();
+    expect(cancel).toHaveFocus();
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
+
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+    expect(trigger).toHaveFocus();
+
+    await user.keyboard("{Enter}");
+    await waitFor(() => expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus());
+    await user.keyboard("{Enter}");
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+    expect(trigger).toHaveFocus();
+  });
+
   it("supports block, unblock, and re-block without a reload", async () => {
     mocks.setBlockPreferenceAction
       .mockResolvedValueOnce({
