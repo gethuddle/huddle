@@ -1,0 +1,20 @@
+{
+  "competition": {
+    "id": 2021,
+    "area": { "name": "England" },
+    "name": "Premier League",
+    "code": "PL"
+  },
+  "matches": [
+    {
+      "id": 5999,
+      "season": { "startDate": "2026-08-14" },
+      "utcDate": "not-a-time",
+      "status": "TIMED",
+      "matchday": 2,
+      "stage": "REGULAR_SEASON",
+      "homeTeam": { "id": 57, "name": "Arsenal FC", "shortName": "Arsenal", "tla": "ARS" },
+      "awayTeam": { "name": "Missing Identity FC", "shortName": null, "tla": null }
+    }
+  ]
+}

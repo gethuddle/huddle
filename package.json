@@ -27,7 +27,8 @@
     "db:reset": "supabase db reset --local",
     "test:db": "supabase test db --local supabase/tests/database",
     "db:types": "node scripts/database-types.mjs",
-    "db:types:check": "node scripts/database-types.mjs --check"
+    "db:types:check": "node scripts/database-types.mjs --check",
+    "sports:sync": "node --env-file-if-exists=.env.local scripts/run-sports-sync.mjs"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "1.1.23",

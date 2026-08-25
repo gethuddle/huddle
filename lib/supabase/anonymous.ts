@@ -2,16 +2,16 @@ import "server-only";
 
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
-import { getServerEnvironment } from "@/lib/env/server";
+import { getPublicEnvironment } from "@/lib/env/public";
 import type { Database } from "@/types/database.generated";
 
-/** Service client reserved for protected, explicitly authorized server operations. */
-export function createServiceRoleClient() {
-  const environment = getServerEnvironment();
+/** Server-side anonymous client for narrowly granted pre-authentication RPCs. */
+export function createAnonymousServerClient() {
+  const environment = getPublicEnvironment();
 
   return createSupabaseClient<Database>(
     environment.NEXT_PUBLIC_SUPABASE_URL,
-    environment.SUPABASE_SERVICE_ROLE_KEY,
+    environment.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
     {
       auth: {
         autoRefreshToken: false,

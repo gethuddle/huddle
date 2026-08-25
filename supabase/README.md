@@ -1,6 +1,6 @@
 # Local Supabase contract
 
-F03 keeps the complete local database foundation in Git, B01 adds the local Auth email-verification path, and B02 adds identity/trust tables and controlled functions. None of these local commands connects to the shared Supabase organization or creates or mutates a hosted project.
+F03 keeps the complete local database foundation in Git, B01 adds the local Auth email-verification path, B02 adds identity/trust tables and controlled functions, and B03 adds the provider-neutral sports catalog plus protected sync transactions. None of these local commands connects to the shared Supabase organization or creates or mutates a hosted project.
 
 ## Daily commands
 
@@ -34,6 +34,15 @@ Use `npm run dev:local`, `npm run build:local`, and `npm run test:e2e` to inject
 The product enum list is approved in the implementation specification but deliberately deferred. Each enum is introduced by the first domain migration that consumes it so the type, owning table, constraints, RLS, and tests are reviewed together.
 
 The B02 seed contains reviewed Israel city fallbacks with stable UUIDs and representative PostGIS centers. Seeds must remain repeatable after a full reset and require no hosted account, provider token, or network access.
+
+## B03 sports catalog and synchronization boundary
+
+- `sports`, `competitions`, `teams`, `competition_teams`, and `matches` store only Huddle-owned normalized fields. Provider crest URLs, raw responses, and live scores are absent.
+- Public reads are limited by forced RLS and `public_future_matches`; anonymous and authenticated roles have no direct catalog mutation grants.
+- `begin_sports_sync`, `complete_sports_sync`, and `fail_sports_sync` execute only for `service_role`. The begin function combines an advisory lock with a unique running-row index, and completion upserts one normalized batch transactionally.
+- `provider_sync_runs` is private. Public freshness uses `get_public_provider_freshness`, which exposes only the last successful timestamp.
+- A failed batch is rolled back before the separate failure-evidence update, so previously synchronized catalog rows remain available. Matches outside the current window are retained.
+- `npm run db:reset` and `npm run test:db` need no provider credential or network request. The explicit `npm run sports:sync` command is the only local command that deliberately calls a running app's protected provider path.
 
 ## B02 identity and trust boundary
 

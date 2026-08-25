@@ -1,0 +1,4 @@
+{
+  "message": "You reached the sanitized fixture limit.",
+  "errorCode": 429
+}

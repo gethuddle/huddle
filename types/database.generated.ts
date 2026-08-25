@@ -39,6 +39,228 @@ export type Database = {
         }
         Relationships: []
       }
+      competition_teams: {
+        Row: {
+          competition_id: string
+          created_at: string
+          season_label: string
+          team_id: string
+        }
+        Insert: {
+          competition_id: string
+          created_at?: string
+          season_label: string
+          team_id: string
+        }
+        Update: {
+          competition_id?: string
+          created_at?: string
+          season_label?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competition_teams_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "competitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competition_teams_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "public_future_matches"
+            referencedColumns: ["competition_id"]
+          },
+          {
+            foreignKeyName: "competition_teams_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "public_future_matches"
+            referencedColumns: ["away_team_id"]
+          },
+          {
+            foreignKeyName: "competition_teams_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "public_future_matches"
+            referencedColumns: ["home_team_id"]
+          },
+          {
+            foreignKeyName: "competition_teams_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      competitions: {
+        Row: {
+          active: boolean
+          code: string | null
+          country_name: string | null
+          created_at: string
+          id: string
+          last_synced_at: string
+          name: string
+          provider: string
+          provider_external_id: string
+          sport_id: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          code?: string | null
+          country_name?: string | null
+          created_at?: string
+          id?: string
+          last_synced_at: string
+          name: string
+          provider: string
+          provider_external_id: string
+          sport_id: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          code?: string | null
+          country_name?: string | null
+          created_at?: string
+          id?: string
+          last_synced_at?: string
+          name?: string
+          provider?: string
+          provider_external_id?: string
+          sport_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competitions_sport_id_fkey"
+            columns: ["sport_id"]
+            isOneToOne: false
+            referencedRelation: "public_future_matches"
+            referencedColumns: ["sport_id"]
+          },
+          {
+            foreignKeyName: "competitions_sport_id_fkey"
+            columns: ["sport_id"]
+            isOneToOne: false
+            referencedRelation: "sports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      matches: {
+        Row: {
+          away_team_id: string
+          competition_id: string
+          created_at: string
+          home_team_id: string
+          id: string
+          last_synced_at: string
+          matchday: number | null
+          provider: string
+          provider_external_id: string
+          season_label: string | null
+          stage: string | null
+          starts_at: string
+          status: Database["public"]["Enums"]["sports_match_status"]
+          updated_at: string
+        }
+        Insert: {
+          away_team_id: string
+          competition_id: string
+          created_at?: string
+          home_team_id: string
+          id?: string
+          last_synced_at: string
+          matchday?: number | null
+          provider: string
+          provider_external_id: string
+          season_label?: string | null
+          stage?: string | null
+          starts_at: string
+          status: Database["public"]["Enums"]["sports_match_status"]
+          updated_at?: string
+        }
+        Update: {
+          away_team_id?: string
+          competition_id?: string
+          created_at?: string
+          home_team_id?: string
+          id?: string
+          last_synced_at?: string
+          matchday?: number | null
+          provider?: string
+          provider_external_id?: string
+          season_label?: string | null
+          stage?: string | null
+          starts_at?: string
+          status?: Database["public"]["Enums"]["sports_match_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matches_away_team_id_fkey"
+            columns: ["away_team_id"]
+            isOneToOne: false
+            referencedRelation: "public_future_matches"
+            referencedColumns: ["away_team_id"]
+          },
+          {
+            foreignKeyName: "matches_away_team_id_fkey"
+            columns: ["away_team_id"]
+            isOneToOne: false
+            referencedRelation: "public_future_matches"
+            referencedColumns: ["home_team_id"]
+          },
+          {
+            foreignKeyName: "matches_away_team_id_fkey"
+            columns: ["away_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "competitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "public_future_matches"
+            referencedColumns: ["competition_id"]
+          },
+          {
+            foreignKeyName: "matches_home_team_id_fkey"
+            columns: ["home_team_id"]
+            isOneToOne: false
+            referencedRelation: "public_future_matches"
+            referencedColumns: ["away_team_id"]
+          },
+          {
+            foreignKeyName: "matches_home_team_id_fkey"
+            columns: ["home_team_id"]
+            isOneToOne: false
+            referencedRelation: "public_future_matches"
+            referencedColumns: ["home_team_id"]
+          },
+          {
+            foreignKeyName: "matches_home_team_id_fkey"
+            columns: ["home_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_roles: {
         Row: {
           created_at: string
@@ -118,6 +340,63 @@ export type Database = {
           },
         ]
       }
+      provider_sync_runs: {
+        Row: {
+          competitions_changed: number
+          duration_ms: number | null
+          error_code: string | null
+          error_summary: string | null
+          finished_at: string | null
+          id: string
+          matches_changed: number
+          provider: string
+          request_count: number
+          retry_count: number
+          started_at: string
+          status: Database["public"]["Enums"]["provider_sync_status"]
+          teams_changed: number
+          trigger_source: string
+          window_end: string
+          window_start: string
+        }
+        Insert: {
+          competitions_changed?: number
+          duration_ms?: number | null
+          error_code?: string | null
+          error_summary?: string | null
+          finished_at?: string | null
+          id?: string
+          matches_changed?: number
+          provider: string
+          request_count?: number
+          retry_count?: number
+          started_at?: string
+          status?: Database["public"]["Enums"]["provider_sync_status"]
+          teams_changed?: number
+          trigger_source: string
+          window_end: string
+          window_start: string
+        }
+        Update: {
+          competitions_changed?: number
+          duration_ms?: number | null
+          error_code?: string | null
+          error_summary?: string | null
+          finished_at?: string | null
+          id?: string
+          matches_changed?: number
+          provider?: string
+          request_count?: number
+          retry_count?: number
+          started_at?: string
+          status?: Database["public"]["Enums"]["provider_sync_status"]
+          teams_changed?: number
+          trigger_source?: string
+          window_end?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       security_audit_events: {
         Row: {
           action: string
@@ -162,6 +441,93 @@ export type Database = {
           },
         ]
       }
+      sports: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      teams: {
+        Row: {
+          active: boolean
+          country_name: string | null
+          created_at: string
+          id: string
+          last_synced_at: string
+          name: string
+          provider: string
+          provider_external_id: string
+          short_name: string | null
+          sport_id: string
+          tla: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          country_name?: string | null
+          created_at?: string
+          id?: string
+          last_synced_at: string
+          name: string
+          provider: string
+          provider_external_id: string
+          short_name?: string | null
+          sport_id: string
+          tla?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          country_name?: string | null
+          created_at?: string
+          id?: string
+          last_synced_at?: string
+          name?: string
+          provider?: string
+          provider_external_id?: string
+          short_name?: string | null
+          sport_id?: string
+          tla?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teams_sport_id_fkey"
+            columns: ["sport_id"]
+            isOneToOne: false
+            referencedRelation: "public_future_matches"
+            referencedColumns: ["sport_id"]
+          },
+          {
+            foreignKeyName: "teams_sport_id_fkey"
+            columns: ["sport_id"]
+            isOneToOne: false
+            referencedRelation: "sports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_blocks: {
         Row: {
           blocked_id: string
@@ -197,9 +563,42 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_future_matches: {
+        Row: {
+          away_team_id: string | null
+          away_team_name: string | null
+          away_team_short_name: string | null
+          away_team_tla: string | null
+          competition_code: string | null
+          competition_id: string | null
+          competition_name: string | null
+          home_team_id: string | null
+          home_team_name: string | null
+          home_team_short_name: string | null
+          home_team_tla: string | null
+          id: string | null
+          last_synced_at: string | null
+          matchday: number | null
+          season_label: string | null
+          sport_id: string | null
+          sport_slug: string | null
+          stage: string | null
+          starts_at: string | null
+          status: Database["public"]["Enums"]["sports_match_status"] | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      begin_sports_sync: {
+        Args: {
+          input_provider: string
+          input_trigger_source: string
+          input_window_end: string
+          input_window_start: string
+        }
+        Returns: string
+      }
       block_user: {
         Args: { audit_request_id?: string; target_handle: string }
         Returns: boolean
@@ -218,6 +617,34 @@ export type Database = {
           profile_completed_at: string
         }[]
       }
+      complete_sports_sync: {
+        Args: {
+          input_competition_teams: Json
+          input_competitions: Json
+          input_matches: Json
+          input_request_count: number
+          input_retry_count: number
+          input_run_id: string
+          input_sport_slug: string
+          input_teams: Json
+        }
+        Returns: {
+          competitions_changed: number
+          duration_ms: number
+          matches_changed: number
+          teams_changed: number
+        }[]
+      }
+      fail_sports_sync: {
+        Args: {
+          input_error_code: string
+          input_error_summary: string
+          input_request_count: number
+          input_retry_count: number
+          input_run_id: string
+        }
+        Returns: undefined
+      }
       get_public_profile_by_handle: {
         Args: { lookup_handle: string }
         Returns: {
@@ -229,6 +656,17 @@ export type Database = {
           viewer_has_blocked: boolean
         }[]
       }
+      get_public_provider_freshness: {
+        Args: { input_provider: string }
+        Returns: {
+          last_succeeded_at: string
+          provider: string
+        }[]
+      }
+      record_sports_sync_denial: {
+        Args: { audit_request_id: string }
+        Returns: undefined
+      }
       unblock_user: {
         Args: { audit_request_id?: string; target_handle: string }
         Returns: boolean
@@ -236,6 +674,13 @@ export type Database = {
     }
     Enums: {
       platform_role: "moderator" | "admin"
+      provider_sync_status: "running" | "succeeded" | "failed"
+      sports_match_status:
+        | "scheduled"
+        | "timed"
+        | "postponed"
+        | "cancelled"
+        | "finished"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -364,6 +809,14 @@ export const Constants = {
   public: {
     Enums: {
       platform_role: ["moderator", "admin"],
+      provider_sync_status: ["running", "succeeded", "failed"],
+      sports_match_status: [
+        "scheduled",
+        "timed",
+        "postponed",
+        "cancelled",
+        "finished",
+      ],
     },
   },
 } as const
