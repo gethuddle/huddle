@@ -5,5 +5,6 @@ export {
   type DomainErrorCode,
   type FieldErrors,
 } from "./domain";
+export { domainErrorFromDatabase } from "./database";
 export { actionFailure, toActionError, toHttpError, type HttpErrorContract } from "./map-error";
 export { actionSuccess, type ActionError, type ActionResult } from "./result";

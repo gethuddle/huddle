@@ -48,7 +48,10 @@ describe("AppShell", () => {
 
     render(await AppShell({ children: <h1>Private session</h1> }));
 
-    expect(screen.getByText("Signed in")).toBeVisible();
+    expect(screen.getByRole("link", { name: "Profile" })).toHaveAttribute(
+      "href",
+      "/settings/profile",
+    );
     expect(screen.getByRole("button", { name: "Sign out" })).toBeVisible();
     expect(screen.queryByRole("link", { name: "Sign up" })).not.toBeInTheDocument();
   });

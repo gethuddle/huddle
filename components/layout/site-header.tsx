@@ -23,10 +23,12 @@ export function SiteHeader({ isSignedIn }: Readonly<{ isSignedIn: boolean }>) {
           </nav>
           {isSignedIn ? (
             <>
-              <span className="hidden items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-court sm:inline-flex">
-                <span aria-hidden="true" className="size-1.5 rounded-full bg-court" />
-                Signed in
-              </span>
+              <Link
+                className="text-sm font-semibold text-muted-dark transition hover:text-linen"
+                href="/settings/profile"
+              >
+                Profile
+              </Link>
               <SignOutButton />
             </>
           ) : (

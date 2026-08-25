@@ -10,7 +10,10 @@ describe("verification result page", () => {
     render(await VerifyPage({ searchParams: Promise.resolve({ status: "success" }) }));
 
     expect(screen.getByRole("heading", { name: "You’re in." })).toBeVisible();
-    expect(screen.getByRole("link", { name: "Continue to Huddle" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "Complete your profile" })).toHaveAttribute(
+      "href",
+      "/settings/profile",
+    );
   });
 
   it("renders a safe expired state for invalid status input", async () => {

@@ -9,16 +9,233 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      cities: {
+        Row: {
+          active: boolean
+          center: unknown
+          created_at: string
+          id: string
+          name_en: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          center: unknown
+          created_at?: string
+          id?: string
+          name_en: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          center?: unknown
+          created_at?: string
+          id?: string
+          name_en?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      platform_roles: {
+        Row: {
+          created_at: string
+          profile_id: string
+          role: Database["public"]["Enums"]["platform_role"]
+        }
+        Insert: {
+          created_at?: string
+          profile_id: string
+          role: Database["public"]["Enums"]["platform_role"]
+        }
+        Update: {
+          created_at?: string
+          profile_id?: string
+          role?: Database["public"]["Enums"]["platform_role"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_roles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          adult_attested_at: string | null
+          bio: string | null
+          city_id: string | null
+          created_at: string
+          display_name: string | null
+          handle: string | null
+          id: string
+          profile_completed_at: string | null
+          rules_accepted_at: string | null
+          rules_version: number | null
+          suspended_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          adult_attested_at?: string | null
+          bio?: string | null
+          city_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          handle?: string | null
+          id: string
+          profile_completed_at?: string | null
+          rules_accepted_at?: string | null
+          rules_version?: number | null
+          suspended_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          adult_attested_at?: string | null
+          bio?: string | null
+          city_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          handle?: string | null
+          id?: string
+          profile_completed_at?: string | null
+          rules_accepted_at?: string | null
+          rules_version?: number | null
+          suspended_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      security_audit_events: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          id: string
+          metadata: Json
+          outcome: string
+          request_id: string | null
+          resource_id: string | null
+          resource_type: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          outcome: string
+          request_id?: string | null
+          resource_id?: string | null
+          resource_type: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          outcome?: string
+          request_id?: string | null
+          resource_id?: string | null
+          resource_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_audit_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_blocks_blocked_id_fkey"
+            columns: ["blocked_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_blocks_blocker_id_fkey"
+            columns: ["blocker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      block_user: {
+        Args: { audit_request_id?: string; target_handle: string }
+        Returns: boolean
+      }
+      complete_profile: {
+        Args: {
+          input_adult_attested: boolean
+          input_bio: string
+          input_city_slug: string
+          input_display_name: string
+          input_handle: string
+          input_rules_version: number
+        }
+        Returns: {
+          handle: string
+          profile_completed_at: string
+        }[]
+      }
+      get_public_profile_by_handle: {
+        Args: { lookup_handle: string }
+        Returns: {
+          bio: string
+          city_name: string
+          display_name: string
+          handle: string
+          member_since: string
+          viewer_has_blocked: boolean
+        }[]
+      }
+      unblock_user: {
+        Args: { audit_request_id?: string; target_handle: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      platform_role: "moderator" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -145,6 +362,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      platform_role: ["moderator", "admin"],
+    },
   },
 } as const

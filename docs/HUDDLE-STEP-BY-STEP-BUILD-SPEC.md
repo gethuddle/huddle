@@ -551,16 +551,16 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Create and seed `cities` with reviewed Israel entries and centers.
-- [ ] Create `profiles` with all constraints and indexes.
-- [ ] Create the Auth-to-profile lifecycle/trigger deliberately.
-- [ ] Implement unique normalized handle validation.
-- [ ] Record `adult_attested_at`; do not collect date of birth.
-- [ ] Add repository-owned versioned community rules content.
-- [ ] Record current `rules_version` and `rules_accepted_at`.
-- [ ] Set `profile_completed_at` only after all required fields are valid.
-- [ ] Build onboarding and profile settings with city fallback.
-- [ ] Prevent forged direct updates to protected completion fields.
+- [x] Create and seed `cities` with reviewed Israel entries and centers.
+- [x] Create `profiles` with all constraints and indexes.
+- [x] Create the Auth-to-profile lifecycle/trigger deliberately.
+- [x] Implement unique normalized handle validation.
+- [x] Record `adult_attested_at`; do not collect date of birth.
+- [x] Add repository-owned versioned community rules content.
+- [x] Record current `rules_version` and `rules_accepted_at`.
+- [x] Set `profile_completed_at` only after all required fields are valid.
+- [x] Build onboarding and profile settings with city fallback.
+- [x] Prevent forged direct updates to protected completion fields.
 
 **Checkpoints:** schema/RLS/function; onboarding UI; tests and seeded journey.
 
@@ -576,13 +576,13 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Add reusable server-side actor/completion checks.
-- [ ] Add safe public profile projection without email, private groups, or attendance.
-- [ ] Add own-profile read/update policies distinct from public projection.
-- [ ] Add platform role structure and a reviewed local moderator seed/bootstrap approach.
-- [ ] Add route outcomes for sign-in required, complete-profile required, not permitted, and non-enumerating not found.
-- [ ] Add public people page using only the safe DTO.
-- [ ] Test incomplete, unverified, suspended, anonymous, owner, other-user, and moderator cases.
+- [x] Add reusable server-side actor/completion checks.
+- [x] Add safe public profile projection without email, private groups, or attendance.
+- [x] Add own-profile read/update policies distinct from public projection.
+- [x] Add platform role structure and a reviewed local moderator seed/bootstrap approach.
+- [x] Add route outcomes for sign-in required, complete-profile required, not permitted, and non-enumerating not found.
+- [x] Add public people page using only the safe DTO.
+- [x] Test incomplete, unverified, suspended, anonymous, owner, other-user, and moderator cases.
 
 **Tests/evidence:** pgTAP allow/deny matrix, DTO unit tests, component permission states, and crafted-request denial.
 
@@ -596,13 +596,13 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Create `user_blocks` with self-block denial and bidirectional indexes.
-- [ ] Create the required security-audit structure and minimum safe metadata rules.
-- [ ] Implement initial `block_user`/unblock behavior against currently existing domains.
-- [ ] Ensure the blocked user cannot enumerate the block.
-- [ ] Add reusable blocked-in-either-direction SQL helpers.
-- [ ] Add block/unblock controls with non-revealing outcomes.
-- [ ] Extend the block transaction in later modules when friendships and attendance exist.
+- [x] Create `user_blocks` with self-block denial and bidirectional indexes.
+- [x] Create the required security-audit structure and minimum safe metadata rules.
+- [x] Implement initial `block_user`/unblock behavior against currently existing domains.
+- [x] Ensure the blocked user cannot enumerate the block.
+- [x] Add reusable blocked-in-either-direction SQL helpers.
+- [x] Add block/unblock controls with non-revealing outcomes.
+- [x] Record the required block-transaction extension point for later modules when friendships and attendance exist.
 
 **Tests/evidence:** self/duplicate/other-user pgTAP tests, private enumeration denial, audit record without notification, UI state tests.
 
@@ -1325,8 +1325,8 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 
 | Milestone | Included modules | Status | Issue/PR |
 |---|---|---|---|
-| B01 Platform quality and authentication | `F04`, `A01` | review | [#9](https://github.com/gethuddle/huddle/issues/9) |
-| B02 Onboarding, eligibility, and blocking | `A02`–`A04` | not started | — |
+| B01 Platform quality and authentication | `F04`, `A01` | done | [#9](https://github.com/gethuddle/huddle/issues/9) / [PR #10](https://github.com/gethuddle/huddle/pull/10) |
+| B02 Onboarding, eligibility, and blocking | `A02`–`A04` | review | [#11](https://github.com/gethuddle/huddle/issues/11) |
 | B03 Sports catalog and ingestion | `S01`–`S03` | not started | — |
 | B04 Fixture browsing and follows | `S04`–`S05` | not started | — |
 | B05 Friendships and group creation | `G01`–`G02` | not started | — |

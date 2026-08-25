@@ -70,14 +70,14 @@ select ok(
 
 select is(
   (
-    select count(*)
+    select string_agg(relation.relname, ',' order by relation.relname)
     from pg_class as relation
     join pg_namespace as namespace on namespace.oid = relation.relnamespace
     where namespace.nspname = 'public'
       and relation.relkind in ('r', 'p')
   ),
-  0::bigint,
-  'F03 does not create speculative public product tables'
+  'cities,platform_roles,profiles,security_audit_events,user_blocks',
+  'the public schema contains only the product tables implemented through B02'
 );
 
 select * from finish();

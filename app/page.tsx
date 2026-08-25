@@ -47,8 +47,9 @@ export default function Home() {
             The groundwork comes first.
           </h2>
           <p className="mt-5 leading-7 text-muted-dark">
-            Local account signup, email verification, secure sessions, and repository quality gates
-            are now in place. Profile onboarding and watch events come next.
+            Secure accounts, adult profile onboarding, current community-rule acceptance, safe
+            public profiles, and private blocking are now in place. The local sports catalog comes
+            next.
           </p>
           <dl className="mt-8 grid grid-cols-2 gap-5 border-t border-border-strong pt-7 text-sm">
             <div>

@@ -155,7 +155,7 @@ The database and provider boundaries may be future-ready, but deferred features 
 
 ## Project status
 
-The merged baseline includes the Next.js application foundation, F02 application boundaries, and F03 local Supabase foundation. B01 is now in reciprocal review with repository CI plus local email/password signup, email verification, cookie-backed SSR sessions, sign-in, and sign-out. Profile onboarding, community mutations, product tables, and hosted application environments remain later steps; the local B01 implementation does not mutate the shared Supabase organization.
+The merged baseline now includes B01 repository CI and the local email/password signup, verification, SSR session, sign-in, and sign-out flow. B02 profile onboarding, actor eligibility, safe profile summaries, private blocks, and audit evidence are implemented on the current milestone branch. Friendships, groups, events, attendance, sports synchronization, hosted application environments, and deployment remain later milestones; this work does not mutate the shared Supabase organization.
 
 ### Visual system
 
@@ -187,7 +187,7 @@ npm run dev
 
 The local stack is recreated entirely from tracked migrations and seed data. Mailpit captures verification emails at `http://127.0.0.1:54324`; it sends nothing externally. The stack is not linked to the shared Supabase organization and must not be exposed externally. See the [local database contract](./supabase/README.md) for schema conventions and database commands.
 
-Before handing off B01, install Chromium once and run the repository gates:
+Before handing off a milestone, install Chromium once and run the repository gates:
 
 ```bash
 npx --no-install playwright install chromium

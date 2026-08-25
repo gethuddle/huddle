@@ -795,7 +795,7 @@ Mutation groups:
 - attendance: request/join, accept invitation, approve/decline request, leave, remove attendee;
 - safety: block/unblock, report, assign, resolve, dismiss, restrict/suspend/reverse, appeal/review.
 
-Every action follows: parse → authenticate → require complete/not suspended → authorize relationship → execute constrained database operation → map error → revalidate only affected paths/tags.
+Every community action follows: parse → authenticate → require complete/not suspended → authorize relationship → execute constrained database operation → map error → revalidate only affected paths/tags. Auth/session and onboarding actions apply only the gates that can logically precede them: signup and sign-in may begin anonymously, while profile completion requires a verified, non-suspended signed-in user but intentionally allows an incomplete profile.
 
 ### 7.4 Required database functions
 

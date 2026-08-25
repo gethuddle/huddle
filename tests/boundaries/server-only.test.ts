@@ -9,6 +9,7 @@ function readWorkspaceFile(relativePath: string): string {
 
 describe("server-only import boundaries", () => {
   it.each([
+    "features/auth/actor.ts",
     "lib/env/server.ts",
     "lib/request-id/server.ts",
     "lib/supabase/server.ts",
