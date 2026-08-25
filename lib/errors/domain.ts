@@ -1,5 +1,6 @@
 export const DOMAIN_ERROR_CODES = [
   "AUTH_REQUIRED",
+  "AUTH_FAILED",
   "EMAIL_NOT_VERIFIED",
   "ADULT_ATTESTATION_REQUIRED",
   "RULES_ACCEPTANCE_REQUIRED",
@@ -28,6 +29,7 @@ export type DomainErrorCode = (typeof DOMAIN_ERROR_CODES)[number];
 
 export const DOMAIN_ERROR_MESSAGES = {
   AUTH_REQUIRED: "Sign in to continue.",
+  AUTH_FAILED: "The email or password is incorrect.",
   EMAIL_NOT_VERIFIED: "Verify your email to continue.",
   ADULT_ATTESTATION_REQUIRED: "Confirm that you are 18 or older to continue.",
   RULES_ACCEPTANCE_REQUIRED: "Accept the current community rules to continue.",

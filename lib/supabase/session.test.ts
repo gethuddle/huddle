@@ -18,6 +18,7 @@ type CookieAdapter = Readonly<{
       value: string;
       options?: CookieOptions;
     }>,
+    headers: Readonly<Record<string, string>>,
   ) => void;
 }>;
 
@@ -48,13 +49,20 @@ describe("session refresh Proxy boundary", () => {
       return { auth: { getClaims: mocks.getClaims } };
     });
     mocks.getClaims.mockImplementation(async () => {
-      cookieAdapter.setAll([
+      cookieAdapter.setAll(
+        [
+          {
+            name: "sb-example-auth-token",
+            value: "refreshed-cookie-value",
+            options: { httpOnly: true, sameSite: "lax" },
+          },
+        ],
         {
-          name: "sb-example-auth-token",
-          value: "refreshed-cookie-value",
-          options: { httpOnly: true, sameSite: "lax" },
+          "Cache-Control": "private, no-cache, no-store, must-revalidate, max-age=0",
+          Expires: "0",
+          Pragma: "no-cache",
         },
-      ]);
+      );
       return { data: null, error: null };
     });
   });
@@ -76,6 +84,10 @@ describe("session refresh Proxy boundary", () => {
     expect(response.headers.get(REQUEST_ID_HEADER)).toBe(requestId);
     expect(response.headers.get(`x-middleware-request-${REQUEST_ID_HEADER}`)).toBe(requestId);
     expect(response.headers.get("location")).toBeNull();
+    expect(response.headers.get("cache-control")).toContain("private");
+    expect(response.headers.get("cache-control")).toContain("no-store");
+    expect(response.headers.get("pragma")).toBe("no-cache");
+    expect(response.headers.get("expires")).toBe("0");
     expect(response.cookies.get("sb-example-auth-token")).toMatchObject({
       name: "sb-example-auth-token",
       value: "refreshed-cookie-value",

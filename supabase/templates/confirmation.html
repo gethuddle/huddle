@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Confirm your Huddle account</title>
+  </head>
+  <body style="margin: 0; background: #0b1210; color: #f2eee4; font-family: Arial, sans-serif">
+    <div style="margin: 0 auto; max-width: 560px; padding: 48px 24px">
+      <p style="margin: 0 0 16px; color: #2ce07b; font-size: 13px; font-weight: 700">HUDDLE</p>
+      <h1 style="margin: 0; font-size: 32px; line-height: 1.15">Confirm your email address</h1>
+      <p style="margin: 20px 0; color: #c9b48f; font-size: 16px; line-height: 1.6">
+        Follow the link below to verify this address and finish creating your secure Huddle session.
+      </p>
+      <p style="margin: 28px 0">
+        <a
+          href="{{ .SiteURL }}/auth/verify/callback?token_hash={{ .TokenHash }}&amp;type=email"
+          style="
+            display: inline-block;
+            border-radius: 10px;
+            background: #2ce07b;
+            color: #0b1210;
+            padding: 13px 20px;
+            font-weight: 700;
+            text-decoration: none;
+          "
+          >Verify email</a
+        >
+      </p>
+      <p style="margin: 0; color: #8a948e; font-size: 13px; line-height: 1.6">
+        If you did not create a Huddle account, you can ignore this message.
+      </p>
+    </div>
+  </body>
+</html>

@@ -47,8 +47,8 @@ export default function Home() {
             The groundwork comes first.
           </h2>
           <p className="mt-5 leading-7 text-muted-dark">
-            We are establishing the application, database, authorization, and test foundations
-            before opening accounts or publishing events.
+            Local account signup, email verification, secure sessions, and repository quality gates
+            are now in place. Profile onboarding and watch events come next.
           </p>
           <dl className="mt-8 grid grid-cols-2 gap-5 border-t border-border-strong pt-7 text-sm">
             <div>
