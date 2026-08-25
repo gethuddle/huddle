@@ -88,6 +88,25 @@ select is(
   'platform roles are limited to moderator and admin'
 );
 
+select throws_ok(
+  $$insert into public.cities (slug, name_en, center) select 'invalid slug', 'Constraint City', center from public.cities where slug = 'haifa'$$,
+  '23514',
+  'new row for relation "cities" violates check constraint "cities_slug_format_check"',
+  'city slugs enforce the normalized format constraint'
+);
+select throws_ok(
+  $$insert into public.cities (slug, name_en, center) select 'constraint-city-name', 'X', center from public.cities where slug = 'haifa'$$,
+  '23514',
+  'new row for relation "cities" violates check constraint "cities_name_en_length_check"',
+  'city names enforce the trimmed length constraint'
+);
+select throws_ok(
+  $$insert into public.cities (slug, name_en, center) select 'haifa', 'Duplicate Haifa', center from public.cities where slug = 'haifa'$$,
+  '23505',
+  'duplicate key value violates unique constraint "cities_slug_key"',
+  'city slugs remain unique'
+);
+
 select ok(not has_table_privilege('anon', 'public.profiles', 'select'), 'anonymous cannot read profile rows');
 select ok(has_table_privilege('authenticated', 'public.profiles', 'select'), 'authenticated owners can read their profile row');
 select ok(not has_table_privilege('authenticated', 'public.profiles', 'update'), 'profiles cannot be forged with direct updates');
@@ -180,6 +199,49 @@ select is(
   'the Auth trigger creates one empty profile per user'
 );
 
+select throws_ok(
+  $$update public.profiles set handle = 'Invalid Handle' where id = '10000000-0000-4000-8000-000000000004'$$,
+  '23514',
+  'new row for relation "profiles" violates check constraint "profiles_handle_format_check"',
+  'profile handles enforce the normalized format constraint'
+);
+select throws_ok(
+  $$update public.profiles set display_name = 'X' where id = '10000000-0000-4000-8000-000000000004'$$,
+  '23514',
+  'new row for relation "profiles" violates check constraint "profiles_display_name_length_check"',
+  'profile display names enforce the trimmed length constraint'
+);
+select throws_ok(
+  $$update public.profiles set bio = '' where id = '10000000-0000-4000-8000-000000000004'$$,
+  '23514',
+  'new row for relation "profiles" violates check constraint "profiles_bio_length_check"',
+  'profile biographies enforce the trimmed length constraint'
+);
+select throws_ok(
+  $$update public.profiles set rules_version = 1 where id = '10000000-0000-4000-8000-000000000004'$$,
+  '23514',
+  'new row for relation "profiles" violates check constraint "profiles_rules_acceptance_pair_check"',
+  'rules version and acceptance time must be recorded together'
+);
+select throws_ok(
+  $$update public.profiles set profile_completed_at = statement_timestamp() where id = '10000000-0000-4000-8000-000000000004'$$,
+  '23514',
+  'new row for relation "profiles" violates check constraint "profiles_completion_fields_check"',
+  'profile completion requires every protected completion field'
+);
+select throws_ok(
+  $$insert into public.profiles (id) values ('20000000-0000-4000-8000-000000000001')$$,
+  '23503',
+  'insert or update on table "profiles" violates foreign key constraint "profiles_id_fkey"',
+  'profiles must reference an Auth user'
+);
+select throws_ok(
+  $$update public.profiles set city_id = '20000000-0000-4000-8000-000000000002' where id = '10000000-0000-4000-8000-000000000004'$$,
+  '23503',
+  'insert or update on table "profiles" violates foreign key constraint "profiles_city_id_fkey"',
+  'profile city choices must reference the city catalog'
+);
+
 set local role authenticated;
 set local "request.jwt.claim.sub" = '10000000-0000-4000-8000-000000000003';
 select throws_ok(
@@ -231,6 +293,13 @@ select lives_ok(
   'the suspension fixture completes before platform suspension'
 );
 reset role;
+
+select throws_ok(
+  $$update public.profiles set handle = 'fan_one' where id = '10000000-0000-4000-8000-000000000004'$$,
+  '23505',
+  'duplicate key value violates unique constraint "profiles_handle_lower_uidx"',
+  'the database rejects duplicate normalized profile handles'
+);
 
 update public.profiles
 set suspended_at = statement_timestamp()
@@ -288,12 +357,43 @@ reset role;
 
 insert into public.platform_roles (profile_id, role)
 values ('10000000-0000-4000-8000-000000000001', 'moderator');
+select throws_ok(
+  $$insert into public.platform_roles (profile_id, role) values ('10000000-0000-4000-8000-000000000001', 'moderator')$$,
+  '23505',
+  'duplicate key value violates unique constraint "platform_roles_pkey"',
+  'a profile cannot receive the same platform role twice'
+);
+select throws_ok(
+  $$insert into public.platform_roles (profile_id, role) values ('20000000-0000-4000-8000-000000000003', 'admin')$$,
+  '23503',
+  'insert or update on table "platform_roles" violates foreign key constraint "platform_roles_profile_id_fkey"',
+  'platform roles must reference a profile'
+);
 select ok(
   private.has_platform_role(
     '10000000-0000-4000-8000-000000000001',
     array['moderator']::public.platform_role[]
   ),
   'the private helper answers a bounded moderator authorization question'
+);
+
+select throws_ok(
+  $$insert into public.user_blocks (blocker_id, blocked_id) values ('10000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001')$$,
+  '23514',
+  'new row for relation "user_blocks" violates check constraint "user_blocks_not_self_check"',
+  'the block table rejects self-block rows directly'
+);
+select throws_ok(
+  $$insert into public.user_blocks (blocker_id, blocked_id) values ('20000000-0000-4000-8000-000000000004', '10000000-0000-4000-8000-000000000001')$$,
+  '23503',
+  'insert or update on table "user_blocks" violates foreign key constraint "user_blocks_blocker_id_fkey"',
+  'a block must reference an existing blocker profile'
+);
+select throws_ok(
+  $$insert into public.user_blocks (blocker_id, blocked_id) values ('10000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000005')$$,
+  '23503',
+  'insert or update on table "user_blocks" violates foreign key constraint "user_blocks_blocked_id_fkey"',
+  'a block must reference an existing blocked profile'
 );
 
 set local role authenticated;
@@ -349,6 +449,13 @@ select is(
 );
 reset role;
 
+select throws_ok(
+  $$insert into public.user_blocks (blocker_id, blocked_id) values ('10000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000002')$$,
+  '23505',
+  'duplicate key value violates unique constraint "user_blocks_pkey"',
+  'the database rejects duplicate directional block pairs'
+);
+
 select ok(
   private.users_are_blocked(
     '10000000-0000-4000-8000-000000000001',
@@ -399,10 +506,46 @@ select is(
   'a successful unblock writes one minimal audit record'
 );
 select throws_ok(
+  $$insert into public.security_audit_events (action, resource_type, outcome) values ('Invalid Action', 'profile', 'denied')$$,
+  '23514',
+  'new row for relation "security_audit_events" violates check constraint "security_audit_action_format_check"',
+  'audit actions enforce the bounded normalized format'
+);
+select throws_ok(
+  $$insert into public.security_audit_events (action, resource_type, outcome) values ('test.event', 'invalid type', 'denied')$$,
+  '23514',
+  'new row for relation "security_audit_events" violates check constraint "security_audit_resource_type_format_check"',
+  'audit resource types enforce the bounded normalized format'
+);
+select throws_ok(
+  $$insert into public.security_audit_events (action, resource_type, outcome) values ('test.event', 'profile', 'failed')$$,
+  '23514',
+  'new row for relation "security_audit_events" violates check constraint "security_audit_outcome_check"',
+  'audit outcomes are limited to the reviewed states'
+);
+select throws_ok(
+  $$insert into public.security_audit_events (action, resource_type, outcome, metadata) values ('test.event', 'profile', 'denied', '[]'::jsonb)$$,
+  '23514',
+  'new row for relation "security_audit_events" violates check constraint "security_audit_metadata_object_check"',
+  'audit metadata must be a JSON object'
+);
+select throws_ok(
+  $$insert into public.security_audit_events (action, resource_type, outcome, metadata) values ('test.event', 'profile', 'denied', jsonb_build_object('note', repeat('x', 2050)))$$,
+  '23514',
+  'new row for relation "security_audit_events" violates check constraint "security_audit_metadata_size_check"',
+  'audit metadata enforces its byte-size ceiling'
+);
+select throws_ok(
   $$insert into public.security_audit_events (action, resource_type, outcome, metadata) values ('test.event', 'profile', 'denied', '{"token":"secret"}'::jsonb)$$,
   '23514',
   'new row for relation "security_audit_events" violates check constraint "security_audit_metadata_safe_keys_check"',
   'audit metadata rejects sensitive key names'
+);
+select throws_ok(
+  $$insert into public.security_audit_events (actor_id, action, resource_type, outcome) values ('20000000-0000-4000-8000-000000000006', 'test.event', 'profile', 'denied')$$,
+  '23503',
+  'insert or update on table "security_audit_events" violates foreign key constraint "security_audit_events_actor_id_fkey"',
+  'audit actors must reference a profile when present'
 );
 
 select * from finish();
