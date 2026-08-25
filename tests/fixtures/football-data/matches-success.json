@@ -1,0 +1,60 @@
+{
+  "filters": { "dateFrom": "2026-08-24", "dateTo": "2026-10-09" },
+  "resultSet": { "count": 2, "first": "2026-08-29", "last": "2026-09-05" },
+  "competition": {
+    "id": 2021,
+    "area": { "id": 2072, "name": "England", "code": "ENG" },
+    "name": "Premier League",
+    "code": "PL",
+    "type": "LEAGUE",
+    "emblem": "https://assets.invalid/ignored.png"
+  },
+  "matches": [
+    {
+      "id": 5001,
+      "season": { "id": 2403, "startDate": "2026-08-14", "endDate": "2027-05-24" },
+      "utcDate": "2026-08-29T16:30:00Z",
+      "status": "TIMED",
+      "matchday": 2,
+      "stage": "REGULAR_SEASON",
+      "homeTeam": {
+        "id": 57,
+        "name": "Arsenal FC",
+        "shortName": "Arsenal",
+        "tla": "ARS",
+        "crest": "https://assets.invalid/ignored-home.png",
+        "area": { "name": "England" }
+      },
+      "awayTeam": {
+        "id": 61,
+        "name": "Chelsea FC",
+        "shortName": "Chelsea",
+        "tla": "CHE",
+        "crest": "https://assets.invalid/ignored-away.png",
+        "area": { "name": "England" }
+      },
+      "score": { "winner": null, "duration": "REGULAR", "fullTime": { "home": null, "away": null } }
+    },
+    {
+      "id": 5002,
+      "season": { "id": 2403, "startDate": "2026-08-14", "endDate": "2027-05-24" },
+      "utcDate": "2026-09-05T14:00:00+02:00",
+      "status": "SUSPENDED",
+      "matchday": 3,
+      "stage": "REGULAR_SEASON",
+      "homeTeam": {
+        "id": 64,
+        "name": "Liverpool FC",
+        "shortName": "Liverpool",
+        "tla": "LIV"
+      },
+      "awayTeam": {
+        "id": 65,
+        "name": "Manchester City FC",
+        "shortName": "Man City",
+        "tla": "MCI"
+      },
+      "score": { "winner": null, "duration": "REGULAR", "fullTime": { "home": null, "away": null } }
+    }
+  ]
+}

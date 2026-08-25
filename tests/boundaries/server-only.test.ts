@@ -10,10 +10,14 @@ function readWorkspaceFile(relativePath: string): string {
 describe("server-only import boundaries", () => {
   it.each([
     "features/auth/actor.ts",
+    "features/sports/sync-auth.ts",
+    "features/sports/sync.ts",
     "lib/env/server.ts",
     "lib/request-id/server.ts",
+    "lib/supabase/anonymous.ts",
     "lib/supabase/server.ts",
     "lib/supabase/service-role.ts",
+    "providers/sports/football-data.ts",
   ])("protects %s with the Next.js server-only marker", (relativePath) => {
     expect(readWorkspaceFile(relativePath)).toMatch(/^import "server-only";/);
   });

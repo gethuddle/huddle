@@ -1,0 +1,29 @@
+{
+  "count": 2,
+  "filters": {},
+  "competitions": [
+    {
+      "id": 2021,
+      "area": { "id": 2072, "name": "England", "code": "ENG", "flag": null },
+      "name": "Premier League",
+      "code": "PL",
+      "type": "LEAGUE",
+      "emblem": "https://assets.invalid/crest-that-huddle-must-ignore.png",
+      "currentSeason": {
+        "id": 2403,
+        "startDate": "2026-08-14",
+        "endDate": "2027-05-24",
+        "currentMatchday": 1
+      }
+    },
+    {
+      "id": 2001,
+      "area": { "id": 2077, "name": "Europe", "code": "EUR", "flag": null },
+      "name": "UEFA Champions League",
+      "code": "CL",
+      "type": "CUP",
+      "emblem": null,
+      "currentSeason": null
+    }
+  ]
+}

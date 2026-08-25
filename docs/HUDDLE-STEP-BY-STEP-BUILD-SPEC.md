@@ -620,14 +620,14 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Create `sports`, `competitions`, `teams`, `competition_teams`, `matches`, and `provider_sync_runs`.
-- [ ] Seed only the safe minimum, including football.
-- [ ] Preserve provider identity with unique `(provider, provider_external_id)`.
-- [ ] Add every competition, team, match-time, status, and provider index from the implementation spec.
-- [ ] Store UTC `timestamptz`; add no live-score tables.
-- [ ] Do not store/display provider crest URLs.
-- [ ] Add public future-match projection and sync-service-only mutations.
-- [ ] Retain referenced matches instead of deleting them when stale/outside the active window.
+- [x] Create `sports`, `competitions`, `teams`, `competition_teams`, `matches`, and `provider_sync_runs`.
+- [x] Seed only the safe minimum, including football.
+- [x] Preserve provider identity with unique `(provider, provider_external_id)`.
+- [x] Add every competition, team, match-time, status, and provider index from the implementation spec.
+- [x] Store UTC `timestamptz`; add no live-score tables.
+- [x] Do not store/display provider crest URLs.
+- [x] Add public future-match projection and sync-service-only mutations.
+- [x] Retain referenced matches instead of deleting them when stale/outside the active window.
 
 **Tests/evidence:** constraints, duplicate-provider IDs, distinct home/away teams, index presence, public read/service write/ordinary-user denial.
 
@@ -641,14 +641,14 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Define the `SportsProvider` interface and normalized types.
-- [ ] Create football-data.org v4 response schemas with Zod.
-- [ ] Save small sanitized success, empty, changed, rate-limit, and invalid fixtures.
-- [ ] Normalize competitions, teams, fixtures, UTC times, and statuses.
-- [ ] Ignore unknown optional provider fields.
-- [ ] Reject missing required identity/time/team fields visibly.
-- [ ] Map provider errors to safe categories without tokens or raw payloads.
-- [ ] Add explicit timeouts and bounded retry metadata, but do not call the live provider in tests.
+- [x] Define the `SportsProvider` interface and normalized types.
+- [x] Create football-data.org v4 response schemas with Zod.
+- [x] Save small sanitized success, empty, changed, rate-limit, and invalid fixtures.
+- [x] Normalize competitions, teams, fixtures, UTC times, and statuses.
+- [x] Ignore unknown optional provider fields.
+- [x] Reject missing required identity/time/team fields visibly.
+- [x] Map provider errors to safe categories without tokens or raw payloads.
+- [x] Add explicit timeouts and bounded retry metadata, but do not call the live provider in tests.
 
 **Tests/evidence:** unit tests for every saved fixture, identity mapping, timezone conversion, invalid response, and safe error classification.
 
@@ -662,18 +662,18 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Add server-only provider token validation.
-- [ ] Add `POST /api/internal/sports-sync`.
-- [ ] Compare the sync secret safely before creating a service-role client.
-- [ ] Add an advisory lock and `SYNC_ALREADY_RUNNING` response.
-- [ ] Record a running sync row before provider work.
-- [ ] Intersect provider-accessible competitions with a configuration allowlist.
-- [ ] Use the yesterday-through-45-days-ahead window.
-- [ ] Fetch sequentially or with bounded rate-aware concurrency.
-- [ ] Upsert normalized rows by provider identity in safe batches/transactions.
-- [ ] Record counts, duration, request count, outcome, and safe errors.
-- [ ] Roll back affected work and preserve existing catalog rows on failure.
-- [ ] Add a local explicit sync command; normal page requests never call the provider.
+- [x] Add server-only provider token validation.
+- [x] Add `POST /api/internal/sports-sync`.
+- [x] Compare the sync secret safely before creating a service-role client.
+- [x] Add an advisory lock and `SYNC_ALREADY_RUNNING` response.
+- [x] Record a running sync row before provider work.
+- [x] Intersect provider-accessible competitions with a configuration allowlist.
+- [x] Use the yesterday-through-45-days-ahead window.
+- [x] Fetch sequentially or with bounded rate-aware concurrency.
+- [x] Upsert normalized rows by provider identity in safe batches/transactions.
+- [x] Record counts, duration, request count, outcome, and safe errors.
+- [x] Roll back affected work and preserve existing catalog rows on failure.
+- [x] Add a local explicit sync command; normal page requests never call the provider.
 
 **Tests/evidence:** invalid-secret denial, ordinary-session denial, overlapping-run conflict, fixture-driven successful upsert, idempotent rerun, changed fixture update, and failure preserving previous rows.
 
@@ -1326,8 +1326,8 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 | Milestone | Included modules | Status | Issue/PR |
 |---|---|---|---|
 | B01 Platform quality and authentication | `F04`, `A01` | done | [#9](https://github.com/gethuddle/huddle/issues/9) / [PR #10](https://github.com/gethuddle/huddle/pull/10) |
-| B02 Onboarding, eligibility, and blocking | `A02`–`A04` | review | [#11](https://github.com/gethuddle/huddle/issues/11) |
-| B03 Sports catalog and ingestion | `S01`–`S03` | not started | — |
+| B02 Onboarding, eligibility, and blocking | `A02`–`A04` | done | [#11](https://github.com/gethuddle/huddle/issues/11) / [PR #12](https://github.com/gethuddle/huddle/pull/12) |
+| B03 Sports catalog and ingestion | `S01`–`S03` | review | [#13](https://github.com/gethuddle/huddle/issues/13) |
 | B04 Fixture browsing and follows | `S04`–`S05` | not started | — |
 | B05 Friendships and group creation | `G01`–`G02` | not started | — |
 | B06 Group membership and administration | `G03`–`G05` | not started | — |

@@ -1,0 +1,17 @@
+{
+  "competition": {
+    "id": 2021,
+    "name": "Premier League"
+  },
+  "matches": [
+    {
+      "id": 5001,
+      "utcDate": "2026-08-30T18:00:00Z",
+      "status": "POSTPONED",
+      "matchday": 2,
+      "stage": "REGULAR_SEASON",
+      "homeTeam": { "id": 57, "name": "Arsenal FC", "shortName": "Arsenal", "tla": "ARS" },
+      "awayTeam": { "id": 61, "name": "Chelsea FC" }
+    }
+  ]
+}

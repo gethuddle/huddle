@@ -155,7 +155,7 @@ The database and provider boundaries may be future-ready, but deferred features 
 
 ## Project status
 
-The merged baseline now includes B01 repository CI and the local email/password signup, verification, SSR session, sign-in, and sign-out flow. B02 profile onboarding, actor eligibility, safe profile summaries, private blocks, and audit evidence are implemented on the current milestone branch. Friendships, groups, events, attendance, sports synchronization, hosted application environments, and deployment remain later milestones; this work does not mutate the shared Supabase organization.
+The merged baseline now includes B01 repository CI and the complete B02 local account, onboarding, eligibility, safe-profile, private-block, and audit flow. B03 sports catalog and ingestion are implemented on the current milestone branch: the provider-neutral schema, football-data.org adapter, protected internal sync route, transactional upsert, safe run evidence, and fixture-driven tests are in place. Fixture browsing/follows, friendships, groups, events, attendance, hosted synchronization, and deployment remain later milestones; this work does not mutate the shared Supabase organization.
 
 ### Visual system
 
@@ -183,7 +183,15 @@ The first database start downloads the pinned local images. Repository scripts u
 npm run dev
 ```
 
-`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `NEXT_PUBLIC_APP_URL` are browser-safe. `SUPABASE_SERVICE_ROLE_KEY`, `FOOTBALL_DATA_API_TOKEN`, and `SPORTS_SYNC_SECRET` are server-only and must never enter Client Components or logs. F02 reserves the protected service-role boundary but does not call it. F03 uses the repository-managed local stack only; no hosted project is linked or mutated.
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `NEXT_PUBLIC_APP_URL` are browser-safe. `SUPABASE_SERVICE_ROLE_KEY`, `FOOTBALL_DATA_API_TOKEN`, and `SPORTS_SYNC_SECRET` are server-only and must never enter Client Components or logs. B03 creates a service-role client only after the internal route authenticates `SPORTS_SYNC_SECRET`; ordinary sessions cannot trigger a sync or mutate the catalog. The repository-managed local stack remains unlinked, so these commands do not mutate the shared Supabase organization.
+
+B03's automated tests use only the sanitized fixtures under `tests/fixtures/football-data` and never call the provider. To perform a deliberate real-provider sync locally, put the intended local Supabase values, provider token, and a matching high-entropy sync secret in `.env.local`, run the application with `npm run dev`, and invoke:
+
+```bash
+npm run sports:sync
+```
+
+`dev:local`, CI, builds, and tests deliberately inject placeholder provider authority. The checked-in competition allowlist currently contains Premier League (`PL`) and UEFA Champions League (`CL`); recheck the active provider plan before any hosted scheduling. Supabase Cron and hosted secrets remain part of the later deployment milestone.
 
 The local stack is recreated entirely from tracked migrations and seed data. Mailpit captures verification emails at `http://127.0.0.1:54324`; it sends nothing externally. The stack is not linked to the shared Supabase organization and must not be exposed externally. See the [local database contract](./supabase/README.md) for schema conventions and database commands.
 
