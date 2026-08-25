@@ -155,7 +155,7 @@ The database and provider boundaries may be future-ready, but deferred features 
 
 ## Project status
 
-The merged baseline includes the Next.js application foundation, F02 application boundaries, and F03 local Supabase foundation. B01 is now in reciprocal review with repository CI plus local email/password signup, email verification, cookie-backed SSR sessions, sign-in, and sign-out. Profile onboarding, community mutations, product tables, branch-protection activation, and hosted environments remain later or external steps; the local B01 implementation does not mutate the shared Supabase organization.
+The merged baseline includes the Next.js application foundation, F02 application boundaries, and F03 local Supabase foundation. B01 is now in reciprocal review with repository CI plus local email/password signup, email verification, cookie-backed SSR sessions, sign-in, and sign-out. Profile onboarding, community mutations, product tables, and hosted application environments remain later steps; the local B01 implementation does not mutate the shared Supabase organization.
 
 ### Visual system
 
@@ -201,7 +201,7 @@ npm run build:local
 npm run test:e2e
 ```
 
-The tracked GitHub Actions workflow runs the same local-only stack on pull requests and `main`. Branch protection and the deliberate-failure pull-request proof remain pending until the B01 branch is published and the workflow has run on GitHub.
+The tracked GitHub Actions workflow runs the same local-only stack on pull requests and `main`. The protected `main` branch requires the `Repository gates` check, one approving partner review, resolution of review conversations, and an up-to-date branch before merge; force pushes and deletion are disabled.
 
 - [Product and architecture vision](./docs/HUDDLE-ARCHITECTURE.md)
 - [Implementation-ready engineering specification](./docs/HUDDLE-IMPLEMENTATION-SPEC.md)

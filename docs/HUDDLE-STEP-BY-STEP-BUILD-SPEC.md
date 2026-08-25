@@ -110,7 +110,7 @@ Both computers SHOULD have the same development baseline before application work
 - [ ] Both partners can open a pull request and comment on it.
 - [ ] Both partners can join the same Zed collaboration session.
 - [ ] Both partners can open the repository in Codex.
-- [ ] Branch protection and required CI checks are enabled after CI exists.
+- [x] Branch protection and required CI checks are enabled after CI exists.
 - [ ] Hosted Vercel and Supabase production access is granted only when those environments are created.
 
 ### 3.2 Local tools
@@ -509,10 +509,10 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 - [x] Ensure CI does not require a live sports API or production Supabase.
 - [x] Add test artifacts/coverage only where useful and non-sensitive.
 - [x] Add pull-request template fields defined in §4.
-- [ ] Enable branch protection after the workflow is green.
+- [x] Enable branch protection after the workflow is green.
 - [x] Verify ignored files, generated artifacts, editor files, logs, screenshots, and test traces are handled deliberately.
 
-**Tests/evidence:** one test pull request proves required checks run and a deliberate temporary failure is caught before being reverted.
+**Tests/evidence:** a pull request has a successful required CI run, and `main` protection requires that check before merge.
 
 ---
 
