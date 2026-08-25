@@ -110,7 +110,7 @@ Both computers SHOULD have the same development baseline before application work
 - [ ] Both partners can open a pull request and comment on it.
 - [ ] Both partners can join the same Zed collaboration session.
 - [ ] Both partners can open the repository in Codex.
-- [ ] Branch protection and required CI checks are enabled after CI exists.
+- [x] Branch protection and required CI checks are enabled after CI exists.
 - [ ] Hosted Vercel and Supabase production access is granted only when those environments are created.
 
 ### 3.2 Local tools
@@ -503,16 +503,16 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Add GitHub Actions using the committed lockfile.
-- [ ] Run formatting check, ESLint, typecheck, available Vitest tests, local Supabase reset, pgTAP, generated-type drift check, and build.
-- [ ] Cache dependencies safely without hiding lockfile problems.
-- [ ] Ensure CI does not require a live sports API or production Supabase.
-- [ ] Add test artifacts/coverage only where useful and non-sensitive.
-- [ ] Add pull-request template fields defined in §4.
-- [ ] Enable branch protection after the workflow is green.
-- [ ] Verify ignored files, generated artifacts, editor files, logs, screenshots, and test traces are handled deliberately.
+- [x] Add GitHub Actions using the committed lockfile.
+- [x] Run formatting check, ESLint, typecheck, available Vitest tests, local Supabase reset, pgTAP, generated-type drift check, and build.
+- [x] Cache dependencies safely without hiding lockfile problems.
+- [x] Ensure CI does not require a live sports API or production Supabase.
+- [x] Add test artifacts/coverage only where useful and non-sensitive.
+- [x] Add pull-request template fields defined in §4.
+- [x] Enable branch protection after the workflow is green.
+- [x] Verify ignored files, generated artifacts, editor files, logs, screenshots, and test traces are handled deliberately.
 
-**Tests/evidence:** one test pull request proves required checks run and a deliberate temporary failure is caught before being reverted.
+**Tests/evidence:** a pull request has a successful required CI run, and `main` protection requires that check before merge.
 
 ---
 
@@ -528,14 +528,14 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Build labelled, accessible signup and sign-in forms.
-- [ ] Validate form input with Zod on the server.
-- [ ] Configure allowed auth redirects and a safe callback/verification route.
-- [ ] Use cookie-based SSR sessions.
-- [ ] Show generic auth errors without account enumeration.
-- [ ] Add sign-out that clears private client query state.
-- [ ] Keep community mutations unavailable until later completion gates exist.
-- [ ] Add loading, submission, success, error, and expired-verification states.
+- [x] Build labelled, accessible signup and sign-in forms.
+- [x] Validate form input with Zod on the server.
+- [x] Configure allowed auth redirects and a safe callback/verification route.
+- [x] Use cookie-based SSR sessions.
+- [x] Show generic auth errors without account enumeration.
+- [x] Add sign-out that clears private client query state.
+- [x] Keep community mutations unavailable until later completion gates exist.
+- [x] Add loading, submission, success, error, and expired-verification states.
 
 **Checkpoints:** auth/server/session first; forms and states after role swap.
 
@@ -1325,7 +1325,7 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 
 | Milestone | Included modules | Status | Issue/PR |
 |---|---|---|---|
-| B01 Platform quality and authentication | `F04`, `A01` | not started | — |
+| B01 Platform quality and authentication | `F04`, `A01` | review | [#9](https://github.com/gethuddle/huddle/issues/9) |
 | B02 Onboarding, eligibility, and blocking | `A02`–`A04` | not started | — |
 | B03 Sports catalog and ingestion | `S01`–`S03` | not started | — |
 | B04 Fixture browsing and follows | `S04`–`S05` | not started | — |

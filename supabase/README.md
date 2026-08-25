@@ -1,6 +1,6 @@
 # Local Supabase contract
 
-F03 keeps the complete local database foundation in Git. It does not connect to the shared Supabase organization or create a hosted project.
+F03 keeps the complete local database foundation in Git, and B01 adds the local Auth email-verification path. Neither connects to the shared Supabase organization or creates or mutates a hosted project.
 
 ## Daily commands
 
@@ -14,6 +14,12 @@ npm run db:stop
 ```
 
 `db:reset` is explicitly local and replays every migration followed by `seed.sql`. The first `db:start` downloads the pinned local images and therefore takes longer.
+
+## Local Auth verification
+
+`supabase/config.toml` requires email confirmation and loads the tracked Huddle confirmation template. Local Auth sends that message only to Mailpit at `http://127.0.0.1:54324`; it never sends external email. The template carries a one-time token hash to the fixed `/auth/verify/callback` route, which validates the query, verifies the token with Supabase Auth, writes the SSR session cookies, applies private no-store headers, and redirects without carrying the token forward.
+
+Use `npm run dev:local`, `npm run build:local`, and `npm run test:e2e` to inject the currently running local stack values without copying or printing them. Hosted redirect URLs and hosted email templates belong to the later environment/deployment milestone.
 
 ## Schema conventions
 

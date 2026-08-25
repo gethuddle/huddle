@@ -12,6 +12,7 @@ import type { ActionError, ActionResult } from "./result";
 
 const HTTP_STATUS_BY_CODE = {
   AUTH_REQUIRED: 401,
+  AUTH_FAILED: 401,
   EMAIL_NOT_VERIFIED: 403,
   ADULT_ATTESTATION_REQUIRED: 403,
   RULES_ACCEPTANCE_REQUIRED: 403,

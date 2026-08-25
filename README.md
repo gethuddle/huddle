@@ -155,7 +155,7 @@ The database and provider boundaries may be future-ready, but deferred features 
 
 ## Project status
 
-The Next.js application foundation, F02 application boundaries, and F03 local Supabase foundation are implemented. The repository now carries a pinned Supabase CLI, local configuration, initial extension migration, deterministic seed skeleton, pgTAP proof, and generated database types. Authentication flows, product tables, CI, and hosted environments have not started yet.
+The merged baseline includes the Next.js application foundation, F02 application boundaries, and F03 local Supabase foundation. B01 is now in reciprocal review with repository CI plus local email/password signup, email verification, cookie-backed SSR sessions, sign-in, and sign-out. Profile onboarding, community mutations, product tables, and hosted application environments remain later steps; the local B01 implementation does not mutate the shared Supabase organization.
 
 ### Visual system
 
@@ -174,9 +174,10 @@ cp .env.example .env.local
 npm ci
 npm run db:start
 npm run db:reset
+npm run dev:local
 ```
 
-The first database start downloads the pinned local images. Copy only the local `API URL` and `Publishable` value printed by `db:start` into the matching browser-safe entries in `.env.local`; keep all real hosted values and secret/service-role keys out of Git. Then start Next.js:
+The first database start downloads the pinned local images. Repository scripts use the pinned Supabase CLI and obtain its local-only values without printing credentials. `dev:local` injects those values only into the child Next.js process, so no local key copy is required. The ordinary command remains available when `.env.local` already contains the intended environment:
 
 ```bash
 npm run dev
@@ -184,21 +185,23 @@ npm run dev
 
 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `NEXT_PUBLIC_APP_URL` are browser-safe. `SUPABASE_SERVICE_ROLE_KEY`, `FOOTBALL_DATA_API_TOKEN`, and `SPORTS_SYNC_SECRET` are server-only and must never enter Client Components or logs. F02 reserves the protected service-role boundary but does not call it. F03 uses the repository-managed local stack only; no hosted project is linked or mutated.
 
-The local stack is recreated entirely from tracked migrations and seed data. It is not linked to the shared Supabase organization and must not be exposed externally. See the [local database contract](./supabase/README.md) for schema conventions and database commands.
+The local stack is recreated entirely from tracked migrations and seed data. Mailpit captures verification emails at `http://127.0.0.1:54324`; it sends nothing externally. The stack is not linked to the shared Supabase organization and must not be exposed externally. See the [local database contract](./supabase/README.md) for schema conventions and database commands.
 
-Before handing off a change, run the available foundation checks:
+Before handing off B01, install Chromium once and run the repository gates:
 
 ```bash
-npm test
+npx --no-install playwright install chromium
+npm run test:coverage
 npm run test:db
 npm run db:types:check
 npm run format:check
 npm run lint
 npm run typecheck
-npm run build
+npm run build:local
+npm run test:e2e
 ```
 
-CI and end-to-end commands will be added by their dependency-ready Foundation packages; they are not claimed by F03.
+The tracked GitHub Actions workflow runs the same local-only stack on pull requests and `main`. The protected `main` branch requires the `Repository gates` check, one approving partner review, resolution of review conversations, and an up-to-date branch before merge; force pushes and deletion are disabled.
 
 - [Product and architecture vision](./docs/HUDDLE-ARCHITECTURE.md)
 - [Implementation-ready engineering specification](./docs/HUDDLE-IMPLEMENTATION-SPEC.md)

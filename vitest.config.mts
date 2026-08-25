@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
   resolve: {
@@ -10,5 +10,18 @@ export default defineConfig({
   },
   test: {
     setupFiles: ["./tests/setup.ts"],
+    exclude: [...configDefaults.exclude, "tests/e2e/**"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json-summary", "html", "lcov"],
+      exclude: [
+        ".next/**",
+        "coverage/**",
+        "node_modules/**",
+        "playwright.config.ts",
+        "tests/e2e/**",
+        "types/database.generated.ts",
+      ],
+    },
   },
 });

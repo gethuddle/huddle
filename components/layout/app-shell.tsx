@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { createClient } from "@/lib/supabase/server";
+
 import { SiteFooter } from "./site-footer";
 import { SiteHeader } from "./site-header";
 
@@ -7,7 +9,11 @@ type AppShellProps = Readonly<{
   children: ReactNode;
 }>;
 
-export function AppShell({ children }: AppShellProps) {
+export async function AppShell({ children }: AppShellProps) {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  const isSignedIn = typeof data?.claims.sub === "string";
+
   return (
     <div className="flex min-h-screen bg-ink text-linen">
       <a
@@ -18,7 +24,7 @@ export function AppShell({ children }: AppShellProps) {
       </a>
 
       <div className="flex min-h-screen w-full flex-col">
-        <SiteHeader />
+        <SiteHeader isSignedIn={isSignedIn} />
         <main
           className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-6 sm:px-10 lg:px-14"
           id="main-content"
