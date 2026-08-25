@@ -19,9 +19,9 @@ export default async function VerifyPage({ searchParams }: VerifyPageProps) {
   if (status === "success") {
     return (
       <VerificationState
-        actionHref="/"
-        actionLabel="Continue to Huddle"
-        description="Your email is verified and your secure session is active. Profile onboarding arrives in B02; community actions remain unavailable until then."
+        actionHref="/settings/profile"
+        actionLabel="Complete your profile"
+        description="Your email is verified and your secure session is active. Complete your adult profile and accept the current community rules before using community actions."
         eyebrow="Email verified"
         title="You’re in."
       />
