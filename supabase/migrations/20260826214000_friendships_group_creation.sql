@@ -472,6 +472,14 @@ begin
     raise exception using errcode = 'P0001', message = 'BLOCKED_RELATIONSHIP';
   end if;
 
+  -- Keep the cooldown check, friendship insert, and audit evidence in one
+  -- requester-scoped critical section. The transaction lock is released only
+  -- after the surrounding request commits or rolls back, so concurrent
+  -- requests by the same actor cannot both observe an empty cooldown window.
+  perform pg_advisory_xact_lock(
+    hashtextextended('huddle:friendship-request:' || requester_id::text, 0)
+  );
+
   pair_low_id := least(requester_id, target_user_id);
   pair_high_id := greatest(requester_id, target_user_id);
 
@@ -526,7 +534,7 @@ end;
 $function$;
 
 comment on function public.request_friendship(uuid, uuid) is
-  'Canonicalizes and inserts one pending direct friendship after complete-account, block, duplicate, and cooldown checks.';
+  'Serializes per requester, then canonicalizes and inserts one pending direct friendship after complete-account, block, duplicate, and cooldown checks.';
 
 create or replace function public.request_friendship_by_handle(
   target_handle text,
