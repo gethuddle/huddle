@@ -79,7 +79,7 @@ describe("safe error contracts", () => {
   it("replaces an unsafe request ID before returning an HTTP contract", () => {
     const contract = toHttpError(new Error("private detail"), "bad\nrequest-id");
 
-    expect(contract.body.requestId).not.toContain("bad");
+    expect(contract.body.requestId).not.toBe("bad\nrequest-id");
     expect(contract.body.requestId).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     );
