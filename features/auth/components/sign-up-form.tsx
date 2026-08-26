@@ -2,13 +2,11 @@
 
 import { useActionState } from "react";
 
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { signUpAction } from "@/features/auth/actions";
-import {
-  AUTH_INPUT_CLASS_NAME,
-  AUTH_SUBMIT_CLASS_NAME,
-  FieldError,
-  FormFeedback,
-} from "@/features/auth/components/form-feedback";
+import { FieldError, FormFeedback } from "@/features/auth/components/form-feedback";
 import { INITIAL_AUTH_ACTION_STATE } from "@/features/auth/state";
 
 export function SignUpForm() {
@@ -18,14 +16,14 @@ export function SignUpForm() {
   return (
     <form action={formAction} className="space-y-5" noValidate>
       <div>
-        <label className="text-sm font-semibold text-linen" htmlFor="sign-up-email">
+        <Label className="text-linen" htmlFor="sign-up-email">
           Email address
-        </label>
-        <input
+        </Label>
+        <Input
           aria-describedby="sign-up-email-error"
           aria-invalid={fieldErrors?.email === undefined ? undefined : true}
           autoComplete="email"
-          className={AUTH_INPUT_CLASS_NAME}
+          className="mt-2"
           id="sign-up-email"
           inputMode="email"
           name="email"
@@ -37,14 +35,14 @@ export function SignUpForm() {
       </div>
 
       <div>
-        <label className="text-sm font-semibold text-linen" htmlFor="sign-up-password">
+        <Label className="text-linen" htmlFor="sign-up-password">
           Password
-        </label>
-        <input
+        </Label>
+        <Input
           aria-describedby="sign-up-password-help sign-up-password-error"
           aria-invalid={fieldErrors?.password === undefined ? undefined : true}
           autoComplete="new-password"
-          className={AUTH_INPUT_CLASS_NAME}
+          className="mt-2"
           id="sign-up-password"
           name="password"
           required
@@ -57,14 +55,14 @@ export function SignUpForm() {
       </div>
 
       <div>
-        <label className="text-sm font-semibold text-linen" htmlFor="sign-up-confirm-password">
+        <Label className="text-linen" htmlFor="sign-up-confirm-password">
           Confirm password
-        </label>
-        <input
+        </Label>
+        <Input
           aria-describedby="sign-up-confirm-password-error"
           aria-invalid={fieldErrors?.confirmPassword === undefined ? undefined : true}
           autoComplete="new-password"
-          className={AUTH_INPUT_CLASS_NAME}
+          className="mt-2"
           id="sign-up-confirm-password"
           name="confirmPassword"
           required
@@ -75,9 +73,9 @@ export function SignUpForm() {
 
       <FormFeedback state={state} />
 
-      <button className={AUTH_SUBMIT_CLASS_NAME} disabled={pending} type="submit">
+      <Button className="w-full" disabled={pending} size="lg" type="submit">
         {pending ? "Creating account…" : "Create account"}
-      </button>
+      </Button>
     </form>
   );
 }

@@ -1,5 +1,14 @@
 import type { ReactNode } from "react";
 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
 type AuthCardProps = Readonly<{
   eyebrow: string;
   title: string;
@@ -10,14 +19,16 @@ type AuthCardProps = Readonly<{
 
 export function AuthCard({ eyebrow, title, description, children, footer }: AuthCardProps) {
   return (
-    <section className="mx-auto my-14 w-full max-w-xl rounded-[2rem] border border-border-dark bg-surface-raised p-7 shadow-2xl shadow-black/20 sm:my-20 sm:p-10">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-court">{eyebrow}</p>
-      <h1 className="mt-4 text-4xl font-semibold tracking-[-0.045em] text-linen">{title}</h1>
-      <p className="mt-4 leading-7 text-muted-dark">{description}</p>
-      <div className="mt-8">{children}</div>
-      <div className="mt-8 border-t border-border-strong pt-6 text-sm text-muted-dark">
-        {footer}
-      </div>
-    </section>
+    <Card className="mx-auto my-14 w-full max-w-xl rounded-[2rem] sm:my-20">
+      <CardHeader className="px-7 sm:px-10">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-court">{eyebrow}</p>
+        <CardTitle className="mt-3 text-4xl font-semibold tracking-[-0.045em] text-linen">
+          <h1>{title}</h1>
+        </CardTitle>
+        <CardDescription className="mt-2 leading-7">{description}</CardDescription>
+      </CardHeader>
+      <CardContent className="px-7 sm:px-10">{children}</CardContent>
+      <CardFooter className="px-7 text-sm text-muted-dark sm:px-10">{footer}</CardFooter>
+    </Card>
   );
 }

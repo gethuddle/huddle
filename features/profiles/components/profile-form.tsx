@@ -2,6 +2,13 @@
 
 import { useActionState, useEffect } from "react";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { Textarea } from "@/components/ui/textarea";
 import { CURRENT_COMMUNITY_RULES } from "@/content/community-rules";
 import { saveProfileAction } from "@/features/profiles/actions";
 import { INITIAL_PROFILE_ACTION_STATE, type ProfileActionState } from "@/features/profiles/state";
@@ -27,9 +34,6 @@ type ProfileFormProps = Readonly<{
   initialValue: ProfileFormInitialValue;
 }>;
 
-const INPUT_CLASS_NAME =
-  "mt-2 w-full rounded-xl border border-border-strong bg-surface-deep px-4 py-3 text-base text-linen placeholder:text-muted-dark/70 transition focus:border-court focus:outline-none focus:ring-2 focus:ring-court/25";
-
 function FieldError({ id, messages }: Readonly<{ id: string; messages?: string[] }>) {
   if (messages === undefined || messages.length === 0) return null;
 
@@ -44,16 +48,15 @@ function ProfileFeedback({ state }: Readonly<{ state: ProfileActionState }>) {
   if (state === null) return null;
 
   return (
-    <p
-      className={
-        state.ok
-          ? "rounded-xl border border-court/30 bg-court/10 px-4 py-3 text-sm leading-6 text-court-hover"
-          : "rounded-xl border border-sand/30 bg-sand/10 px-4 py-3 text-sm leading-6 text-sand"
-      }
+    <Alert
+      className={state.ok ? "border-court/30 bg-court/10 text-court-hover" : undefined}
       role={state.ok ? "status" : "alert"}
+      variant={state.ok ? "default" : "destructive"}
     >
-      {state.ok ? state.data.message : state.error.message}
-    </p>
+      <AlertDescription className={state.ok ? "text-court-hover" : "text-sand"}>
+        {state.ok ? state.data.message : state.error.message}
+      </AlertDescription>
+    </Alert>
   );
 }
 
@@ -90,14 +93,14 @@ export function ProfileForm({ cities, initialValue }: ProfileFormProps) {
     >
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
-          <label className="text-sm font-semibold text-linen" htmlFor="profile-display-name">
+          <Label className="text-linen" htmlFor="profile-display-name">
             Display name
-          </label>
-          <input
+          </Label>
+          <Input
             aria-describedby="profile-display-name-error"
             aria-invalid={fieldErrors?.displayName === undefined ? undefined : true}
             autoComplete="name"
-            className={INPUT_CLASS_NAME}
+            className="mt-2"
             defaultValue={values.displayName}
             id="profile-display-name"
             maxLength={60}
@@ -109,9 +112,9 @@ export function ProfileForm({ cities, initialValue }: ProfileFormProps) {
         </div>
 
         <div>
-          <label className="text-sm font-semibold text-linen" htmlFor="profile-handle">
+          <Label className="text-linen" htmlFor="profile-handle">
             Handle
-          </label>
+          </Label>
           <div className="relative">
             <span
               aria-hidden="true"
@@ -119,12 +122,12 @@ export function ProfileForm({ cities, initialValue }: ProfileFormProps) {
             >
               @
             </span>
-            <input
+            <Input
               aria-describedby="profile-handle-help profile-handle-error"
               aria-invalid={fieldErrors?.handle === undefined ? undefined : true}
               autoCapitalize="none"
               autoComplete="username"
-              className={`${INPUT_CLASS_NAME} pl-9`}
+              className="mt-2 pl-9"
               defaultValue={values.handle}
               id="profile-handle"
               maxLength={30}
@@ -141,25 +144,25 @@ export function ProfileForm({ cities, initialValue }: ProfileFormProps) {
       </div>
 
       <div>
-        <label className="text-sm font-semibold text-linen" htmlFor="profile-city">
+        <Label className="text-linen" htmlFor="profile-city">
           Israel city
-        </label>
-        <select
+        </Label>
+        <NativeSelect
           aria-describedby="profile-city-help profile-city-error"
           aria-invalid={fieldErrors?.citySlug === undefined ? undefined : true}
-          className={INPUT_CLASS_NAME}
+          className="mt-2"
           defaultValue={values.citySlug}
           id="profile-city"
           name="citySlug"
           required
         >
-          <option value="">Choose a city</option>
+          <NativeSelectOption value="">Choose a city</NativeSelectOption>
           {cities.map((city) => (
-            <option key={city.id} value={city.slug}>
+            <NativeSelectOption key={city.id} value={city.slug}>
               {city.name}
-            </option>
+            </NativeSelectOption>
           ))}
-        </select>
+        </NativeSelect>
         <span className="mt-2 block text-xs text-muted-dark" id="profile-city-help">
           This is your fallback when you do not share browser location.
         </span>
@@ -167,13 +170,13 @@ export function ProfileForm({ cities, initialValue }: ProfileFormProps) {
       </div>
 
       <div>
-        <label className="text-sm font-semibold text-linen" htmlFor="profile-bio">
+        <Label className="text-linen" htmlFor="profile-bio">
           Short bio <span className="font-normal text-muted-dark">(optional)</span>
-        </label>
-        <textarea
+        </Label>
+        <Textarea
           aria-describedby="profile-bio-help profile-bio-error"
           aria-invalid={fieldErrors?.bio === undefined ? undefined : true}
-          className={`${INPUT_CLASS_NAME} min-h-28 resize-y`}
+          className="mt-2 resize-y"
           defaultValue={values.bio}
           id="profile-bio"
           maxLength={500}
@@ -197,16 +200,22 @@ export function ProfileForm({ cities, initialValue }: ProfileFormProps) {
             </p>
           </>
         ) : (
-          <label className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-linen">
-            <input
+          <div className="flex items-start gap-3">
+            <Checkbox
               aria-describedby="profile-adult-error"
-              className="mt-1 size-5 accent-court"
+              className="mt-0.5"
               defaultChecked={values.adultAttested}
+              id="profile-adult-attested"
               name="adultAttested"
-              type="checkbox"
+              value="on"
             />
-            <span>I confirm that I am 18 or older.</span>
-          </label>
+            <Label
+              className="cursor-pointer text-sm leading-6 text-linen"
+              htmlFor="profile-adult-attested"
+            >
+              I confirm that I am 18 or older.
+            </Label>
+          </div>
         )}
         <FieldError id="profile-adult-error" messages={fieldErrors?.adultAttested} />
       </fieldset>
@@ -245,29 +254,31 @@ export function ProfileForm({ cities, initialValue }: ProfileFormProps) {
             </p>
           </>
         ) : (
-          <label className="mt-5 flex cursor-pointer items-start gap-3 border-t border-border-dark pt-5 text-sm leading-6 text-linen">
-            <input
+          <div className="mt-5 flex items-start gap-3 border-t border-border-dark pt-5">
+            <Checkbox
               aria-describedby="profile-rules-error"
-              className="mt-1 size-5 accent-court"
+              className="mt-0.5"
               defaultChecked={values.rulesAccepted}
+              id="profile-rules-accepted"
               name="rulesAccepted"
-              type="checkbox"
+              value="on"
             />
-            <span>I have read and accept the current Huddle community rules.</span>
-          </label>
+            <Label
+              className="cursor-pointer text-sm leading-6 text-linen"
+              htmlFor="profile-rules-accepted"
+            >
+              I have read and accept the current Huddle community rules.
+            </Label>
+          </div>
         )}
         <FieldError id="profile-rules-error" messages={fieldErrors?.rulesAccepted} />
       </fieldset>
 
       <ProfileFeedback state={state} />
 
-      <button
-        className="w-full rounded-xl bg-court px-5 py-3.5 text-sm font-semibold text-ink transition hover:bg-court-hover focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-wait disabled:opacity-70"
-        disabled={pending}
-        type="submit"
-      >
+      <Button className="w-full" disabled={pending} size="lg" type="submit">
         {pending ? "Saving profile…" : initialValue.completed ? "Save profile" : "Complete profile"}
-      </button>
+      </Button>
     </form>
   );
 }

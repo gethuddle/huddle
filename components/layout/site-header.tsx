@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { BrandMark } from "@/components/brand/brand-mark";
+import { Button } from "@/components/ui/button";
 import { SignOutButton } from "@/features/auth/components/sign-out-button";
 
 export function SiteHeader({ isSignedIn }: Readonly<{ isSignedIn: boolean }>) {
@@ -13,38 +14,38 @@ export function SiteHeader({ isSignedIn }: Readonly<{ isSignedIn: boolean }>) {
         </Link>
 
         <div className="flex items-center gap-3 sm:gap-5">
-          <nav aria-label="Primary navigation" className="hidden sm:block">
+          <nav aria-label="Primary navigation" className="hidden sm:flex sm:items-center sm:gap-5">
             <Link
               className="text-sm font-medium text-muted-dark transition hover:text-linen"
               href="/"
             >
               Home
             </Link>
+            <Link
+              className="text-sm font-medium text-muted-dark transition hover:text-linen"
+              href="/matches"
+            >
+              Fixtures
+            </Link>
           </nav>
           {isSignedIn ? (
             <>
-              <Link
-                className="text-sm font-semibold text-muted-dark transition hover:text-linen"
-                href="/settings/profile"
-              >
-                Profile
-              </Link>
+              <Button asChild className="hidden lg:inline-flex" size="sm" variant="ghost">
+                <Link href="/settings/interests">Interests</Link>
+              </Button>
+              <Button asChild size="sm" variant="ghost">
+                <Link href="/settings/profile">Profile</Link>
+              </Button>
               <SignOutButton />
             </>
           ) : (
             <>
-              <Link
-                className="text-sm font-semibold text-muted-dark transition hover:text-linen"
-                href="/auth/sign-in"
-              >
-                Sign in
-              </Link>
-              <Link
-                className="rounded-xl bg-court px-3 py-2 text-sm font-semibold text-ink transition hover:bg-court-hover sm:px-4"
-                href="/auth/sign-up"
-              >
-                Sign up
-              </Link>
+              <Button asChild size="sm" variant="ghost">
+                <Link href="/auth/sign-in">Sign in</Link>
+              </Button>
+              <Button asChild size="sm">
+                <Link href="/auth/sign-up">Sign up</Link>
+              </Button>
             </>
           )}
         </div>

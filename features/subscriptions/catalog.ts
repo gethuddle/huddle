@@ -1,0 +1,60 @@
+import "server-only";
+
+import { DomainError } from "@/lib/errors";
+import { createAnonymousServerClient } from "@/lib/supabase/anonymous";
+
+export type InterestCatalog = Readonly<{
+  sports: readonly Readonly<{ id: string; name: string; slug: string }>[];
+  competitions: readonly Readonly<{
+    id: string;
+    name: string;
+    code: string | null;
+    sportId: string;
+  }>[];
+  teams: readonly Readonly<{
+    id: string;
+    name: string;
+    shortName: string | null;
+    tla: string | null;
+    sportId: string;
+  }>[];
+}>;
+
+export async function getInterestCatalog(): Promise<InterestCatalog> {
+  const supabase = createAnonymousServerClient();
+  const [sportResult, competitionResult, teamResult] = await Promise.all([
+    supabase.from("sports").select("id, name, slug").eq("active", true).order("name").limit(20),
+    supabase
+      .from("competitions")
+      .select("id, name, code, sport_id")
+      .eq("active", true)
+      .order("name")
+      .limit(100),
+    supabase
+      .from("teams")
+      .select("id, name, short_name, tla, sport_id")
+      .eq("active", true)
+      .order("name")
+      .limit(100),
+  ]);
+
+  const error = sportResult.error ?? competitionResult.error ?? teamResult.error;
+  if (error !== null) throw new DomainError("INTERNAL_ERROR", { cause: error });
+
+  return {
+    sports: sportResult.data ?? [],
+    competitions: (competitionResult.data ?? []).map((competition) => ({
+      id: competition.id,
+      name: competition.name,
+      code: competition.code,
+      sportId: competition.sport_id,
+    })),
+    teams: (teamResult.data ?? []).map((team) => ({
+      id: team.id,
+      name: team.name,
+      shortName: team.short_name,
+      tla: team.tla,
+      sportId: team.sport_id,
+    })),
+  };
+}

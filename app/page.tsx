@@ -1,3 +1,8 @@
+import Link from "next/link";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+
 const journey = [
   {
     number: "01",
@@ -34,34 +39,45 @@ export default function Home() {
             Match day is better together.
           </h1>
           <p className="mt-8 max-w-2xl text-lg leading-8 text-muted-dark sm:text-xl">
-            Huddle will help sports fans follow their interests, discover suitable nearby watch
-            events, and join or host them through clear attendance and privacy boundaries.
+            Follow the football teams and competitions that matter to you, then browse upcoming
+            fixtures from Huddle’s local match catalog.
           </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Button asChild size="lg">
+              <Link href="/matches">Browse fixtures</Link>
+            </Button>
+            <Button asChild size="lg" variant="outline">
+              <Link href="/settings/interests">Choose interests</Link>
+            </Button>
+          </div>
         </div>
 
-        <aside className="rounded-[2rem] border border-border-dark bg-surface-raised p-8 shadow-2xl shadow-black/20 sm:p-10">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sand">
-            Foundation status
-          </p>
-          <h2 className="mt-5 text-3xl font-semibold tracking-[-0.04em]">
-            The groundwork comes first.
-          </h2>
-          <p className="mt-5 leading-7 text-muted-dark">
-            Secure accounts, adult profile onboarding, current community-rule acceptance, safe
-            public profiles, and private blocking are now in place. The local sports catalog comes
-            next.
-          </p>
-          <dl className="mt-8 grid grid-cols-2 gap-5 border-t border-border-strong pt-7 text-sm">
-            <div>
-              <dt className="text-muted-dark">Interface</dt>
-              <dd className="mt-1 font-semibold">English</dd>
-            </div>
-            <div>
-              <dt className="text-muted-dark">Display time</dt>
-              <dd className="mt-1 font-semibold">Jerusalem</dd>
-            </div>
-          </dl>
-        </aside>
+        <Card className="rounded-[2rem]">
+          <CardHeader className="px-8 sm:px-10">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sand">
+              What works now
+            </p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.04em]">
+              Start with the fixture.
+            </h2>
+          </CardHeader>
+          <CardContent className="px-8 sm:px-10">
+            <p className="leading-7 text-muted-dark">
+              Secure accounts, adult onboarding, safe public profiles, blocking, the local sports
+              catalog, fixture browsing, and personal follows are now connected.
+            </p>
+            <dl className="mt-8 grid grid-cols-2 gap-5 border-t border-border-strong pt-7 text-sm">
+              <div>
+                <dt className="text-muted-dark">Provider calls</dt>
+                <dd className="mt-1 font-semibold">Server sync only</dd>
+              </div>
+              <div>
+                <dt className="text-muted-dark">Display time</dt>
+                <dd className="mt-1 font-semibold">Jerusalem</dd>
+              </div>
+            </dl>
+          </CardContent>
+        </Card>
       </section>
 
       <section aria-labelledby="journey-heading" className="border-t border-border-dark py-12">
@@ -70,13 +86,16 @@ export default function Home() {
         </h2>
         <ol className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {journey.map((step) => (
-            <li
-              key={step.number}
-              className="rounded-2xl border border-border-dark bg-surface-deep p-5"
-            >
-              <span className="text-xs font-bold tracking-[0.18em] text-court">{step.number}</span>
-              <h3 className="mt-3 text-lg font-semibold tracking-[-0.02em]">{step.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-muted-dark">{step.description}</p>
+            <li key={step.number}>
+              <Card className="h-full bg-surface-deep" size="sm">
+                <CardContent>
+                  <span className="text-xs font-bold tracking-[0.18em] text-court">
+                    {step.number}
+                  </span>
+                  <h3 className="mt-3 text-lg font-semibold tracking-[-0.02em]">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-muted-dark">{step.description}</p>
+                </CardContent>
+              </Card>
             </li>
           ))}
         </ol>

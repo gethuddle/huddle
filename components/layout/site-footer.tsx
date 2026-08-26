@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { BrandMark } from "@/components/brand/brand-mark";
 
 export function SiteFooter() {
@@ -8,7 +10,21 @@ export function SiteFooter() {
           <BrandMark decorative size={18} tone="linen" />
           <span>Huddle · Israel pilot · One account, one attendee.</span>
         </p>
-        <p>Sports-data attribution will appear here when synchronization begins.</p>
+        <p>
+          Fixtures by{" "}
+          <a
+            className="text-linen underline underline-offset-4"
+            href="https://www.football-data.org/"
+            rel="noreferrer"
+            target="_blank"
+          >
+            football-data.org
+          </a>
+          {" · "}
+          <Link className="text-linen underline underline-offset-4" href="/data-sources">
+            Data sources
+          </Link>
+        </p>
       </div>
     </footer>
   );

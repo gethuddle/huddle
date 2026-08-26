@@ -1,4 +1,7 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+
+import type { Database } from "@/types/database.generated";
 
 type MailpitAddress = Readonly<{ Address?: string; Email?: string }>;
 type MailpitMessageSummary = Readonly<{
@@ -15,6 +18,106 @@ type MailpitMessage = Readonly<{
 }>;
 
 const mailpitUrl = process.env.HUDDLE_MAILPIT_URL ?? "http://127.0.0.1:54324";
+
+function isoDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+async function seedCachedFixtureCatalogAfterFailure() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (supabaseUrl === undefined || serviceRoleKey === undefined) {
+    throw new Error("The local service-role test environment is unavailable.");
+  }
+
+  const admin = createSupabaseClient<Database>(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const now = new Date();
+  const kickoff = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+  const windowStart = isoDate(new Date(now.getTime() - 24 * 60 * 60 * 1000));
+  const windowEnd = isoDate(new Date(now.getTime() + 45 * 24 * 60 * 60 * 1000));
+  const beginResult = await admin.rpc("begin_sports_sync", {
+    input_provider: "football-data",
+    input_window_start: windowStart,
+    input_window_end: windowEnd,
+    input_trigger_source: "manual",
+  });
+  if (beginResult.error !== null) throw beginResult.error;
+
+  const completeResult = await admin.rpc("complete_sports_sync", {
+    input_run_id: beginResult.data,
+    input_sport_slug: "football",
+    input_competitions: [
+      {
+        provider_external_id: "2021",
+        code: "PL",
+        name: "Premier League",
+        country_name: "England",
+      },
+    ],
+    input_teams: [
+      {
+        provider_external_id: "57",
+        name: "Arsenal FC",
+        short_name: "Arsenal",
+        tla: "ARS",
+        country_name: "England",
+      },
+      {
+        provider_external_id: "61",
+        name: "Chelsea FC",
+        short_name: "Chelsea",
+        tla: "CHE",
+        country_name: "England",
+      },
+    ],
+    input_competition_teams: [
+      {
+        competition_external_id: "2021",
+        team_external_id: "57",
+        season_label: "2026",
+      },
+      {
+        competition_external_id: "2021",
+        team_external_id: "61",
+        season_label: "2026",
+      },
+    ],
+    input_matches: [
+      {
+        provider_external_id: "b04-e2e-match",
+        competition_external_id: "2021",
+        home_team_external_id: "57",
+        away_team_external_id: "61",
+        starts_at: kickoff.toISOString(),
+        status: "timed",
+        matchday: 1,
+        stage: "REGULAR_SEASON",
+        season_label: "2026",
+      },
+    ],
+    input_request_count: 2,
+    input_retry_count: 0,
+  });
+  if (completeResult.error !== null) throw completeResult.error;
+
+  const failedRun = await admin.rpc("begin_sports_sync", {
+    input_provider: "football-data",
+    input_window_start: windowStart,
+    input_window_end: windowEnd,
+    input_trigger_source: "retry",
+  });
+  if (failedRun.error !== null) throw failedRun.error;
+  const failureResult = await admin.rpc("fail_sports_sync", {
+    input_run_id: failedRun.data,
+    input_request_count: 1,
+    input_retry_count: 0,
+    input_error_code: "UPSTREAM_5XX",
+    input_error_summary: "Provider was unavailable during the test import.",
+  });
+  if (failureResult.error !== null) throw failureResult.error;
+}
 
 async function mailpitJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(new URL(path, mailpitUrl), init);
@@ -134,8 +237,8 @@ async function completeProfile(
     await expect(page.getByText("This confirmation is required.")).toHaveCount(2);
   }
 
-  await page.getByRole("checkbox", { name: /18 or older/i }).check();
-  await page.getByRole("checkbox", { name: /accept the current/i }).check();
+  await page.getByRole("checkbox", { name: /18 or older/i }).click();
+  await page.getByRole("checkbox", { name: /accept the current/i }).click();
   await page.getByRole("button", { name: "Complete profile" }).click();
 
   await expect(page).toHaveURL(new RegExp(`/people/${handle}$`));
@@ -228,4 +331,47 @@ test("a block is private, directional, auditable, and reversible", async ({
   } finally {
     await secondContext.close();
   }
+});
+
+test("cached fixtures survive provider failure and a completed user follows a team", async ({
+  context,
+  page,
+}) => {
+  await clearMailbox();
+  await seedCachedFixtureCatalogAfterFailure();
+
+  const providerRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("football-data.org")) providerRequests.push(request.url());
+  });
+
+  await page.goto("/matches");
+  await expect(page.getByRole("heading", { name: /Find the fixture/i })).toBeVisible();
+  await expect(page.getByText("Arsenal", { exact: true })).toBeVisible();
+  await expect(page.getByText("Chelsea", { exact: true })).toBeVisible();
+  await expect(page.getByRole("status")).toContainText("Fixture data was updated");
+  expect(providerRequests).toEqual([]);
+
+  await page.getByRole("link", { name: "View Arsenal FC versus Chelsea FC" }).click();
+  await expect(page.getByRole("heading", { name: "Arsenal vs Chelsea" })).toBeVisible();
+  await expect(page.getByText("No Huddle watch events yet.")).toBeVisible();
+  expect(providerRequests).toEqual([]);
+
+  const suffix = Date.now().toString().slice(-8);
+  const email = `follow-${suffix}@example.com`;
+  const password = "matchday-local-test";
+  const handle = `follow_${suffix}`;
+  await signUpAndVerify(page, context, email, password);
+  await completeProfile(page, handle, "Following Fan");
+
+  await page.goto(new URL("/settings/interests", page.url()).toString());
+  await page.getByRole("button", { name: "Follow Arsenal" }).click();
+  await expect(page.getByRole("status")).toHaveText("Follow added.");
+  await expect(page.getByRole("button", { name: "Unfollow Arsenal" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Unfollow Arsenal" })).toBeVisible();
 });

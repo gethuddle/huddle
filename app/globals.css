@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 @theme static {
   --color-ink: #0b1210;
@@ -17,11 +18,55 @@
 
 @theme inline {
   --font-sans: var(--font-familjen-grotesk), "Helvetica Neue", Arial, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 0.25rem);
+  --radius-md: calc(var(--radius) - 0.125rem);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 0.25rem);
+  --radius-2xl: calc(var(--radius) + 0.75rem);
 }
 
 :root {
   --page-background: var(--color-ink);
   --page-foreground: var(--color-linen);
+  --background: var(--color-ink);
+  --foreground: var(--color-linen);
+  --card: var(--color-surface-raised);
+  --card-foreground: var(--color-linen);
+  --popover: var(--color-surface-raised);
+  --popover-foreground: var(--color-linen);
+  --primary: var(--color-court);
+  --primary-foreground: var(--color-ink);
+  --secondary: var(--color-surface-deep);
+  --secondary-foreground: var(--color-linen);
+  --muted: var(--color-surface-deep);
+  --muted-foreground: var(--color-muted-dark);
+  --accent: var(--color-border-dark);
+  --accent-foreground: var(--color-linen);
+  --destructive: var(--color-sand);
+  --destructive-foreground: var(--color-ink);
+  --border: var(--color-border-dark);
+  --input: var(--color-border-strong);
+  --ring: var(--color-court);
+  --radius: 0.875rem;
   color-scheme: dark;
 }
 

@@ -155,7 +155,7 @@ The database and provider boundaries may be future-ready, but deferred features 
 
 ## Project status
 
-The merged baseline now includes B01 repository CI; the complete B02 local account, onboarding, eligibility, safe-profile, private-block, and audit flow; and B03 sports catalog and ingestion. The provider-neutral schema, football-data.org adapter, protected internal sync route, transactional upsert, safe run evidence, and fixture-driven tests are in place. B04 will add the Huddle-styled shadcn/Radix component layer, migrate suitable existing controls, and build fixture browsing and sports follows on top of the local catalog. Friendships, groups, events, attendance, hosted synchronization, and deployment remain later milestones; current local work does not mutate the shared Supabase organization.
+The merged baseline includes B01 repository CI; the complete B02 local account, onboarding, eligibility, safe-profile, private-block, and audit flow; and B03 sports catalog and ingestion. B04 now implements the Huddle-styled shadcn/Radix component layer, anonymous freshness-aware fixture browsing, and completed-account sport, competition, and team follows on top of the local catalog. The implementation remains on its milestone branch for reciprocal review and merge. Friendships, groups, events, attendance, hosted synchronization, and deployment remain later milestones; current local work does not mutate the shared Supabase organization.
 
 ### Visual system
 

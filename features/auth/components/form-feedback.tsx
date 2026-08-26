@@ -1,4 +1,5 @@
 import type { AuthActionState } from "@/features/auth/state";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type FieldErrorProps = Readonly<{
   id: string;
@@ -24,27 +25,15 @@ export function FormFeedback({ state }: Readonly<{ state: AuthActionState }>) {
 
   if (state.ok) {
     return (
-      <p
-        className="rounded-xl border border-court/30 bg-court/10 px-4 py-3 text-sm leading-6 text-court-hover"
-        role="status"
-      >
-        {state.data.message}
-      </p>
+      <Alert className="border-court/30 bg-court/10 text-court-hover" role="status">
+        <AlertDescription className="text-court-hover">{state.data.message}</AlertDescription>
+      </Alert>
     );
   }
 
   return (
-    <p
-      className="rounded-xl border border-sand/30 bg-sand/10 px-4 py-3 text-sm leading-6 text-sand"
-      role="alert"
-    >
-      {state.error.message}
-    </p>
+    <Alert variant="destructive">
+      <AlertDescription className="text-sand">{state.error.message}</AlertDescription>
+    </Alert>
   );
 }
-
-export const AUTH_INPUT_CLASS_NAME =
-  "mt-2 w-full rounded-xl border border-border-strong bg-surface-deep px-4 py-3 text-base text-linen placeholder:text-muted-dark/70 transition focus:border-court focus:outline-none focus:ring-2 focus:ring-court/25";
-
-export const AUTH_SUBMIT_CLASS_NAME =
-  "w-full rounded-xl bg-court px-5 py-3.5 text-sm font-semibold text-ink transition hover:bg-court-hover focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-wait disabled:opacity-70";
