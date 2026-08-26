@@ -31,8 +31,9 @@ Keep implementation slices tied to this loop and the official course deliverable
 
 - Next.js App Router, React, and strict TypeScript form one modular-monolith application.
 - Next.js Server Components handle server reads; Server Actions handle application mutations; narrow Route Handlers provide discovery JSON, sports synchronization, and calendar files.
-- Tailwind CSS and Radix UI primitives provide the interface.
-- UI work consumes the named Tailwind tokens and replaceable brand assets in `docs/HUDDLE-BRAND.md`. Do not scatter raw brand hex values through components or treat the current provisional mark as permanent.
+- Tailwind CSS and repository-owned shadcn components backed by Radix UI primitives provide the interface.
+- Prefer shared shadcn-based primitives under `components/ui/` for generic controls such as buttons, fields, cards, badges, dialogs, menus, selects, skeletons, and pagination. Add only components required by an active milestone; do not install the entire registry.
+- Huddle-specific components compose those primitives and consume the named Tailwind tokens and replaceable brand assets in `docs/HUDDLE-BRAND.md`. Do not let shadcn initialization overwrite the approved global styles, typography, tokens, or `BrandMark`; do not scatter raw brand hex values through components or treat the current provisional mark as permanent.
 - TanStack Query is limited to location-aware discovery, cursor pagination, and attendance mutations. Use local React state for ordinary forms and dialogs; do not add Zustand.
 - Zod validates all untrusted form, route, environment, and provider data.
 - Supabase owns Auth, PostgreSQL, Row Level Security, PostGIS, SQL migrations, and generated database types.

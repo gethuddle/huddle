@@ -37,6 +37,17 @@ Court Green is an accent, not a paragraph color. On light surfaces use Forest wh
 
 The application loads Familjen Grotesk through `next/font`, which self-hosts the generated font assets and exposes the family to Tailwind's `font-sans` utility.
 
+## Component-system integration
+
+Huddle uses repository-owned shadcn components backed by Radix UI for generic interactive controls. shadcn is a source-code foundation, not Huddle's visual identity: generated components live under `components/ui/` and MUST be adapted to the tokens and rules in this document.
+
+- Configure shadcn for the existing Tailwind v4 stylesheet and `@/` alias; do not replace `app/globals.css` wholesale.
+- Keep the approved Ink, Linen, Court Green, Forest, surface, border, and muted tokens as the visual source of truth.
+- Keep Familjen Grotesk, the dark-first surface hierarchy, rounded geometry, visible focus, and one-Court-Green-accent discipline.
+- Use Radix-backed shadcn variants for interactive primitives so Huddle does not maintain parallel Radix and Base UI component families.
+- Add only components required by the active milestone, then compose domain components such as `MatchCard` and `EventCard` from them.
+- Migrate existing controls only when their behavior, accessibility coverage, and authorization outcomes remain intact.
+
 ## Mark and asset rules
 
 The current provisional mark is the Aperture Huddle: six rounded capsules leaning into a shared open center.

@@ -121,7 +121,7 @@ Huddle is designed as a modular monolith: one Next.js application contains the U
 | Area | Technology | Responsibility |
 |---|---|---|
 | Web application | Next.js App Router, React, strict TypeScript | Pages, Server Components, Server Actions, and Route Handlers |
-| UI | Tailwind CSS, Radix UI primitives | Responsive and accessible interface |
+| UI | Tailwind CSS, repository-owned shadcn components, Radix UI primitives | Branded, reusable, and accessible interface |
 | Validation | Zod | Forms, environment variables, route input, and provider responses |
 | Authentication | Supabase Auth | Verified users and cookie-based SSR sessions |
 | Database | Supabase PostgreSQL, RLS, PostGIS | Durable data, authorization, atomic attendance, and nearby discovery |
@@ -155,11 +155,11 @@ The database and provider boundaries may be future-ready, but deferred features 
 
 ## Project status
 
-The merged baseline now includes B01 repository CI and the complete B02 local account, onboarding, eligibility, safe-profile, private-block, and audit flow. B03 sports catalog and ingestion are implemented on the current milestone branch: the provider-neutral schema, football-data.org adapter, protected internal sync route, transactional upsert, safe run evidence, and fixture-driven tests are in place. Fixture browsing/follows, friendships, groups, events, attendance, hosted synchronization, and deployment remain later milestones; this work does not mutate the shared Supabase organization.
+The merged baseline now includes B01 repository CI; the complete B02 local account, onboarding, eligibility, safe-profile, private-block, and audit flow; and B03 sports catalog and ingestion. The provider-neutral schema, football-data.org adapter, protected internal sync route, transactional upsert, safe run evidence, and fixture-driven tests are in place. B04 will add the Huddle-styled shadcn/Radix component layer, migrate suitable existing controls, and build fixture browsing and sports follows on top of the local catalog. Friendships, groups, events, attendance, hosted synchronization, and deployment remain later milestones; current local work does not mutate the shared Supabase organization.
 
 ### Visual system
 
-Huddle uses a dark-first visual language built from Ink, Linen, Court Green, Forest, and warm supporting neutrals, with Familjen Grotesk as the interface typeface. Every approved swatch is available as a named Tailwind token, and shared UI consumes replaceable brand components rather than hard-coded logo geometry or colors. The palette and typography are adopted; the exact website mark remains intentionally easy to replace.
+Huddle uses a dark-first visual language built from Ink, Linen, Court Green, Forest, and warm supporting neutrals, with Familjen Grotesk as the interface typeface. Every approved swatch is available as a named Tailwind token. Repository-owned shadcn/Radix primitives provide reusable behavior while shared and feature UI applies Huddle's tokens and replaceable brand components rather than hard-coded logo geometry or colors. The palette and typography are adopted; the exact website mark remains intentionally easy to replace.
 
 See the [Huddle brand system](./docs/HUDDLE-BRAND.md) for tokens, assets, accessibility constraints, and usage rules.
 

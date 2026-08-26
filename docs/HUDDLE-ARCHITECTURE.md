@@ -91,7 +91,7 @@ This boundary keeps the submission small enough to explain and test while preser
 ```mermaid
 flowchart LR
     Person[Fan, host, group admin,<br/>venue owner]
-    Browser[Browser UI<br/>React + Tailwind + Radix]
+    Browser[Browser UI<br/>React + Tailwind + shadcn/Radix]
 
     subgraph Vercel[Vercel]
         Next[Next.js App Router<br/>Server Components]
@@ -277,7 +277,7 @@ If measurement later justifies it, add Redis for shared rate limits/cache, a que
 |---|---|---|
 | Full-stack web | Next.js App Router + React | Required framework-compatible frontend and backend in one deployable app |
 | Language | Strict TypeScript | Shared types and safer refactoring across UI, server, and provider adapters |
-| UI | Tailwind CSS + Radix UI | Fast styling plus accessible primitives |
+| UI | Tailwind CSS + repository-owned shadcn/Radix components | Branded reusable controls plus accessible primitives whose source stays in the repository |
 | Server state | TanStack Query, narrowly | Interactive discovery pagination and attendance mutations benefit from cache/invalidation |
 | Local UI state | React state | Forms and dialogs do not justify another global-state dependency |
 | Validation | Zod | Untrusted form, URL, environment, and provider data need runtime checking |
@@ -300,6 +300,7 @@ The lectures also teach Express, Prisma, Redis, Zustand, Socket.IO, queues, paym
 | Prisma | Supabase SQL migrations, RLS policies, PostGIS functions, and generated DB types are clearer when PostgreSQL remains visible | The team later accepts the abstraction cost for a proven ORM benefit |
 | Redis | Indexed PostgreSQL, local fixture caching, and Next.js caching are enough for course scale | Shared rate limiting, high read load, distributed cache, or queues are measured needs |
 | Zustand | Form/dialog state is local, and server state belongs in TanStack Query | Multiple distant client components truly share complex client-only state |
+| Cloudflare Kumo | It would introduce a second Base UI design system and semantic-token layer beside Huddle's approved Radix and brand-token architecture | A separately approved redesign deliberately replaces the current component system |
 | Socket.IO/WebSockets | No chat, live scores, or realtime collaboration is in the MVP | A real realtime feature is accepted into scope |
 | Payments/Stripe | Venue billing is a future business module and should not be simulated insecurely | Commercial entitlements and payment operations are ready to be built end to end |
 | AI | Core discovery can be deterministic, explainable, and testable | There is data, a defined user benefit, and a safe evaluation plan |

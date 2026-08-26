@@ -262,6 +262,10 @@ Server Components SHOULD own page composition and initial reads. Client Componen
 
 Shared presentational components include `MatchCard`, `EventCard`, `VenueCard`, `GroupCard`, `AudienceBadge`, `VenueVerificationBadge`, `DistanceBand`, `CapacityStatus`, `EmptyState`, `ErrorState`, and `PaginationSentinel`.
 
+Generic reusable controls MUST use repository-owned shadcn components under `components/ui/` when a maintained component exists. Select the Radix-backed variants so dialogs, menus, selects, and similar controls retain tested keyboard, focus, and ARIA behavior. Huddle-specific feature components compose and brand these primitives; shadcn defaults never replace the approved Tailwind tokens, Familjen Grotesk, global surface treatment, or replaceable brand assets. Simple semantic HTML remains preferred when no interactive primitive or reusable component boundary is needed.
+
+B04 establishes this shared component layer and progressively migrates existing reusable buttons, fields, cards, status panels, and confirmation dialogs without changing their product behavior or authorization boundaries. Later milestones use the shared layer by default instead of creating parallel hand-built component systems.
+
 All forms MUST have labels, keyboard access, visible focus, inline field errors, a submission status, and a non-color-only status indicator. Destructive transitions require confirmation. Location permission denial MUST fall back to city selection.
 
 ---
@@ -274,7 +278,7 @@ All forms MUST have labels, keyboard access, visible focus, inline field errors,
 |---|---|
 | Framework | Next.js App Router and React |
 | Language | TypeScript with `strict: true` |
-| UI | Tailwind CSS and Radix UI primitives |
+| UI | Tailwind CSS with repository-owned shadcn components backed by Radix UI primitives |
 | Server state | TanStack Query only for discovery cursor pages and attendance mutations/invalidation |
 | Client state | Local React state; URL search parameters for shareable filters; no Zustand |
 | Validation | Zod for forms, route inputs, environment, and provider responses |
