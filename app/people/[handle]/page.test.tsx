@@ -24,6 +24,9 @@ const safeProfileRow = {
   bio: "Football and friends.",
   member_since: "2026-08-25T00:00:00Z",
   viewer_has_blocked: false,
+  friendship_id: null,
+  friendship_status: null,
+  friendship_direction: null,
 };
 
 describe("PublicProfilePage", () => {

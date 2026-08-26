@@ -2,6 +2,9 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { FriendshipControl } from "@/features/friendships/components/friendship-control";
+import type { PublicFriendshipDto } from "@/features/profiles/dto";
 import type { PublicProfileViewerState } from "@/features/profiles/viewer";
 import { BlockControl } from "@/features/safety/components/block-control";
 
@@ -9,15 +12,35 @@ type ProfileCommunityControlProps = Readonly<{
   viewerState: PublicProfileViewerState;
   targetHandle: string;
   viewerHasBlocked: boolean;
+  friendship: PublicFriendshipDto | null;
 }>;
 
 export function ProfileCommunityControl({
   viewerState,
   targetHandle,
   viewerHasBlocked,
+  friendship,
 }: ProfileCommunityControlProps) {
   if (viewerState === "eligible") {
-    return <BlockControl initiallyBlocked={viewerHasBlocked} targetHandle={targetHandle} />;
+    return (
+      <Card className="bg-surface-deep" size="sm">
+        <CardContent className="space-y-5">
+          <FriendshipControl
+            disabledByOwnBlock={viewerHasBlocked}
+            initialFriendship={friendship}
+            key={`friendship-blocked-${viewerHasBlocked}`}
+            targetHandle={targetHandle}
+          />
+          <Separator />
+          <div>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-dark">
+              Safety
+            </p>
+            <BlockControl initiallyBlocked={viewerHasBlocked} targetHandle={targetHandle} />
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   const content = {

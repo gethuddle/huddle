@@ -127,6 +127,7 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
 
           <aside aria-label="Community controls" className="self-start">
             <ProfileCommunityControl
+              friendship={profile.friendship}
               targetHandle={profile.handle}
               viewerHasBlocked={profile.viewerHasBlocked}
               viewerState={viewerState}

@@ -736,13 +736,13 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Create canonical low/high friendship pairs with uniqueness and self denial.
-- [ ] Implement request and recipient-only response functions.
-- [ ] Reject blocked, duplicate, suspended, and incomplete actors.
-- [ ] Extend block transaction to remove an existing friendship atomically.
-- [ ] Add incoming, outgoing, and accepted settings lists.
-- [ ] Add profile friendship controls with non-enumerating block behavior.
-- [ ] Never add graph expansion or friends-of-friends queries.
+- [x] Create canonical low/high friendship pairs with uniqueness and self denial.
+- [x] Implement request and recipient-only response functions.
+- [x] Reject blocked, duplicate, suspended, and incomplete actors.
+- [x] Extend block transaction to remove an existing friendship atomically.
+- [x] Add incoming, outgoing, and accepted settings lists.
+- [x] Add profile friendship controls with non-enumerating block behavior.
+- [x] Never add graph expansion or friends-of-friends queries.
 
 **Tests/evidence:** canonical direction tests, duplicate/self/block denials, response authorization, removal, transactional block effect, component states, two-user E2E.
 
@@ -756,13 +756,13 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Create groups, rules, memberships, invite-token metadata, and bans tables.
-- [ ] Add slugs, team/city relationships, lifecycle, role, status, and all indexes.
-- [ ] Create group plus active owner membership atomically.
-- [ ] Enforce one active owner and protect the sole owner invariant.
-- [ ] Build similar-name/team/city suggestion query using `pg_trgm`.
-- [ ] Build the group creation flow with discoverable/unlisted explanation.
-- [ ] Add public safe group summary and protected member-content boundary.
+- [x] Create groups, rules, memberships, invite-token metadata, and bans tables.
+- [x] Add slugs, team/city relationships, lifecycle, role, status, and all indexes.
+- [x] Create group plus active owner membership atomically.
+- [x] Enforce one active owner and protect the sole owner invariant.
+- [x] Build similar-name/team/city suggestion query using `pg_trgm`.
+- [x] Build the group creation flow with discoverable/unlisted explanation.
+- [x] Add public safe group summary and protected member-content boundary.
 
 **Tests/evidence:** creation rollback safety, owner invariant, duplicate slug, similar suggestions without leaking unlisted groups, and creation E2E.
 
@@ -1333,8 +1333,8 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 | B01 Platform quality and authentication | `F04`, `A01` | done | [#9](https://github.com/gethuddle/huddle/issues/9) / [PR #10](https://github.com/gethuddle/huddle/pull/10) |
 | B02 Onboarding, eligibility, and blocking | `A02`–`A04` | done | [#11](https://github.com/gethuddle/huddle/issues/11) / [PR #12](https://github.com/gethuddle/huddle/pull/12) |
 | B03 Sports catalog and ingestion | `S01`–`S03` | done | [#13](https://github.com/gethuddle/huddle/issues/13) / [PR #14](https://github.com/gethuddle/huddle/pull/14) |
-| B04 Fixture browsing, follows, and shadcn UI | `S04`–`S05` | review | [#16](https://github.com/gethuddle/huddle/issues/16) |
-| B05 Friendships and group creation | `G01`–`G02` | not started | — |
+| B04 Fixture browsing, follows, and shadcn UI | `S04`–`S05` | done | [#16](https://github.com/gethuddle/huddle/issues/16) / [PR #17](https://github.com/gethuddle/huddle/pull/17) |
+| B05 Friendships and group creation | `G01`–`G02` | review | [#18](https://github.com/gethuddle/huddle/issues/18) |
 | B06 Group membership and administration | `G03`–`G05` | not started | — |
 | B07 Venues and private-event foundations | `E01`–`E03` | not started | — |
 | B08 Venue/group events and safe visibility | `E04`–`E06` | not started | — |

@@ -11,6 +11,12 @@ vi.mock("@/features/safety/components/block-control", () => ({
   ),
 }));
 
+vi.mock("@/features/friendships/components/friendship-control", () => ({
+  FriendshipControl: ({ targetHandle }: Readonly<{ targetHandle: string }>) => (
+    <button type="button">Add friend @{targetHandle}</button>
+  ),
+}));
+
 describe("ProfileCommunityControl", () => {
   it.each([
     ["anonymous", "Sign in", "/auth/sign-in"],
@@ -19,6 +25,7 @@ describe("ProfileCommunityControl", () => {
   ] as const)("renders the %s permission state", (viewerState, action, href) => {
     render(
       <ProfileCommunityControl
+        friendship={null}
         targetHandle="fan_two"
         viewerHasBlocked={false}
         viewerState={viewerState}
@@ -31,6 +38,7 @@ describe("ProfileCommunityControl", () => {
   it("renders a not-permitted outcome without an action", () => {
     render(
       <ProfileCommunityControl
+        friendship={null}
         targetHandle="fan_two"
         viewerHasBlocked={false}
         viewerState="not-permitted"
@@ -44,6 +52,7 @@ describe("ProfileCommunityControl", () => {
   it("renders a safety control only for an eligible other user", () => {
     render(
       <ProfileCommunityControl
+        friendship={null}
         targetHandle="fan_two"
         viewerHasBlocked={false}
         viewerState="eligible"
@@ -51,5 +60,6 @@ describe("ProfileCommunityControl", () => {
     );
 
     expect(screen.getByRole("button", { name: "Block @fan_two" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Add friend @fan_two" })).toBeVisible();
   });
 });
