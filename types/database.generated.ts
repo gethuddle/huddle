@@ -1035,6 +1035,30 @@ export type Database = {
       }
     }
     Functions: {
+      apply_to_group: {
+        Args: {
+          audit_request_id?: string
+          input_group_id: string
+          input_message: string
+        }
+        Returns: {
+          group_id: string
+          status: string
+        }[]
+      }
+      ban_group_member: {
+        Args: {
+          audit_request_id?: string
+          input_group_id: string
+          input_reason: string
+          input_user_id: string
+        }
+        Returns: {
+          group_id: string
+          status: string
+          user_id: string
+        }[]
+      }
       begin_sports_sync: {
         Args: {
           input_provider: string
@@ -1047,6 +1071,19 @@ export type Database = {
       block_user: {
         Args: { audit_request_id?: string; target_handle: string }
         Returns: boolean
+      }
+      change_group_member_role: {
+        Args: {
+          audit_request_id?: string
+          input_group_id: string
+          input_role: string
+          input_user_id: string
+        }
+        Returns: {
+          group_id: string
+          role: string
+          user_id: string
+        }[]
       }
       complete_profile: {
         Args: {
@@ -1080,6 +1117,18 @@ export type Database = {
           teams_changed: number
         }[]
       }
+      consume_group_invite: {
+        Args: {
+          audit_request_id?: string
+          input_message: string
+          input_token: string
+        }
+        Returns: {
+          group_id: string
+          slug: string
+          status: string
+        }[]
+      }
       create_group: {
         Args: {
           audit_request_id?: string
@@ -1094,6 +1143,37 @@ export type Database = {
           group_id: string
           lifecycle: string
           slug: string
+        }[]
+      }
+      create_group_invite: {
+        Args: {
+          audit_request_id?: string
+          input_expires_at: string
+          input_group_id: string
+          input_max_uses: number
+          input_token_hash: string
+        }
+        Returns: {
+          created_at: string
+          expires_at: string
+          invite_id: string
+          max_uses: number
+          revoked_at: string
+          use_count: number
+        }[]
+      }
+      create_group_rule: {
+        Args: {
+          audit_request_id?: string
+          input_group_id: string
+          input_publish?: boolean
+          input_text: string
+        }
+        Returns: {
+          published_at: string
+          rule_id: string
+          rule_position: number
+          rule_text: string
         }[]
       }
       current_actor_is_community_eligible: { Args: never; Returns: boolean }
@@ -1111,6 +1191,7 @@ export type Database = {
         Args: { lookup_slug: string }
         Returns: {
           active_member_count: number
+          can_apply: boolean
           can_view_member_content: boolean
           city_name: string
           description: string
@@ -1120,8 +1201,18 @@ export type Database = {
           owner_handle: string
           slug: string
           team_name: string
+          viewer_membership_status: string
           viewer_role: string
           visibility: string
+        }[]
+      }
+      get_group_invite_preview: {
+        Args: { input_token: string }
+        Returns: {
+          group_id: string
+          name: string
+          slug: string
+          viewer_membership_status: string
         }[]
       }
       get_public_profile_by_handle: {
@@ -1145,6 +1236,13 @@ export type Database = {
           provider: string
         }[]
       }
+      leave_group: {
+        Args: { audit_request_id?: string; input_group_id: string }
+        Returns: {
+          group_id: string
+          status: string
+        }[]
+      }
       list_friendships: {
         Args: {
           input_bucket: string
@@ -1160,6 +1258,85 @@ export type Database = {
           requested_at: string
           responded_at: string
           status: string
+          total_count: number
+        }[]
+      }
+      list_group_admin_members: {
+        Args: {
+          input_group_id: string
+          input_limit?: number
+          input_offset?: number
+        }
+        Returns: {
+          display_name: string
+          handle: string
+          member_since: string
+          role: string
+          total_count: number
+          user_id: string
+        }[]
+      }
+      list_group_applications: {
+        Args: {
+          input_group_id: string
+          input_limit?: number
+          input_offset?: number
+        }
+        Returns: {
+          application_message: string
+          application_source: string
+          applied_at: string
+          display_name: string
+          handle: string
+          total_count: number
+          user_id: string
+        }[]
+      }
+      list_group_bans: {
+        Args: {
+          input_group_id: string
+          input_limit?: number
+          input_offset?: number
+        }
+        Returns: {
+          banned_at: string
+          banned_by_handle: string
+          display_name: string
+          handle: string
+          reason: string
+          total_count: number
+          user_id: string
+        }[]
+      }
+      list_group_invites: {
+        Args: {
+          input_group_id: string
+          input_limit?: number
+          input_offset?: number
+        }
+        Returns: {
+          created_at: string
+          creator_handle: string
+          expires_at: string
+          invite_id: string
+          invite_status: string
+          max_uses: number
+          revoked_at: string
+          total_count: number
+          use_count: number
+        }[]
+      }
+      list_group_rules: {
+        Args: {
+          input_group_id: string
+          input_limit?: number
+          input_offset?: number
+        }
+        Returns: {
+          published_at: string
+          rule_id: string
+          rule_position: number
+          rule_text: string
           total_count: number
         }[]
       }
@@ -1185,6 +1362,14 @@ export type Database = {
         Args: { audit_request_id?: string; input_friendship_id: string }
         Returns: boolean
       }
+      reorder_group_rules: {
+        Args: {
+          audit_request_id?: string
+          input_group_id: string
+          input_rule_ids: string[]
+        }
+        Returns: boolean
+      }
       request_friendship: {
         Args: { audit_request_id?: string; target_user_id: string }
         Returns: string
@@ -1200,6 +1385,23 @@ export type Database = {
           input_friendship_id: string
         }
         Returns: string
+      }
+      review_group_membership: {
+        Args: {
+          audit_request_id?: string
+          input_decision: string
+          input_group_id: string
+          input_user_id: string
+        }
+        Returns: {
+          group_id: string
+          status: string
+          user_id: string
+        }[]
+      }
+      revoke_group_invite: {
+        Args: { audit_request_id?: string; input_invite_id: string }
+        Returns: boolean
       }
       suggest_similar_groups: {
         Args: {
@@ -1218,9 +1420,31 @@ export type Database = {
           team_name: string
         }[]
       }
+      unban_group_member: {
+        Args: {
+          audit_request_id?: string
+          input_group_id: string
+          input_user_id: string
+        }
+        Returns: boolean
+      }
       unblock_user: {
         Args: { audit_request_id?: string; target_handle: string }
         Returns: boolean
+      }
+      update_group_rule: {
+        Args: {
+          audit_request_id?: string
+          input_published: boolean
+          input_rule_id: string
+          input_text: string
+        }
+        Returns: {
+          published_at: string
+          rule_id: string
+          rule_position: number
+          rule_text: string
+        }[]
       }
     }
     Enums: {

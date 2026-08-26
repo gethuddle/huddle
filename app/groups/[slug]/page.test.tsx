@@ -27,8 +27,13 @@ const publicGroup = {
   ownerHandle: "group_owner",
   activeMemberCount: 4,
   viewerRole: null,
+  viewerMembershipStatus: null,
   canViewMemberContent: false,
+  canApply: false,
+  memberPage: 1,
+  memberPageCount: 1,
   members: [],
+  rules: [],
 };
 
 describe("GroupPage", () => {
@@ -60,6 +65,14 @@ describe("GroupPage", () => {
           memberSince: "2026-08-26T00:00:00Z",
         },
       ],
+      rules: [
+        {
+          id: "50000000-0000-4000-8000-000000000401",
+          position: 1,
+          text: "Respect every supporter.",
+          publishedAt: "2026-08-26T00:00:00Z",
+        },
+      ],
     });
 
     render(await GroupPage({ params: Promise.resolve({ slug: publicGroup.slug }) }));
@@ -67,6 +80,39 @@ describe("GroupPage", () => {
     expect(screen.getByText("Your role: owner")).toBeVisible();
     expect(screen.getByRole("heading", { name: "Active members" })).toBeVisible();
     expect(screen.getByText("Group Owner")).toBeVisible();
+    expect(screen.getByRole("link", { name: "Manage group" })).toHaveAttribute(
+      "href",
+      `/groups/${publicGroup.slug}/manage`,
+    );
+    expect(screen.getByText("Respect every supporter.")).toBeVisible();
+  });
+
+  it("offers a reviewed application to an eligible direct-link viewer", async () => {
+    mocks.getGroupDetail.mockResolvedValue({
+      ...publicGroup,
+      lifecycle: "forming",
+      canApply: true,
+    });
+
+    render(await GroupPage({ params: Promise.resolve({ slug: publicGroup.slug }) }));
+
+    expect(screen.getByRole("heading", { name: "Apply to join" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Apply to join" })).toBeVisible();
+    expect(screen.getByText("Forming and accepting applications")).toBeVisible();
+  });
+
+  it("lets an active admin both manage and leave the group", async () => {
+    mocks.getGroupDetail.mockResolvedValue({
+      ...publicGroup,
+      viewerRole: "admin",
+      viewerMembershipStatus: "active",
+      canViewMemberContent: true,
+    });
+
+    render(await GroupPage({ params: Promise.resolve({ slug: publicGroup.slug }) }));
+
+    expect(screen.getByRole("link", { name: "Manage group" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Leave group" })).toBeVisible();
   });
 
   it("uses the same not-found boundary for invalid or invisible slugs", async () => {
