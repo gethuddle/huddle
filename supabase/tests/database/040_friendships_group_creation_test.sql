@@ -97,6 +97,7 @@ select ok(has_function_privilege('authenticated', 'public.create_group(text,text
 select ok(not has_function_privilege('anon', 'public.create_group(text,text,uuid,uuid,text,text,uuid)', 'execute'), 'anonymous callers cannot create groups');
 select ok(has_function_privilege('anon', 'public.get_group_by_slug(text)', 'execute'), 'anonymous callers may request a safe public group projection');
 select ok(not has_function_privilege('authenticated', 'private.enforce_group_owner_invariant()', 'execute'), 'the owner invariant helper is private');
+select ok(not has_function_privilege('authenticated', 'private.lock_direct_user_pair(uuid,uuid)', 'execute'), 'the direct-pair lock helper is private');
 
 insert into auth.users (
   instance_id,

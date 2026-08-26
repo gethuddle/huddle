@@ -445,6 +445,29 @@ $function$;
 comment on function public.get_public_profile_by_handle(text) is
   'Returns the safe public profile DTO plus only the current viewer own block and direct friendship state.';
 
+create or replace function private.lock_direct_user_pair(
+  first_user_id uuid,
+  second_user_id uuid
+)
+returns void
+language sql
+volatile
+set search_path = ''
+as $function$
+  select pg_advisory_xact_lock(
+    hashtextextended(
+      'huddle:direct-user-pair:'
+        || least(first_user_id, second_user_id)::text
+        || ':'
+        || greatest(first_user_id, second_user_id)::text,
+      0
+    )
+  );
+$function$;
+
+comment on function private.lock_direct_user_pair(uuid, uuid) is
+  'Serializes block and friendship mutations for one canonical unordered user pair until transaction end.';
+
 create or replace function public.request_friendship(
   target_user_id uuid,
   audit_request_id uuid default null
@@ -468,20 +491,22 @@ begin
     raise exception using errcode = 'P0001', message = 'NOT_FOUND';
   end if;
 
-  if private.users_are_blocked(requester_id, target_user_id) then
-    raise exception using errcode = 'P0001', message = 'BLOCKED_RELATIONSHIP';
-  end if;
+  pair_low_id := least(requester_id, target_user_id);
+  pair_high_id := greatest(requester_id, target_user_id);
 
-  -- Keep the cooldown check, friendship insert, and audit evidence in one
-  -- requester-scoped critical section. The transaction lock is released only
-  -- after the surrounding request commits or rolls back, so concurrent
-  -- requests by the same actor cannot both observe an empty cooldown window.
+  -- Serialize all outgoing requests by this actor for the durable cooldown,
+  -- then serialize direct-interaction mutations for this canonical pair. This
+  -- order cannot cycle with block_user, which takes only the pair lock.
   perform pg_advisory_xact_lock(
     hashtextextended('huddle:friendship-request:' || requester_id::text, 0)
   );
+  perform private.lock_direct_user_pair(requester_id, target_user_id);
 
-  pair_low_id := least(requester_id, target_user_id);
-  pair_high_id := greatest(requester_id, target_user_id);
+  -- This check must run while the pair lock is held. A concurrently committed
+  -- block therefore becomes visible before any friendship row can be inserted.
+  if private.users_are_blocked(requester_id, target_user_id) then
+    raise exception using errcode = 'P0001', message = 'BLOCKED_RELATIONSHIP';
+  end if;
 
   if exists (
     select 1
@@ -534,7 +559,7 @@ end;
 $function$;
 
 comment on function public.request_friendship(uuid, uuid) is
-  'Serializes per requester, then canonicalizes and inserts one pending direct friendship after complete-account, block, duplicate, and cooldown checks.';
+  'Serializes per requester and canonical pair, then inserts one pending direct friendship after complete-account, block, duplicate, and cooldown checks.';
 
 create or replace function public.request_friendship_by_handle(
   target_handle text,
@@ -793,6 +818,8 @@ begin
     raise exception using errcode = 'P0001', message = 'NOT_ALLOWED';
   end if;
 
+  perform private.lock_direct_user_pair(actor_id, target_id);
+
   insert into public.user_blocks (blocker_id, blocked_id)
   values (actor_id, target_id)
   on conflict (blocker_id, blocked_id) do nothing;
@@ -824,7 +851,7 @@ end;
 $function$;
 
 comment on function public.block_user(text, uuid) is
-  'Creates a private directional block, atomically removes the direct friendship, and writes minimal audit evidence.';
+  'Serializes the canonical pair, creates a private directional block, atomically removes the direct friendship, and writes minimal audit evidence.';
 
 create or replace function public.create_group(
   input_name text,
@@ -1213,6 +1240,7 @@ revoke all on function public.create_group(text, text, uuid, uuid, text, text, u
 revoke all on function public.suggest_similar_groups(text, uuid, uuid, integer) from public, anon;
 revoke all on function public.get_group_by_slug(text) from public;
 revoke all on function public.list_safe_group_members(uuid, integer, integer) from public, anon;
+revoke all on function private.lock_direct_user_pair(uuid, uuid) from public, anon, authenticated;
 
 grant execute on function public.get_public_profile_by_handle(text) to anon, authenticated;
 grant execute on function public.request_friendship(uuid, uuid) to authenticated;

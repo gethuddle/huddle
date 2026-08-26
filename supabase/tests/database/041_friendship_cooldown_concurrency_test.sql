@@ -24,6 +24,18 @@ begin
         '51000000-0000-4000-8000-000000000103'
       );
 
+      delete from public.user_blocks
+      where blocker_id in (
+        '51000000-0000-4000-8000-000000000101',
+        '51000000-0000-4000-8000-000000000102',
+        '51000000-0000-4000-8000-000000000103'
+      )
+      or blocked_id in (
+        '51000000-0000-4000-8000-000000000101',
+        '51000000-0000-4000-8000-000000000102',
+        '51000000-0000-4000-8000-000000000103'
+      );
+
       delete from public.friendships
       where user_low_id in (
         '51000000-0000-4000-8000-000000000101',
@@ -238,6 +250,126 @@ select is(
   'only one cooldown audit record is persisted'
 );
 
+-- Hold a committed-direction block open in one transaction. The friendship
+-- request in the other transaction must wait for the same canonical-pair lock,
+-- then re-check the now-committed block before attempting an insert.
+do $block_connections$
+declare
+  connection_text constant text :=
+    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+begin
+  perform extensions.dblink_connect('friendship_block_worker', connection_text);
+  perform extensions.dblink_connect('friendship_request_worker', connection_text);
+
+  perform extensions.dblink_exec('friendship_block_worker', 'begin');
+  perform extensions.dblink_exec('friendship_block_worker', 'set local role authenticated');
+  perform extensions.dblink_exec(
+    'friendship_block_worker',
+    'set local "request.jwt.claim.sub" = ''51000000-0000-4000-8000-000000000103'''
+  );
+
+  perform extensions.dblink_exec('friendship_request_worker', 'begin');
+  perform extensions.dblink_exec('friendship_request_worker', 'set local role authenticated');
+  perform extensions.dblink_exec(
+    'friendship_request_worker',
+    'set local "request.jwt.claim.sub" = ''51000000-0000-4000-8000-000000000102'''
+  );
+end;
+$block_connections$;
+
+select is(
+  extensions.dblink_send_query(
+    'friendship_block_worker',
+    $$select public.block_user('b05_race_target_a', null)$$
+  ),
+  1,
+  'a directional block starts in its own transaction'
+);
+
+select lives_ok(
+  $$
+    select block_created
+    from extensions.dblink_get_result('friendship_block_worker')
+      as result(block_created boolean)
+  $$,
+  'the block mutation completes while retaining its transaction lock'
+);
+
+do $drain_block$
+begin
+  perform block_created
+  from extensions.dblink_get_result('friendship_block_worker')
+    as result(block_created boolean);
+end;
+$drain_block$;
+
+select is(
+  extensions.dblink_send_query(
+    'friendship_request_worker',
+    $$select public.request_friendship('51000000-0000-4000-8000-000000000103', null)$$
+  ),
+  1,
+  'a friendship request starts concurrently against the uncommitted blocker'
+);
+
+do $allow_request_to_reach_pair_lock$
+begin
+  perform pg_sleep(0.2);
+end;
+$allow_request_to_reach_pair_lock$;
+
+select is(
+  extensions.dblink_is_busy('friendship_request_worker'),
+  1,
+  'the request waits for the block transaction on the shared canonical pair'
+);
+
+do $commit_block$
+begin
+  perform extensions.dblink_exec('friendship_block_worker', 'commit');
+end;
+$commit_block$;
+
+select throws_ok(
+  $$
+    select friendship_id
+    from extensions.dblink_get_result('friendship_request_worker')
+      as result(friendship_id uuid)
+  $$,
+  'P0001',
+  'BLOCKED_RELATIONSHIP',
+  'the request re-checks and rejects the block committed ahead of it'
+);
+
+do $disconnect_block_workers$
+begin
+  perform extensions.dblink_disconnect('friendship_block_worker');
+  perform extensions.dblink_disconnect('friendship_request_worker');
+end;
+$disconnect_block_workers$;
+
+select is(
+  (
+    select count(*)
+    from public.user_blocks
+    where blocker_id = '51000000-0000-4000-8000-000000000103'
+      and blocked_id = '51000000-0000-4000-8000-000000000102'
+  ),
+  1::bigint,
+  'the directional block is persisted'
+);
+
+select is(
+  (
+    select count(*)
+    from public.friendships
+    where user_low_id = '51000000-0000-4000-8000-000000000102'
+      and user_high_id = '51000000-0000-4000-8000-000000000103'
+  ),
+  0::bigint,
+  'no friendship can coexist with the concurrently committed block'
+);
+
 do $cleanup$
 declare
   connection_text constant text :=
@@ -249,6 +381,18 @@ begin
     $remote$
       delete from public.security_audit_events
       where actor_id in (
+        '51000000-0000-4000-8000-000000000101',
+        '51000000-0000-4000-8000-000000000102',
+        '51000000-0000-4000-8000-000000000103'
+      );
+
+      delete from public.user_blocks
+      where blocker_id in (
+        '51000000-0000-4000-8000-000000000101',
+        '51000000-0000-4000-8000-000000000102',
+        '51000000-0000-4000-8000-000000000103'
+      )
+      or blocked_id in (
         '51000000-0000-4000-8000-000000000101',
         '51000000-0000-4000-8000-000000000102',
         '51000000-0000-4000-8000-000000000103'
