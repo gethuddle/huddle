@@ -37,6 +37,9 @@ $function$;
 comment on function private.lock_group_application_actor(uuid) is
   'Serializes one actor across discoverable and invite-backed group applications so the durable cooldown cannot race.';
 
+comment on function private.lock_direct_user_pair(uuid, uuid) is
+  'Serializes blocks with block-sensitive direct interactions and group applications for one canonical unordered user pair.';
+
 drop function public.get_group_by_slug(text);
 
 create function public.get_group_by_slug(lookup_slug text)
@@ -170,6 +173,11 @@ begin
     or target_group.lifecycle not in ('forming', 'active') then
     raise exception using errcode = 'P0001', message = 'NOT_FOUND';
   end if;
+
+  -- Linearize this block-sensitive mutation with block_user. The block check
+  -- must run after the canonical pair lock is held so a concurrently committed
+  -- block cannot be missed before the pending membership is written.
+  perform private.lock_direct_user_pair(actor_id, target_group.owner_id);
 
   if private.users_are_blocked(actor_id, target_group.owner_id) then
     raise exception using errcode = 'P0001', message = 'BLOCKED_RELATIONSHIP';
@@ -734,6 +742,22 @@ begin
 
   if invite_row.expires_at <= statement_timestamp() then
     raise exception using errcode = 'P0001', message = 'INVITE_EXPIRED';
+  end if;
+
+  -- An invite is invalidated by a block with either its group owner or its
+  -- creator. Acquire both canonical pair locks in target UUID order so two
+  -- distinct relationships cannot deadlock, then recheck while they are held.
+  if invite_row.owner_id = invite_row.created_by then
+    perform private.lock_direct_user_pair(actor_id, invite_row.owner_id);
+  else
+    perform private.lock_direct_user_pair(
+      actor_id,
+      least(invite_row.owner_id, invite_row.created_by)
+    );
+    perform private.lock_direct_user_pair(
+      actor_id,
+      greatest(invite_row.owner_id, invite_row.created_by)
+    );
   end if;
 
   if private.users_are_blocked(actor_id, invite_row.owner_id)
