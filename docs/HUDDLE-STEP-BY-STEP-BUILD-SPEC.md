@@ -380,7 +380,7 @@ If an external account, paid service, production mutation, or secret is required
 | `B01` Platform quality and authentication | `F04`, `A01` | `F03` | CI protects the repository and a user can complete the local signup, verification, session-refresh, sign-in, and sign-out flow |
 | `B02` Onboarding, eligibility, and blocking | `A02`–`A04` | `B01` | A verified adult completes onboarding; safe projections, community gates, blocks, and audit evidence are enforced |
 | `B03` Sports catalog and ingestion | `S01`–`S03` | `B02` | Provider-neutral football data normalizes and synchronizes into the local indexed catalog without live calls in tests |
-| `B04` Fixture browsing and follows | `S04`–`S05` | `B03` | Visitors browse freshness-aware fixtures and completed users manage sport, competition, and team follows |
+| `B04` Fixture browsing, follows, and shadcn UI | `S04`–`S05` | `B03` | Huddle adopts its branded shadcn/Radix layer, visitors browse freshness-aware fixtures, and completed users manage sport, competition, and team follows |
 | `B05` Friendships and group creation | `G01`–`G02` | `B02`, `B04` | Canonical friendships work and a completed user atomically creates a valid group as its owner |
 | `B06` Group membership and administration | `G03`–`G05` | `B05` | Applications, invites, roles, rules, bans, and bounded group administration work end to end |
 | `B07` Venues and private-event foundations | `E01`–`E03` | `B04`, `B06` | Unverified venues and valid event records exist; private hosts can create safe restricted events without leaking exact locations |
@@ -677,16 +677,21 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tests/evidence:** invalid-secret denial, ordinary-session denial, overlapping-run conflict, fixture-driven successful upsert, idempotent rerun, changed fixture update, and failure preserving previous rows.
 
-### S04 — Fixture catalog pages, freshness, and attribution
+### S04 — Shared shadcn UI, fixture catalog pages, freshness, and attribution
 
 **Depends on:** `S03`.
 
-**Authority:** implementation spec §§4.1, 8.1, 9, 12.3.
+**Authority:** implementation spec §§4.1, 4.3, 5.1, 8.1, 9, 12.3; brand system component-integration rules.
 
-**Outcome:** anonymous visitors browse locally stored future football fixtures by date, competition, and team without a provider request.
+**Outcome:** Huddle adopts one branded shadcn/Radix component layer, and anonymous visitors browse locally stored future football fixtures by date, competition, and team without a provider request.
 
 **Tasks:**
 
+- [ ] Add `components.json` and the minimum shadcn prerequisites compatible with the existing Next.js, React, Tailwind v4, strict-TypeScript, and `@/` alias setup.
+- [ ] Select Radix-backed shadcn components and preserve `app/globals.css`, Huddle's named brand tokens, Familjen Grotesk, and the replaceable `BrandMark`.
+- [ ] Add only the shared primitives needed by existing flows and B04, including buttons, fields/labels, cards, badges, alerts, alert dialogs, selects, skeletons, separators, and pagination.
+- [ ] Migrate suitable existing authentication, profile, status-panel, card, and blocking controls to the shared components without changing behavior, copy, authorization, or focus outcomes.
+- [ ] Compose fixture filters, `MatchCard`, freshness indicators, and follow controls from the shared primitives rather than creating a parallel UI kit.
 - [ ] Build match list and match detail Server Components.
 - [ ] Add bounded filters/pagination and indexed query shapes.
 - [ ] Add stable empty/loading/error states.
@@ -696,7 +701,7 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 - [ ] Use text initials or original art rather than provider crests.
 - [ ] Confirm Jerusalem display time around UTC conversion.
 
-**Tests/evidence:** query/unit tests, component empty/stale/error states, E2E cached browsing during simulated provider failure, and manual network proof that page loads do not call the provider.
+**Tests/evidence:** shared-component and migrated-flow regression tests, query/unit tests, component empty/stale/error states, responsive visual evidence, E2E cached browsing during simulated provider failure, and manual network proof that page loads do not call the provider.
 
 ### S05 — Sport, competition, and team follows
 
@@ -1327,8 +1332,8 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 |---|---|---|---|
 | B01 Platform quality and authentication | `F04`, `A01` | done | [#9](https://github.com/gethuddle/huddle/issues/9) / [PR #10](https://github.com/gethuddle/huddle/pull/10) |
 | B02 Onboarding, eligibility, and blocking | `A02`–`A04` | done | [#11](https://github.com/gethuddle/huddle/issues/11) / [PR #12](https://github.com/gethuddle/huddle/pull/12) |
-| B03 Sports catalog and ingestion | `S01`–`S03` | review | [#13](https://github.com/gethuddle/huddle/issues/13) |
-| B04 Fixture browsing and follows | `S04`–`S05` | not started | — |
+| B03 Sports catalog and ingestion | `S01`–`S03` | done | [#13](https://github.com/gethuddle/huddle/issues/13) / [PR #14](https://github.com/gethuddle/huddle/pull/14) |
+| B04 Fixture browsing, follows, and shadcn UI | `S04`–`S05` | not started | — |
 | B05 Friendships and group creation | `G01`–`G02` | not started | — |
 | B06 Group membership and administration | `G03`–`G05` | not started | — |
 | B07 Venues and private-event foundations | `E01`–`E03` | not started | — |
