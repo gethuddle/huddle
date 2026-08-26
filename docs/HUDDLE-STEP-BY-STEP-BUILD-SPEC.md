@@ -776,13 +776,13 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Add application message validation and sensitive-data warning.
-- [ ] Add pending application creation for discoverable groups.
-- [ ] Add own-application and admin-review RLS.
-- [ ] Implement valid reviewer and transition functions with audit events.
-- [ ] Add group application form and management queue.
-- [ ] Add active-member safe roster without exposing private profile data.
-- [ ] Add leave behavior that retains membership history.
+- [x] Add application message validation and sensitive-data warning.
+- [x] Add pending application creation for discoverable groups.
+- [x] Add own-application and admin-review RLS.
+- [x] Implement valid reviewer and transition functions with audit events.
+- [x] Add group application form and management queue.
+- [x] Add active-member safe roster without exposing private profile data.
+- [x] Add leave behavior that retains membership history.
 
 **Tests/evidence:** duplicate/pending/blocked/banned/incomplete denial, non-admin review denial, approve/reject/leave, audit evidence, component and E2E flows.
 
@@ -796,13 +796,13 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Generate a cryptographically strong token and store only its SHA-256 digest.
-- [ ] Return the plaintext token once on creation and never list it again.
-- [ ] Add expiry, revocation, maximum-use, and atomic successful-use counting.
-- [ ] Add `/join/group/[token]` with minimal invalid/expired messaging.
-- [ ] Prevent token use by blocked/banned/incomplete users.
-- [ ] Ensure a valid token creates only a pending application.
-- [ ] Add admin metadata and revoke controls.
+- [x] Generate a cryptographically strong token and store only its SHA-256 digest.
+- [x] Return the plaintext token once on creation and never list it again.
+- [x] Add expiry, revocation, maximum-use, and atomic successful-use counting.
+- [x] Add `/join/group/[token]` with minimal invalid/expired messaging.
+- [x] Prevent token use by blocked/banned/incomplete users.
+- [x] Ensure a valid token creates only a pending application.
+- [x] Add admin metadata and revoke controls.
 
 **Tests/evidence:** plaintext absence from DB/logs, invalid/expired/revoked/exhausted/concurrent-use tests, ban denial, pending-not-active proof, and E2E.
 
@@ -816,15 +816,17 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Add rule create/reorder/publish operations.
-- [ ] Add owner-only admin promotion/demotion.
-- [ ] Prevent removal/demotion of the sole owner.
-- [ ] Add member leave, admin removal if specified, ban, and unban transitions.
-- [ ] Deny active bans from content, invites, and reapplication.
-- [ ] Keep group admins unable to access platform reports.
-- [ ] Add confirmation dialogs and clear role/status labels.
+- [x] Add rule create/reorder/publish operations.
+- [x] Add owner-only admin promotion/demotion.
+- [x] Prevent removal/demotion of the sole owner.
+- [x] Add member leave, admin removal if specified, ban, and unban transitions.
+- [x] Deny active bans from content, invites, and reapplication.
+- [x] Keep group admins unable to access platform reports.
+- [x] Add confirmation dialogs and clear role/status labels.
 
 **Tests/evidence:** full role/action matrix, sole-owner tests, ban/reapplication/content denial, admin/report denial, audit events, accessible UI tests.
+
+**B06 approved implementation decisions:** an eligible signed-in user with a direct URL may read the safe summary of a forming discoverable group and apply, while anonymous/global discovery remains closed. New applications are denied across a block with the owner; invite use also checks the invite creator. An ordinary interpersonal block does not silently rewrite an already active group membership. The owner alone promotes/demotes admins and may manage any non-owner; an admin manages applicants and ordinary members, never the owner or another admin. Revoking a group ban does not restore membership and permits only a fresh pending application. Owner transfer, arbitrary non-ban removal, group discovery activation, group events, notifications, and platform-report implementation remain outside B06.
 
 ---
 
@@ -1334,8 +1336,8 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 | B02 Onboarding, eligibility, and blocking | `A02`–`A04` | done | [#11](https://github.com/gethuddle/huddle/issues/11) / [PR #12](https://github.com/gethuddle/huddle/pull/12) |
 | B03 Sports catalog and ingestion | `S01`–`S03` | done | [#13](https://github.com/gethuddle/huddle/issues/13) / [PR #14](https://github.com/gethuddle/huddle/pull/14) |
 | B04 Fixture browsing, follows, and shadcn UI | `S04`–`S05` | done | [#16](https://github.com/gethuddle/huddle/issues/16) / [PR #17](https://github.com/gethuddle/huddle/pull/17) |
-| B05 Friendships and group creation | `G01`–`G02` | review | [#18](https://github.com/gethuddle/huddle/issues/18) |
-| B06 Group membership and administration | `G03`–`G05` | not started | — |
+| B05 Friendships and group creation | `G01`–`G02` | done | [#18](https://github.com/gethuddle/huddle/issues/18) / [PR #19](https://github.com/gethuddle/huddle/pull/19) |
+| B06 Group membership and administration | `G03`–`G05` | review | [#20](https://github.com/gethuddle/huddle/issues/20) |
 | B07 Venues and private-event foundations | `E01`–`E03` | not started | — |
 | B08 Venue/group events and safe visibility | `E04`–`E06` | not started | — |
 | B09 Group and event discovery | `G06`, `E07` | not started | — |

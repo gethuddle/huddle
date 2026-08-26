@@ -638,6 +638,7 @@ insert into public.group_rules (group_id, position, text)
 values ((select id from public.groups where slug = 'haifa-arsenal-supporters'), 1, 'Respect every supporter.');
 insert into public.group_rules (id, group_id, position, text)
 values ('50000000-0000-4000-8000-000000000401', (select id from public.groups where slug = 'haifa-arsenal-supporters'), 2, 'Keep the group safe.');
+set constraints group_rules_group_position_key immediate;
 select throws_ok(
   $$insert into public.group_rules (id, group_id, position, text) values ('50000000-0000-4000-8000-000000000401', (select id from public.groups where slug = 'haifa-arsenal-supporters'), 3, 'Duplicate identifier')$$,
   '23505', null, 'group rule primary identifiers are unique'
@@ -646,6 +647,7 @@ select throws_ok(
   $$insert into public.group_rules (group_id, position, text) values ((select id from public.groups where slug = 'haifa-arsenal-supporters'), 1, 'Duplicate position')$$,
   '23505', null, 'rule positions are unique inside a group'
 );
+set constraints group_rules_group_position_key deferred;
 select throws_ok(
   $$insert into public.group_rules (group_id, position, text) values ('60000000-0000-4000-8000-000000000004', 1, 'Missing group')$$,
   '23503', null, 'group rules reference an existing group'

@@ -1,4 +1,4 @@
-import type { ActionError } from "@/lib/errors";
+import type { ActionError, ActionResult } from "@/lib/errors";
 
 export type GroupCreationValues = Readonly<{
   name: string;
@@ -51,3 +51,12 @@ export type GroupCreationActionState =
   | null;
 
 export const INITIAL_GROUP_CREATION_ACTION_STATE: GroupCreationActionState = null;
+
+export type GroupMembershipActionData = Readonly<{
+  message: string;
+  invitePath?: string;
+}>;
+
+export type GroupMembershipActionState = ActionResult<GroupMembershipActionData> | null;
+
+export const INITIAL_GROUP_MEMBERSHIP_ACTION_STATE: GroupMembershipActionState = null;

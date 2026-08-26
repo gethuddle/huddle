@@ -139,7 +139,7 @@ There is no separate Express service, ORM, Redis cache, WebSocket layer, payment
 - Blocks immediately end private interaction and can revoke future event/address access.
 - Attendance approval is atomic, so concurrent approvals cannot exceed capacity.
 - Reports are confidential from the reported user and group administrators; moderation actions are auditable and appealable.
-- Provider keys, service credentials, private addresses, session data, and invite tokens are never sent to the browser or committed to Git.
+- Provider keys, service credentials, private addresses, session data, and invite-token digests are never sent to the browser or committed to Git. A group-invite plaintext secret is shown once to its authorized creator, travels only through the intended join URL, and is never persisted or logged.
 
 ## Deferred beyond the MVP
 
@@ -155,7 +155,7 @@ The database and provider boundaries may be future-ready, but deferred features 
 
 ## Project status
 
-The merged baseline includes B01 repository CI; the complete B02 local account, onboarding, eligibility, safe-profile, private-block, and audit flow; B03 sports catalog and ingestion; and B04's Huddle-styled shadcn/Radix component layer, anonymous freshness-aware fixture browsing, and completed-account sport, competition, and team follows. B05 now implements direct reciprocal friendships, atomic block cleanup, group creation with duplicate suggestions, and safe group summaries and rosters on its milestone branch; reciprocal review and merge remain pending. Group membership administration, events, attendance, hosted synchronization, and deployment remain later milestones; current local work does not mutate the shared Supabase organization.
+The merged baseline includes B01 repository CI; the complete B02 local account, onboarding, eligibility, safe-profile, private-block, and audit flow; B03 sports catalog and ingestion; B04's Huddle-styled shadcn/Radix component layer, anonymous freshness-aware fixture browsing, and completed-account sport, competition, and team follows; and B05 direct reciprocal friendships, atomic block cleanup, group creation with duplicate suggestions, and safe group summaries and rosters. B06 group membership and administration is implemented and verified locally, including reviewed discoverable applications, digest-only unlisted invitations, bounded role/rule/ban administration, and retained membership history; reciprocal review remains pending. Events, attendance, hosted synchronization, and deployment remain later milestones, and the current local work does not mutate the shared Supabase organization.
 
 ### Visual system
 

@@ -4,3 +4,4 @@ This directory holds selected, non-sensitive interface screenshots referenced by
 
 - [B04 fixture browser](./b04/README.md)
 - [B05 friendships and group creation](./b05/README.md)
+- [B06 group membership and administration](./b06/README.md)

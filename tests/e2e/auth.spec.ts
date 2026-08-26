@@ -361,7 +361,8 @@ test("a block is private, directional, auditable, and reversible", async ({
   }
 });
 
-test("a completed user checks similar groups and becomes the atomic owner", async ({
+test("a completed user creates and administers reviewed group membership", async ({
+  browser,
   context,
   page,
 }) => {
@@ -396,9 +397,122 @@ test("a completed user checks similar groups and becomes the atomic owner", asyn
   await expect(page).toHaveURL(new RegExp(`/groups/${slug}$`));
   await expect(page.getByRole("heading", { name: `Haifa Huddle ${suffix}` })).toBeVisible();
   await expect(page.getByText("Your role: owner")).toBeVisible();
-  await expect(page.getByText("Forming privately")).toBeVisible();
+  await expect(page.getByText("Forming and accepting applications")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Active members" })).toBeVisible();
   await expect(page.getByText("Group Owner")).toBeVisible();
+
+  await page.getByRole("link", { name: "Manage group" }).click();
+  await page.getByRole("link", { name: "Rules" }).click();
+  await page.getByRole("textbox", { name: "New plain-text rule" }).fill("Respect every supporter.");
+  await page.getByRole("checkbox", { name: "Publish immediately" }).click();
+  await page.getByRole("button", { name: "Add rule" }).click();
+  await expect(page.getByRole("status")).toHaveText("Published rule added.");
+  await expect(page.getByRole("textbox", { name: "Rule text" })).toHaveValue(
+    "Respect every supporter.",
+  );
+
+  const applicantContext = await browser.newContext({ baseURL: "http://127.0.0.1:3000" });
+  const applicantPage = await applicantContext.newPage();
+  const applicantEmail = `group-applicant-${suffix}@example.com`;
+  const applicantHandle = `applicant_${suffix}`;
+
+  try {
+    await signUpAndVerify(applicantPage, applicantContext, applicantEmail, password);
+    await completeProfile(applicantPage, applicantHandle, "Group Applicant");
+    await applicantPage.goto(new URL(`/groups/${slug}`, applicantPage.url()).toString());
+    await expect(applicantPage.getByText("Forming and accepting applications")).toBeVisible();
+    await expect(applicantPage.getByText("Respect every supporter.")).toBeVisible();
+    await applicantPage
+      .getByRole("textbox", { name: /Note to the administrators/ })
+      .fill("I would like to help this group grow.");
+    await applicantPage.getByRole("button", { name: "Apply to join" }).click();
+    await expect(applicantPage.getByText("Application: pending")).toBeVisible();
+    await expect(applicantPage.getByText(/application is waiting for an owner/i)).toBeVisible();
+
+    await page.goto(new URL(`/groups/${slug}/manage?section=applications`, page.url()).toString());
+    await expect(page.getByText("I would like to help this group grow.")).toBeVisible();
+    await page.getByRole("button", { name: "Approve" }).click();
+    await expect(page.getByRole("heading", { name: "No pending applications." })).toBeVisible();
+
+    await applicantPage.reload();
+    await expect(applicantPage.getByText("Your role: member")).toBeVisible();
+    await expect(applicantPage.getByRole("heading", { name: "Active members" })).toBeVisible();
+
+    await page.goto(new URL(`/groups/${slug}/manage?section=members`, page.url()).toString());
+    await page.getByRole("combobox", { name: "Member role" }).selectOption("admin");
+    await page.getByRole("button", { name: "Save role" }).click();
+    await expect(page.getByRole("status")).toHaveText("Member promoted to admin.");
+
+    await applicantPage.reload();
+    await expect(applicantPage.getByText("Your role: admin")).toBeVisible();
+    await expect(applicantPage.getByRole("link", { name: "Manage group" })).toBeVisible();
+
+    const unlistedSlug = `haifa-private-${suffix}`;
+    await page.goto(new URL("/groups/new", page.url()).toString());
+    await page.getByRole("textbox", { name: "Group name" }).fill(`Haifa Private Circle ${suffix}`);
+    await page.getByRole("textbox", { name: "Group URL" }).fill(unlistedSlug);
+    await page.getByRole("combobox", { name: "Israel city" }).selectOption({ label: "Haifa" });
+    await page.getByRole("combobox", { name: "Visibility" }).selectOption("unlisted");
+    await page
+      .getByRole("textbox", { name: /Description/ })
+      .fill("An unlisted circle with reviewed invitation applications.");
+    await page.getByRole("button", { name: "Check similar groups" }).click();
+    await expect(page.getByRole("button", { name: "Create group" })).toBeVisible();
+    await page.getByRole("button", { name: "Create group" }).click();
+    await page.getByRole("link", { name: "Open group" }).click();
+    await page.getByRole("link", { name: "Manage group" }).click();
+    await page.getByRole("link", { name: "Invitations" }).click();
+    await page.getByRole("button", { name: "Create invitation" }).click();
+    await expect(page.getByRole("status")).toContainText("Copy it now");
+    const inviteUrl = await page.getByRole("textbox", { name: "New invitation URL" }).inputValue();
+    expect(inviteUrl).toMatch(/\/join\/group\/[A-Za-z0-9_-]{43}$/);
+
+    const inviteeContext = await browser.newContext({ baseURL: "http://127.0.0.1:3000" });
+    const inviteePage = await inviteeContext.newPage();
+    const inviteeEmail = `group-invitee-${suffix}@example.com`;
+    const inviteeHandle = `invitee_${suffix}`;
+
+    try {
+      await signUpAndVerify(inviteePage, inviteeContext, inviteeEmail, password);
+      await completeProfile(inviteePage, inviteeHandle, "Invited Applicant");
+      await inviteePage.goto(inviteUrl);
+      await expect(
+        inviteePage.getByRole("heading", { name: `Haifa Private Circle ${suffix}` }),
+      ).toBeVisible();
+      await expect(inviteePage.getByText("Administrator review required")).toBeVisible();
+      await inviteePage
+        .getByRole("textbox", { name: /Note to the administrators/ })
+        .fill("I received this invitation from the group.");
+      await inviteePage.getByRole("button", { name: "Request to join" }).click();
+      await expect(
+        inviteePage.getByRole("heading", { name: "Your application is pending." }),
+      ).toBeVisible();
+
+      await page.goto(
+        new URL(`/groups/${unlistedSlug}/manage?section=applications`, page.url()).toString(),
+      );
+      await expect(page.getByText("I received this invitation from the group.")).toBeVisible();
+      await page.getByRole("button", { name: "Approve" }).click();
+      await expect(page.getByRole("heading", { name: "No pending applications." })).toBeVisible();
+
+      await inviteePage.goto(new URL(`/groups/${unlistedSlug}`, inviteePage.url()).toString());
+      await expect(inviteePage.getByText("Your role: member")).toBeVisible();
+
+      await page.goto(
+        new URL(`/groups/${unlistedSlug}/manage?section=invites`, page.url()).toString(),
+      );
+      await page.getByRole("button", { name: "Revoke" }).click();
+      await page.getByRole("alertdialog").getByRole("button", { name: "Revoke" }).click();
+      await expect(page.getByText("revoked", { exact: true })).toBeVisible();
+
+      await inviteePage.reload();
+      await expect(inviteePage.getByText("Your role: member")).toBeVisible();
+    } finally {
+      await inviteeContext.close();
+    }
+  } finally {
+    await applicantContext.close();
+  }
 });
 
 test("cached fixtures survive provider failure and a completed user follows a team", async ({

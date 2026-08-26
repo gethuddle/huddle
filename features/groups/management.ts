@@ -1,0 +1,265 @@
+import "server-only";
+
+import { z } from "zod";
+
+import { getGroupDetail, type GroupDetail } from "@/features/groups/detail";
+import type { GroupManagementSection } from "@/features/groups/schemas";
+import { DomainError, domainErrorFromDatabase } from "@/lib/errors";
+import { createClient } from "@/lib/supabase/server";
+
+export const GROUP_MANAGEMENT_PAGE_SIZE = 20;
+
+const applicationRowSchema = z
+  .object({
+    user_id: z.uuid(),
+    handle: z.string(),
+    display_name: z.string(),
+    application_message: z.string().nullable(),
+    application_source: z.enum(["discoverable", "invite"]),
+    applied_at: z.string(),
+    total_count: z.number().int().nonnegative(),
+  })
+  .strict();
+
+const memberRowSchema = z
+  .object({
+    user_id: z.uuid(),
+    handle: z.string(),
+    display_name: z.string(),
+    role: z.enum(["owner", "admin", "member"]),
+    member_since: z.string(),
+    total_count: z.number().int().nonnegative(),
+  })
+  .strict();
+
+const inviteRowSchema = z
+  .object({
+    invite_id: z.uuid(),
+    creator_handle: z.string(),
+    expires_at: z.string(),
+    max_uses: z.number().int().positive(),
+    use_count: z.number().int().nonnegative(),
+    revoked_at: z.string().nullable(),
+    invite_status: z.enum(["active", "expired", "exhausted", "revoked"]),
+    created_at: z.string(),
+    total_count: z.number().int().nonnegative(),
+  })
+  .strict();
+
+const banRowSchema = z
+  .object({
+    user_id: z.uuid(),
+    handle: z.string(),
+    display_name: z.string(),
+    reason: z.string(),
+    banned_by_handle: z.string(),
+    banned_at: z.string(),
+    total_count: z.number().int().nonnegative(),
+  })
+  .strict();
+
+const ruleRowSchema = z
+  .object({
+    rule_id: z.uuid(),
+    rule_position: z.number().int().positive(),
+    rule_text: z.string(),
+    published_at: z.string().nullable(),
+    total_count: z.number().int().nonnegative(),
+  })
+  .strict();
+
+export type GroupApplication = Readonly<{
+  userId: string;
+  handle: string;
+  displayName: string;
+  message: string | null;
+  source: "discoverable" | "invite";
+  appliedAt: string;
+}>;
+
+export type GroupAdminMember = Readonly<{
+  userId: string;
+  handle: string;
+  displayName: string;
+  role: "owner" | "admin" | "member";
+  memberSince: string;
+}>;
+
+export type GroupInviteMetadata = Readonly<{
+  id: string;
+  creatorHandle: string;
+  expiresAt: string;
+  maxUses: number;
+  useCount: number;
+  revokedAt: string | null;
+  status: "active" | "expired" | "exhausted" | "revoked";
+  createdAt: string;
+}>;
+
+export type GroupBan = Readonly<{
+  userId: string;
+  handle: string;
+  displayName: string;
+  reason: string;
+  bannedByHandle: string;
+  bannedAt: string;
+}>;
+
+export type GroupManagedRule = Readonly<{
+  id: string;
+  position: number;
+  text: string;
+  publishedAt: string | null;
+}>;
+
+type ManagementBase = Readonly<{
+  group: GroupDetail;
+  page: number;
+  pageCount: number;
+  totalCount: number;
+}>;
+
+export type GroupManagementResult =
+  | (ManagementBase & Readonly<{ section: "applications"; items: readonly GroupApplication[] }>)
+  | (ManagementBase & Readonly<{ section: "members"; items: readonly GroupAdminMember[] }>)
+  | (ManagementBase & Readonly<{ section: "invites"; items: readonly GroupInviteMetadata[] }>)
+  | (ManagementBase & Readonly<{ section: "bans"; items: readonly GroupBan[] }>)
+  | (ManagementBase & Readonly<{ section: "rules"; items: readonly GroupManagedRule[] }>);
+
+function countResult(rows: readonly Readonly<{ total_count: number }>[]) {
+  const totalCount = rows.at(0)?.total_count ?? 0;
+  return {
+    totalCount,
+    pageCount: Math.max(1, Math.ceil(totalCount / GROUP_MANAGEMENT_PAGE_SIZE)),
+  };
+}
+
+function parseRows<T>(schema: z.ZodType<T>, value: unknown): T[] {
+  try {
+    return z.array(schema).parse(value);
+  } catch (cause) {
+    throw new DomainError("INTERNAL_ERROR", { cause });
+  }
+}
+
+export async function getGroupManagement(
+  slug: string,
+  section: GroupManagementSection,
+  page: number,
+): Promise<GroupManagementResult | null> {
+  const group = await getGroupDetail(slug);
+  if (group === null || (group.viewerRole !== "owner" && group.viewerRole !== "admin")) return null;
+
+  const supabase = await createClient();
+  const paging = {
+    input_group_id: group.id,
+    input_offset: (page - 1) * GROUP_MANAGEMENT_PAGE_SIZE,
+    input_limit: GROUP_MANAGEMENT_PAGE_SIZE,
+  };
+
+  if (section === "applications") {
+    const { data, error } = await supabase.rpc("list_group_applications", paging);
+    if (error !== null) throw domainErrorFromDatabase(error);
+    const rows = parseRows(applicationRowSchema, data);
+    if (rows.length === 0 && page > 1) return getGroupManagement(slug, section, 1);
+    return {
+      group,
+      section,
+      page,
+      ...countResult(rows),
+      items: rows.map((row) => ({
+        userId: row.user_id,
+        handle: row.handle,
+        displayName: row.display_name,
+        message: row.application_message,
+        source: row.application_source,
+        appliedAt: row.applied_at,
+      })),
+    };
+  }
+
+  if (section === "members") {
+    const { data, error } = await supabase.rpc("list_group_admin_members", paging);
+    if (error !== null) throw domainErrorFromDatabase(error);
+    const rows = parseRows(memberRowSchema, data);
+    if (rows.length === 0 && page > 1) return getGroupManagement(slug, section, 1);
+    return {
+      group,
+      section,
+      page,
+      ...countResult(rows),
+      items: rows.map((row) => ({
+        userId: row.user_id,
+        handle: row.handle,
+        displayName: row.display_name,
+        role: row.role,
+        memberSince: row.member_since,
+      })),
+    };
+  }
+
+  if (section === "invites") {
+    const { data, error } = await supabase.rpc("list_group_invites", paging);
+    if (error !== null) throw domainErrorFromDatabase(error);
+    const rows = parseRows(inviteRowSchema, data);
+    if (rows.length === 0 && page > 1) return getGroupManagement(slug, section, 1);
+    return {
+      group,
+      section,
+      page,
+      ...countResult(rows),
+      items: rows.map((row) => ({
+        id: row.invite_id,
+        creatorHandle: row.creator_handle,
+        expiresAt: row.expires_at,
+        maxUses: row.max_uses,
+        useCount: row.use_count,
+        revokedAt: row.revoked_at,
+        status: row.invite_status,
+        createdAt: row.created_at,
+      })),
+    };
+  }
+
+  if (section === "bans") {
+    const { data, error } = await supabase.rpc("list_group_bans", paging);
+    if (error !== null) throw domainErrorFromDatabase(error);
+    const rows = parseRows(banRowSchema, data);
+    if (rows.length === 0 && page > 1) return getGroupManagement(slug, section, 1);
+    return {
+      group,
+      section,
+      page,
+      ...countResult(rows),
+      items: rows.map((row) => ({
+        userId: row.user_id,
+        handle: row.handle,
+        displayName: row.display_name,
+        reason: row.reason,
+        bannedByHandle: row.banned_by_handle,
+        bannedAt: row.banned_at,
+      })),
+    };
+  }
+
+  const { data, error } = await supabase.rpc("list_group_rules", {
+    input_group_id: group.id,
+    input_offset: 0,
+    input_limit: 100,
+  });
+  if (error !== null) throw domainErrorFromDatabase(error);
+  const rows = parseRows(ruleRowSchema, data);
+  return {
+    group,
+    section,
+    page: 1,
+    ...countResult(rows),
+    pageCount: 1,
+    items: rows.map((row) => ({
+      id: row.rule_id,
+      position: row.rule_position,
+      text: row.rule_text,
+      publishedAt: row.published_at,
+    })),
+  };
+}
