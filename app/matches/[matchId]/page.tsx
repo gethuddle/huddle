@@ -134,8 +134,9 @@ export default async function MatchDetailPage({ params }: MatchDetailPageProps) 
             Keep this fixture close.
           </h2>
           <p className="text-sm leading-6 text-muted-dark">
-            Follow the sport, competition, or either team. Follows shape future discovery, not event
-            eligibility.
+            Follow the sport, competition, or either team. Following a sport or competition shapes
+            discovery. Following a team may be required to join a team-follower venue event unless
+            you are directly invited. No follow grants private-event visibility or address access.
           </p>
         </CardHeader>
         <CardContent>

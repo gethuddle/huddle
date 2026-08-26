@@ -100,8 +100,9 @@ export default async function InterestSettingsPage() {
             Follow what matters.
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-dark">
-            Choose sports, competitions, and teams. These follows will shape discovery without
-            changing who can see or join an event.
+            Choose sports, competitions, and teams. Following a sport or competition shapes
+            discovery. Following a team may be required to join a team-follower venue event unless
+            you are directly invited. No follow grants private-event visibility or address access.
           </p>
         </div>
         <Button asChild variant="outline">
