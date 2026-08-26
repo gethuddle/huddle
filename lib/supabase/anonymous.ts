@@ -5,7 +5,7 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { getPublicEnvironment } from "@/lib/env/public";
 import type { Database } from "@/types/database.generated";
 
-/** Server-side anonymous client for narrowly granted pre-authentication RPCs. */
+/** Server-only client for explicitly public projections, tables, and pre-authentication RPCs. */
 export function createAnonymousServerClient() {
   const environment = getPublicEnvironment();
 

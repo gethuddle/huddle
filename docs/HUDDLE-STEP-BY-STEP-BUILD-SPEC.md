@@ -687,19 +687,19 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Add `components.json` and the minimum shadcn prerequisites compatible with the existing Next.js, React, Tailwind v4, strict-TypeScript, and `@/` alias setup.
-- [ ] Select Radix-backed shadcn components and preserve `app/globals.css`, Huddle's named brand tokens, Familjen Grotesk, and the replaceable `BrandMark`.
-- [ ] Add only the shared primitives needed by existing flows and B04, including buttons, fields/labels, cards, badges, alerts, alert dialogs, selects, skeletons, separators, and pagination.
-- [ ] Migrate suitable existing authentication, profile, status-panel, card, and blocking controls to the shared components without changing behavior, copy, authorization, or focus outcomes.
-- [ ] Compose fixture filters, `MatchCard`, freshness indicators, and follow controls from the shared primitives rather than creating a parallel UI kit.
-- [ ] Build match list and match detail Server Components.
-- [ ] Add bounded filters/pagination and indexed query shapes.
-- [ ] Add stable empty/loading/error states.
-- [ ] Show safe freshness/stale status based on the last successful run.
-- [ ] Keep a provider outage from making cached matches unavailable.
-- [ ] Add visible football-data.org attribution and a data-sources page.
-- [ ] Use text initials or original art rather than provider crests.
-- [ ] Confirm Jerusalem display time around UTC conversion.
+- [x] Add `components.json` and the minimum shadcn prerequisites compatible with the existing Next.js, React, Tailwind v4, strict-TypeScript, and `@/` alias setup.
+- [x] Select Radix-backed shadcn components and preserve `app/globals.css`, Huddle's named brand tokens, Familjen Grotesk, and the replaceable `BrandMark`.
+- [x] Add only the shared primitives needed by existing flows and B04, including buttons, fields/labels, checkboxes, cards, badges, alerts, alert dialogs, selects, skeletons, separators, and pagination.
+- [x] Migrate suitable existing authentication, profile, status-panel, card, and blocking controls to the shared components without changing behavior, copy, authorization, or focus outcomes.
+- [x] Compose fixture filters, `MatchCard`, freshness indicators, and follow controls from the shared primitives rather than creating a parallel UI kit.
+- [x] Build match list and match detail Server Components.
+- [x] Add bounded filters/pagination and indexed query shapes.
+- [x] Add stable empty/loading/error states.
+- [x] Show safe freshness/stale status based on the last successful run.
+- [x] Keep a provider outage from making cached matches unavailable.
+- [x] Add visible football-data.org attribution and a data-sources page.
+- [x] Use text initials or original art rather than provider crests.
+- [x] Confirm Jerusalem display time around UTC conversion.
 
 **Tests/evidence:** shared-component and migrated-flow regression tests, query/unit tests, component empty/stale/error states, responsive visual evidence, E2E cached browsing during simulated provider failure, and manual network proof that page loads do not call the provider.
 
@@ -713,12 +713,12 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Create `subscriptions` with exactly-one-target checks and partial unique indexes.
-- [ ] Add own-row RLS and complete-account gating.
-- [ ] Add follow/unfollow actions with Zod and actor identity from session.
-- [ ] Add interest settings and reusable follow controls.
-- [ ] Invalidate only relevant interest/discovery data.
-- [ ] Handle pending, success, duplicate/idempotent, error, and unauthorized states.
+- [x] Create `subscriptions` with exactly-one-target checks and partial unique indexes.
+- [x] Add own-row RLS and complete-account gating.
+- [x] Add follow/unfollow actions with Zod and actor identity from session.
+- [x] Add interest settings and reusable follow controls.
+- [x] Invalidate only relevant interest/discovery data.
+- [x] Handle pending, success, duplicate/idempotent, error, and unauthorized states.
 
 **Tests/evidence:** target-kind constraints, duplicates, cross-user denial, actions, component states, and onboarding-to-team-follow E2E.
 
@@ -1333,7 +1333,7 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 | B01 Platform quality and authentication | `F04`, `A01` | done | [#9](https://github.com/gethuddle/huddle/issues/9) / [PR #10](https://github.com/gethuddle/huddle/pull/10) |
 | B02 Onboarding, eligibility, and blocking | `A02`–`A04` | done | [#11](https://github.com/gethuddle/huddle/issues/11) / [PR #12](https://github.com/gethuddle/huddle/pull/12) |
 | B03 Sports catalog and ingestion | `S01`–`S03` | done | [#13](https://github.com/gethuddle/huddle/issues/13) / [PR #14](https://github.com/gethuddle/huddle/pull/14) |
-| B04 Fixture browsing, follows, and shadcn UI | `S04`–`S05` | not started | — |
+| B04 Fixture browsing, follows, and shadcn UI | `S04`–`S05` | review | [#16](https://github.com/gethuddle/huddle/issues/16) |
 | B05 Friendships and group creation | `G01`–`G02` | not started | — |
 | B06 Group membership and administration | `G03`–`G05` | not started | — |
 | B07 Venues and private-event foundations | `E01`–`E03` | not started | — |

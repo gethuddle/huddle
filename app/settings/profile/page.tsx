@@ -7,6 +7,7 @@ import {
   type ProfileFormInitialValue,
 } from "@/features/profiles/components/profile-form";
 import { ProfileAccessState } from "@/features/profiles/components/profile-access-state";
+import { createAnonymousServerClient } from "@/lib/supabase/anonymous";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -41,6 +42,7 @@ export default async function ProfileSettingsPage() {
     );
   }
 
+  const publicCatalog = createAnonymousServerClient();
   const [profileResult, cityResult] = await Promise.all([
     supabase
       .from("profiles")
@@ -49,7 +51,7 @@ export default async function ProfileSettingsPage() {
       )
       .eq("id", user.id)
       .maybeSingle(),
-    supabase.from("cities").select("id, slug, name_en").eq("active", true).order("name_en"),
+    publicCatalog.from("cities").select("id, slug, name_en").eq("active", true).order("name_en"),
   ]);
 
   if (profileResult.error !== null || cityResult.error !== null || profileResult.data === null) {

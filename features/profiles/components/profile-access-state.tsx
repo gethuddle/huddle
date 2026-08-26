@@ -1,5 +1,8 @@
 import Link from "next/link";
 
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 type ProfileAccessStateProps = Readonly<{
   eyebrow: string;
   title: string;
@@ -18,29 +21,32 @@ export function ProfileAccessState({
   warning = false,
 }: ProfileAccessStateProps) {
   return (
-    <section
-      className="mx-auto my-16 w-full max-w-2xl rounded-[2rem] border border-border-dark bg-surface-raised p-8 text-center shadow-2xl shadow-black/20 sm:my-24 sm:p-12"
+    <Card
+      className="mx-auto my-16 w-full max-w-2xl rounded-[2rem] text-center sm:my-24"
       role={warning ? "alert" : undefined}
     >
-      <p
-        className={
-          warning
-            ? "text-xs font-semibold uppercase tracking-[0.2em] text-sand"
-            : "text-xs font-semibold uppercase tracking-[0.2em] text-court"
-        }
-      >
-        {eyebrow}
-      </p>
-      <h1 className="mt-4 text-4xl font-semibold tracking-[-0.045em] text-linen">{title}</h1>
-      <p className="mx-auto mt-4 max-w-xl leading-7 text-muted-dark">{description}</p>
-      {actionHref === undefined || actionLabel === undefined ? null : (
-        <Link
-          className="mt-8 inline-flex rounded-xl bg-court px-6 py-3 text-sm font-semibold text-ink transition hover:bg-court-hover focus-visible:outline-2 focus-visible:outline-offset-2"
-          href={actionHref}
+      <CardHeader className="px-8 sm:px-12">
+        <p
+          className={
+            warning
+              ? "text-xs font-semibold uppercase tracking-[0.2em] text-sand"
+              : "text-xs font-semibold uppercase tracking-[0.2em] text-court"
+          }
         >
-          {actionLabel}
-        </Link>
-      )}
-    </section>
+          {eyebrow}
+        </p>
+        <CardTitle className="mt-3 text-4xl font-semibold tracking-[-0.045em] text-linen">
+          <h1>{title}</h1>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="px-8 sm:px-12">
+        <p className="mx-auto max-w-xl leading-7 text-muted-dark">{description}</p>
+        {actionHref === undefined || actionLabel === undefined ? null : (
+          <Button asChild className="mt-8" size="lg">
+            <Link href={actionHref}>{actionLabel}</Link>
+          </Button>
+        )}
+      </CardContent>
+    </Card>
   );
 }

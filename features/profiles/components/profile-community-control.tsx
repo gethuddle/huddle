@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import type { PublicProfileViewerState } from "@/features/profiles/viewer";
 import { BlockControl } from "@/features/safety/components/block-control";
 
@@ -46,17 +48,16 @@ export function ProfileCommunityControl({
   }[viewerState];
 
   return (
-    <div className="rounded-2xl border border-border-dark bg-surface-deep p-5">
-      <p className="font-semibold text-linen">{content.title}</p>
-      <p className="mt-2 text-sm leading-6 text-muted-dark">{content.description}</p>
-      {content.href === null || content.action === null ? null : (
-        <Link
-          className="mt-4 inline-flex rounded-xl border border-border-strong px-4 py-2.5 text-sm font-semibold text-linen transition hover:border-court hover:text-court focus-visible:outline-2 focus-visible:outline-offset-2"
-          href={content.href}
-        >
-          {content.action}
-        </Link>
-      )}
-    </div>
+    <Card className="bg-surface-deep" size="sm">
+      <CardContent>
+        <p className="font-semibold text-linen">{content.title}</p>
+        <p className="mt-2 text-sm leading-6 text-muted-dark">{content.description}</p>
+        {content.href === null || content.action === null ? null : (
+          <Button asChild className="mt-4" variant="outline">
+            <Link href={content.href}>{content.action}</Link>
+          </Button>
+        )}
+      </CardContent>
+    </Card>
   );
 }

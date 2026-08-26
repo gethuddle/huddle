@@ -2,13 +2,11 @@
 
 import { useActionState, useEffect } from "react";
 
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { signInAction } from "@/features/auth/actions";
-import {
-  AUTH_INPUT_CLASS_NAME,
-  AUTH_SUBMIT_CLASS_NAME,
-  FieldError,
-  FormFeedback,
-} from "@/features/auth/components/form-feedback";
+import { FieldError, FormFeedback } from "@/features/auth/components/form-feedback";
 import { INITIAL_AUTH_ACTION_STATE } from "@/features/auth/state";
 
 export function SignInForm() {
@@ -25,14 +23,14 @@ export function SignInForm() {
   return (
     <form action={formAction} className="space-y-5" noValidate>
       <div>
-        <label className="text-sm font-semibold text-linen" htmlFor="sign-in-email">
+        <Label className="text-linen" htmlFor="sign-in-email">
           Email address
-        </label>
-        <input
+        </Label>
+        <Input
           aria-describedby="sign-in-email-error"
           aria-invalid={fieldErrors?.email === undefined ? undefined : true}
           autoComplete="email"
-          className={AUTH_INPUT_CLASS_NAME}
+          className="mt-2"
           id="sign-in-email"
           inputMode="email"
           name="email"
@@ -44,14 +42,14 @@ export function SignInForm() {
       </div>
 
       <div>
-        <label className="text-sm font-semibold text-linen" htmlFor="sign-in-password">
+        <Label className="text-linen" htmlFor="sign-in-password">
           Password
-        </label>
-        <input
+        </Label>
+        <Input
           aria-describedby="sign-in-password-error"
           aria-invalid={fieldErrors?.password === undefined ? undefined : true}
           autoComplete="current-password"
-          className={AUTH_INPUT_CLASS_NAME}
+          className="mt-2"
           id="sign-in-password"
           name="password"
           required
@@ -62,9 +60,9 @@ export function SignInForm() {
 
       <FormFeedback state={state} />
 
-      <button className={AUTH_SUBMIT_CLASS_NAME} disabled={pending} type="submit">
+      <Button className="w-full" disabled={pending} size="lg" type="submit">
         {pending ? "Signing in…" : "Sign in"}
-      </button>
+      </Button>
     </form>
   );
 }

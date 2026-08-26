@@ -35,9 +35,14 @@ describe("AppShell", () => {
     expect(
       within(screen.getByRole("main")).getByRole("heading", { name: "Page content" }),
     ).toBeVisible();
-    expect(
-      screen.getByText("Sports-data attribution will appear here when synchronization begins."),
-    ).toBeVisible();
+    expect(screen.getByRole("link", { name: "football-data.org" })).toHaveAttribute(
+      "href",
+      "https://www.football-data.org/",
+    );
+    expect(screen.getByRole("link", { name: "Data sources" })).toHaveAttribute(
+      "href",
+      "/data-sources",
+    );
   });
 
   it("offers sign-out only when the server has validated session claims", async () => {
@@ -51,6 +56,10 @@ describe("AppShell", () => {
     expect(screen.getByRole("link", { name: "Profile" })).toHaveAttribute(
       "href",
       "/settings/profile",
+    );
+    expect(screen.getByRole("link", { name: "Interests" })).toHaveAttribute(
+      "href",
+      "/settings/interests",
     );
     expect(screen.getByRole("button", { name: "Sign out" })).toBeVisible();
     expect(screen.queryByRole("link", { name: "Sign up" })).not.toBeInTheDocument();

@@ -21,6 +21,18 @@ describe("shared application states", () => {
     expect(screen.getByRole("link", { name: "Return home" })).toHaveAttribute("href", "/");
   });
 
+  it("uses the requested heading level when embedded below a page heading", () => {
+    render(
+      <EmptyState
+        description="There are no results for this section."
+        headingLevel="h2"
+        title="No section results"
+      />,
+    );
+
+    expect(screen.getByRole("heading", { level: 2, name: "No section results" })).toBeVisible();
+  });
+
   it("renders an alert and invokes its retry action", () => {
     const onRetry = vi.fn();
 

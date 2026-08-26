@@ -468,6 +468,93 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          competition_id: string | null
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["subscription_kind"]
+          sport_id: string | null
+          team_id: string | null
+          user_id: string
+        }
+        Insert: {
+          competition_id?: string | null
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["subscription_kind"]
+          sport_id?: string | null
+          team_id?: string | null
+          user_id: string
+        }
+        Update: {
+          competition_id?: string | null
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["subscription_kind"]
+          sport_id?: string | null
+          team_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "competitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "public_future_matches"
+            referencedColumns: ["competition_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_sport_id_fkey"
+            columns: ["sport_id"]
+            isOneToOne: false
+            referencedRelation: "public_future_matches"
+            referencedColumns: ["sport_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_sport_id_fkey"
+            columns: ["sport_id"]
+            isOneToOne: false
+            referencedRelation: "sports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "public_future_matches"
+            referencedColumns: ["away_team_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "public_future_matches"
+            referencedColumns: ["home_team_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teams: {
         Row: {
           active: boolean
@@ -635,6 +722,7 @@ export type Database = {
           teams_changed: number
         }[]
       }
+      current_actor_is_community_eligible: { Args: never; Returns: boolean }
       fail_sports_sync: {
         Args: {
           input_error_code: string
@@ -681,6 +769,7 @@ export type Database = {
         | "postponed"
         | "cancelled"
         | "finished"
+      subscription_kind: "sport" | "competition" | "team"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -817,6 +906,7 @@ export const Constants = {
         "cancelled",
         "finished",
       ],
+      subscription_kind: ["sport", "competition", "team"],
     },
   },
 } as const

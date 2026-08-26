@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect } from "react";
 
+import { Button } from "@/components/ui/button";
 import { signOutAction } from "@/features/auth/actions";
 import { INITIAL_AUTH_ACTION_STATE } from "@/features/auth/state";
 
@@ -17,13 +18,9 @@ export function SignOutButton() {
 
   return (
     <form action={formAction}>
-      <button
-        className="rounded-xl border border-border-strong px-3 py-2 text-xs font-semibold text-muted-dark transition hover:border-court/50 hover:text-linen disabled:cursor-wait disabled:opacity-70"
-        disabled={pending}
-        type="submit"
-      >
+      <Button disabled={pending} size="sm" type="submit" variant="outline">
         {pending ? "Signing out…" : "Sign out"}
-      </button>
+      </Button>
       {state?.ok === false ? (
         <span className="ml-2 text-xs text-sand" role="alert">
           {state.error.message}
