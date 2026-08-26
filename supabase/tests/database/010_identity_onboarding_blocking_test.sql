@@ -345,7 +345,17 @@ select is(
     from public.get_public_profile_by_handle('fan_one') as summary,
       lateral jsonb_object_keys(to_jsonb(summary)) as field_name
   ),
-  array['bio', 'city_name', 'display_name', 'handle', 'member_since', 'viewer_has_blocked']::text[],
+  array[
+    'bio',
+    'city_name',
+    'display_name',
+    'friendship_direction',
+    'friendship_id',
+    'friendship_status',
+    'handle',
+    'member_since',
+    'viewer_has_blocked'
+  ]::text[],
   'the public projection exposes only the reviewed safe fields'
 );
 select is(
@@ -471,7 +481,7 @@ select is(
       and action = 'user.block'
       and resource_id = '10000000-0000-4000-8000-000000000002'
       and request_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
-      and metadata = '{}'::jsonb
+      and metadata = '{"friendship_removed": false}'::jsonb
   ),
   1::bigint,
   'a successful block writes one minimal audit record without notification data'

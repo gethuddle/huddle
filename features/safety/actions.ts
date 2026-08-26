@@ -37,6 +37,7 @@ export async function setBlockPreferenceAction(
     }
 
     revalidatePath(`/people/${parsed.data.targetHandle}`);
+    revalidatePath("/settings/friends");
 
     return actionSuccess({
       message: "Safety preference updated.",

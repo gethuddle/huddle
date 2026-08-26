@@ -309,19 +309,47 @@ test("a block is private, directional, auditable, and reversible", async ({
     await completeProfile(secondPage, secondHandle, "Target Fan");
 
     await page.goto(new URL(`/people/${secondHandle}`, page.url()).toString());
+    await page.getByRole("button", { name: "Add friend" }).click();
+    await expect(page.getByRole("status")).toHaveText("Friend request sent.");
+    await expect(page.getByText("Request sent", { exact: true })).toBeVisible();
+
+    await secondPage.goto(new URL(`/people/${firstHandle}`, secondPage.url()).toString());
+    await expect(secondPage.getByText(`@${firstHandle} sent you a friend request.`)).toBeVisible();
+    await secondPage.getByRole("button", { name: "Accept" }).click();
+    await expect(secondPage.getByRole("status")).toHaveText("Friend request accepted.");
+    await expect(
+      secondPage
+        .getByRole("complementary", { name: "Community controls" })
+        .getByText("Friends", { exact: true }),
+    ).toBeVisible();
+
+    await page.reload();
+    await expect(
+      page
+        .getByRole("complementary", { name: "Community controls" })
+        .getByText("Friends", { exact: true }),
+    ).toBeVisible();
     await page.getByRole("button", { name: `Block @${secondHandle}` }).click();
     await expect(page.getByRole("alertdialog")).toContainText("They will not be notified");
     await page.getByRole("button", { name: "Confirm block" }).click();
     await expect(page.getByRole("status")).toHaveText("Safety preference updated.");
     await expect(page.getByRole("button", { name: `Unblock @${secondHandle}` })).toBeVisible();
+    await expect(page.getByText("Direct interaction is paused.")).toBeVisible();
+    await expect(
+      page
+        .getByRole("complementary", { name: "Community controls" })
+        .getByText("Friends", { exact: true }),
+    ).toHaveCount(0);
 
     await secondPage.goto(new URL(`/people/${firstHandle}`, secondPage.url()).toString());
     await expect(secondPage.getByRole("button", { name: `Block @${firstHandle}` })).toBeVisible();
+    await expect(secondPage.getByRole("button", { name: "Add friend" })).toBeVisible();
     await expect(secondPage.getByText(/blocked you/i)).toHaveCount(0);
 
     await page.getByRole("button", { name: `Unblock @${secondHandle}` }).click();
     await expect(page.getByRole("status")).toHaveText("Safety preference updated.");
     await expect(page.getByRole("button", { name: `Block @${secondHandle}` })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Add friend" })).toBeVisible();
 
     await page.getByRole("button", { name: `Block @${secondHandle}` }).click();
     await expect(page.getByRole("alertdialog")).toContainText("They will not be notified");
@@ -331,6 +359,46 @@ test("a block is private, directional, auditable, and reversible", async ({
   } finally {
     await secondContext.close();
   }
+});
+
+test("a completed user checks similar groups and becomes the atomic owner", async ({
+  context,
+  page,
+}) => {
+  await clearMailbox();
+
+  const suffix = Date.now().toString().slice(-8);
+  const email = `group-owner-${suffix}@example.com`;
+  const password = "matchday-local-test";
+  const handle = `owner_${suffix}`;
+  const slug = `haifa-huddle-${suffix}`;
+
+  await signUpAndVerify(page, context, email, password);
+  await completeProfile(page, handle, "Group Owner");
+  await page.goto(new URL("/groups/new", page.url()).toString());
+
+  await page.getByRole("textbox", { name: "Group name" }).fill(`Haifa Huddle ${suffix}`);
+  await page.getByRole("textbox", { name: "Group URL" }).fill(slug);
+  await page.getByRole("combobox", { name: "Israel city" }).selectOption({ label: "Haifa" });
+  await page
+    .getByRole("textbox", { name: /Description/ })
+    .fill("A local group for respectful match-day gatherings.");
+  await page.getByRole("button", { name: "Check similar groups" }).click();
+
+  await expect(page.getByRole("status")).toContainText(
+    /No similar discoverable groups found|Review these discoverable groups/,
+  );
+  await expect(page.getByRole("button", { name: "Create group" })).toBeVisible();
+  await page.getByRole("button", { name: "Create group" }).click();
+
+  await expect(page.getByRole("heading", { name: "You own this group." })).toBeVisible();
+  await page.getByRole("link", { name: "Open group" }).click();
+  await expect(page).toHaveURL(new RegExp(`/groups/${slug}$`));
+  await expect(page.getByRole("heading", { name: `Haifa Huddle ${suffix}` })).toBeVisible();
+  await expect(page.getByText("Your role: owner")).toBeVisible();
+  await expect(page.getByText("Forming privately")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Active members" })).toBeVisible();
+  await expect(page.getByText("Group Owner")).toBeVisible();
 });
 
 test("cached fixtures survive provider failure and a completed user follows a team", async ({

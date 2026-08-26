@@ -76,8 +76,8 @@ select is(
     where namespace.nspname = 'public'
       and relation.relkind in ('r', 'p')
   ),
-  'cities,competition_teams,competitions,matches,platform_roles,profiles,provider_sync_runs,security_audit_events,sports,subscriptions,teams,user_blocks',
-  'the public schema contains only the product tables implemented through B04'
+  'cities,competition_teams,competitions,friendships,group_bans,group_invite_tokens,group_memberships,group_rules,groups,matches,platform_roles,profiles,provider_sync_runs,security_audit_events,sports,subscriptions,teams,user_blocks',
+  'the public schema contains only the product tables implemented through B05'
 );
 
 select * from finish();

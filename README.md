@@ -155,7 +155,7 @@ The database and provider boundaries may be future-ready, but deferred features 
 
 ## Project status
 
-The merged baseline includes B01 repository CI; the complete B02 local account, onboarding, eligibility, safe-profile, private-block, and audit flow; and B03 sports catalog and ingestion. B04 now implements the Huddle-styled shadcn/Radix component layer, anonymous freshness-aware fixture browsing, and completed-account sport, competition, and team follows on top of the local catalog. The implementation remains on its milestone branch for reciprocal review and merge. Friendships, groups, events, attendance, hosted synchronization, and deployment remain later milestones; current local work does not mutate the shared Supabase organization.
+The merged baseline includes B01 repository CI; the complete B02 local account, onboarding, eligibility, safe-profile, private-block, and audit flow; B03 sports catalog and ingestion; and B04's Huddle-styled shadcn/Radix component layer, anonymous freshness-aware fixture browsing, and completed-account sport, competition, and team follows. B05 now implements direct reciprocal friendships, atomic block cleanup, group creation with duplicate suggestions, and safe group summaries and rosters on its milestone branch; reciprocal review and merge remain pending. Group membership administration, events, attendance, hosted synchronization, and deployment remain later milestones; current local work does not mutate the shared Supabase organization.
 
 ### Visual system
 
