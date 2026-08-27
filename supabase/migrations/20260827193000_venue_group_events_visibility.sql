@@ -76,7 +76,10 @@ as $function$
           event.host_user_id = input_actor_id
           or private.actor_owns_venue(event.host_venue_id, input_actor_id)
           or (
-            private.actor_is_group_admin(event.organizing_group_id, input_actor_id)
+            event.status in ('pending_group_review', 'published', 'cancelled', 'completed')
+            and event.host_user_id is not null
+            and not private.users_are_blocked(event.host_user_id, input_actor_id)
+            and private.actor_is_group_admin(event.organizing_group_id, input_actor_id)
             and exists (
               select 1
               from public.groups as organizing_group
@@ -90,7 +93,7 @@ as $function$
 $function$;
 
 comment on function private.actor_manages_event(uuid, uuid) is
-  'Checks personal-host, venue-owner, or active organizing-group administrator management authority.';
+  'Checks personal-host, venue-owner, or submitted-and-unblocked active organizing-group administrator management authority.';
 
 create or replace function private.group_discovery_gate(input_group_id uuid)
 returns table (
@@ -341,6 +344,7 @@ as $function$
 #variable_conflict use_variable
 declare
   actor_id uuid := private.assert_actor(true);
+  initial_host_user_id uuid;
   target_event public.events%rowtype;
   target_group public.groups%rowtype;
   next_status public.event_status;
@@ -348,6 +352,23 @@ begin
   if input_decision not in ('approve', 'reject') then
     raise exception using errcode = 'P0001', message = 'VALIDATION_FAILED';
   end if;
+
+  select event.host_user_id
+  into initial_host_user_id
+  from public.events as event
+  where event.id = input_event_id
+    and event.organizing_group_id is not null
+    and event.status = 'pending_group_review';
+
+  if not found or initial_host_user_id is null then
+    raise exception using errcode = 'P0001', message = 'INVALID_TRANSITION';
+  end if;
+
+  -- Serialize the review decision with either-direction blocking for the
+  -- private host/reviewer pair. A block that commits first must make the
+  -- following authorization check fail; a review that commits first is
+  -- immediately hidden from that reviewer when the later block commits.
+  perform private.lock_direct_user_pair(initial_host_user_id, actor_id);
 
   select event.*
   into target_event
@@ -357,7 +378,8 @@ begin
 
   if not found
     or target_event.organizing_group_id is null
-    or target_event.status <> 'pending_group_review' then
+    or target_event.status <> 'pending_group_review'
+    or target_event.host_user_id is distinct from initial_host_user_id then
     raise exception using errcode = 'P0001', message = 'INVALID_TRANSITION';
   end if;
 
@@ -370,7 +392,8 @@ begin
   if not found
     or target_group.lifecycle not in ('forming', 'active')
     or target_group.suspended_at is not null
-    or not private.actor_is_group_admin(target_group.id, actor_id) then
+    or not private.actor_is_group_admin(target_group.id, actor_id)
+    or private.users_are_blocked(target_event.host_user_id, actor_id) then
     raise exception using errcode = 'P0001', message = 'NOT_FOUND';
   end if;
 
@@ -632,6 +655,9 @@ begin
   join public.competitions as competition on competition.id = match.competition_id
   left join public.groups as audience_group on audience_group.id = event.audience_group_id
   where event.organizing_group_id = input_group_id
+    and event.status in ('pending_group_review', 'published', 'cancelled', 'completed')
+    and event.host_user_id is not null
+    and not private.users_are_blocked(event.host_user_id, actor_id)
   order by
     case when event.status = 'pending_group_review' then 0 else 1 end,
     event.created_at desc,

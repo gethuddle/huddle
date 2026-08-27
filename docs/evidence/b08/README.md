@@ -16,8 +16,9 @@ address.
 
 Automated acceptance covers venue ownership and suspension, venue audience/target rules,
 independent organizing and audience groups, member/admin/ban matrices, approval audit evidence,
-cancellation gate recalculation, non-enumerating private-event reads, safe attendance aggregates,
+cancellation gate recalculation, owner-only drafts, block-revoked review access, concurrent
+block/review serialization, non-enumerating private-event reads, safe attendance aggregates,
 location-payload rejection, and both browser journeys.
 
-The final local run passed 264 Vitest/component tests, 716 pgTAP assertions, the production build,
+The final local run passed 264 Vitest/component tests, 734 pgTAP assertions, the production build,
 and all five Playwright journeys.

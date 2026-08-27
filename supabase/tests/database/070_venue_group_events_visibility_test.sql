@@ -313,7 +313,10 @@ as $function$
   );
 $function$;
 
-create function pg_temp.create_b08_separately_organized_event()
+create function pg_temp.create_b08_separately_organized_event(
+  input_title text,
+  input_intent text
+)
 returns table (event_id uuid, status text)
 language sql
 as $function$
@@ -321,7 +324,7 @@ as $function$
   from public.create_group_event(
     '62000000-0000-4000-8000-000000000205',
     '62000000-0000-4000-8000-000000000204',
-    'B08 separately organized invite event',
+    input_title,
     'An invite-only event reviewed by a separately selected organizing group.',
     'Watch the full match together',
     'Free',
@@ -343,15 +346,73 @@ as $function$
     'Use the side entrance.',
     34.996,
     32.810,
-    'publish',
+    input_intent,
     null
   );
 $function$;
 
 set local role authenticated;
+set local "request.jwt.claim.sub" = '62000000-0000-4000-8000-000000000105';
+select set_config(
+  'test.b08_separately_organized_draft_id',
+  (
+    select event_id::text
+    from pg_temp.create_b08_separately_organized_event(
+      'B08 owner-only organizing draft',
+      'draft'
+    )
+  ),
+  true
+);
+select is(
+  (
+    select status
+    from public.get_event_summary(
+      current_setting('test.b08_separately_organized_draft_id')::uuid
+    )
+  ),
+  'draft',
+  'an organizing-group draft remains visible to its personal host'
+);
+
+reset role;
+set local role authenticated;
+set local "request.jwt.claim.sub" = '62000000-0000-4000-8000-000000000102';
+select is(
+  (
+    select count(*)
+    from public.get_event_summary(
+      current_setting('test.b08_separately_organized_draft_id')::uuid
+    )
+  ),
+  0::bigint,
+  'an organizing-group administrator cannot inspect a draft before submission'
+);
+select is(
+  (
+    select count(*)
+    from public.list_group_event_submissions(
+      '62000000-0000-4000-8000-000000000205',
+      0,
+      20
+    )
+    where event_id = current_setting('test.b08_separately_organized_draft_id')::uuid
+  ),
+  0::bigint,
+  'an organizing-group draft is absent from the administrator review queue'
+);
+
+reset role;
+set local role authenticated;
 set local "request.jwt.claim.sub" = '62000000-0000-4000-8000-000000000108';
 select is(
-  (select status from pg_temp.create_b08_separately_organized_event()),
+  (
+    select status
+    from pg_temp.create_b08_separately_organized_event(
+      'B08 separately organized invite event',
+      'publish'
+    )
+  ),
   'pending_group_review',
   'a member may submit an invite-only event to a separately selected organizing group'
 );
@@ -416,6 +477,93 @@ select throws_ok(
 );
 
 reset role;
+set local role authenticated;
+set local "request.jwt.claim.sub" = '62000000-0000-4000-8000-000000000104';
+select is(
+  (select status from pg_temp.create_b08_group_event('B08 blocked-review event')),
+  'pending_group_review',
+  'an active member may submit the event used for block-revocation coverage'
+);
+
+reset role;
+select set_config(
+  'test.b08_blocked_review_event_id',
+  (select id::text from public.events where title = 'B08 blocked-review event'),
+  true
+);
+set local role authenticated;
+set local "request.jwt.claim.sub" = '62000000-0000-4000-8000-000000000104';
+select is(
+  public.block_user('b08_admin', null),
+  true,
+  'the private host blocks an organizing-group administrator immediately'
+);
+
+reset role;
+set local role authenticated;
+set local "request.jwt.claim.sub" = '62000000-0000-4000-8000-000000000102';
+select is(
+  (
+    select count(*)
+    from public.get_event_summary(current_setting('test.b08_blocked_review_event_id')::uuid)
+  ),
+  0::bigint,
+  'a blocked organizing-group administrator receives no private-event summary'
+);
+select is(
+  (
+    select count(*)
+    from public.list_group_event_submissions(
+      '62000000-0000-4000-8000-000000000205',
+      0,
+      20
+    )
+    where event_id = current_setting('test.b08_blocked_review_event_id')::uuid
+  ),
+  0::bigint,
+  'a blocked organizing-group administrator receives no queue row for the private event'
+);
+select throws_ok(
+  format(
+    'select * from public.publish_group_event(%L::uuid,%L,null)',
+    current_setting('test.b08_blocked_review_event_id'),
+    'approve'
+  ),
+  'P0001',
+  'NOT_FOUND',
+  'a blocked organizing-group administrator cannot approve the private event'
+);
+
+reset role;
+set local role authenticated;
+set local "request.jwt.claim.sub" = '62000000-0000-4000-8000-000000000101';
+select is(
+  (
+    select status
+    from public.publish_group_event(
+      current_setting('test.b08_blocked_review_event_id')::uuid,
+      'reject',
+      null
+    )
+  ),
+  'cancelled',
+  'an unblocked organizing-group owner may close the pending event'
+);
+
+reset role;
+set local role authenticated;
+set local "request.jwt.claim.sub" = '62000000-0000-4000-8000-000000000104';
+select is(
+  public.unblock_user('b08_admin', null),
+  true,
+  'the test host removes the directional block after the denial assertions'
+);
+
+reset role;
+delete from public.security_audit_events
+where actor_id = '62000000-0000-4000-8000-000000000104'
+  and action = 'event.create';
+
 set local role authenticated;
 set local "request.jwt.claim.sub" = '62000000-0000-4000-8000-000000000103';
 select is(
