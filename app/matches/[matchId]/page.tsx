@@ -171,11 +171,16 @@ export default async function MatchDetailPage({ params }: MatchDetailPageProps) 
       <div className="mx-auto mt-10 max-w-4xl">
         <EmptyState
           action={
-            <Button asChild variant="outline">
-              <Link href="/settings/interests">Manage all follows</Link>
-            </Button>
+            <div className="flex flex-wrap justify-center gap-3">
+              <Button asChild>
+                <Link href={"/events/new?matchId=" + match.id}>Host a private event</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/settings/interests">Manage all follows</Link>
+              </Button>
+            </div>
           }
-          description="Watch events are added in a later milestone. For now, follow the teams and competition so this fixture can feed your future discovery view."
+          description="B07 lets an eligible private person create a group, friends, or invite-only event. Public venue events and event discovery arrive in later milestones."
           headingLevel="h2"
           title="No Huddle watch events yet."
         />

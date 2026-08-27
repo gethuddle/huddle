@@ -557,3 +557,66 @@ test("cached fixtures survive provider failure and a completed user follows a te
   await page.reload();
   await expect(page.getByRole("button", { name: "Unfollow Arsenal" })).toBeVisible();
 });
+
+test("a completed user creates an unverified venue and a protected private event", async ({
+  context,
+  page,
+}) => {
+  await clearMailbox();
+  await seedCachedFixtureCatalogAfterFailure();
+
+  const suffix = Date.now().toString().slice(-8);
+  const email = `b07-host-${suffix}@example.com`;
+  const password = "matchday-local-test";
+  const handle = `b07_host_${suffix}`;
+  const venueSlug = `match-corner-${suffix}`;
+  const exactHomeAddress = `99 Protected Home ${suffix}, Haifa`;
+
+  await signUpAndVerify(page, context, email, password);
+  await completeProfile(page, handle, "B07 Host");
+
+  await page.goto(new URL("/venues/new", page.url()).toString());
+  await page.getByRole("textbox", { name: "Venue name" }).fill(`Match Corner ${suffix}`);
+  await page.getByRole("textbox", { name: "Venue URL" }).fill(venueSlug);
+  await page.getByRole("combobox", { name: "Israel city" }).selectOption({ label: "Haifa" });
+  await page.getByRole("textbox", { name: "Public address" }).fill("12 Hanassi Boulevard, Haifa");
+  await page.getByRole("spinbutton", { name: "Latitude" }).fill("32.81303");
+  await page.getByRole("spinbutton", { name: "Longitude" }).fill("34.99928");
+  await page
+    .getByRole("textbox", { name: "Description" })
+    .fill("A local match-day venue with several screens and accessible seating.");
+  await page.getByRole("spinbutton", { name: /Screen count/ }).fill("4");
+  await page.getByRole("spinbutton", { name: /Stated capacity/ }).fill("80");
+  await page.getByRole("button", { name: "Create unverified venue" }).click();
+
+  await expect(page.getByRole("heading", { name: "Your venue profile is live." })).toBeVisible();
+  await expect(page.getByText(/Unverified remains visible/i)).toBeVisible();
+  await page.getByRole("link", { name: "Open venue" }).click();
+  await expect(page).toHaveURL(new RegExp(`/venues/${venueSlug}$`));
+  await expect(page.getByLabel("Unverified venue")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Manage venue" })).toBeVisible();
+
+  await page.goto(new URL("/matches", page.url()).toString());
+  await page.getByRole("link", { name: "View Arsenal FC versus Chelsea FC" }).click();
+  await page.getByRole("link", { name: "Host a private event" }).click();
+  await expect(page).toHaveURL(/\/events\/new\?matchId=/);
+
+  await page.getByRole("textbox", { name: "Event title" }).fill(`Arsenal at home ${suffix}`);
+  await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
+  await page
+    .getByRole("textbox", { name: "Description" })
+    .fill("A calm home watch party for registered supporters during the full match.");
+  await page.getByRole("textbox", { name: "Exact home address" }).fill(exactHomeAddress);
+  await page.getByRole("spinbutton", { name: "Longitude" }).fill("34.99800");
+  await page.getByRole("spinbutton", { name: "Latitude" }).fill("32.81200");
+  await page.getByRole("checkbox", { name: /I confirm that I am the host/i }).click();
+  await page.getByRole("button", { name: "Publish event" }).click();
+
+  await expect(page.getByText("Private event published to its eligible audience.")).toBeVisible();
+  await expect(page.getByText(exactHomeAddress)).toHaveCount(0);
+  await page.getByRole("link", { name: "Open safe event summary" }).click();
+  await expect(page.getByRole("heading", { name: `Arsenal at home ${suffix}` })).toBeVisible();
+  await expect(page.getByText("Protected home location saved")).toBeVisible();
+  await expect(page.getByText(exactHomeAddress)).toHaveCount(0);
+  expect(await page.content()).not.toContain(exactHomeAddress);
+});

@@ -842,13 +842,13 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Create venues and venue follows with public location and all indexes.
-- [ ] Limit status changes to platform moderators; default user-created venues to unverified.
-- [ ] Build create, edit, public detail, and manage pages.
-- [ ] Display `unverified` everywhere the venue identity appears.
-- [ ] Add venue follow/unfollow with own-row RLS.
-- [ ] Prevent cross-owner edits and suspended venue publication.
-- [ ] Do not add subscriptions, payments, menus, promotions, or fake verification.
+- [x] Create venues and venue follows with public location and all indexes.
+- [x] Limit status changes to platform moderators; default user-created venues to unverified.
+- [x] Build create, edit, public detail, and manage pages.
+- [x] Display `unverified` everywhere the venue identity appears.
+- [x] Add venue follow/unfollow with own-row RLS.
+- [x] Prevent cross-owner edits and suspended venue publication.
+- [x] Do not add subscriptions, payments, menus, promotions, or fake verification.
 
 **Tests/evidence:** ownership/RLS, public projection, moderator-only status, follow duplicates, component badge, cross-user crafted edit denial, E2E.
 
@@ -862,17 +862,17 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Create event, private-location, invitation, and attendance tables in a forward migration.
-- [ ] Add exactly-one-host, target-column, time, capacity, and place-field constraints.
-- [ ] Add all B-tree and spatial indexes.
-- [ ] Implement controlled create/update function for cross-table invariants.
-- [ ] Enforce private-person audiences: group/friends/invite-only only.
-- [ ] Enforce venue audiences: public/team-followers only.
-- [ ] Enforce private person place as home/public-place and venue host place as venue.
-- [ ] Require fixture attachment for the MVP.
-- [ ] Force approval for private-person events.
-- [ ] Enforce home capacity 1–12 and no guest-count field.
-- [ ] Preserve draft/pending/published/cancelled/completed history.
+- [x] Create event, private-location, invitation, and attendance tables in a forward migration.
+- [x] Add exactly-one-host, target-column, time, capacity, and place-field constraints.
+- [x] Add all B-tree and spatial indexes.
+- [x] Implement controlled create/update function for cross-table invariants.
+- [x] Enforce private-person audiences: group/friends/invite-only only.
+- [x] Enforce venue audiences: public/team-followers only.
+- [x] Enforce private person place as home/public-place and venue host place as venue.
+- [x] Require fixture attachment for the MVP.
+- [x] Force approval for private-person events.
+- [x] Enforce home capacity 1–12 and no guest-count field.
+- [x] Preserve draft/pending/published/cancelled/completed history.
 
 **Tests/evidence:** pgTAP for every valid and crafted invalid combination, ownership, indexes, no-plus-one schema proof, and update transitions.
 
@@ -886,17 +886,19 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Build an event wizard that starts from a synchronized future match.
-- [ ] Show only private-person audience choices for a personal host.
-- [ ] Validate required group/friend/invite relationships.
-- [ ] Support home and public-place details with different privacy copy.
-- [ ] Write home address/coordinate only through the controlled transaction into `event_private_locations`.
-- [ ] Deny all direct client select/update of private locations.
-- [ ] Return only city/coarse distance context before approval.
-- [ ] Show the 12-person cap, registered-users-only rule, host presence, and address-sharing warning.
-- [ ] Add draft/publish states and group-review submission where required.
+- [x] Build an event wizard that starts from a synchronized future match.
+- [x] Show only private-person audience choices for a personal host.
+- [x] Validate required group/friend/invite relationships.
+- [x] Support home and public-place details with different privacy copy.
+- [x] Write home address/coordinate only through the controlled transaction into `event_private_locations`.
+- [x] Deny all direct client select/update of private locations.
+- [x] Return only city/coarse distance context before approval.
+- [x] Show the 12-person cap, registered-users-only rule, host presence, and address-sharing warning.
+- [x] Add draft/publish states and group-review submission where required.
 
 **Tests/evidence:** private location absent from HTML/network/DTO/log, direct-select denial, invalid public audience crafted request, capacity >12 denial, form states, private event E2E up to unpublished/eligible summary.
+
+**B07 implementation decisions:** venue owners enter a reviewed Israel coordinate manually; no map or paid address service is added. Every user-created venue remains visibly `unverified`, and only a platform moderator can change that status. The private-event wizard derives its kickoff and three-hour window from a synchronized future match. A group-audience publish action creates `pending_group_review`; friends and invite-only events may publish immediately, while invite-only remains host-only until B10 adds direct invitations. The controlled event transaction already enforces the valid venue-host invariants needed by the shared event model, but B07 exposes only the private-host creation interface and ordinary safe event projection. Exact-location retrieval, invitation mutation, attendance transitions, cancellation controls, the venue-host creation interface, group publication review, and discovery remain in their owning later milestones.
 
 ### E04 — Business-venue event creation and public pages
 
@@ -1337,8 +1339,8 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 | B03 Sports catalog and ingestion | `S01`–`S03` | done | [#13](https://github.com/gethuddle/huddle/issues/13) / [PR #14](https://github.com/gethuddle/huddle/pull/14) |
 | B04 Fixture browsing, follows, and shadcn UI | `S04`–`S05` | done | [#16](https://github.com/gethuddle/huddle/issues/16) / [PR #17](https://github.com/gethuddle/huddle/pull/17) |
 | B05 Friendships and group creation | `G01`–`G02` | done | [#18](https://github.com/gethuddle/huddle/issues/18) / [PR #19](https://github.com/gethuddle/huddle/pull/19) |
-| B06 Group membership and administration | `G03`–`G05` | review | [#20](https://github.com/gethuddle/huddle/issues/20) |
-| B07 Venues and private-event foundations | `E01`–`E03` | not started | — |
+| B06 Group membership and administration | `G03`–`G05` | done | [#20](https://github.com/gethuddle/huddle/issues/20) / [PR #21](https://github.com/gethuddle/huddle/pull/21) |
+| B07 Venues and private-event foundations | `E01`–`E03` | review | [#22](https://github.com/gethuddle/huddle/issues/22) |
 | B08 Venue/group events and safe visibility | `E04`–`E06` | not started | — |
 | B09 Group and event discovery | `G06`, `E07` | not started | — |
 | B10 Invitations, attendance, and calendar | `T01`–`T04` | not started | — |
