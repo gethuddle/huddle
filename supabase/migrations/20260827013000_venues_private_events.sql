@@ -1737,7 +1737,10 @@ create policy venue_follows_delete_own
 on public.venue_follows
 for delete
 to authenticated
-using (user_id = auth.uid());
+using (
+  user_id = auth.uid()
+  and public.current_actor_is_community_eligible()
+);
 
 create policy event_invitations_read_invitee_or_manager
 on public.event_invitations

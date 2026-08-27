@@ -544,6 +544,46 @@ select throws_ok(
   $$insert into public.venue_follows (user_id,venue_id) values ('61000000-0000-4000-8000-000000000101','61000000-0000-4000-8000-000000000301')$$,
   '23505', null, 'duplicate follows are rejected'
 );
+delete from public.venue_follows
+where user_id = auth.uid()
+  and venue_id = '61000000-0000-4000-8000-000000000301';
+select is(
+  (select count(*) from public.venue_follows),
+  0::bigint,
+  'an eligible owner can unfollow a venue'
+);
+
+reset role;
+insert into public.venue_follows (user_id, venue_id)
+values (
+  '61000000-0000-4000-8000-000000000102',
+  '61000000-0000-4000-8000-000000000301'
+);
+update public.profiles
+set suspended_at = statement_timestamp()
+where id = '61000000-0000-4000-8000-000000000102';
+
+set local role authenticated;
+set local "request.jwt.claim.sub" = '61000000-0000-4000-8000-000000000102';
+delete from public.venue_follows
+where user_id = auth.uid()
+  and venue_id = '61000000-0000-4000-8000-000000000301';
+select is(
+  (select count(*) from public.venue_follows),
+  1::bigint,
+  'a suspended owner cannot remove an existing venue follow'
+);
+
+reset role;
+update public.profiles
+set suspended_at = null
+where id = '61000000-0000-4000-8000-000000000102';
+delete from public.venue_follows
+where user_id = '61000000-0000-4000-8000-000000000102'
+  and venue_id = '61000000-0000-4000-8000-000000000301';
+
+set local role authenticated;
+set local "request.jwt.claim.sub" = '61000000-0000-4000-8000-000000000101';
 
 select throws_ok(
   $$select * from public.create_or_update_event(null,null,null,'61000000-0000-4000-8000-000000000204','Crafted public event','A crafted private-host public event.','Watch the full match','Free','Respect everyone.','None',true,statement_timestamp()+interval '7 days',statement_timestamp()+interval '7 days 3 hours',(select id from public.cities where slug='haifa'),'home',null,null,null,null,null,'public',null,null,6,true,'Secret address',null,34.998,32.812,'publish',null)$$,

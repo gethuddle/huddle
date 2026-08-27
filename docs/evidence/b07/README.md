@@ -15,7 +15,7 @@ account capacity boundary, host-presence confirmation, and the protected-home wa
 summary confirms that the ordinary event view contains only coarse location context and never the
 exact home address or coordinate.
 
-The complete B07 verification also passed 249 Vitest/component tests, 651 pgTAP assertions, and
+The complete B07 verification also passed 249 Vitest/component tests, 653 pgTAP assertions, and
 five Playwright journeys. The B07 journey creates an unverified venue and a private home event,
 then asserts that the exact address is absent from the action result, rendered summary, and page
 HTML.
