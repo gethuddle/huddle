@@ -5,12 +5,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getGroupDetail: vi.fn(),
+  listGroupEvents: vi.fn(),
   notFound: vi.fn(() => {
     throw new Error("NEXT_NOT_FOUND");
   }),
 }));
 
 vi.mock("@/features/groups/detail", () => ({ getGroupDetail: mocks.getGroupDetail }));
+vi.mock("@/features/events/queries", () => ({ listGroupEvents: mocks.listGroupEvents }));
 vi.mock("next/navigation", () => ({ notFound: mocks.notFound }));
 
 import GroupPage from "./page";
@@ -37,7 +39,10 @@ const publicGroup = {
 };
 
 describe("GroupPage", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.listGroupEvents.mockResolvedValue([]);
+  });
 
   it("renders only the public safe summary to a nonmember", async () => {
     mocks.getGroupDetail.mockResolvedValue(publicGroup);

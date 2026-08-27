@@ -12,6 +12,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { EventCard } from "@/features/events/components/event-card";
+import { listGroupEvents } from "@/features/events/queries";
 import { GroupApplicationForm } from "@/features/groups/components/group-application-form";
 import { GroupMembershipControl } from "@/features/groups/components/group-membership-control";
 import { getGroupDetail } from "@/features/groups/detail";
@@ -41,6 +43,7 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
 
   const group = await getGroupDetail(parsedSlug.data, query.membersPage);
   if (group === null) notFound();
+  const events = await listGroupEvents(group.id);
 
   return (
     <section className="py-12 sm:py-16">
@@ -171,6 +174,29 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
                 </li>
               ))}
           </ol>
+        </section>
+      ) : null}
+
+      {events.length > 0 || group.canViewMemberContent ? (
+        <section aria-labelledby="group-events-heading" className="mt-10">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-court">
+            Reviewed gatherings
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold text-linen" id="group-events-heading">
+            Approved future events
+          </h2>
+          {events.length === 0 ? (
+            <p className="mt-4 text-sm text-muted-dark">
+              No approved future event is visible to you. Pending submissions remain
+              administrator-only.
+            </p>
+          ) : (
+            <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {events.map((event) => (
+                <EventCard event={event} key={event.id} />
+              ))}
+            </div>
+          )}
         </section>
       ) : null}
 

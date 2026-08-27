@@ -16,6 +16,7 @@ import {
 import {
   ApplicationReviewControl,
   BanMemberControl,
+  EventReviewControl,
   InviteCreateControl,
   InviteRevocationControl,
   MemberRoleControl,
@@ -41,6 +42,7 @@ type GroupManagementPageProps = Readonly<{
 }>;
 
 const SECTION_LABELS = {
+  events: "Event reviews",
   applications: "Applications",
   members: "Members",
   invites: "Invitations",
@@ -100,6 +102,7 @@ export default async function GroupManagementPage({
       </nav>
 
       <div className="mt-8">
+        {result.section === "events" ? <EventSubmissions result={result} /> : null}
         {result.section === "applications" ? <Applications result={result} /> : null}
         {result.section === "members" ? <Members result={result} /> : null}
         {result.section === "invites" ? <Invites result={result} /> : null}
@@ -142,6 +145,67 @@ type ResultFor<Section extends GroupManagementSection> = Extract<
   NonNullable<Awaited<ReturnType<typeof getGroupManagement>>>,
   { section: Section }
 >;
+
+function EventSubmissions({ result }: Readonly<{ result: ResultFor<"events"> }>) {
+  if (result.items.length === 0) {
+    return (
+      <EmptyState
+        description="Active members may submit a fixture event for review. Nothing publishes until an owner or administrator approves it."
+        headingLevel="h2"
+        title="No group event submissions."
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {result.items.map((event) => (
+        <Card key={event.id} size="sm">
+          <CardContent className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-start">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Link
+                  className="font-semibold text-linen hover:text-court"
+                  href={`/events/${event.id}`}
+                >
+                  {event.title}
+                </Link>
+                <Badge variant={event.status === "pending_group_review" ? "secondary" : "outline"}>
+                  {event.status.replaceAll("_", " ")}
+                </Badge>
+                <Badge variant="outline">{event.audience.replaceAll("_", " ")}</Badge>
+                <Badge variant="outline">{event.placeKind.replaceAll("_", " ")}</Badge>
+              </div>
+              <p className="mt-3 font-semibold text-linen">
+                {event.match.homeTeamName} vs {event.match.awayTeamName}
+              </p>
+              <p className="mt-1 text-sm text-muted-dark">
+                {event.match.competitionName} · {formatDate(event.startsAt)}
+              </p>
+              <p className="mt-3 text-xs text-muted-dark">
+                Submitted by {event.submitterDisplayName} (@{event.submitterHandle}) on{" "}
+                {formatDate(event.submittedAt)}
+              </p>
+              {event.audienceGroupName === null ? null : (
+                <p className="mt-2 text-xs text-muted-dark">
+                  Audience group: {event.audienceGroupName}
+                </p>
+              )}
+            </div>
+            {event.status === "pending_group_review" ? (
+              <EventReviewControl
+                eventId={event.id}
+                eventTitle={event.title}
+                groupId={result.group.id}
+                groupSlug={result.group.slug}
+              />
+            ) : null}
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
 
 function Applications({ result }: Readonly<{ result: ResultFor<"applications"> }>) {
   if (result.items.length === 0) {

@@ -910,13 +910,13 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Show only public/team-followers audience options for venue-hosted events.
-- [ ] Require the selected team for team-followers.
-- [ ] Default venue attendance to immediate approval while allowing approval mode.
-- [ ] Use the owned venue location; do not accept a forged venue owner/host ID.
-- [ ] Build safe anonymous event summary/detail pages.
-- [ ] Label venue verification and any costs/commercial affiliation truthfully.
-- [ ] Deny private audience types and suspended/non-owned venue hosting.
+- [x] Show only public/team-followers audience options for venue-hosted events.
+- [x] Require the selected team for team-followers.
+- [x] Default venue attendance to immediate approval while allowing approval mode.
+- [x] Use the owned venue location; do not accept a forged venue owner/host ID.
+- [x] Build safe anonymous event summary/detail pages.
+- [x] Label venue verification and any costs/commercial affiliation truthfully.
+- [x] Deny private audience types and suspended/non-owned venue hosting.
 
 **Tests/evidence:** host ownership, audience/target checks, anonymous safe reads, component selector options, crafted invalid requests, and venue-event E2E.
 
@@ -930,12 +930,12 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Keep `organizing_group_id` separate from `audience_group_id`.
-- [ ] Permit active members to submit; do not publish automatically.
-- [ ] Add `pending_group_review` and admin approve/reject transition.
-- [ ] Enforce active/non-banned member and reviewer conditions.
-- [ ] Add submitted-event queue and factual status UI.
-- [ ] Re-evaluate group discoverability after event approval/cancellation/time changes.
+- [x] Keep `organizing_group_id` separate from `audience_group_id`.
+- [x] Permit active members to submit; do not publish automatically.
+- [x] Add `pending_group_review` and admin approve/reject transition.
+- [x] Enforce active/non-banned member and reviewer conditions.
+- [x] Add submitted-event queue and factual status UI.
+- [x] Re-evaluate group discoverability after event approval/cancellation/time changes.
 - [ ] Finish `G06` forming-to-searchable E2E only after all gate facts are met.
 
 **Tests/evidence:** non-member/banned/member/admin matrix, premature visibility denial, approval audit, cancellation gate recalculation, member-to-admin E2E.
@@ -969,15 +969,17 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Implement visible event summary projection/RPC.
-- [ ] Apply group, direct-friend, invite-only, public, and team-follower summary rules.
-- [ ] Apply blocks, bans, suspensions, lifecycle, and time filters.
-- [ ] Use non-enumerating not-found behavior for invisible private events.
-- [ ] Return only bounded safe attendee/context information.
-- [ ] Keep exact home location inaccessible through all normal event queries.
-- [ ] Add audience, place, capacity, host, and verification badges.
+- [x] Implement visible event summary projection/RPC.
+- [x] Apply group, direct-friend, invite-only, public, and team-follower summary rules.
+- [x] Apply blocks, bans, suspensions, lifecycle, and time filters.
+- [x] Use non-enumerating not-found behavior for invisible private events.
+- [x] Return only bounded safe attendee/context information.
+- [x] Keep exact home location inaccessible through all normal event queries.
+- [x] Add audience, place, capacity, host, and verification badges.
 
 **Tests/evidence:** full anonymous/unrelated/friend/member/invitee/follower/blocked/banned/host matrix in pgTAP and E2E; payload inspection for location leakage.
+
+**B08 implementation decisions:** venue creation starts from an owned venue profile, and the server re-derives the venue, city, kickoff, and event window before using the controlled event transaction. Group organization is an independent choice from event audience; every organized publication waits in `pending_group_review`, and rejection uses the existing audited terminal `cancelled` state rather than adding an unapproved lifecycle value. Safe summaries contain bounded attendance counts and only the current viewer's attendance state, never attendee identities or exact home fields. Event approval, cancellation, and edited kickoff facts recalculate the group event gate now. The still-open cross-module `G06` search E2E above remains assigned to B09, together with the other discovery-gate triggers, progress UI, and global search endpoint.
 
 ### E07 — PostGIS discovery API and interface
 
@@ -1340,8 +1342,8 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 | B04 Fixture browsing, follows, and shadcn UI | `S04`–`S05` | done | [#16](https://github.com/gethuddle/huddle/issues/16) / [PR #17](https://github.com/gethuddle/huddle/pull/17) |
 | B05 Friendships and group creation | `G01`–`G02` | done | [#18](https://github.com/gethuddle/huddle/issues/18) / [PR #19](https://github.com/gethuddle/huddle/pull/19) |
 | B06 Group membership and administration | `G03`–`G05` | done | [#20](https://github.com/gethuddle/huddle/issues/20) / [PR #21](https://github.com/gethuddle/huddle/pull/21) |
-| B07 Venues and private-event foundations | `E01`–`E03` | review | [#22](https://github.com/gethuddle/huddle/issues/22) |
-| B08 Venue/group events and safe visibility | `E04`–`E06` | not started | — |
+| B07 Venues and private-event foundations | `E01`–`E03` | done | [#22](https://github.com/gethuddle/huddle/issues/22) / [PR #23](https://github.com/gethuddle/huddle/pull/23) |
+| B08 Venue/group events and safe visibility | `E04`–`E06` | review | [#24](https://github.com/gethuddle/huddle/issues/24) |
 | B09 Group and event discovery | `G06`, `E07` | not started | — |
 | B10 Invitations, attendance, and calendar | `T01`–`T04` | not started | — |
 | B11 Moderation, security, and accessibility | `M01`–`M04` | not started | — |

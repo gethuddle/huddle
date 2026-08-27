@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import { EmptyState } from "@/components/states/empty-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EventCard } from "@/features/events/components/event-card";
+import { listVenueEvents } from "@/features/events/queries";
 import { ProfileAccessState } from "@/features/profiles/components/profile-access-state";
 import { VenueFollowControl } from "@/features/venues/components/venue-follow-control";
 import { VenueVerificationBadge } from "@/features/venues/components/venue-verification-badge";
@@ -24,9 +26,10 @@ export default async function VenuePage({ params }: VenuePageProps) {
   const parsedSlug = venueRouteSlugSchema.safeParse((await params).slug);
   if (!parsedSlug.success) notFound();
 
-  const [venue, viewerState] = await Promise.all([
+  const [venue, viewerState, events] = await Promise.all([
     getVenueBySlug(parsedSlug.data),
     getVenueCreationViewerState(),
+    listVenueEvents(parsedSlug.data),
   ]);
   if (venue === null) notFound();
 
@@ -118,13 +121,38 @@ export default async function VenuePage({ params }: VenuePageProps) {
         </div>
       ) : null}
 
-      <div className="mt-10">
-        <EmptyState
-          description="Venue-hosted fixture listings are implemented in B08. This B07 profile is public and followable, but it does not advertise fake events."
-          headingLevel="h2"
-          title="No venue events published yet."
-        />
-      </div>
+      <section aria-labelledby="venue-events-heading" className="mt-10">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-court">
+              Fixture listings
+            </p>
+            <h2 className="mt-2 text-2xl font-semibold text-linen" id="venue-events-heading">
+              Future venue events
+            </h2>
+          </div>
+          {venue.viewerIsOwner ? (
+            <Button asChild>
+              <Link href={`/events/new?venue=${venue.slug}`}>Create venue event</Link>
+            </Button>
+          ) : null}
+        </div>
+        {events.length === 0 ? (
+          <div className="mt-5">
+            <EmptyState
+              description="This venue has no published future fixture listing. Drafts and suspended listings are never shown here."
+              headingLevel="h3"
+              title="No venue events published yet."
+            />
+          </div>
+        ) : (
+          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {events.map((event) => (
+              <EventCard event={event} key={event.id} />
+            ))}
+          </div>
+        )}
+      </section>
     </section>
   );
 }

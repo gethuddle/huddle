@@ -82,4 +82,28 @@ describe("PrivateEventForm", () => {
     );
     expect(document.body.textContent).not.toContain("12 Private Street");
   });
+
+  it("keeps the organizing group separate from an invite-only audience", async () => {
+    mocks.savePrivateEventAction.mockResolvedValue({
+      ok: true,
+      data: {
+        message: "Event submitted to its organizing group for review.",
+        event: {
+          id: "60000000-0000-4000-8000-000000000105",
+          status: "pending_group_review",
+        },
+      },
+    });
+    const user = userEvent.setup();
+    render(<PrivateEventForm catalog={catalog} initialMatchId={matchId} />);
+
+    expect(screen.getByRole("radio", { name: /Invite only/ })).toBeChecked();
+    expect(screen.queryByRole("combobox", { name: "Audience group" })).not.toBeInTheDocument();
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Organizing group (optional)" }),
+      groupId,
+    );
+    expect(screen.getByRole("button", { name: "Submit for group review" })).toBeVisible();
+    expect(screen.getByText(/does not change who may see or attend/i)).toBeVisible();
+  });
 });

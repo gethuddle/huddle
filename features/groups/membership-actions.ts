@@ -17,6 +17,7 @@ import {
   groupRuleCreationSchema,
   groupRuleReorderSchema,
   groupRuleUpdateSchema,
+  groupEventReviewSchema,
   groupUnbanSchema,
 } from "@/features/groups/schemas";
 import type { GroupMembershipActionState } from "@/features/groups/state";
@@ -92,6 +93,42 @@ export async function reviewGroupApplicationAction(
     return actionSuccess({
       message:
         parsed.data.decision === "approve" ? "Application approved." : "Application rejected.",
+    });
+  } catch (error) {
+    return actionFailure(error);
+  }
+}
+
+export async function reviewGroupEventAction(
+  _previousState: GroupMembershipActionState,
+  formData: FormData,
+): Promise<GroupMembershipActionState> {
+  const parsed = groupEventReviewSchema.safeParse({
+    ...groupInput(formData),
+    eventId: formData.get("eventId"),
+    decision: formData.get("decision"),
+  });
+  if (!parsed.success) return actionFailure(parsed.error);
+
+  try {
+    const [{ supabase }, requestId] = await Promise.all([
+      requireActor("community"),
+      getRequestId(),
+    ]);
+    const { error } = await supabase.rpc("publish_group_event", {
+      input_event_id: parsed.data.eventId,
+      input_decision: parsed.data.decision,
+      audit_request_id: requestId,
+    });
+    if (error !== null) throw domainErrorFromDatabase(error);
+
+    refreshGroup(parsed.data.groupSlug);
+    revalidatePath(`/events/${parsed.data.eventId}`);
+    return actionSuccess({
+      message:
+        parsed.data.decision === "approve"
+          ? "Group event approved and published."
+          : "Group event rejected and closed.",
     });
   } catch (error) {
     return actionFailure(error);

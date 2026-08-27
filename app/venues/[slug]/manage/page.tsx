@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { EventCard } from "@/features/events/components/event-card";
+import { listManagedVenueEvents } from "@/features/events/queries";
 import { ProfileAccessState } from "@/features/profiles/components/profile-access-state";
 import { getVenueCatalog } from "@/features/venues/catalog";
 import { VenueForm } from "@/features/venues/components/venue-form";
@@ -62,6 +64,7 @@ export default async function ManageVenuePage({ params }: ManageVenuePageProps) 
     getVenueCatalog(),
   ]);
   if (venue === null) notFound();
+  const events = await listManagedVenueEvents(venue.id);
 
   return (
     <section className="py-12 sm:py-16">
@@ -76,9 +79,16 @@ export default async function ManageVenuePage({ params }: ManageVenuePageProps) 
             verification status.
           </p>
         </div>
-        <Button asChild variant="outline">
-          <Link href={"/venues/" + venue.slug}>Open public profile</Link>
-        </Button>
+        <div className="flex flex-wrap gap-3">
+          {venue.verificationStatus === "suspended" ? null : (
+            <Button asChild>
+              <Link href={`/events/new?venue=${venue.slug}`}>Create venue event</Link>
+            </Button>
+          )}
+          <Button asChild variant="outline">
+            <Link href={"/venues/" + venue.slug}>Open public profile</Link>
+          </Button>
+        </div>
       </div>
 
       <div className="mt-12 max-w-3xl">
@@ -99,6 +109,26 @@ export default async function ManageVenuePage({ params }: ManageVenuePageProps) 
           mode="update"
         />
       </div>
+
+      <section aria-labelledby="managed-venue-events-heading" className="mt-14">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-court">
+          Venue event management
+        </p>
+        <h2 className="mt-2 text-2xl font-semibold text-linen" id="managed-venue-events-heading">
+          Fixture listings
+        </h2>
+        {events.length === 0 ? (
+          <p className="mt-4 text-sm text-muted-dark">
+            No drafts or published venue events yet. Start with a synchronized future fixture.
+          </p>
+        ) : (
+          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {events.map((event) => (
+              <EventCard event={event} key={event.id} />
+            ))}
+          </div>
+        )}
+      </section>
     </section>
   );
 }

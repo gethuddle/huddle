@@ -12,13 +12,18 @@ const mocks = vi.hoisted(() => ({
   reorderGroupRulesAction: vi.fn(),
   reviewGroupApplicationAction: vi.fn(),
   revokeGroupInviteAction: vi.fn(),
+  reviewGroupEventAction: vi.fn(),
   unbanGroupMemberAction: vi.fn(),
   updateGroupRuleAction: vi.fn(),
 }));
 
 vi.mock("@/features/groups/membership-actions", () => mocks);
 
-import { BanMemberControl, InviteRevocationControl } from "./group-management-controls";
+import {
+  BanMemberControl,
+  EventReviewControl,
+  InviteRevocationControl,
+} from "./group-management-controls";
 
 const group = {
   groupId: "52000000-0000-4000-8000-000000000201",
@@ -72,5 +77,30 @@ describe("destructive group management confirmations", () => {
     const formData = mocks.banGroupMemberAction.mock.calls[0]?.[1] as FormData;
     expect(formData.get("reason")).toBe("Repeated abuse");
     expect(formData.get("userId")).toBe("52000000-0000-4000-8000-000000000202");
+  });
+
+  it("keeps group-event rejection behind an explicit alert-dialog confirmation", async () => {
+    mocks.reviewGroupEventAction.mockResolvedValue({
+      ok: true,
+      data: { message: "Group event rejected and closed." },
+    });
+    const user = userEvent.setup();
+    render(
+      <EventReviewControl
+        {...group}
+        eventId="52000000-0000-4000-8000-000000000203"
+        eventTitle="North London watch"
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Reject" }));
+    expect(screen.getByRole("alertdialog")).toHaveTextContent("terminal cancelled state");
+    expect(mocks.reviewGroupEventAction).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Reject event" }));
+
+    await waitFor(() => expect(mocks.reviewGroupEventAction).toHaveBeenCalledOnce());
+    const formData = mocks.reviewGroupEventAction.mock.calls[0]?.[1] as FormData;
+    expect(formData.get("eventId")).toBe("52000000-0000-4000-8000-000000000203");
+    expect(formData.get("decision")).toBe("reject");
   });
 });

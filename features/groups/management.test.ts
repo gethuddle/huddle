@@ -80,6 +80,51 @@ describe("getGroupManagement", () => {
     });
   });
 
+  it("maps the bounded group-event review queue without private location data", async () => {
+    rpc.mockResolvedValue({
+      data: [
+        {
+          event_id: "52000000-0000-4000-8000-000000000203",
+          title: "North London watch",
+          status: "pending_group_review",
+          submitter_handle: "member",
+          submitter_display_name: "Member",
+          audience: "invite_only",
+          audience_group_name: null,
+          place_kind: "home",
+          home_team_name: "Arsenal FC",
+          away_team_name: "Chelsea FC",
+          competition_name: "Premier League",
+          starts_at: "2026-09-01T17:00:00Z",
+          submitted_at: "2026-08-27T00:00:00Z",
+          total_count: 1,
+        },
+      ],
+      error: null,
+    });
+
+    const result = await getGroupManagement(group.slug, "events", 1);
+
+    expect(rpc).toHaveBeenCalledWith("list_group_event_submissions", {
+      input_group_id: group.id,
+      input_offset: 0,
+      input_limit: 20,
+    });
+    expect(result).toMatchObject({
+      section: "events",
+      items: [
+        {
+          status: "pending_group_review",
+          audience: "invite_only",
+          placeKind: "home",
+          match: { homeTeamName: "Arsenal FC", awayTeamName: "Chelsea FC" },
+        },
+      ],
+    });
+    expect(JSON.stringify(result)).not.toContain("address");
+    expect(JSON.stringify(result)).not.toContain("longitude");
+  });
+
   it("returns only non-secret invitation metadata and server-derived status", async () => {
     rpc.mockResolvedValue({
       data: [

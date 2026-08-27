@@ -1604,6 +1604,40 @@ export type Database = {
           slug: string
         }[]
       }
+      create_group_event: {
+        Args: {
+          audit_request_id?: string
+          input_audience: string
+          input_audience_group_id: string
+          input_capacity: number
+          input_city_id: string
+          input_commercial_affiliation: string
+          input_cost_description: string
+          input_description: string
+          input_ends_at: string
+          input_event_rules: string
+          input_expected_activity: string
+          input_host_presence_confirmed: boolean
+          input_intent: string
+          input_match_id: string
+          input_organizing_group_id: string
+          input_place_kind: string
+          input_private_address_text: string
+          input_private_directions: string
+          input_private_latitude: number
+          input_private_longitude: number
+          input_public_address_text: string
+          input_public_latitude: number
+          input_public_longitude: number
+          input_public_place_name: string
+          input_starts_at: string
+          input_title: string
+        }
+        Returns: {
+          event_id: string
+          status: string
+        }[]
+      }
       create_group_invite: {
         Args: {
           audit_request_id?: string
@@ -1694,6 +1728,19 @@ export type Database = {
         }[]
       }
       current_actor_is_community_eligible: { Args: never; Returns: boolean }
+      evaluate_group_discoverability: {
+        Args: { input_group_id: string }
+        Returns: {
+          active_member_count: number
+          active_moderator_count: number
+          gate_satisfied: boolean
+          has_description: boolean
+          has_future_event: boolean
+          has_published_rule: boolean
+          lifecycle: string
+          owner_is_active: boolean
+        }[]
+      }
       fail_sports_sync: {
         Args: {
           input_error_code: string
@@ -1707,6 +1754,7 @@ export type Database = {
       get_event_summary: {
         Args: { input_event_id: string }
         Returns: {
+          approved_attendee_count: number
           audience: string
           audience_group_name: string
           audience_team_name: string
@@ -1733,11 +1781,13 @@ export type Database = {
           place_kind: string
           public_address_text: string
           public_place_name: string
+          remaining_capacity: number
           requires_approval: boolean
           starts_at: string
           status: string
           title: string
           venue_verification_status: string
+          viewer_attendance_status: string
         }[]
       }
       get_group_by_slug: {
@@ -1898,6 +1948,44 @@ export type Database = {
           user_id: string
         }[]
       }
+      list_group_event_submissions: {
+        Args: {
+          input_group_id: string
+          input_limit?: number
+          input_offset?: number
+        }
+        Returns: {
+          audience: string
+          audience_group_name: string
+          away_team_name: string
+          competition_name: string
+          event_id: string
+          home_team_name: string
+          place_kind: string
+          starts_at: string
+          status: string
+          submitted_at: string
+          submitter_display_name: string
+          submitter_handle: string
+          title: string
+          total_count: number
+        }[]
+      }
+      list_group_events: {
+        Args: { input_group_id: string; input_limit?: number }
+        Returns: {
+          approved_attendee_count: number
+          audience: string
+          away_team_name: string
+          capacity: number
+          competition_name: string
+          event_id: string
+          home_team_name: string
+          requires_approval: boolean
+          starts_at: string
+          title: string
+        }[]
+      }
       list_group_invites: {
         Args: {
           input_group_id: string
@@ -1930,6 +2018,23 @@ export type Database = {
           total_count: number
         }[]
       }
+      list_managed_venue_events: {
+        Args: { input_limit?: number; input_venue_id: string }
+        Returns: {
+          approved_attendee_count: number
+          audience: string
+          audience_team_name: string
+          away_team_name: string
+          capacity: number
+          competition_name: string
+          event_id: string
+          home_team_name: string
+          requires_approval: boolean
+          starts_at: string
+          status: string
+          title: string
+        }[]
+      }
       list_owned_venues: {
         Args: { input_limit?: number; input_offset?: number }
         Returns: {
@@ -1953,6 +2058,34 @@ export type Database = {
           member_since: string
           role: string
           total_count: number
+        }[]
+      }
+      list_venue_events: {
+        Args: { input_limit?: number; lookup_slug: string }
+        Returns: {
+          approved_attendee_count: number
+          audience: string
+          audience_team_name: string
+          away_team_name: string
+          capacity: number
+          competition_name: string
+          event_id: string
+          home_team_name: string
+          requires_approval: boolean
+          starts_at: string
+          title: string
+        }[]
+      }
+      publish_group_event: {
+        Args: {
+          audit_request_id?: string
+          input_decision: string
+          input_event_id: string
+        }
+        Returns: {
+          decision: string
+          event_id: string
+          status: string
         }[]
       }
       record_sports_sync_denial: {
