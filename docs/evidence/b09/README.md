@@ -32,7 +32,10 @@ Automated acceptance covers gate transitions, forming/unlisted leakage denial, p
 block/ban removal, deterministic keyset pages, signed cursor tampering and filter binding, date and
 radius bounds, interest ordering, all three spatial sources, location-permission denial and fallback,
 anonymous and signed-in browser journeys, exact-location payload absence, and fail-closed private
-caching when the authentication lookup is uncertain.
+caching when the authentication lookup is uncertain. Date-bound coverage proves the 45-day
+Jerusalem window and current-day search remain valid across the autumn daylight-saving fallback,
+while 46 calendar days remain rejected.
 
-The final clean local run passed 302 Vitest/component tests, 775 pgTAP assertions, Huddle-owned
-schema lint, generated-type drift, the production build, and all five Playwright journeys.
+The final clean local run passed 303 Vitest/component tests, 781 pgTAP assertions, Huddle-owned
+schema lint, generated-type drift, the production build, and all five Playwright journeys in 45.0
+seconds.

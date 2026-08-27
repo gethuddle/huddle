@@ -517,6 +517,34 @@ $function$;
 comment on function public.search_groups(text, uuid, uuid, text, uuid, integer) is
   'Returns one deterministic keyset page of active discoverable safe group summaries and excludes viewer blocks and bans.';
 
+create or replace function private.discovery_window_is_valid(
+  input_from timestamptz,
+  input_to timestamptz,
+  reference_at timestamptz default statement_timestamp()
+)
+returns boolean
+language sql
+stable
+set search_path = ''
+as $function$
+  select
+    input_from is not null
+    and input_to is not null
+    and reference_at is not null
+    and input_to > input_from
+    and input_from at time zone 'Asia/Jerusalem'
+      >= date_trunc('day', reference_at at time zone 'Asia/Jerusalem')
+    and input_to at time zone 'Asia/Jerusalem'
+      <= date_trunc('day', reference_at at time zone 'Asia/Jerusalem') + interval '46 days'
+    and (
+      input_to at time zone 'Asia/Jerusalem'
+      - input_from at time zone 'Asia/Jerusalem'
+    ) <= interval '45 days';
+$function$;
+
+comment on function private.discovery_window_is_valid(timestamptz, timestamptz, timestamptz) is
+  'Validates inclusive discovery date boundaries as Jerusalem calendar days so DST transitions do not change the accepted window.';
+
 create or replace function public.discover_events(
   input_city_id uuid,
   input_lat double precision,
@@ -580,12 +608,7 @@ begin
         and city.active
     )
     or input_radius_km not in (5, 15, 30, 50)
-    or input_from is null
-    or input_to is null
-    or input_to <= input_from
-    or input_from < statement_timestamp() - interval '1 day'
-    or input_to > statement_timestamp() + interval '46 days'
-    or input_to - input_from > interval '45 days'
+    or not private.discovery_window_is_valid(input_from, input_to)
     or (input_lat is null) <> (input_lng is null)
     or (input_lat is not null and input_lat not between -90 and 90)
     or (input_lng is not null and input_lng not between -180 and 180)
@@ -871,6 +894,8 @@ revoke all on function private.refresh_group_discoverability_from_ban()
 revoke all on function private.refresh_group_discoverability_from_group()
   from public, anon, authenticated;
 revoke all on function private.refresh_group_discoverability_from_profile()
+  from public, anon, authenticated;
+revoke all on function private.discovery_window_is_valid(timestamptz, timestamptz, timestamptz)
   from public, anon, authenticated;
 
 revoke all on function public.update_group_description(uuid, text, uuid)

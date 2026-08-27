@@ -68,4 +68,16 @@ describe("discovery filter schemas", () => {
       parseDiscoveryFilters({ city: "haifa", from: "2026-08-27", to: "2026-10-10" }, now),
     ).not.toThrow();
   });
+
+  it("preserves a 45-day Jerusalem window across the autumn DST fallback", () => {
+    const filters = parseDiscoveryFilters(
+      { city: "haifa", from: "2026-09-15", to: "2026-10-29" },
+      new Date("2026-09-15T09:00:00.000Z"),
+    );
+
+    expect(discoveryUtcRange(filters)).toEqual({
+      from: "2026-09-14T21:00:00.000Z",
+      to: "2026-10-29T22:00:00.000Z",
+    });
+  });
 });
