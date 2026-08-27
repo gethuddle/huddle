@@ -153,6 +153,366 @@ export type Database = {
           },
         ]
       }
+      event_attendance: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          left_at: string | null
+          removal_reason: string | null
+          removed_at: string | null
+          removed_by: string | null
+          requested_at: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source: Database["public"]["Enums"]["attendance_source"]
+          status: Database["public"]["Enums"]["attendance_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          left_at?: string | null
+          removal_reason?: string | null
+          removed_at?: string | null
+          removed_by?: string | null
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source: Database["public"]["Enums"]["attendance_source"]
+          status: Database["public"]["Enums"]["attendance_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          left_at?: string | null
+          removal_reason?: string | null
+          removed_at?: string | null
+          removed_by?: string | null
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: Database["public"]["Enums"]["attendance_source"]
+          status?: Database["public"]["Enums"]["attendance_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_attendance_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_attendance_removed_by_fkey"
+            columns: ["removed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_attendance_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_attendance_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_invitations: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          invited_by: string
+          invitee_id: string
+          responded_at: string | null
+          status: Database["public"]["Enums"]["invitation_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          invited_by: string
+          invitee_id: string
+          responded_at?: string | null
+          status?: Database["public"]["Enums"]["invitation_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          invited_by?: string
+          invitee_id?: string
+          responded_at?: string | null
+          status?: Database["public"]["Enums"]["invitation_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_invitations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_invitations_invitee_id_fkey"
+            columns: ["invitee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_private_locations: {
+        Row: {
+          address_text: string
+          created_at: string
+          directions: string | null
+          event_id: string
+          location: unknown
+          updated_at: string
+        }
+        Insert: {
+          address_text: string
+          created_at?: string
+          directions?: string | null
+          event_id: string
+          location: unknown
+          updated_at?: string
+        }
+        Update: {
+          address_text?: string
+          created_at?: string
+          directions?: string | null
+          event_id?: string
+          location?: unknown
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_private_locations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: true
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          audience: Database["public"]["Enums"]["event_audience"]
+          audience_group_id: string | null
+          audience_team_id: string | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          capacity: number
+          city_id: string
+          commercial_affiliation: string
+          cost_description: string
+          created_at: string
+          created_by: string
+          description: string
+          ends_at: string
+          event_rules: string
+          expected_activity: string
+          host_presence_confirmed_at: string
+          host_user_id: string | null
+          host_venue_id: string | null
+          id: string
+          match_id: string
+          organizing_group_id: string | null
+          place_kind: Database["public"]["Enums"]["event_place_kind"]
+          public_address_text: string | null
+          public_location: unknown
+          public_place_name: string | null
+          published_at: string | null
+          requires_approval: boolean
+          starts_at: string
+          status: Database["public"]["Enums"]["event_status"]
+          title: string
+          updated_at: string
+          venue_id: string | null
+        }
+        Insert: {
+          audience: Database["public"]["Enums"]["event_audience"]
+          audience_group_id?: string | null
+          audience_team_id?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          capacity: number
+          city_id: string
+          commercial_affiliation: string
+          cost_description: string
+          created_at?: string
+          created_by: string
+          description: string
+          ends_at: string
+          event_rules: string
+          expected_activity: string
+          host_presence_confirmed_at: string
+          host_user_id?: string | null
+          host_venue_id?: string | null
+          id?: string
+          match_id: string
+          organizing_group_id?: string | null
+          place_kind: Database["public"]["Enums"]["event_place_kind"]
+          public_address_text?: string | null
+          public_location?: unknown
+          public_place_name?: string | null
+          published_at?: string | null
+          requires_approval: boolean
+          starts_at: string
+          status?: Database["public"]["Enums"]["event_status"]
+          title: string
+          updated_at?: string
+          venue_id?: string | null
+        }
+        Update: {
+          audience?: Database["public"]["Enums"]["event_audience"]
+          audience_group_id?: string | null
+          audience_team_id?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          capacity?: number
+          city_id?: string
+          commercial_affiliation?: string
+          cost_description?: string
+          created_at?: string
+          created_by?: string
+          description?: string
+          ends_at?: string
+          event_rules?: string
+          expected_activity?: string
+          host_presence_confirmed_at?: string
+          host_user_id?: string | null
+          host_venue_id?: string | null
+          id?: string
+          match_id?: string
+          organizing_group_id?: string | null
+          place_kind?: Database["public"]["Enums"]["event_place_kind"]
+          public_address_text?: string | null
+          public_location?: unknown
+          public_place_name?: string | null
+          published_at?: string | null
+          requires_approval?: boolean
+          starts_at?: string
+          status?: Database["public"]["Enums"]["event_status"]
+          title?: string
+          updated_at?: string
+          venue_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_audience_group_id_fkey"
+            columns: ["audience_group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_audience_team_id_fkey"
+            columns: ["audience_team_id"]
+            isOneToOne: false
+            referencedRelation: "public_future_matches"
+            referencedColumns: ["away_team_id"]
+          },
+          {
+            foreignKeyName: "events_audience_team_id_fkey"
+            columns: ["audience_team_id"]
+            isOneToOne: false
+            referencedRelation: "public_future_matches"
+            referencedColumns: ["home_team_id"]
+          },
+          {
+            foreignKeyName: "events_audience_team_id_fkey"
+            columns: ["audience_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_host_user_id_fkey"
+            columns: ["host_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_host_venue_id_fkey"
+            columns: ["host_venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "public_future_matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_organizing_group_id_fkey"
+            columns: ["organizing_group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       friendships: {
         Row: {
           created_at: string
@@ -1006,6 +1366,105 @@ export type Database = {
           },
         ]
       }
+      venue_follows: {
+        Row: {
+          created_at: string
+          user_id: string
+          venue_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+          venue_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venue_follows_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "venue_follows_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      venues: {
+        Row: {
+          address_text: string
+          city_id: string
+          created_at: string
+          description: string
+          id: string
+          location: unknown
+          name: string
+          owner_id: string
+          screen_count: number | null
+          slug: string
+          stated_capacity: number | null
+          suspended_at: string | null
+          updated_at: string
+          verification_status: Database["public"]["Enums"]["venue_verification_status"]
+        }
+        Insert: {
+          address_text: string
+          city_id: string
+          created_at?: string
+          description: string
+          id?: string
+          location: unknown
+          name: string
+          owner_id: string
+          screen_count?: number | null
+          slug: string
+          stated_capacity?: number | null
+          suspended_at?: string | null
+          updated_at?: string
+          verification_status?: Database["public"]["Enums"]["venue_verification_status"]
+        }
+        Update: {
+          address_text?: string
+          city_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          location?: unknown
+          name?: string
+          owner_id?: string
+          screen_count?: number | null
+          slug?: string
+          stated_capacity?: number | null
+          suspended_at?: string | null
+          updated_at?: string
+          verification_status?: Database["public"]["Enums"]["venue_verification_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venues_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "venues_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       public_future_matches: {
@@ -1176,6 +1635,64 @@ export type Database = {
           rule_text: string
         }[]
       }
+      create_or_update_event: {
+        Args: {
+          audit_request_id?: string
+          input_audience: string
+          input_audience_group_id: string
+          input_audience_team_id: string
+          input_capacity: number
+          input_city_id: string
+          input_commercial_affiliation: string
+          input_cost_description: string
+          input_description: string
+          input_ends_at: string
+          input_event_id: string
+          input_event_rules: string
+          input_expected_activity: string
+          input_host_presence_confirmed: boolean
+          input_host_venue_id: string
+          input_intent: string
+          input_match_id: string
+          input_organizing_group_id: string
+          input_place_kind: string
+          input_private_address_text: string
+          input_private_directions: string
+          input_private_latitude: number
+          input_private_longitude: number
+          input_public_address_text: string
+          input_public_latitude: number
+          input_public_longitude: number
+          input_public_place_name: string
+          input_requires_approval: boolean
+          input_starts_at: string
+          input_title: string
+          input_venue_id: string
+        }
+        Returns: {
+          event_id: string
+          status: string
+        }[]
+      }
+      create_venue: {
+        Args: {
+          audit_request_id?: string
+          input_address_text: string
+          input_city_id: string
+          input_description: string
+          input_latitude: number
+          input_longitude: number
+          input_name: string
+          input_screen_count: number
+          input_slug: string
+          input_stated_capacity: number
+        }
+        Returns: {
+          slug: string
+          venue_id: string
+          verification_status: string
+        }[]
+      }
       current_actor_is_community_eligible: { Args: never; Returns: boolean }
       fail_sports_sync: {
         Args: {
@@ -1186,6 +1703,42 @@ export type Database = {
           input_run_id: string
         }
         Returns: undefined
+      }
+      get_event_summary: {
+        Args: { input_event_id: string }
+        Returns: {
+          audience: string
+          audience_group_name: string
+          audience_team_name: string
+          away_team_name: string
+          can_manage: boolean
+          capacity: number
+          city_name: string
+          commercial_affiliation: string
+          competition_name: string
+          cost_description: string
+          description: string
+          ends_at: string
+          event_id: string
+          event_rules: string
+          expected_activity: string
+          home_team_name: string
+          host_display_name: string
+          host_handle: string
+          host_kind: string
+          host_venue_slug: string
+          location_summary: string
+          match_id: string
+          organizing_group_name: string
+          place_kind: string
+          public_address_text: string
+          public_place_name: string
+          requires_approval: boolean
+          starts_at: string
+          status: string
+          title: string
+          venue_verification_status: string
+        }[]
       }
       get_group_by_slug: {
         Args: { lookup_slug: string }
@@ -1234,6 +1787,43 @@ export type Database = {
         Returns: {
           last_succeeded_at: string
           provider: string
+        }[]
+      }
+      get_venue_by_slug: {
+        Args: { lookup_slug: string }
+        Returns: {
+          address_text: string
+          city_id: string
+          city_name: string
+          description: string
+          follower_count: number
+          name: string
+          owner_handle: string
+          screen_count: number
+          slug: string
+          stated_capacity: number
+          venue_id: string
+          verification_status: string
+          viewer_follows: boolean
+          viewer_is_owner: boolean
+        }[]
+      }
+      get_venue_for_management: {
+        Args: { lookup_slug: string }
+        Returns: {
+          address_text: string
+          city_id: string
+          city_name: string
+          description: string
+          latitude: number
+          longitude: number
+          name: string
+          screen_count: number
+          slug: string
+          stated_capacity: number
+          suspended_at: string
+          venue_id: string
+          verification_status: string
         }[]
       }
       leave_group: {
@@ -1340,6 +1930,17 @@ export type Database = {
           total_count: number
         }[]
       }
+      list_owned_venues: {
+        Args: { input_limit?: number; input_offset?: number }
+        Returns: {
+          city_name: string
+          name: string
+          slug: string
+          total_count: number
+          venue_id: string
+          verification_status: string
+        }[]
+      }
       list_safe_group_members: {
         Args: {
           input_group_id: string
@@ -1403,6 +2004,14 @@ export type Database = {
         Args: { audit_request_id?: string; input_invite_id: string }
         Returns: boolean
       }
+      set_venue_verification_status: {
+        Args: {
+          audit_request_id?: string
+          input_status: string
+          input_venue_id: string
+        }
+        Returns: boolean
+      }
       suggest_similar_groups: {
         Args: {
           input_city_id: string
@@ -1446,8 +2055,48 @@ export type Database = {
           rule_text: string
         }[]
       }
+      update_venue: {
+        Args: {
+          audit_request_id?: string
+          input_address_text: string
+          input_city_id: string
+          input_description: string
+          input_latitude: number
+          input_longitude: number
+          input_name: string
+          input_screen_count: number
+          input_slug: string
+          input_stated_capacity: number
+          input_venue_id: string
+        }
+        Returns: {
+          slug: string
+          venue_id: string
+          verification_status: string
+        }[]
+      }
     }
     Enums: {
+      attendance_source: "self_request" | "direct_invite"
+      attendance_status:
+        | "requested"
+        | "approved"
+        | "declined"
+        | "left"
+        | "removed"
+      event_audience:
+        | "public"
+        | "team_followers"
+        | "group"
+        | "friends"
+        | "invite_only"
+      event_place_kind: "home" | "venue" | "public_place"
+      event_status:
+        | "draft"
+        | "pending_group_review"
+        | "published"
+        | "cancelled"
+        | "completed"
       friendship_status: "pending" | "accepted" | "declined"
       group_lifecycle: "forming" | "active" | "suspended" | "archived"
       group_membership_status:
@@ -1458,6 +2107,7 @@ export type Database = {
         | "banned"
       group_role: "owner" | "admin" | "member"
       group_visibility: "discoverable" | "unlisted"
+      invitation_status: "pending" | "accepted" | "declined" | "revoked"
       platform_role: "moderator" | "admin"
       provider_sync_status: "running" | "succeeded" | "failed"
       sports_match_status:
@@ -1467,6 +2117,7 @@ export type Database = {
         | "cancelled"
         | "finished"
       subscription_kind: "sport" | "competition" | "team"
+      venue_verification_status: "unverified" | "verified" | "suspended"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1594,6 +2245,29 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      attendance_source: ["self_request", "direct_invite"],
+      attendance_status: [
+        "requested",
+        "approved",
+        "declined",
+        "left",
+        "removed",
+      ],
+      event_audience: [
+        "public",
+        "team_followers",
+        "group",
+        "friends",
+        "invite_only",
+      ],
+      event_place_kind: ["home", "venue", "public_place"],
+      event_status: [
+        "draft",
+        "pending_group_review",
+        "published",
+        "cancelled",
+        "completed",
+      ],
       friendship_status: ["pending", "accepted", "declined"],
       group_lifecycle: ["forming", "active", "suspended", "archived"],
       group_membership_status: [
@@ -1605,6 +2279,7 @@ export const Constants = {
       ],
       group_role: ["owner", "admin", "member"],
       group_visibility: ["discoverable", "unlisted"],
+      invitation_status: ["pending", "accepted", "declined", "revoked"],
       platform_role: ["moderator", "admin"],
       provider_sync_status: ["running", "succeeded", "failed"],
       sports_match_status: [
@@ -1615,6 +2290,7 @@ export const Constants = {
         "finished",
       ],
       subscription_kind: ["sport", "competition", "team"],
+      venue_verification_status: ["unverified", "verified", "suspended"],
     },
   },
 } as const

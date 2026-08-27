@@ -1,0 +1,152 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { getEventSummary } from "@/features/events/queries";
+import { eventRouteIdSchema } from "@/features/events/schemas";
+import { formatJerusalemKickoff } from "@/features/sports/time";
+import { VenueVerificationBadge } from "@/features/venues/components/venue-verification-badge";
+
+export const metadata: Metadata = {
+  title: "Event details — Huddle",
+};
+
+type EventPageProps = Readonly<{
+  params: Promise<Readonly<{ eventId: string }>>;
+}>;
+
+function audienceLabel(audience: string): string {
+  if (audience === "invite_only") return "Invite only";
+  if (audience === "team_followers") return "Team followers";
+  return audience.charAt(0).toUpperCase() + audience.slice(1);
+}
+
+export default async function EventPage({ params }: EventPageProps) {
+  const parsedId = eventRouteIdSchema.safeParse((await params).eventId);
+  if (!parsedId.success) notFound();
+  const event = await getEventSummary(parsedId.data);
+  if (event === null) notFound();
+
+  return (
+    <section className="py-12 sm:py-16">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <Button asChild variant="ghost">
+          <Link href={"/matches/" + event.match.id}>← Fixture details</Link>
+        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="outline">{event.status.replaceAll("_", " ")}</Badge>
+          <Badge variant="secondary">{audienceLabel(event.audience)}</Badge>
+        </div>
+      </div>
+
+      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <Card className="rounded-[2rem]">
+          <CardHeader>
+            <p className="text-sm font-semibold text-court">
+              {event.match.homeTeamName} vs {event.match.awayTeamName}
+            </p>
+            <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-linen sm:text-6xl">
+              {event.title}
+            </h1>
+            <p className="mt-3 text-muted-dark">{event.match.competitionName}</p>
+          </CardHeader>
+          <CardContent>
+            <p className="whitespace-pre-wrap text-lg leading-8 text-muted-dark">
+              {event.description}
+            </p>
+            <dl className="mt-8 grid gap-5 border-y border-border-dark py-6 sm:grid-cols-2">
+              <Detail label="Kickoff" value={formatJerusalemKickoff(event.startsAt)} />
+              <Detail label="City" value={event.cityName} />
+              <Detail
+                label="Location"
+                value={
+                  event.placeKind === "public_place" &&
+                  event.publicPlaceName !== null &&
+                  event.publicAddressText !== null
+                    ? `${event.publicPlaceName} — ${event.publicAddressText}`
+                    : event.locationSummary
+                }
+              />
+              <Detail label="Capacity" value={event.capacity + " registered accounts"} />
+              <Detail label="Expected activity" value={event.expectedActivity} />
+              <Detail label="Cost" value={event.costDescription} />
+            </dl>
+            <div className="mt-7 grid gap-6 sm:grid-cols-2">
+              <div>
+                <h2 className="font-semibold text-linen">Event rules</h2>
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted-dark">
+                  {event.eventRules}
+                </p>
+              </div>
+              <div>
+                <h2 className="font-semibold text-linen">Commercial affiliation</h2>
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted-dark">
+                  {event.commercialAffiliation}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <aside className="space-y-5 self-start">
+          <Card className="bg-surface-deep" size="sm">
+            <CardHeader>
+              <h2 className="text-xl font-semibold text-linen">Hosted by</h2>
+            </CardHeader>
+            <CardContent>
+              <p className="font-semibold text-linen">{event.host.displayName}</p>
+              {event.host.handle === null ? null : (
+                <Button asChild className="mt-4" variant="outline">
+                  <Link href={"/people/" + event.host.handle}>@{event.host.handle}</Link>
+                </Button>
+              )}
+              {event.host.venueVerificationStatus === null ? null : (
+                <div className="mt-4">
+                  <VenueVerificationBadge status={event.host.venueVerificationStatus} />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-sand/40 bg-sand/10" size="sm">
+            <CardContent>
+              <p className="font-semibold text-sand">Protected location boundary</p>
+              <p className="mt-2 text-sm leading-6 text-muted-dark">
+                {event.placeKind === "home"
+                  ? "This summary deliberately contains no exact home address or coordinate."
+                  : "This is an ordinary public-place location."}
+              </p>
+              <p className="mt-3 text-sm leading-6 text-muted-dark">
+                Attendance requires one registered account per person
+                {event.requiresApproval ? " and host approval." : "."}
+              </p>
+            </CardContent>
+          </Card>
+
+          {event.organizingGroupName === null ? null : (
+            <Card size="sm">
+              <CardContent>
+                <p className="text-xs uppercase tracking-[0.14em] text-muted-dark">
+                  Organizing group
+                </p>
+                <p className="mt-2 font-semibold text-linen">{event.organizingGroupName}</p>
+              </CardContent>
+            </Card>
+          )}
+        </aside>
+      </div>
+    </section>
+  );
+}
+
+function Detail({ label, value }: Readonly<{ label: string; value: string }>) {
+  return (
+    <div>
+      <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-dark">{label}</dt>
+      <dd className="mt-2 font-semibold text-linen">{value}</dd>
+    </div>
+  );
+}
