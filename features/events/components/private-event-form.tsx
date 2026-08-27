@@ -25,6 +25,7 @@ type PrivateEventFormProps = Readonly<{
 function emptyValues(initialMatchId: string): PrivateEventFormValues {
   return {
     eventId: "",
+    organizingGroupId: "",
     matchId: initialMatchId,
     title: "",
     description: "",
@@ -61,6 +62,7 @@ export function PrivateEventForm({ catalog, initialMatchId = "" }: PrivateEventF
   const [audience, setAudience] = useState<"group" | "friends" | "invite_only">(
     values.audience === "group" || values.audience === "friends" ? values.audience : "invite_only",
   );
+  const [organizingGroupId, setOrganizingGroupId] = useState(values.organizingGroupId);
 
   if (state?.ok === true) {
     return (
@@ -199,7 +201,7 @@ export function PrivateEventForm({ catalog, initialMatchId = "" }: PrivateEventF
       </FormSection>
 
       <FormSection
-        description="A personal host may choose only a home or ordinary public place. Venue-hosted events arrive in B08."
+        description="A personal host may choose only a home or ordinary public place. Business-venue events use the separate venue-owner flow."
         number="03"
         title="Set the place"
       >
@@ -305,7 +307,7 @@ export function PrivateEventForm({ catalog, initialMatchId = "" }: PrivateEventF
       </FormSection>
 
       <FormSection
-        description="Personal events are restricted. No friends-of-friends visibility and no anonymous guests or plus-ones."
+        description="Personal events are restricted. Audience controls eligibility; an optional organizing group separately reviews the event before publication."
         number="04"
         title="Choose who may see it"
       >
@@ -358,6 +360,30 @@ export function PrivateEventForm({ catalog, initialMatchId = "" }: PrivateEventF
             </NativeSelect>
           </Field>
         ) : null}
+
+        <Field
+          id="event-organizing-group"
+          label="Organizing group (optional)"
+          messages={fieldErrors?.organizingGroupId}
+        >
+          <NativeSelect
+            id="event-organizing-group"
+            name="organizingGroupId"
+            onChange={(event) => setOrganizingGroupId(event.target.value)}
+            value={organizingGroupId}
+          >
+            <NativeSelectOption value="">No organizing group</NativeSelectOption>
+            {catalog.groups.map((group) => (
+              <NativeSelectOption key={group.id} value={group.id}>
+                {group.name} ({group.lifecycle})
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+          <span className="mt-2 block text-xs leading-5 text-muted-dark">
+            Selecting a group sends publication to that group&apos;s admins. It does not change who
+            may see or attend the event.
+          </span>
+        </Field>
       </FormSection>
 
       <FormSection
@@ -411,7 +437,11 @@ export function PrivateEventForm({ catalog, initialMatchId = "" }: PrivateEventF
 
       <div className="flex flex-wrap gap-3">
         <Button disabled={pending} name="intent" size="lg" type="submit" value="publish">
-          {pending ? "Saving…" : audience === "group" ? "Submit for group review" : "Publish event"}
+          {pending
+            ? "Saving…"
+            : audience === "group" || organizingGroupId !== ""
+              ? "Submit for group review"
+              : "Publish event"}
         </Button>
         <Button
           disabled={pending}

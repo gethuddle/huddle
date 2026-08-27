@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { EventBadges } from "@/features/events/components/event-badges";
 import { getEventSummary } from "@/features/events/queries";
 import { eventRouteIdSchema } from "@/features/events/schemas";
 import { formatJerusalemKickoff } from "@/features/sports/time";
@@ -18,12 +19,6 @@ type EventPageProps = Readonly<{
   params: Promise<Readonly<{ eventId: string }>>;
 }>;
 
-function audienceLabel(audience: string): string {
-  if (audience === "invite_only") return "Invite only";
-  if (audience === "team_followers") return "Team followers";
-  return audience.charAt(0).toUpperCase() + audience.slice(1);
-}
-
 export default async function EventPage({ params }: EventPageProps) {
   const parsedId = eventRouteIdSchema.safeParse((await params).eventId);
   if (!parsedId.success) notFound();
@@ -36,10 +31,20 @@ export default async function EventPage({ params }: EventPageProps) {
         <Button asChild variant="ghost">
           <Link href={"/matches/" + event.match.id}>← Fixture details</Link>
         </Button>
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="outline">{event.status.replaceAll("_", " ")}</Badge>
-          <Badge variant="secondary">{audienceLabel(event.audience)}</Badge>
-        </div>
+        <Badge variant="outline">{event.status.replaceAll("_", " ")}</Badge>
+      </div>
+
+      <div className="mt-5">
+        <EventBadges
+          approvedAttendeeCount={event.approvedAttendeeCount}
+          audience={event.audience}
+          audienceTeamName={event.audienceTeamName}
+          capacity={event.capacity}
+          hostKind={event.host.kind}
+          placeKind={event.placeKind}
+          requiresApproval={event.requiresApproval}
+          venueVerificationStatus={event.host.venueVerificationStatus}
+        />
       </div>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
@@ -70,7 +75,10 @@ export default async function EventPage({ params }: EventPageProps) {
                     : event.locationSummary
                 }
               />
-              <Detail label="Capacity" value={event.capacity + " registered accounts"} />
+              <Detail
+                label="Capacity"
+                value={`${event.approvedAttendeeCount} approved · ${event.remainingCapacity} remaining of ${event.capacity}`}
+              />
               <Detail label="Expected activity" value={event.expectedActivity} />
               <Detail label="Cost" value={event.costDescription} />
             </dl>
@@ -103,6 +111,11 @@ export default async function EventPage({ params }: EventPageProps) {
                   <Link href={"/people/" + event.host.handle}>@{event.host.handle}</Link>
                 </Button>
               )}
+              {event.host.venueSlug === null ? null : (
+                <Button asChild className="mt-4" variant="outline">
+                  <Link href={`/venues/${event.host.venueSlug}`}>Open venue profile</Link>
+                </Button>
+              )}
               {event.host.venueVerificationStatus === null ? null : (
                 <div className="mt-4">
                   <VenueVerificationBadge status={event.host.venueVerificationStatus} />
@@ -117,8 +130,15 @@ export default async function EventPage({ params }: EventPageProps) {
               <p className="mt-2 text-sm leading-6 text-muted-dark">
                 {event.placeKind === "home"
                   ? "This summary deliberately contains no exact home address or coordinate."
-                  : "This is an ordinary public-place location."}
+                  : event.placeKind === "venue"
+                    ? "This listing uses the venue profile's public business address."
+                    : "This is an ordinary public-place location."}
               </p>
+              {event.viewerAttendanceStatus === null ? null : (
+                <p className="mt-3 text-sm font-semibold text-court">
+                  Your attendance status: {event.viewerAttendanceStatus}
+                </p>
+              )}
               <p className="mt-3 text-sm leading-6 text-muted-dark">
                 Attendance requires one registered account per person
                 {event.requiresApproval ? " and host approval." : "."}

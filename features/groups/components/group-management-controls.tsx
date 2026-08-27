@@ -26,6 +26,7 @@ import {
   createGroupRuleAction,
   reorderGroupRulesAction,
   reviewGroupApplicationAction,
+  reviewGroupEventAction,
   revokeGroupInviteAction,
   unbanGroupMemberAction,
   updateGroupRuleAction,
@@ -40,6 +41,71 @@ function GroupFields({ groupId, groupSlug }: GroupIdentity) {
       <input name="groupId" type="hidden" value={groupId} />
       <input name="groupSlug" type="hidden" value={groupSlug} />
     </>
+  );
+}
+
+export function EventReviewControl({
+  eventId,
+  eventTitle,
+  groupId,
+  groupSlug,
+}: GroupIdentity & Readonly<{ eventId: string; eventTitle: string }>) {
+  const [state, formAction, pending] = useActionState(
+    reviewGroupEventAction,
+    INITIAL_GROUP_MEMBERSHIP_ACTION_STATE,
+  );
+  const [confirmingRejection, setConfirmingRejection] = useState(false);
+
+  function submitRejection(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    startTransition(() => {
+      formAction(formData);
+      setConfirmingRejection(false);
+    });
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-2">
+        <form action={formAction}>
+          <GroupFields groupId={groupId} groupSlug={groupSlug} />
+          <input name="eventId" type="hidden" value={eventId} />
+          <Button disabled={pending} name="decision" size="sm" type="submit" value="approve">
+            {pending ? "Updating…" : "Approve and publish"}
+          </Button>
+        </form>
+
+        <AlertDialog onOpenChange={setConfirmingRejection} open={confirmingRejection}>
+          <AlertDialogTrigger asChild>
+            <Button disabled={pending} size="sm" type="button" variant="outline">
+              Reject
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent size="sm">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Reject {eventTitle}?</AlertDialogTitle>
+              <AlertDialogDescription>
+                The submission will move to its terminal cancelled state and will never become
+                visible to its audience. The review remains auditable.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <form onSubmit={submitRejection}>
+              <GroupFields groupId={groupId} groupSlug={groupSlug} />
+              <input name="eventId" type="hidden" value={eventId} />
+              <input name="decision" type="hidden" value="reject" />
+              <AlertDialogFooter>
+                <Button disabled={pending} type="submit" variant="destructive">
+                  {pending ? "Rejecting…" : "Reject event"}
+                </Button>
+                <AlertDialogCancel type="button">Keep pending</AlertDialogCancel>
+              </AlertDialogFooter>
+            </form>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+      <GroupActionFeedback state={state} />
+    </div>
   );
 }
 

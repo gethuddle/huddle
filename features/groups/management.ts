@@ -68,6 +68,25 @@ const ruleRowSchema = z
   })
   .strict();
 
+const eventSubmissionRowSchema = z
+  .object({
+    event_id: z.uuid(),
+    title: z.string(),
+    status: z.enum(["draft", "pending_group_review", "published", "cancelled", "completed"]),
+    submitter_handle: z.string(),
+    submitter_display_name: z.string(),
+    audience: z.enum(["public", "team_followers", "group", "friends", "invite_only"]),
+    audience_group_name: z.string().nullable(),
+    place_kind: z.enum(["home", "venue", "public_place"]),
+    home_team_name: z.string(),
+    away_team_name: z.string(),
+    competition_name: z.string(),
+    starts_at: z.string(),
+    submitted_at: z.string(),
+    total_count: z.number().int().nonnegative(),
+  })
+  .strict();
+
 export type GroupApplication = Readonly<{
   userId: string;
   handle: string;
@@ -112,6 +131,24 @@ export type GroupManagedRule = Readonly<{
   publishedAt: string | null;
 }>;
 
+export type GroupEventSubmission = Readonly<{
+  id: string;
+  title: string;
+  status: "draft" | "pending_group_review" | "published" | "cancelled" | "completed";
+  submitterHandle: string;
+  submitterDisplayName: string;
+  audience: "public" | "team_followers" | "group" | "friends" | "invite_only";
+  audienceGroupName: string | null;
+  placeKind: "home" | "venue" | "public_place";
+  match: Readonly<{
+    homeTeamName: string;
+    awayTeamName: string;
+    competitionName: string;
+  }>;
+  startsAt: string;
+  submittedAt: string;
+}>;
+
 type ManagementBase = Readonly<{
   group: GroupDetail;
   page: number;
@@ -120,6 +157,7 @@ type ManagementBase = Readonly<{
 }>;
 
 export type GroupManagementResult =
+  | (ManagementBase & Readonly<{ section: "events"; items: readonly GroupEventSubmission[] }>)
   | (ManagementBase & Readonly<{ section: "applications"; items: readonly GroupApplication[] }>)
   | (ManagementBase & Readonly<{ section: "members"; items: readonly GroupAdminMember[] }>)
   | (ManagementBase & Readonly<{ section: "invites"; items: readonly GroupInviteMetadata[] }>)
@@ -156,6 +194,36 @@ export async function getGroupManagement(
     input_offset: (page - 1) * GROUP_MANAGEMENT_PAGE_SIZE,
     input_limit: GROUP_MANAGEMENT_PAGE_SIZE,
   };
+
+  if (section === "events") {
+    const { data, error } = await supabase.rpc("list_group_event_submissions", paging);
+    if (error !== null) throw domainErrorFromDatabase(error);
+    const rows = parseRows(eventSubmissionRowSchema, data);
+    if (rows.length === 0 && page > 1) return getGroupManagement(slug, section, 1);
+    return {
+      group,
+      section,
+      page,
+      ...countResult(rows),
+      items: rows.map((row) => ({
+        id: row.event_id,
+        title: row.title,
+        status: row.status,
+        submitterHandle: row.submitter_handle,
+        submitterDisplayName: row.submitter_display_name,
+        audience: row.audience,
+        audienceGroupName: row.audience_group_name,
+        placeKind: row.place_kind,
+        match: {
+          homeTeamName: row.home_team_name,
+          awayTeamName: row.away_team_name,
+          competitionName: row.competition_name,
+        },
+        startsAt: row.starts_at,
+        submittedAt: row.submitted_at,
+      })),
+    };
+  }
 
   if (section === "applications") {
     const { data, error } = await supabase.rpc("list_group_applications", paging);

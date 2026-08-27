@@ -35,6 +35,11 @@ const eventSummaryRowSchema = z
     audience_group_name: z.string().nullable(),
     audience_team_name: z.string().nullable(),
     capacity: z.number().int().positive(),
+    approved_attendee_count: z.number().int().nonnegative(),
+    remaining_capacity: z.number().int().nonnegative(),
+    viewer_attendance_status: z
+      .enum(["requested", "approved", "declined", "left", "removed"])
+      .nullable(),
     requires_approval: z.boolean(),
     organizing_group_name: z.string().nullable(),
     can_manage: z.boolean(),
@@ -74,6 +79,9 @@ export type EventSummary = Readonly<{
   audienceGroupName: string | null;
   audienceTeamName: string | null;
   capacity: number;
+  approvedAttendeeCount: number;
+  remainingCapacity: number;
+  viewerAttendanceStatus: "requested" | "approved" | "declined" | "left" | "removed" | null;
   requiresApproval: boolean;
   organizingGroupName: string | null;
   canManage: boolean;
@@ -121,6 +129,9 @@ export async function getEventSummary(eventId: string): Promise<EventSummary | n
       audienceGroupName: row.audience_group_name,
       audienceTeamName: row.audience_team_name,
       capacity: row.capacity,
+      approvedAttendeeCount: row.approved_attendee_count,
+      remainingCapacity: row.remaining_capacity,
+      viewerAttendanceStatus: row.viewer_attendance_status,
       requiresApproval: row.requires_approval,
       organizingGroupName: row.organizing_group_name,
       canManage: row.can_manage,
@@ -128,4 +139,104 @@ export async function getEventSummary(eventId: string): Promise<EventSummary | n
   } catch (cause) {
     throw new DomainError("INTERNAL_ERROR", { cause });
   }
+}
+
+const publicEventListRowSchema = z
+  .object({
+    event_id: z.uuid(),
+    title: z.string(),
+    home_team_name: z.string(),
+    away_team_name: z.string(),
+    competition_name: z.string(),
+    starts_at: z.string(),
+    audience: z.enum(["public", "team_followers", "group", "friends", "invite_only"]),
+    capacity: z.number().int().positive(),
+    approved_attendee_count: z.number().int().nonnegative(),
+    requires_approval: z.boolean(),
+  })
+  .passthrough();
+
+const venueEventListRowSchema = publicEventListRowSchema.extend({
+  audience_team_name: z.string().nullable(),
+});
+
+const managedVenueEventListRowSchema = venueEventListRowSchema.extend({
+  status: z.enum(["draft", "pending_group_review", "published", "cancelled", "completed"]),
+});
+
+export type EventListItem = Readonly<{
+  id: string;
+  title: string;
+  match: Readonly<{
+    homeTeamName: string;
+    awayTeamName: string;
+    competitionName: string;
+  }>;
+  startsAt: string;
+  audience: "public" | "team_followers" | "group" | "friends" | "invite_only";
+  audienceTeamName: string | null;
+  capacity: number;
+  approvedAttendeeCount: number;
+  requiresApproval: boolean;
+  status: "draft" | "pending_group_review" | "published" | "cancelled" | "completed";
+}>;
+
+function eventListItem(
+  row: z.infer<typeof publicEventListRowSchema> &
+    Readonly<{ audience_team_name?: string | null; status?: EventListItem["status"] }>,
+): EventListItem {
+  return {
+    id: row.event_id,
+    title: row.title,
+    match: {
+      homeTeamName: row.home_team_name,
+      awayTeamName: row.away_team_name,
+      competitionName: row.competition_name,
+    },
+    startsAt: row.starts_at,
+    audience: row.audience,
+    audienceTeamName: row.audience_team_name ?? null,
+    capacity: row.capacity,
+    approvedAttendeeCount: row.approved_attendee_count,
+    requiresApproval: row.requires_approval,
+    status: row.status ?? "published",
+  };
+}
+
+function parseEventList<T>(schema: z.ZodType<T>, value: unknown): T[] {
+  try {
+    return z.array(schema).parse(value);
+  } catch (cause) {
+    throw new DomainError("INTERNAL_ERROR", { cause });
+  }
+}
+
+export async function listVenueEvents(venueSlug: string): Promise<EventListItem[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("list_venue_events", {
+    lookup_slug: venueSlug,
+    input_limit: 12,
+  });
+  if (error !== null) throw domainErrorFromDatabase(error);
+  return parseEventList(venueEventListRowSchema, data).map(eventListItem);
+}
+
+export async function listManagedVenueEvents(venueId: string): Promise<EventListItem[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("list_managed_venue_events", {
+    input_venue_id: venueId,
+    input_limit: 20,
+  });
+  if (error !== null) throw domainErrorFromDatabase(error);
+  return parseEventList(managedVenueEventListRowSchema, data).map(eventListItem);
+}
+
+export async function listGroupEvents(groupId: string): Promise<EventListItem[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("list_group_events", {
+    input_group_id: groupId,
+    input_limit: 12,
+  });
+  if (error !== null) throw domainErrorFromDatabase(error);
+  return parseEventList(publicEventListRowSchema, data).map(eventListItem);
 }

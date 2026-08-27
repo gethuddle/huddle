@@ -24,6 +24,18 @@ const groupRowSchema = z
   })
   .strict();
 
+const venueMatchRowSchema = z
+  .object({
+    id: z.uuid(),
+    competition_name: z.string(),
+    home_team_id: z.uuid(),
+    home_team_name: z.string(),
+    away_team_id: z.uuid(),
+    away_team_name: z.string(),
+    starts_at: z.string(),
+  })
+  .strict();
+
 export type PrivateEventCatalog = Readonly<{
   cities: readonly Readonly<{ id: string; name: string }>[];
   matches: readonly Readonly<{
@@ -38,6 +50,18 @@ export type PrivateEventCatalog = Readonly<{
     lifecycle: "forming" | "active";
   }>[];
   acceptedFriendCount: number;
+}>;
+
+export type VenueEventCatalog = Readonly<{
+  matches: readonly Readonly<{
+    id: string;
+    label: string;
+    startsAt: string;
+  }>[];
+  teams: readonly Readonly<{
+    id: string;
+    name: string;
+  }>[];
 }>;
 
 export async function getPrivateEventCatalog(): Promise<PrivateEventCatalog> {
@@ -95,5 +119,41 @@ export async function getPrivateEventCatalog(): Promise<PrivateEventCatalog> {
     })),
     groups,
     acceptedFriendCount: friendshipResult.count ?? 0,
+  };
+}
+
+export async function getVenueEventCatalog(): Promise<VenueEventCatalog> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("public_future_matches")
+    .select(
+      "id, competition_name, home_team_id, home_team_name, away_team_id, away_team_name, starts_at",
+    )
+    .order("starts_at")
+    .limit(250);
+  if (error !== null) throw new DomainError("INTERNAL_ERROR", { cause: error });
+
+  let matches: z.infer<typeof venueMatchRowSchema>[];
+  try {
+    matches = z.array(venueMatchRowSchema).parse(data);
+  } catch (cause) {
+    throw new DomainError("INTERNAL_ERROR", { cause });
+  }
+
+  const teams = new Map<string, string>();
+  for (const match of matches) {
+    teams.set(match.home_team_id, match.home_team_name);
+    teams.set(match.away_team_id, match.away_team_name);
+  }
+
+  return {
+    matches: matches.map((match) => ({
+      id: match.id,
+      label: match.home_team_name + " vs " + match.away_team_name + " — " + match.competition_name,
+      startsAt: match.starts_at,
+    })),
+    teams: [...teams.entries()]
+      .map(([id, name]) => ({ id, name }))
+      .sort((first, second) => first.name.localeCompare(second.name)),
   };
 }

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 const optionalUuid = z.preprocess(
-  (value) => (value === "" || value === null ? null : value),
+  (value) => (value === "" || value == null ? null : value),
   z.uuid().nullable(),
 );
 
@@ -18,9 +18,51 @@ const optionalCoordinate = z.preprocess(
 
 export const eventRouteIdSchema = z.uuid();
 
+export const venueEventFormSchema = z
+  .object({
+    eventId: optionalUuid,
+    venueId: z.uuid(),
+    venueSlug: z
+      .string()
+      .trim()
+      .min(3)
+      .max(60)
+      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    matchId: z.uuid("Choose a synchronized future fixture."),
+    title: z.string().trim().min(3, "Use at least 3 characters.").max(120),
+    description: z.string().trim().min(10, "Use at least 10 characters.").max(2000),
+    expectedActivity: z.string().trim().min(3, "Describe what will happen.").max(500),
+    costDescription: z.string().trim().min(2, "State the cost, including free.").max(300),
+    eventRules: z.string().trim().min(3, "Add at least one clear rule.").max(1000),
+    commercialAffiliation: z.string().trim().min(2, "State the venue connection clearly.").max(300),
+    hostPresenceConfirmed: z.boolean().refine(Boolean, "Confirm that a host will be present."),
+    audience: z.enum(["public", "team_followers"]),
+    audienceTeamId: optionalUuid,
+    capacity: z.coerce.number().int().min(1).max(100_000),
+    requiresApproval: z.boolean(),
+    intent: z.enum(["draft", "publish"]),
+  })
+  .superRefine((value, context) => {
+    if (value.audience === "team_followers" && value.audienceTeamId === null) {
+      context.addIssue({
+        code: "custom",
+        path: ["audienceTeamId"],
+        message: "Choose the team whose followers may attend.",
+      });
+    }
+    if (value.audience === "public" && value.audienceTeamId !== null) {
+      context.addIssue({
+        code: "custom",
+        path: ["audienceTeamId"],
+        message: "A team target is used only for team-follower events.",
+      });
+    }
+  });
+
 export const privateEventFormSchema = z
   .object({
     eventId: optionalUuid,
+    organizingGroupId: optionalUuid,
     matchId: z.uuid("Choose a synchronized future fixture."),
     title: z.string().trim().min(3, "Use at least 3 characters.").max(120),
     description: z.string().trim().min(10, "Use at least 10 characters.").max(2000),
@@ -138,3 +180,4 @@ export const privateEventFormSchema = z
   });
 
 export type PrivateEventInput = z.infer<typeof privateEventFormSchema>;
+export type VenueEventInput = z.infer<typeof venueEventFormSchema>;

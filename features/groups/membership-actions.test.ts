@@ -19,6 +19,7 @@ import {
   createGroupRuleAction,
   leaveGroupAction,
   reviewGroupApplicationAction,
+  reviewGroupEventAction,
   submitGroupApplicationAction,
 } from "./membership-actions";
 
@@ -88,6 +89,27 @@ describe("B06 group membership actions", () => {
       audit_request_id: requestId,
     });
     expect(result).toMatchObject({ ok: true, data: { message: "Application approved." } });
+  });
+
+  it("publishes a pending group event only through an explicit administrator decision", async () => {
+    const formData = groupForm();
+    formData.set("eventId", "52000000-0000-4000-8000-000000000203");
+    formData.set("decision", "approve");
+
+    const result = await reviewGroupEventAction(null, formData);
+
+    expect(rpc).toHaveBeenCalledWith("publish_group_event", {
+      input_event_id: "52000000-0000-4000-8000-000000000203",
+      input_decision: "approve",
+      audit_request_id: requestId,
+    });
+    expect(result).toMatchObject({
+      ok: true,
+      data: { message: "Group event approved and published." },
+    });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith(
+      "/events/52000000-0000-4000-8000-000000000203",
+    );
   });
 
   it("uses the onboarding gate for a retained-history leave", async () => {

@@ -180,7 +180,7 @@ export default async function MatchDetailPage({ params }: MatchDetailPageProps) 
               </Button>
             </div>
           }
-          description="B07 lets an eligible private person create a group, friends, or invite-only event. Public venue events and event discovery arrive in later milestones."
+          description="Eligible private people may create group, friends, or invite-only events. Venue owners create public or team-follower listings from their venue profile; nearby discovery arrives in B09."
           headingLevel="h2"
           title="No Huddle watch events yet."
         />
