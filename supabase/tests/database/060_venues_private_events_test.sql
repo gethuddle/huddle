@@ -744,7 +744,7 @@ select is(
 
 reset role;
 update public.groups
-set lifecycle = 'active', suspended_at = null
+set lifecycle = 'active', suspended_at = null, activated_at = statement_timestamp()
 where id = '61000000-0000-4000-8000-000000000205';
 reset "request.jwt.claim.sub";
 set local role anon;

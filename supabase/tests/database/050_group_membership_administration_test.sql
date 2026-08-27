@@ -486,10 +486,11 @@ select is(
 
 set local role anon;
 set local "request.jwt.claim.sub" = '';
-select is(
-  (select count(*) from public.list_group_rules('52000000-0000-4000-8000-000000000202', 0, 100)),
-  1::bigint,
-  'a public group viewer sees only published rules'
+select throws_ok(
+  $$select * from public.list_group_rules('52000000-0000-4000-8000-000000000202', 0, 100)$$,
+  'P0001',
+  'NOT_FOUND',
+  'anonymous viewers cannot read rules after the incomplete legacy group is recalculated to forming'
 );
 
 set local role authenticated;

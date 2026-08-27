@@ -614,8 +614,8 @@ set local role authenticated;
 set local "request.jwt.claim.sub" = '50000000-0000-4000-8000-000000000102';
 select is(
   (select can_view_member_content from public.get_group_by_slug('haifa-arsenal-supporters')),
-  false,
-  'an active public summary never restores protected member content to a banned member'
+  null::boolean,
+  'a ban recalculates the incomplete legacy fixture to forming and exposes no summary to the banned member'
 );
 select throws_ok(
   $$select * from public.list_safe_group_members((select id from public.groups where slug = 'haifa-arsenal-supporters'), 0, 20)$$,

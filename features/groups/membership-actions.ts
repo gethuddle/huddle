@@ -18,6 +18,7 @@ import {
   groupRuleReorderSchema,
   groupRuleUpdateSchema,
   groupEventReviewSchema,
+  groupDescriptionUpdateSchema,
   groupUnbanSchema,
 } from "@/features/groups/schemas";
 import type { GroupMembershipActionState } from "@/features/groups/state";
@@ -32,8 +33,38 @@ function groupInput(formData: FormData) {
 }
 
 function refreshGroup(slug: string) {
+  revalidatePath("/groups");
   revalidatePath(`/groups/${slug}`);
   revalidatePath(`/groups/${slug}/manage`);
+}
+
+export async function updateGroupDescriptionAction(
+  _previousState: GroupMembershipActionState,
+  formData: FormData,
+): Promise<GroupMembershipActionState> {
+  const parsed = groupDescriptionUpdateSchema.safeParse({
+    ...groupInput(formData),
+    description: formData.get("description"),
+  });
+  if (!parsed.success) return actionFailure(parsed.error);
+
+  try {
+    const [{ supabase }, requestId] = await Promise.all([
+      requireActor("community"),
+      getRequestId(),
+    ]);
+    const { error } = await supabase.rpc("update_group_description", {
+      input_group_id: parsed.data.groupId,
+      input_description: parsed.data.description,
+      audit_request_id: requestId,
+    });
+    if (error !== null) throw domainErrorFromDatabase(error);
+
+    refreshGroup(parsed.data.groupSlug);
+    return actionSuccess({ message: "Group description saved and discovery status refreshed." });
+  } catch (error) {
+    return actionFailure(error);
+  }
 }
 
 export async function submitGroupApplicationAction(

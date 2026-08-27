@@ -21,6 +21,7 @@ vi.mock("@/lib/env/server", () => ({
     SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
     FOOTBALL_DATA_API_TOKEN: "provider-token",
     SPORTS_SYNC_SECRET: "expected-sync-secret",
+    DISCOVERY_CURSOR_SECRET: "dedicated-discovery-cursor-secret",
   }),
 }));
 

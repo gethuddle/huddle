@@ -30,6 +30,8 @@ describe("AppShell", () => {
         name: "Home",
       }),
     ).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "Discover" })).toHaveAttribute("href", "/discover");
+    expect(screen.getByRole("link", { name: "Groups" })).toHaveAttribute("href", "/groups");
     expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/auth/sign-in");
     expect(screen.getByRole("link", { name: "Sign up" })).toHaveAttribute("href", "/auth/sign-up");
     expect(

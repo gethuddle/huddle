@@ -1,4 +1,4 @@
-import { expect, test, type BrowserContext, type Page } from "@playwright/test";
+import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/types/database.generated";
@@ -19,21 +19,26 @@ type MailpitMessage = Readonly<{
 
 const mailpitUrl = process.env.HUDDLE_MAILPIT_URL ?? "http://127.0.0.1:54324";
 const captureB08Evidence = process.env.HUDDLE_CAPTURE_B08_EVIDENCE === "1";
+const captureB09Evidence = process.env.HUDDLE_CAPTURE_B09_EVIDENCE === "1";
 
-function isoDate(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
-
-async function seedCachedFixtureCatalogAfterFailure() {
+function localAdminClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (supabaseUrl === undefined || serviceRoleKey === undefined) {
     throw new Error("The local service-role test environment is unavailable.");
   }
 
-  const admin = createSupabaseClient<Database>(supabaseUrl, serviceRoleKey, {
+  return createSupabaseClient<Database>(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+}
+
+function isoDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+async function seedCachedFixtureCatalogAfterFailure() {
+  const admin = localAdminClient();
   const now = new Date();
   const kickoff = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
   const windowStart = isoDate(new Date(now.getTime() - 24 * 60 * 60 * 1000));
@@ -246,6 +251,48 @@ async function completeProfile(
   await expect(page.getByRole("heading", { name: displayName })).toBeVisible();
 }
 
+async function addReviewedGroupMembers(
+  browser: Browser,
+  ownerPage: Page,
+  groupSlug: string,
+  suffix: string,
+  password: string,
+  count: number,
+) {
+  for (let index = 1; index <= count; index += 1) {
+    const memberContext = await browser.newContext({ baseURL: "http://127.0.0.1:3000" });
+    const memberPage = await memberContext.newPage();
+    const applicationNote = `Discovery gate application ${index}.`;
+
+    try {
+      await signUpAndVerify(
+        memberPage,
+        memberContext,
+        `gate-member-${suffix}-${index}@example.com`,
+        password,
+      );
+      await completeProfile(memberPage, `gate_${suffix}_${index}`, `Gate Member ${index}`);
+      await memberPage.goto(new URL(`/groups/${groupSlug}`, memberPage.url()).toString());
+      await memberPage
+        .getByRole("textbox", { name: /Note to the administrators/ })
+        .fill(applicationNote);
+      await memberPage.getByRole("button", { name: "Apply to join" }).click();
+      await expect(memberPage.getByText("Application: pending")).toBeVisible();
+
+      await ownerPage.goto(
+        new URL(`/groups/${groupSlug}/manage?section=applications`, ownerPage.url()).toString(),
+      );
+      await expect(ownerPage.getByText(applicationNote)).toBeVisible();
+      await ownerPage.getByRole("button", { name: "Approve" }).click();
+      await expect(
+        ownerPage.getByRole("heading", { name: "No pending applications." }),
+      ).toBeVisible();
+    } finally {
+      await memberContext.close();
+    }
+  }
+}
+
 test("signup, verification, onboarding, SSR session, sign-in, and sign-out", async ({
   context,
   page,
@@ -436,7 +483,7 @@ test("a completed user creates and administers reviewed group membership", async
     await page.getByRole("button", { name: "Approve" }).click();
     await expect(page.getByRole("heading", { name: "No pending applications." })).toBeVisible();
 
-    await applicantPage.reload();
+    await applicantPage.goto(new URL(`/groups/${slug}`, applicantPage.url()).toString());
     await expect(applicantPage.getByText("Your role: member")).toBeVisible();
     await expect(applicantPage.getByRole("heading", { name: "Active members" })).toBeVisible();
 
@@ -490,14 +537,53 @@ test("a completed user creates and administers reviewed group membership", async
     await applicantPage.goto(new URL(`/groups/${slug}`, applicantPage.url()).toString());
     await expect(applicantPage.getByRole("link", { name: groupEventTitle })).toBeVisible();
 
+    await applicantPage.goto(
+      new URL(
+        `/groups?q=${encodeURIComponent(`Haifa Huddle ${suffix}`)}`,
+        applicantPage.url(),
+      ).toString(),
+    );
+    await expect(applicantPage.getByText(`Haifa Huddle ${suffix}`, { exact: true })).toHaveCount(0);
+
     await page.goto(new URL(`/groups/${slug}/manage?section=members`, page.url()).toString());
+    await expect(page.getByText("Still forming", { exact: true })).toBeVisible();
     await page.getByRole("combobox", { name: "Member role" }).selectOption("admin");
     await page.getByRole("button", { name: "Save role" }).click();
     await expect(page.getByRole("status")).toHaveText("Member promoted to admin.");
 
-    await applicantPage.reload();
+    await addReviewedGroupMembers(browser, page, slug, suffix, password, 3);
+    await page.reload();
+    await expect(page.getByText("Visible in group search", { exact: true })).toBeVisible();
+    await expect(page.getByText("5 of 5 eligible active members", { exact: true })).toBeVisible();
+    if (captureB09Evidence) {
+      await page.screenshot({
+        fullPage: true,
+        path: "docs/evidence/b09/group-discovery-gate-desktop.png",
+      });
+    }
+
+    await applicantPage.goto(new URL(`/groups/${slug}`, applicantPage.url()).toString());
     await expect(applicantPage.getByText("Your role: admin")).toBeVisible();
     await expect(applicantPage.getByRole("link", { name: "Manage group" })).toBeVisible();
+
+    await applicantPage.goto(
+      new URL(
+        `/groups?q=${encodeURIComponent(`Haifa Huddle ${suffix}`)}`,
+        applicantPage.url(),
+      ).toString(),
+    );
+    await expect(applicantPage.getByText(`Haifa Huddle ${suffix}`, { exact: true })).toBeVisible();
+
+    await applicantPage.goto(new URL("/discover?city=haifa", applicantPage.url()).toString());
+    await expect(applicantPage.getByText(groupEventTitle, { exact: true })).toBeVisible();
+    await expect(applicantPage.getByText(exactGroupEventAddress)).toHaveCount(0);
+    expect(await applicantPage.content()).not.toContain(exactGroupEventAddress);
+    if (captureB09Evidence) {
+      await applicantPage.screenshot({
+        fullPage: true,
+        path: "docs/evidence/b09/personalized-discovery-desktop.png",
+      });
+    }
 
     const unlistedSlug = `haifa-private-${suffix}`;
     await page.goto(new URL("/groups/new", page.url()).toString());
@@ -679,6 +765,15 @@ test("completed users create venue and private events with safe projections", as
     }
     await anonymousPage.goto(new URL(`/venues/${venueSlug}`, anonymousPage.url()).toString());
     await expect(anonymousPage.getByRole("link", { name: venueEventTitle })).toBeVisible();
+    await anonymousPage.goto(new URL("/discover?city=haifa", anonymousPage.url()).toString());
+    await expect(anonymousPage.getByText(venueEventTitle, { exact: true })).toBeVisible();
+    await expect(anonymousPage.getByText("Using city fallback", { exact: true })).toBeVisible();
+    if (captureB09Evidence) {
+      await anonymousPage.screenshot({
+        fullPage: true,
+        path: "docs/evidence/b09/anonymous-discovery-desktop.png",
+      });
+    }
   } finally {
     await anonymousContext.close();
   }

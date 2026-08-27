@@ -994,6 +994,7 @@ This design follows the [OWASP Authorization Cheat Sheet](https://cheatsheetseri
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-only | Sports sync/admin-only database access |
 | `FOOTBALL_DATA_API_TOKEN` | Server-only | Provider authentication |
 | `SPORTS_SYNC_SECRET` | Server-only + Supabase Vault copy | Authenticate cron call |
+| `DISCOVERY_CURSOR_SECRET` | Server-only | Sign and verify filter-bound group/event pagination cursors |
 | `NEXT_PUBLIC_APP_URL` | Browser-safe | Canonical links and calendar URL |
 
 `.env*` secrets MUST be ignored. CI/deploy secrets live in GitHub/Vercel/Supabase secret stores. Service-role/provider modules carry `server-only` protection and MUST NOT be exported from shared/client modules.

@@ -132,6 +132,12 @@ export const groupRuleReorderSchema = z.object({
   ruleIds: z.array(z.uuid()).min(1).max(100),
 });
 
+export const groupDescriptionUpdateSchema = z.object({
+  groupId: z.uuid(),
+  groupSlug: groupRouteSlugSchema,
+  description: z.string().trim().max(2000, "Use 2,000 characters or fewer."),
+});
+
 export const groupManagementSectionSchema = z.enum([
   "events",
   "applications",
