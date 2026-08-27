@@ -25,6 +25,8 @@ import {
   RuleOrderButton,
   UnbanMemberControl,
 } from "@/features/groups/components/group-management-controls";
+import { GroupDiscoveryProgress } from "@/features/groups/components/group-discovery-progress";
+import { getGroupDiscoveryProgress } from "@/features/groups/discovery";
 import { getGroupManagement } from "@/features/groups/management";
 import {
   groupManagementQuerySchema,
@@ -63,6 +65,7 @@ export default async function GroupManagementPage({
   });
   const result = await getGroupManagement(slug.data, query.section, query.page);
   if (result === null) notFound();
+  const discoveryProgress = await getGroupDiscoveryProgress(result.group.id);
 
   return (
     <section className="py-12 sm:py-16">
@@ -83,6 +86,14 @@ export default async function GroupManagementPage({
           <Link href={`/groups/${result.group.slug}`}>Back to group</Link>
         </Button>
       </div>
+
+      <GroupDiscoveryProgress
+        description={result.group.description}
+        groupId={result.group.id}
+        groupSlug={result.group.slug}
+        progress={discoveryProgress}
+        visibility={result.group.visibility}
+      />
 
       <nav aria-label="Group administration sections" className="mt-10 flex flex-wrap gap-2">
         {(Object.keys(SECTION_LABELS) as GroupManagementSection[]).map((section) => (

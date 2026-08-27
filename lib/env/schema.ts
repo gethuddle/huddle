@@ -18,6 +18,7 @@ export const serverEnvironmentSchema = publicEnvironmentSchema.extend({
   SUPABASE_SERVICE_ROLE_KEY: nonEmptyEnvironmentValue,
   FOOTBALL_DATA_API_TOKEN: nonEmptyEnvironmentValue,
   SPORTS_SYNC_SECRET: nonEmptyEnvironmentValue,
+  DISCOVERY_CURSOR_SECRET: z.string().trim().min(32),
 });
 
 export type PublicEnvironment = z.infer<typeof publicEnvironmentSchema>;

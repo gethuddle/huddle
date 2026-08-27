@@ -936,7 +936,7 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 - [x] Enforce active/non-banned member and reviewer conditions.
 - [x] Add submitted-event queue and factual status UI.
 - [x] Re-evaluate group discoverability after event approval/cancellation/time changes.
-- [ ] Finish `G06` forming-to-searchable E2E only after all gate facts are met.
+- [x] Finish `G06` forming-to-searchable E2E only after all gate facts are met.
 
 **Tests/evidence:** non-member/banned/member/admin matrix, premature visibility denial, approval audit, cancellation gate recalculation, member-to-admin E2E.
 
@@ -950,12 +950,12 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Implement `evaluate_group_discoverability` with five members, two moderators including owner, description, published rule, and approved future event.
-- [ ] Recalculate after relevant membership, role, rule, description, event, cancellation, and suspension transitions.
-- [ ] Add indexed, paginated `GET /api/groups/search`.
-- [ ] Never expose unlisted groups or other users' forming groups through search/similarity.
-- [ ] Build group list/search and a forming progress panel for authorized admins.
-- [ ] Complete the future-event gate and activation E2E using the group-event flow from `E05`.
+- [x] Implement `evaluate_group_discoverability` with five members, two moderators including owner, description, published rule, and approved future event.
+- [x] Recalculate after relevant membership, role, rule, description, event, cancellation, and suspension transitions.
+- [x] Add indexed, paginated `GET /api/groups/search`.
+- [x] Never expose unlisted groups or other users' forming groups through search/similarity.
+- [x] Build group list/search and a forming progress panel for authorized admins.
+- [x] Complete the future-event gate and activation E2E using the group-event flow from `E05`.
 
 **Tests/evidence:** one-fact-at-a-time threshold tests, leakage denials, deterministic pagination, suspension removal, search/component tests, and complete forming-to-searchable E2E.
 
@@ -991,18 +991,20 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Implement `discover_events(filters, cursor, limit)` in the database.
-- [ ] Bound radius, dates, filters, limit, and coordinate ranges.
-- [ ] Apply status, audience, block, ban, interest, time, and location rules before returning rows.
-- [ ] Use PostGIS GiST indexes and keyset cursor ordering with an ID tie-breaker.
-- [ ] Add opaque/tamper-resistant cursor encode/decode.
-- [ ] Add `GET /api/discovery` with narrow DTO and privacy-safe cache headers.
-- [ ] Store browser coordinates only for the request; do not create location history.
-- [ ] Build URL-owned filters, browser permission prompt, city fallback, and TanStack Query cursor pages.
-- [ ] Avoid per-card N+1 requests and never fetch exact private location.
-- [ ] Add empty, loading, retry, permission-denied, stale, and end-of-list states.
+- [x] Implement `discover_events(filters, cursor, limit)` in the database.
+- [x] Bound radius, dates, filters, limit, and coordinate ranges.
+- [x] Apply status, audience, block, ban, interest, time, and location rules before returning rows.
+- [x] Use PostGIS GiST indexes and keyset cursor ordering with an ID tie-breaker.
+- [x] Add opaque/tamper-resistant cursor encode/decode.
+- [x] Add `GET /api/discovery` with narrow DTO and privacy-safe cache headers.
+- [x] Store browser coordinates only for the request; do not create location history.
+- [x] Build URL-owned filters, browser permission prompt, city fallback, and TanStack Query cursor pages.
+- [x] Avoid per-card N+1 requests and never fetch exact private location.
+- [x] Add empty, loading, retry, permission-denied, stale, and end-of-list states.
 
 **Tests/evidence:** SQL query and authorization matrix, cursor tests, query-count inspection, component geolocation denial, E2E personalized/anonymous discovery, representative `EXPLAIN` evidence.
+
+**B09 implementation decisions:** group lifecycle is recalculated from current gate facts after every relevant membership, role, rule, description, event, ban, and suspension transition; search also requires a currently future published group event so wall-clock expiry cannot leak a stale group. Event discovery uses one authorization-filtered RPC and one safe DTO page rather than per-card reads. Spatial candidates are selected separately from indexed public-place, venue, and protected-home locations, while responses expose only a coarse distance band and never an exact address, coordinate, or distance. Signed cursors are endpoint-scoped and bound to normalized filters. Browser coordinates are requested only after an explicit click, sent for that discovery request, omitted from address-bar state, and discarded when city fallback is restored. Database date bounds compare Jerusalem calendar timestamps, so 23-hour and 25-hour daylight-saving transition days do not change the accepted discovery window.
 
 ---
 
@@ -1343,8 +1345,8 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 | B05 Friendships and group creation | `G01`–`G02` | done | [#18](https://github.com/gethuddle/huddle/issues/18) / [PR #19](https://github.com/gethuddle/huddle/pull/19) |
 | B06 Group membership and administration | `G03`–`G05` | done | [#20](https://github.com/gethuddle/huddle/issues/20) / [PR #21](https://github.com/gethuddle/huddle/pull/21) |
 | B07 Venues and private-event foundations | `E01`–`E03` | done | [#22](https://github.com/gethuddle/huddle/issues/22) / [PR #23](https://github.com/gethuddle/huddle/pull/23) |
-| B08 Venue/group events and safe visibility | `E04`–`E06` | review | [#24](https://github.com/gethuddle/huddle/issues/24) |
-| B09 Group and event discovery | `G06`, `E07` | not started | — |
+| B08 Venue/group events and safe visibility | `E04`–`E06` | done | [#24](https://github.com/gethuddle/huddle/issues/24) / [PR #25](https://github.com/gethuddle/huddle/pull/25) |
+| B09 Group and event discovery | `G06`, `E07` | review | [#26](https://github.com/gethuddle/huddle/issues/26) |
 | B10 Invitations, attendance, and calendar | `T01`–`T04` | not started | — |
 | B11 Moderation, security, and accessibility | `M01`–`M04` | not started | — |
 | B12 Acceptance, production, and submission | `D01`–`D04` | not started | — |

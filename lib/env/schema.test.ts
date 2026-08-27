@@ -29,6 +29,7 @@ describe("environment schemas", () => {
         "SUPABASE_SERVICE_ROLE_KEY",
         "FOOTBALL_DATA_API_TOKEN",
         "SPORTS_SYNC_SECRET",
+        "DISCOVERY_CURSOR_SECRET",
       ]),
     );
   });
@@ -40,12 +41,14 @@ describe("environment schemas", () => {
         SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
         FOOTBALL_DATA_API_TOKEN: "provider-token",
         SPORTS_SYNC_SECRET: "high-entropy-sync-secret",
+        DISCOVERY_CURSOR_SECRET: "a-dedicated-discovery-cursor-secret",
       }),
     ).toEqual({
       ...publicEnvironment,
       SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
       FOOTBALL_DATA_API_TOKEN: "provider-token",
       SPORTS_SYNC_SECRET: "high-entropy-sync-secret",
+      DISCOVERY_CURSOR_SECRET: "a-dedicated-discovery-cursor-secret",
     });
   });
 

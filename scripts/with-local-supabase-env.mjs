@@ -66,6 +66,7 @@ const childEnvironment = {
   // an unrelated shell or ignored environment file.
   FOOTBALL_DATA_API_TOKEN: "local-test-placeholder",
   SPORTS_SYNC_SECRET: "local-test-placeholder",
+  DISCOVERY_CURSOR_SECRET: "local-discovery-cursor-secret-for-tests",
   HUDDLE_MAILPIT_URL:
     localEnvironment.MAILPIT_URL || localEnvironment.INBUCKET_URL || "http://127.0.0.1:54324",
 };

@@ -1728,6 +1728,52 @@ export type Database = {
         }[]
       }
       current_actor_is_community_eligible: { Args: never; Returns: boolean }
+      discover_events: {
+        Args: {
+          input_after_distance_band?: number
+          input_after_event_id?: string
+          input_after_interest_score?: number
+          input_after_starts_at?: string
+          input_city_id: string
+          input_competition_id?: string
+          input_from: string
+          input_lat: number
+          input_limit?: number
+          input_lng: number
+          input_match_id?: string
+          input_radius_km: number
+          input_team_id?: string
+          input_to: string
+        }
+        Returns: {
+          approved_attendee_count: number
+          audience: string
+          audience_group_name: string
+          audience_team_name: string
+          away_team_name: string
+          capacity: number
+          city_name: string
+          competition_name: string
+          cursor_distance_band: number
+          ends_at: string
+          event_id: string
+          has_more: boolean
+          home_team_name: string
+          host_display_name: string
+          host_kind: string
+          host_venue_slug: string
+          interest_score: number
+          location_summary: string
+          match_id: string
+          place_kind: string
+          remaining_capacity: number
+          requires_approval: boolean
+          starts_at: string
+          title: string
+          venue_verification_status: string
+          viewer_attendance_status: string
+        }[]
+      }
       evaluate_group_discoverability: {
         Args: { input_group_id: string }
         Returns: {
@@ -2137,6 +2183,27 @@ export type Database = {
         Args: { audit_request_id?: string; input_invite_id: string }
         Returns: boolean
       }
+      search_groups: {
+        Args: {
+          input_after_id?: string
+          input_after_name?: string
+          input_city_id?: string
+          input_limit?: number
+          input_query?: string
+          input_team_id?: string
+        }
+        Returns: {
+          active_member_count: number
+          city_name: string
+          cursor_name: string
+          description: string
+          group_id: string
+          has_more: boolean
+          name: string
+          slug: string
+          team_name: string
+        }[]
+      }
       set_venue_verification_status: {
         Args: {
           audit_request_id?: string
@@ -2173,6 +2240,17 @@ export type Database = {
       unblock_user: {
         Args: { audit_request_id?: string; target_handle: string }
         Returns: boolean
+      }
+      update_group_description: {
+        Args: {
+          audit_request_id?: string
+          input_description: string
+          input_group_id: string
+        }
+        Returns: {
+          description: string
+          lifecycle: string
+        }[]
       }
       update_group_rule: {
         Args: {

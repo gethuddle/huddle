@@ -4,10 +4,15 @@ import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+  getGroupDiscoveryProgress: vi.fn(),
   getGroupManagement: vi.fn(),
   notFound: vi.fn(() => {
     throw new Error("NEXT_NOT_FOUND");
   }),
+}));
+
+vi.mock("@/features/groups/discovery", () => ({
+  getGroupDiscoveryProgress: mocks.getGroupDiscoveryProgress,
 }));
 
 vi.mock("@/features/groups/management", async (importOriginal) => {
@@ -71,7 +76,19 @@ function props() {
 }
 
 describe("GroupManagementPage", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.getGroupDiscoveryProgress.mockResolvedValue({
+      activeMemberCount: 5,
+      activeModeratorCount: 2,
+      ownerIsActive: true,
+      hasDescription: true,
+      hasPublishedRule: true,
+      hasFutureEvent: true,
+      gateSatisfied: true,
+      lifecycle: "active",
+    });
+  });
 
   it("does not expose the management route to a non-admin viewer", async () => {
     mocks.getGroupManagement.mockResolvedValue(null);
@@ -91,6 +108,7 @@ describe("GroupManagementPage", () => {
 
     render(await GroupManagementPage(props()));
 
+    expect(screen.getByText("Visible in group search")).toBeVisible();
     expect(screen.getAllByRole("button", { name: "Save role" })).toHaveLength(2);
     expect(screen.getAllByRole("button", { name: "Ban" })).toHaveLength(2);
     expect(screen.getByText("Owner").closest("[data-slot='card-content']")).not.toHaveTextContent(

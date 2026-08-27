@@ -7,3 +7,4 @@ This directory holds selected, non-sensitive interface screenshots referenced by
 - [B06 group membership and administration](./b06/README.md)
 - [B07 venues and private-event foundations](./b07/README.md)
 - [B08 venue/group events and safe visibility](./b08/README.md)
+- [B09 group and event discovery](./b09/README.md)

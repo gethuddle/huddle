@@ -21,6 +21,7 @@ import {
   reviewGroupApplicationAction,
   reviewGroupEventAction,
   submitGroupApplicationAction,
+  updateGroupDescriptionAction,
 } from "./membership-actions";
 
 const requestId = "10000000-0000-4000-8000-000000000099";
@@ -197,6 +198,24 @@ describe("B06 group membership actions", () => {
       input_text: "Respect every attendee.",
       input_publish: true,
       audit_request_id: requestId,
+    });
+  });
+
+  it("updates a bounded description through the audited group RPC and refreshes search", async () => {
+    const formData = groupForm();
+    formData.set("description", "  North stand supporters in Haifa.  ");
+
+    const result = await updateGroupDescriptionAction(null, formData);
+
+    expect(rpc).toHaveBeenCalledWith("update_group_description", {
+      input_group_id: groupId,
+      input_description: "North stand supporters in Haifa.",
+      audit_request_id: requestId,
+    });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/groups");
+    expect(result).toMatchObject({
+      ok: true,
+      data: { message: expect.stringContaining("discovery status") },
     });
   });
 });

@@ -11,6 +11,7 @@ export function getServerEnvironment(input?: unknown): ServerEnvironment {
       SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
       FOOTBALL_DATA_API_TOKEN: process.env.FOOTBALL_DATA_API_TOKEN,
       SPORTS_SYNC_SECRET: process.env.SPORTS_SYNC_SECRET,
+      DISCOVERY_CURSOR_SECRET: process.env.DISCOVERY_CURSOR_SECRET,
     },
   );
 }

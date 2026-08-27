@@ -27,6 +27,18 @@ export function SiteHeader({ isSignedIn }: Readonly<{ isSignedIn: boolean }>) {
             >
               Fixtures
             </Link>
+            <Link
+              className="text-sm font-medium text-muted-dark transition hover:text-linen"
+              href="/discover"
+            >
+              Discover
+            </Link>
+            <Link
+              className="text-sm font-medium text-muted-dark transition hover:text-linen"
+              href="/groups"
+            >
+              Groups
+            </Link>
           </nav>
           {isSignedIn ? (
             <>
