@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       {
         status: 200,
         headers: {
-          "Cache-Control": page.personalized ? NO_STORE : PUBLIC_CACHE,
+          "Cache-Control": page.requiresPrivateCache ? NO_STORE : PUBLIC_CACHE,
           [REQUEST_ID_HEADER]: requestId,
         },
       },

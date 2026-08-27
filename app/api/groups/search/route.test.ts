@@ -15,7 +15,7 @@ describe("GET /api/groups/search", () => {
     mocks.getGroupSearchPage.mockResolvedValue({
       items: [],
       nextCursor: null,
-      personalized: false,
+      requiresPrivateCache: false,
     });
   });
 
@@ -28,14 +28,14 @@ describe("GET /api/groups/search", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toContain("s-maxage=60");
     expect(body).toMatchObject({ items: [], nextCursor: null });
-    expect(body).not.toHaveProperty("personalized");
+    expect(body).not.toHaveProperty("requiresPrivateCache");
   });
 
   it("uses private no-store caching when viewer blocks and bans can affect results", async () => {
     mocks.getGroupSearchPage.mockResolvedValue({
       items: [],
       nextCursor: null,
-      personalized: true,
+      requiresPrivateCache: true,
     });
     const response = await GET(new NextRequest("https://huddle.test/api/groups/search"));
 

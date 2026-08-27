@@ -34,7 +34,7 @@ export type DiscoveryPage = Readonly<{
   nextCursor: string | null;
   locationMode: "browser" | "city";
   generatedAt: string;
-  personalized: boolean;
+  requiresPrivateCache: boolean;
 }>;
 
-export type DiscoveryApiPage = Omit<DiscoveryPage, "personalized">;
+export type DiscoveryApiPage = Omit<DiscoveryPage, "requiresPrivateCache">;

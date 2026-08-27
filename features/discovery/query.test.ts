@@ -103,7 +103,7 @@ describe("event discovery query", () => {
       }),
     );
     expect(result).toMatchObject({
-      personalized: true,
+      requiresPrivateCache: true,
       locationMode: "city",
       items: [
         {
@@ -126,5 +126,17 @@ describe("event discovery query", () => {
     });
 
     await expect(getDiscoveryPage(filters)).rejects.toThrow();
+  });
+
+  it("fails closed to private caching when the auth lookup is uncertain", async () => {
+    mocks.getUser.mockResolvedValue({
+      data: { user: null },
+      error: new Error("Auth service unavailable"),
+    });
+
+    const result = await getDiscoveryPage(filters);
+
+    expect(result.requiresPrivateCache).toBe(true);
+    expect(mocks.rpc).toHaveBeenCalledOnce();
   });
 });

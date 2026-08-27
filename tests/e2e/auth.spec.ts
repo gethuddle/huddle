@@ -414,6 +414,9 @@ test("a completed user creates and administers reviewed group membership", async
   context,
   page,
 }) => {
+  // This integrated G06/E05/E07 journey deliberately provisions six verified accounts.
+  test.setTimeout(90_000);
+
   await clearMailbox();
   await seedCachedFixtureCatalogAfterFailure();
 

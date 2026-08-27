@@ -38,7 +38,7 @@ export type GroupSearchItem = Readonly<{
 export type GroupSearchPage = Readonly<{
   items: readonly GroupSearchItem[];
   nextCursor: string | null;
-  personalized: boolean;
+  requiresPrivateCache: boolean;
 }>;
 
 export async function getGroupSearchPage(filters: GroupSearchFilters): Promise<GroupSearchPage> {
@@ -91,6 +91,10 @@ export async function getGroupSearchPage(filters: GroupSearchFilters): Promise<G
       ? encodeGroupCursor({ filterKey, name: last.cursor_name, id: last.group_id }, secret)
       : null;
 
+  // The request JWT can still personalize the RPC when getUser cannot confirm identity.
+  // Treat that uncertainty as private so viewer-filtered results never enter shared cache.
+  const requiresPrivateCache = authResult.error !== null || authResult.data.user !== null;
+
   return {
     items: rows.map((row) => ({
       id: row.group_id,
@@ -102,6 +106,6 @@ export async function getGroupSearchPage(filters: GroupSearchFilters): Promise<G
       activeMemberCount: row.active_member_count,
     })),
     nextCursor,
-    personalized: authResult.data.user !== null,
+    requiresPrivateCache,
   };
 }

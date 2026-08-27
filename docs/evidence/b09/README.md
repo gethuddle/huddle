@@ -31,7 +31,8 @@ add a per-card query.
 Automated acceptance covers gate transitions, forming/unlisted leakage denial, personalized
 block/ban removal, deterministic keyset pages, signed cursor tampering and filter binding, date and
 radius bounds, interest ordering, all three spatial sources, location-permission denial and fallback,
-anonymous and signed-in browser journeys, and exact-location payload absence.
+anonymous and signed-in browser journeys, exact-location payload absence, and fail-closed private
+caching when the authentication lookup is uncertain.
 
-The final clean local run passed 301 Vitest/component tests, 775 pgTAP assertions, Huddle-owned
+The final clean local run passed 302 Vitest/component tests, 775 pgTAP assertions, Huddle-owned
 schema lint, generated-type drift, the production build, and all five Playwright journeys.

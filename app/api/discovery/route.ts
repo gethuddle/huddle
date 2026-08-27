@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const filters = parseDiscoveryFilters(Object.fromEntries(request.nextUrl.searchParams));
     const page = await getDiscoveryPage(filters);
     const cacheControl =
-      page.personalized || page.locationMode === "browser" ? NO_STORE : PUBLIC_CITY_CACHE;
+      page.requiresPrivateCache || page.locationMode === "browser" ? NO_STORE : PUBLIC_CITY_CACHE;
 
     return NextResponse.json(
       {

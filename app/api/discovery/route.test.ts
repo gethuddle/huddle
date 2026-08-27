@@ -20,7 +20,7 @@ const emptyPage = {
   nextCursor: null,
   locationMode: "city" as const,
   generatedAt: "2026-08-27T20:00:00.000Z",
-  personalized: false,
+  requiresPrivateCache: false,
 };
 
 describe("GET /api/discovery", () => {
@@ -43,9 +43,9 @@ describe("GET /api/discovery", () => {
   });
 
   it.each([
-    { locationMode: "browser", personalized: false },
-    { locationMode: "city", personalized: true },
-  ])("never shared-caches browser or personalized results: %o", async (privacy) => {
+    { locationMode: "browser", requiresPrivateCache: false },
+    { locationMode: "city", requiresPrivateCache: true },
+  ])("never shared-caches browser or private results: %o", async (privacy) => {
     mocks.getDiscoveryPage.mockResolvedValue({ ...emptyPage, ...privacy });
     const response = await GET(discoveryRequest("city=haifa&lat=32.8&lng=35"));
 

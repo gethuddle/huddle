@@ -59,7 +59,7 @@ const initialPage: DiscoveryPage = {
   nextCursor: null,
   locationMode: "city",
   generatedAt: "2026-08-27T12:00:00Z",
-  personalized: true,
+  requiresPrivateCache: true,
 };
 
 afterEach(() => {

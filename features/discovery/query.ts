@@ -109,6 +109,10 @@ export async function getDiscoveryPage(filters: DiscoveryFilters): Promise<Disco
         )
       : null;
 
+  // The request JWT can still authorize the RPC when getUser cannot confirm identity.
+  // Treat that uncertainty as private so a user-scoped row set never enters shared cache.
+  const requiresPrivateCache = authResult.error !== null || authResult.data.user !== null;
+
   return {
     items: rows.map((row) => ({
       id: row.event_id,
@@ -143,6 +147,6 @@ export async function getDiscoveryPage(filters: DiscoveryFilters): Promise<Disco
     nextCursor,
     locationMode: filters.lat === null ? "city" : "browser",
     generatedAt: new Date().toISOString(),
-    personalized: authResult.data.user !== null,
+    requiresPrivateCache,
   };
 }
