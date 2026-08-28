@@ -17,6 +17,7 @@ import { getPrivateEventLocation, listApprovedEventAttendees } from "@/features/
 import { eventPageSchema } from "@/features/attendance/schemas";
 import { EventBadges } from "@/features/events/components/event-badges";
 import { getEventSummary } from "@/features/events/queries";
+import { ReportControl } from "@/features/moderation/components/report-control";
 import { eventRouteIdSchema } from "@/features/events/schemas";
 import { formatJerusalemKickoff } from "@/features/sports/time";
 import { DomainError } from "@/lib/errors";
@@ -262,6 +263,8 @@ export default async function EventPage({ params, searchParams }: EventPageProps
               </CardContent>
             </Card>
           )}
+
+          <ReportControl targetId={event.id} targetLabel={event.title} targetType="event" />
         </aside>
       </div>
     </section>

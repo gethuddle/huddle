@@ -19,6 +19,8 @@ export function resolvePublicProfileViewerState({
 
   const gateCode = actorGateCode(facts, "community");
   if (gateCode === null) return "eligible";
-  if (gateCode === "ACCOUNT_SUSPENDED") return "not-permitted";
+  if (gateCode === "ACCOUNT_SUSPENDED" || gateCode === "ACCOUNT_RESTRICTED") {
+    return "not-permitted";
+  }
   return "complete-profile";
 }

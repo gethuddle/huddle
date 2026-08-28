@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { deriveFixtureFreshness } from "./freshness";
+import { deriveFixtureFreshness, fixtureSyncAgeSeconds } from "./freshness";
 
 const now = new Date("2026-08-26T12:00:00Z");
 
@@ -24,5 +24,11 @@ describe("fixture freshness", () => {
   it("uses a safe unknown state when no valid successful import exists", () => {
     expect(deriveFixtureFreshness(null, now).status).toBe("unknown");
     expect(deriveFixtureFreshness("invalid", now).lastSucceededAt).toBeNull();
+  });
+
+  it("exposes only a bounded age metric for safe catalog observability", () => {
+    expect(fixtureSyncAgeSeconds("2026-08-26T10:00:00Z", now)).toBe(7_200);
+    expect(fixtureSyncAgeSeconds("invalid", now)).toBeNull();
+    expect(fixtureSyncAgeSeconds("2026-08-26T13:00:00Z", now)).toBe(0);
   });
 });

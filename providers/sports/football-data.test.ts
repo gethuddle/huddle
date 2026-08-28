@@ -147,7 +147,9 @@ describe("FootballDataProvider", () => {
           status: 429,
         }),
       )
-      .mockResolvedValueOnce(jsonResponse(matchesEmpty));
+      .mockResolvedValueOnce(
+        jsonResponse(matchesEmpty, { headers: { "x-requestsavailable": "7" } }),
+      );
     const provider = new FootballDataProvider("test-provider-token", {
       fetch: fetchImplementation,
       maxRetries: 1,
@@ -159,7 +161,11 @@ describe("FootballDataProvider", () => {
       provider.listFixtures({ from: "2026-08-24", to: "2026-10-08" }, ["2001"]),
     ).resolves.toEqual([]);
     expect(sleep).toHaveBeenCalledWith(2_000);
-    expect(provider.getRequestMetadata()).toEqual({ requestCount: 2, retryCount: 1 });
+    expect(provider.getRequestMetadata()).toEqual({
+      quotaRemaining: 7,
+      requestCount: 2,
+      retryCount: 1,
+    });
   });
 
   it.each([

@@ -45,6 +45,7 @@ export interface SportsProvider {
 }
 
 export type ProviderRequestMetadata = Readonly<{
+  quotaRemaining: number | null;
   requestCount: number;
   retryCount: number;
 }>;

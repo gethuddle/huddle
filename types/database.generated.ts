@@ -979,6 +979,174 @@ export type Database = {
           },
         ]
       }
+      moderation_actions: {
+        Row: {
+          action: Database["public"]["Enums"]["moderation_action_kind"]
+          created_at: string
+          event_id: string | null
+          expires_at: string | null
+          group_id: string | null
+          id: string
+          moderator_id: string
+          profile_id: string | null
+          reason: string
+          report_id: string | null
+          reversal_reason: string | null
+          reversed_at: string | null
+          reversed_by: string | null
+          state_before: Json
+          target_type: Database["public"]["Enums"]["moderation_target_type"]
+          venue_id: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["moderation_action_kind"]
+          created_at?: string
+          event_id?: string | null
+          expires_at?: string | null
+          group_id?: string | null
+          id?: string
+          moderator_id: string
+          profile_id?: string | null
+          reason: string
+          report_id?: string | null
+          reversal_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          state_before?: Json
+          target_type: Database["public"]["Enums"]["moderation_target_type"]
+          venue_id?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["moderation_action_kind"]
+          created_at?: string
+          event_id?: string | null
+          expires_at?: string | null
+          group_id?: string | null
+          id?: string
+          moderator_id?: string
+          profile_id?: string | null
+          reason?: string
+          report_id?: string | null
+          reversal_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          state_before?: Json
+          target_type?: Database["public"]["Enums"]["moderation_target_type"]
+          venue_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moderation_actions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_actions_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_actions_moderator_id_fkey"
+            columns: ["moderator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_actions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_actions_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_actions_reversed_by_fkey"
+            columns: ["reversed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_actions_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moderation_appeals: {
+        Row: {
+          appellant_id: string
+          created_at: string
+          id: string
+          moderation_action_id: string
+          outcome_reason: string | null
+          reason: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["appeal_status"]
+          updated_at: string
+        }
+        Insert: {
+          appellant_id: string
+          created_at?: string
+          id?: string
+          moderation_action_id: string
+          outcome_reason?: string | null
+          reason: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["appeal_status"]
+          updated_at?: string
+        }
+        Update: {
+          appellant_id?: string
+          created_at?: string
+          id?: string
+          moderation_action_id?: string
+          outcome_reason?: string | null
+          reason?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["appeal_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moderation_appeals_appellant_id_fkey"
+            columns: ["appellant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_appeals_moderation_action_id_fkey"
+            columns: ["moderation_action_id"]
+            isOneToOne: false
+            referencedRelation: "moderation_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_appeals_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_roles: {
         Row: {
           created_at: string
@@ -1010,6 +1178,8 @@ export type Database = {
           adult_attested_at: string | null
           bio: string | null
           city_id: string | null
+          community_restricted_at: string | null
+          community_restricted_until: string | null
           created_at: string
           display_name: string | null
           handle: string | null
@@ -1018,12 +1188,15 @@ export type Database = {
           rules_accepted_at: string | null
           rules_version: number | null
           suspended_at: string | null
+          suspension_expires_at: string | null
           updated_at: string
         }
         Insert: {
           adult_attested_at?: string | null
           bio?: string | null
           city_id?: string | null
+          community_restricted_at?: string | null
+          community_restricted_until?: string | null
           created_at?: string
           display_name?: string | null
           handle?: string | null
@@ -1032,12 +1205,15 @@ export type Database = {
           rules_accepted_at?: string | null
           rules_version?: number | null
           suspended_at?: string | null
+          suspension_expires_at?: string | null
           updated_at?: string
         }
         Update: {
           adult_attested_at?: string | null
           bio?: string | null
           city_id?: string | null
+          community_restricted_at?: string | null
+          community_restricted_until?: string | null
           created_at?: string
           display_name?: string | null
           handle?: string | null
@@ -1046,6 +1222,7 @@ export type Database = {
           rules_accepted_at?: string | null
           rules_version?: number | null
           suspended_at?: string | null
+          suspension_expires_at?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1114,6 +1291,100 @@ export type Database = {
           window_start?: string
         }
         Relationships: []
+      }
+      reports: {
+        Row: {
+          assigned_to: string | null
+          category: Database["public"]["Enums"]["report_category"]
+          created_at: string
+          details: string
+          event_id: string | null
+          group_id: string | null
+          id: string
+          profile_id: string | null
+          reporter_id: string
+          resolution_note: string | null
+          status: Database["public"]["Enums"]["report_status"]
+          target_type: Database["public"]["Enums"]["moderation_target_type"]
+          updated_at: string
+          venue_id: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          category: Database["public"]["Enums"]["report_category"]
+          created_at?: string
+          details: string
+          event_id?: string | null
+          group_id?: string | null
+          id?: string
+          profile_id?: string | null
+          reporter_id: string
+          resolution_note?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
+          target_type: Database["public"]["Enums"]["moderation_target_type"]
+          updated_at?: string
+          venue_id?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: Database["public"]["Enums"]["report_category"]
+          created_at?: string
+          details?: string
+          event_id?: string | null
+          group_id?: string | null
+          id?: string
+          profile_id?: string | null
+          reporter_id?: string
+          resolution_note?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
+          target_type?: Database["public"]["Enums"]["moderation_target_type"]
+          updated_at?: string
+          venue_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       security_audit_events: {
         Row: {
@@ -1494,6 +1765,19 @@ export type Database = {
       }
     }
     Functions: {
+      apply_moderation_action: {
+        Args: {
+          audit_request_id?: string
+          input_action: string
+          input_duration_hours?: number
+          input_reason: string
+          input_report_id: string
+        }
+        Returns: {
+          action: string
+          moderation_action_id: string
+        }[]
+      }
       apply_to_group: {
         Args: {
           audit_request_id?: string
@@ -1504,6 +1788,10 @@ export type Database = {
           group_id: string
           status: string
         }[]
+      }
+      assign_report: {
+        Args: { audit_request_id?: string; input_report_id: string }
+        Returns: boolean
       }
       ban_group_member: {
         Args: {
@@ -1793,6 +2081,14 @@ export type Database = {
           venue_verification_status: string
           viewer_attendance_status: string
         }[]
+      }
+      dismiss_report: {
+        Args: {
+          audit_request_id?: string
+          input_reason: string
+          input_report_id: string
+        }
+        Returns: boolean
       }
       evaluate_group_discoverability: {
         Args: { input_group_id: string }
@@ -2187,6 +2483,62 @@ export type Database = {
           title: string
         }[]
       }
+      list_moderation_actions: {
+        Args: {
+          input_active_only?: boolean
+          input_limit?: number
+          input_offset?: number
+        }
+        Returns: {
+          action: string
+          created_at: string
+          expires_at: string
+          has_active_appeal: boolean
+          moderation_action_id: string
+          reason: string
+          reversal_reason: string
+          reversed_at: string
+          target_label: string
+          target_type: string
+        }[]
+      }
+      list_moderation_appeals: {
+        Args: {
+          input_limit?: number
+          input_offset?: number
+          input_status?: string
+        }
+        Returns: {
+          action: string
+          appeal_id: string
+          appeal_reason: string
+          appellant_handle: string
+          can_current_moderator_review: boolean
+          created_at: string
+          moderation_action_id: string
+          original_moderator_id: string
+          status: string
+        }[]
+      }
+      list_moderation_reports: {
+        Args: {
+          input_limit?: number
+          input_offset?: number
+          input_status?: string
+        }
+        Returns: {
+          assigned_to_me: boolean
+          category: string
+          created_at: string
+          details: string
+          report_id: string
+          reporter_handle: string
+          status: string
+          target_id: string
+          target_label: string
+          target_type: string
+        }[]
+      }
       list_my_event_participation: {
         Args: { input_limit?: number; input_offset?: number }
         Returns: {
@@ -2206,6 +2558,45 @@ export type Database = {
           starts_at: string
           title: string
           total_count: number
+        }[]
+      }
+      list_my_moderation_actions: {
+        Args: { input_limit?: number; input_offset?: number }
+        Returns: {
+          action: string
+          created_at: string
+          expires_at: string
+          has_active_appeal: boolean
+          moderation_action_id: string
+          reason: string
+          reversal_reason: string
+          reversed_at: string
+          target_label: string
+          target_type: string
+        }[]
+      }
+      list_my_moderation_appeals: {
+        Args: { input_limit?: number; input_offset?: number }
+        Returns: {
+          action: string
+          appeal_id: string
+          created_at: string
+          moderation_action_id: string
+          outcome_reason: string
+          reason: string
+          reviewed_at: string
+          status: string
+        }[]
+      }
+      list_my_reports: {
+        Args: { input_limit?: number; input_offset?: number }
+        Returns: {
+          category: string
+          created_at: string
+          report_id: string
+          safe_status: string
+          target_label: string
+          target_type: string
         }[]
       }
       list_owned_venues: {
@@ -2338,6 +2729,14 @@ export type Database = {
         }
         Returns: string
       }
+      reverse_moderation_action: {
+        Args: {
+          audit_request_id?: string
+          input_action_id: string
+          input_reason: string
+        }
+        Returns: boolean
+      }
       review_attendance: {
         Args: {
           audit_request_id?: string
@@ -2361,6 +2760,15 @@ export type Database = {
           status: string
           user_id: string
         }[]
+      }
+      review_moderation_appeal: {
+        Args: {
+          audit_request_id?: string
+          input_appeal_id: string
+          input_decision: string
+          input_outcome_reason: string
+        }
+        Returns: boolean
       }
       revoke_event_invitation: {
         Args: { audit_request_id?: string; input_invitation_id: string }
@@ -2398,6 +2806,42 @@ export type Database = {
           input_venue_id: string
         }
         Returns: boolean
+      }
+      submit_moderation_appeal: {
+        Args: {
+          audit_request_id?: string
+          input_action_id: string
+          input_reason: string
+        }
+        Returns: {
+          appeal_id: string
+          status: string
+        }[]
+      }
+      submit_profile_report: {
+        Args: {
+          audit_request_id?: string
+          input_category: string
+          input_details: string
+          input_handle: string
+        }
+        Returns: {
+          report_id: string
+          status: string
+        }[]
+      }
+      submit_report: {
+        Args: {
+          audit_request_id?: string
+          input_category: string
+          input_details: string
+          input_target_id: string
+          input_target_type: string
+        }
+        Returns: {
+          report_id: string
+          status: string
+        }[]
       }
       suggest_similar_groups: {
         Args: {
@@ -2473,8 +2917,10 @@ export type Database = {
           verification_status: string
         }[]
       }
+      viewer_is_platform_moderator: { Args: never; Returns: boolean }
     }
     Enums: {
+      appeal_status: "open" | "reviewing" | "upheld" | "modified" | "reversed"
       attendance_source: "self_request" | "direct_invite"
       attendance_status:
         | "requested"
@@ -2506,8 +2952,28 @@ export type Database = {
       group_role: "owner" | "admin" | "member"
       group_visibility: "discoverable" | "unlisted"
       invitation_status: "pending" | "accepted" | "declined" | "revoked"
+      moderation_action_kind:
+        | "content_correction"
+        | "warning"
+        | "feature_restriction"
+        | "temporary_suspension"
+        | "event_cancellation"
+        | "group_suspension"
+        | "venue_suspension"
+        | "permanent_account_ban"
+      moderation_target_type: "profile" | "group" | "venue" | "event"
       platform_role: "moderator" | "admin"
       provider_sync_status: "running" | "succeeded" | "failed"
+      report_category:
+        | "immediate_danger"
+        | "harassment_stalking_sexual_misconduct"
+        | "hate_discrimination"
+        | "privacy_exposure"
+        | "impersonation_fraud"
+        | "dangerous_illegal_activity"
+        | "spam_scam"
+        | "other"
+      report_status: "open" | "reviewing" | "resolved" | "dismissed"
       sports_match_status:
         | "scheduled"
         | "timed"
@@ -2643,6 +3109,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      appeal_status: ["open", "reviewing", "upheld", "modified", "reversed"],
       attendance_source: ["self_request", "direct_invite"],
       attendance_status: [
         "requested",
@@ -2678,8 +3145,30 @@ export const Constants = {
       group_role: ["owner", "admin", "member"],
       group_visibility: ["discoverable", "unlisted"],
       invitation_status: ["pending", "accepted", "declined", "revoked"],
+      moderation_action_kind: [
+        "content_correction",
+        "warning",
+        "feature_restriction",
+        "temporary_suspension",
+        "event_cancellation",
+        "group_suspension",
+        "venue_suspension",
+        "permanent_account_ban",
+      ],
+      moderation_target_type: ["profile", "group", "venue", "event"],
       platform_role: ["moderator", "admin"],
       provider_sync_status: ["running", "succeeded", "failed"],
+      report_category: [
+        "immediate_danger",
+        "harassment_stalking_sexual_misconduct",
+        "hate_discrimination",
+        "privacy_exposure",
+        "impersonation_fraud",
+        "dangerous_illegal_activity",
+        "spam_scam",
+        "other",
+      ],
+      report_status: ["open", "reviewing", "resolved", "dismissed"],
       sports_match_status: [
         "scheduled",
         "timed",

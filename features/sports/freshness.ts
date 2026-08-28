@@ -18,6 +18,16 @@ function relativeUpdate(ageMs: number): string {
   return `${days} day${days === 1 ? "" : "s"} ago`;
 }
 
+export function fixtureSyncAgeSeconds(
+  lastSucceededAt: string | null,
+  now = new Date(),
+): number | null {
+  if (lastSucceededAt === null) return null;
+  const timestamp = Date.parse(lastSucceededAt);
+  if (!Number.isFinite(timestamp)) return null;
+  return Math.max(0, Math.floor((now.getTime() - timestamp) / 1000));
+}
+
 export function deriveFixtureFreshness(
   lastSucceededAt: string | null,
   now = new Date(),
@@ -30,8 +40,8 @@ export function deriveFixtureFreshness(
     };
   }
 
-  const timestamp = Date.parse(lastSucceededAt);
-  if (!Number.isFinite(timestamp)) {
+  const ageSeconds = fixtureSyncAgeSeconds(lastSucceededAt, now);
+  if (ageSeconds === null) {
     return {
       status: "unknown",
       lastSucceededAt: null,
@@ -39,7 +49,7 @@ export function deriveFixtureFreshness(
     };
   }
 
-  const ageMs = Math.max(0, now.getTime() - timestamp);
+  const ageMs = ageSeconds * 1000;
   const relative = relativeUpdate(ageMs);
 
   if (ageMs > FIXTURE_STALE_AFTER_MS) {

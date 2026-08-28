@@ -1110,13 +1110,13 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Create reports with exactly-one-target constraints and the locked categories.
-- [ ] Keep reporter identity/details hidden from target and group admins.
-- [ ] Allow reporter to see only safe status, not investigation notes.
-- [ ] Add block and report controls on relevant pages.
-- [ ] Add imminent-danger copy directing users to local emergency services while preserving report submission.
-- [ ] Add bounded details and spam controls without blocking genuine danger reports.
-- [ ] Add the community-rules prohibitions and sensitive-question warnings to relevant flows.
+- [x] Create reports with exactly-one-target constraints and the locked categories.
+- [x] Keep reporter identity/details hidden from target and group admins.
+- [x] Allow reporter to see only safe status, not investigation notes.
+- [x] Add block and report controls on relevant pages.
+- [x] Add imminent-danger copy directing users to local emergency services while preserving report submission.
+- [x] Add bounded details and spam controls without blocking genuine danger reports.
+- [x] Add the community-rules prohibitions and sensitive-question warnings to relevant flows.
 
 **Tests/evidence:** target constraints, reporter/target/group-admin/moderator policy matrix, before/after event reports, emergency state, confidentiality E2E.
 
@@ -1130,14 +1130,14 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Implement moderation queue assignment and safe report details.
-- [ ] Implement allowed enforcement actions with required reason and transactional state change.
-- [ ] Add reversal evidence.
-- [ ] Implement one active appeal per action/appellant.
-- [ ] Prefer a reviewer different from the original moderator where practical.
-- [ ] Keep platform moderation distinct from group administration.
-- [ ] Propagate suspensions through visibility, mutation, event, attendance, and private-location rules.
-- [ ] Build moderator queue and user appeal/outcome screens.
+- [x] Implement moderation queue assignment and safe report details.
+- [x] Implement allowed enforcement actions with required reason and transactional state change.
+- [x] Add reversal evidence.
+- [x] Implement one active appeal per action/appellant.
+- [x] Prefer a reviewer different from the original moderator where practical.
+- [x] Keep platform moderation distinct from group administration.
+- [x] Propagate suspensions through visibility, mutation, event, attendance, and private-location rules.
+- [x] Build moderator queue and user appeal/outcome screens.
 
 **Tests/evidence:** ordinary/group-admin denial, action transaction, visibility/access changes, appeal authorization/uniqueness/reviewer rules, audit records, full E2E.
 
@@ -1151,16 +1151,16 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Inventory every exposed table and prove RLS is enabled/forced and deny-by-default.
-- [ ] Inventory every Server Action and Route Handler for Zod validation, actor derivation, and same-origin behavior.
-- [ ] Add request-body and list/string bounds.
-- [ ] Add database/hosting cooldowns for friend requests, group applications/invites, event creation, and report spam.
-- [ ] Confirm all GET routes are read-only.
-- [ ] Add CSP, HSTS production configuration, frame protection, referrer policy, and content-type options.
-- [ ] Validate redirect destinations against an internal allowlist.
-- [ ] Search client bundles, network responses, logs, Git history/diff, and test artifacts for secrets/private addresses.
-- [ ] Add structured safe request/action/sync logs and authorization-failure signals.
-- [ ] Document residual risks honestly.
+- [x] Inventory every exposed table and prove RLS is enabled/forced and deny-by-default.
+- [x] Inventory every Server Action and Route Handler for Zod validation, actor derivation, and same-origin behavior.
+- [x] Add request-body and list/string bounds.
+- [x] Add database/hosting cooldowns for friend requests, group applications/invites, event creation, and report spam.
+- [x] Confirm all GET routes are read-only.
+- [x] Add CSP, HSTS production configuration, frame protection, referrer policy, and content-type options.
+- [x] Validate redirect destinations against an internal allowlist.
+- [x] Search client bundles, network responses, logs, Git history/diff, and test artifacts for secrets/private addresses.
+- [x] Add structured safe request/action/sync logs and authorization-failure signals.
+- [x] Document residual risks honestly.
 
 **Tests/evidence:** RLS matrix, cross-user crafted requests, origin/header tests where practical, rate-limit behavior, client-bundle inspection, secret scan, and security checklist.
 
@@ -1174,16 +1174,18 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Review every form for labels, field errors, pending state, status announcements, keyboard operation, and focus return.
-- [ ] Review dialogs/menus for focus trapping and escape behavior.
-- [ ] Ensure status is not communicated only by color.
-- [ ] Add responsive checks for all presentation/demo routes.
-- [ ] Cover loading, empty, retry, stale, denied, cancelled, removed, suspended, and not-found states.
-- [ ] Check Jerusalem dates around daylight-saving transitions.
-- [ ] Track discovery duration, sync age/outcome, sync requests, route/action errors, quota observations, and repeated authorization failures.
-- [ ] Write short runbooks for failed sync, token rotation, bad migration, suspension, and urgent report removal.
+- [x] Review every form for labels, field errors, pending state, status announcements, keyboard operation, and focus return.
+- [x] Review dialogs/menus for focus trapping and escape behavior.
+- [x] Ensure status is not communicated only by color.
+- [x] Add responsive checks for all presentation/demo routes.
+- [x] Cover loading, empty, retry, stale, denied, cancelled, removed, suspended, and not-found states.
+- [x] Check Jerusalem dates around daylight-saving transitions.
+- [x] Track discovery duration, sync age/outcome, sync requests, route/action errors, quota observations, and repeated authorization failures.
+- [x] Write short runbooks for failed sync, token rotation, bad migration, suspension, and urgent report removal.
 
 **Tests/evidence:** component accessibility tests, manual keyboard/screen-reader naming pass, phone/desktop screenshots, failure-state E2E, runbook review by both partners.
+
+**B11 implementation decisions:** confidential reports, enforcement actions, appeals, and reversals are exposed only through bounded security-definer functions; reporters receive a safe status projection while report details remain platform-only. Ordinary community mutations take a shared profile lock, and enforcement takes the matching exclusive lock so suspension cannot race past an eligibility check. Timed restrictions and suspensions use a review deadline but stay effective until a moderator records an audited reversal. High-impact enforcement choices require a deliberate Radix confirmation before submission; warnings and correction requests remain direct, while feature restriction, account/group/venue suspension, permanent ban, and event cancellation are confirmed with keyboard focus containment, Escape/cancel behavior, and trigger-focus restoration. Once an appeal is active, its review path owns the terminal decision: direct reversal takes the same action-row lock as appeal submission and is rejected until the appeal is decided. Appeal review is assigned to a different eligible non-appellant moderator whenever one exists; when the only peer is the appellant, the original moderator may decide so the appeal cannot deadlock. All exposed tables are re-inventoried for forced RLS, route/action inputs are bounded, internal redirects are allowlisted, production security headers are explicit, and logs accept only safe operational fields. GET routes do not mutate product state; the private calendar path writes only the mandated address-free access audit. Local secret comparison ignores only the exact committed placeholder for each variable. Repository-owned Radix dialogs and the mobile menu provide keyboard focus behavior; the B11 journey proves a confidential report, proportional action, independent appeal, phone navigation, and overflow-safe moderation UI. The final deployed VoiceOver and production smoke pass remains in B12.
 
 ---
 
@@ -1349,8 +1351,8 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 | B07 Venues and private-event foundations | `E01`–`E03` | done | [#22](https://github.com/gethuddle/huddle/issues/22) / [PR #23](https://github.com/gethuddle/huddle/pull/23) |
 | B08 Venue/group events and safe visibility | `E04`–`E06` | done | [#24](https://github.com/gethuddle/huddle/issues/24) / [PR #25](https://github.com/gethuddle/huddle/pull/25) |
 | B09 Group and event discovery | `G06`, `E07` | done | [#26](https://github.com/gethuddle/huddle/issues/26) / [PR #27](https://github.com/gethuddle/huddle/pull/27) |
-| B10 Invitations, attendance, and calendar | `T01`–`T04` | review | [#28](https://github.com/gethuddle/huddle/issues/28) |
-| B11 Moderation, security, and accessibility | `M01`–`M04` | not started | — |
+| B10 Invitations, attendance, and calendar | `T01`–`T04` | done | [#28](https://github.com/gethuddle/huddle/issues/28) / [PR #29](https://github.com/gethuddle/huddle/pull/29) |
+| B11 Moderation, security, and accessibility | `M01`–`M04` | review | [#30](https://github.com/gethuddle/huddle/issues/30) |
 | B12 Acceptance, production, and submission | `D01`–`D04` | not started | — |
 
 ---

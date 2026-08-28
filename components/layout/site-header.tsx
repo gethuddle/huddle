@@ -4,7 +4,12 @@ import { BrandMark } from "@/components/brand/brand-mark";
 import { Button } from "@/components/ui/button";
 import { SignOutButton } from "@/features/auth/components/sign-out-button";
 
-export function SiteHeader({ isSignedIn }: Readonly<{ isSignedIn: boolean }>) {
+import { MobileNavigation } from "./mobile-navigation";
+
+export function SiteHeader({
+  isModerator,
+  isSignedIn,
+}: Readonly<{ isModerator: boolean; isSignedIn: boolean }>) {
   return (
     <header className="border-b border-border-dark bg-ink/95">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-5 sm:px-10 lg:px-14">
@@ -14,7 +19,7 @@ export function SiteHeader({ isSignedIn }: Readonly<{ isSignedIn: boolean }>) {
         </Link>
 
         <div className="flex items-center gap-3 sm:gap-5">
-          <nav aria-label="Primary navigation" className="hidden sm:flex sm:items-center sm:gap-5">
+          <nav aria-label="Primary navigation" className="hidden xl:flex xl:items-center xl:gap-5">
             <Link
               className="text-sm font-medium text-muted-dark transition hover:text-linen"
               href="/"
@@ -40,27 +45,36 @@ export function SiteHeader({ isSignedIn }: Readonly<{ isSignedIn: boolean }>) {
               Groups
             </Link>
           </nav>
+          <MobileNavigation isModerator={isModerator} isSignedIn={isSignedIn} />
           {isSignedIn ? (
             <>
-              <Button asChild className="hidden lg:inline-flex" size="sm" variant="ghost">
+              <Button asChild className="hidden xl:inline-flex" size="sm" variant="ghost">
                 <Link href="/settings/interests">Interests</Link>
               </Button>
-              <Button asChild className="hidden lg:inline-flex" size="sm" variant="ghost">
+              <Button asChild className="hidden xl:inline-flex" size="sm" variant="ghost">
                 <Link href="/settings/friends">Friends</Link>
               </Button>
-              <Button asChild className="hidden lg:inline-flex" size="sm" variant="ghost">
+              <Button asChild className="hidden xl:inline-flex" size="sm" variant="ghost">
                 <Link href="/events">My events</Link>
               </Button>
+              <Button asChild className="hidden xl:inline-flex" size="sm" variant="ghost">
+                <Link href="/reports">Safety</Link>
+              </Button>
+              {isModerator ? (
+                <Button asChild className="hidden xl:inline-flex" size="sm" variant="outline">
+                  <Link href="/moderation">Moderation</Link>
+                </Button>
+              ) : null}
               <Button asChild className="hidden xl:inline-flex" size="sm" variant="ghost">
                 <Link href="/groups/new">Create group</Link>
               </Button>
               <Button asChild className="hidden xl:inline-flex" size="sm" variant="ghost">
                 <Link href="/venues/new">Create venue</Link>
               </Button>
-              <Button asChild className="hidden lg:inline-flex" size="sm">
+              <Button asChild className="hidden xl:inline-flex" size="sm">
                 <Link href="/events/new">Host event</Link>
               </Button>
-              <Button asChild size="sm" variant="ghost">
+              <Button asChild className="hidden xl:inline-flex" size="sm" variant="ghost">
                 <Link href="/settings/profile">Profile</Link>
               </Button>
               <SignOutButton />

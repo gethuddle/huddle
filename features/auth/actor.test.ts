@@ -10,6 +10,7 @@ const completeFacts: ActorFacts = {
   rulesCurrent: true,
   profileComplete: true,
   suspended: false,
+  restricted: false,
 };
 
 describe("actorGateCode", () => {
@@ -18,6 +19,7 @@ describe("actorGateCode", () => {
     [{ ...completeFacts, emailVerified: false }, "EMAIL_NOT_VERIFIED"],
     [{ ...completeFacts, profileExists: false }, "PROFILE_INCOMPLETE"],
     [{ ...completeFacts, suspended: true }, "ACCOUNT_SUSPENDED"],
+    [{ ...completeFacts, restricted: true }, "ACCOUNT_RESTRICTED"],
     [{ ...completeFacts, adultAttested: false }, "ADULT_ATTESTATION_REQUIRED"],
     [{ ...completeFacts, rulesCurrent: false }, "RULES_ACCEPTANCE_REQUIRED"],
     [{ ...completeFacts, profileComplete: false }, "PROFILE_INCOMPLETE"],
@@ -38,6 +40,26 @@ describe("actorGateCode", () => {
       ),
     ).toBeNull();
   });
+
+  it("keeps reporting and appeals available to suspended or restricted actors", () => {
+    expect(
+      actorGateCode({ ...completeFacts, suspended: true, restricted: true }, "safety"),
+    ).toBeNull();
+  });
+
+  it("keeps verified safety access when onboarding or current-rules facts are incomplete", () => {
+    expect(
+      actorGateCode(
+        {
+          ...completeFacts,
+          adultAttested: false,
+          rulesCurrent: false,
+          profileComplete: false,
+        },
+        "safety",
+      ),
+    ).toBeNull();
+  });
 });
 
 describe("requireActor", () => {
@@ -52,6 +74,9 @@ describe("requireActor", () => {
       rules_accepted_at: "2026-08-25T00:00:00Z",
       profile_completed_at: "2026-08-25T00:00:00Z",
       suspended_at: null,
+      suspension_expires_at: null,
+      community_restricted_at: null,
+      community_restricted_until: null,
     };
     const maybeSingle = vi.fn().mockResolvedValue({ data: profile, error: null });
     const client = {
