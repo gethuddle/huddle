@@ -211,6 +211,7 @@ Authorization MUST be enforced twice for sensitive transitions: application logi
 | `/discover` | Public with richer signed-in view | Event discovery filters, cursor feed, location consent |
 | `/matches` | Public | Future football fixtures by date/competition/team |
 | `/matches/[matchId]` | Public | Match summary and eligible linked events |
+| `/events` | Complete user | Personal invitation and attendance dashboard |
 | `/events/[eventId]` | Audience policy | Event summary, attendance state/action, permitted attendee context, calendar link |
 | `/events/new` | Complete user | Event creation wizard |
 | `/events/[eventId]/manage` | Host/group reviewer | Edit, invite, review attendance, submit/approve/cancel |

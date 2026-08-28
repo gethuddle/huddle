@@ -48,6 +48,9 @@ export function SiteHeader({ isSignedIn }: Readonly<{ isSignedIn: boolean }>) {
               <Button asChild className="hidden lg:inline-flex" size="sm" variant="ghost">
                 <Link href="/settings/friends">Friends</Link>
               </Button>
+              <Button asChild className="hidden lg:inline-flex" size="sm" variant="ghost">
+                <Link href="/events">My events</Link>
+              </Button>
               <Button asChild className="hidden xl:inline-flex" size="sm" variant="ghost">
                 <Link href="/groups/new">Create group</Link>
               </Button>

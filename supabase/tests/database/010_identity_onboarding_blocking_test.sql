@@ -481,7 +481,11 @@ select is(
       and action = 'user.block'
       and resource_id = '10000000-0000-4000-8000-000000000002'
       and request_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
-      and metadata = '{"friendship_removed": false}'::jsonb
+      and metadata = jsonb_build_object(
+        'friendship_removed', false,
+        'invitations_revoked', 0,
+        'attendance_ended', 0
+      )
   ),
   1::bigint,
   'a successful block writes one minimal audit record without notification data'

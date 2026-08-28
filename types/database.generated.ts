@@ -1531,6 +1531,14 @@ export type Database = {
         Args: { audit_request_id?: string; target_handle: string }
         Returns: boolean
       }
+      cancel_event: {
+        Args: {
+          audit_request_id?: string
+          input_event_id: string
+          input_reason: string
+        }
+        Returns: boolean
+      }
       change_group_member_role: {
         Args: {
           audit_request_id?: string
@@ -1585,6 +1593,18 @@ export type Database = {
         Returns: {
           group_id: string
           slug: string
+          status: string
+        }[]
+      }
+      create_event_invitation: {
+        Args: {
+          audit_request_id?: string
+          input_event_id: string
+          input_invitee_handle: string
+        }
+        Returns: {
+          event_id: string
+          invitation_id: string
           status: string
         }[]
       }
@@ -1797,6 +1817,19 @@ export type Database = {
         }
         Returns: undefined
       }
+      get_calendar_event: {
+        Args: { audit_request_id?: string; input_event_id: string }
+        Returns: {
+          description: string
+          ends_at: string
+          event_id: string
+          location_text: string
+          public_cacheable: boolean
+          starts_at: string
+          title: string
+          updated_at: string
+        }[]
+      }
       get_event_summary: {
         Args: { input_event_id: string }
         Returns: {
@@ -1833,7 +1866,12 @@ export type Database = {
           status: string
           title: string
           venue_verification_status: string
+          viewer_attendance_id: string
           viewer_attendance_status: string
+          viewer_can_read_private_location: boolean
+          viewer_invitation_id: string
+          viewer_invitation_status: string
+          viewer_is_authenticated: boolean
         }[]
       }
       get_group_by_slug: {
@@ -1862,6 +1900,13 @@ export type Database = {
           name: string
           slug: string
           viewer_membership_status: string
+        }[]
+      }
+      get_private_event_location: {
+        Args: { audit_request_id?: string; input_event_id: string }
+        Returns: {
+          address_text: string
+          directions: string
         }[]
       }
       get_public_profile_by_handle: {
@@ -1922,11 +1967,72 @@ export type Database = {
           verification_status: string
         }[]
       }
+      leave_event: {
+        Args: { audit_request_id?: string; input_attendance_id: string }
+        Returns: boolean
+      }
       leave_group: {
         Args: { audit_request_id?: string; input_group_id: string }
         Returns: {
           group_id: string
           status: string
+        }[]
+      }
+      list_approved_event_attendees: {
+        Args: {
+          input_event_id: string
+          input_limit?: number
+          input_offset?: number
+        }
+        Returns: {
+          display_name: string
+          profile_handle: string
+          total_count: number
+        }[]
+      }
+      list_event_attendance: {
+        Args: {
+          input_event_id: string
+          input_limit?: number
+          input_offset?: number
+        }
+        Returns: {
+          account_age_days: number
+          attendance_id: string
+          follows_audience_team: boolean
+          follows_away_team: boolean
+          follows_competition: boolean
+          follows_home_team: boolean
+          follows_sport: boolean
+          mutual_friend_count: number
+          removal_reason: string
+          requested_at: string
+          requester_city_name: string
+          requester_display_name: string
+          requester_handle: string
+          shared_active_group_count: number
+          source: string
+          status: string
+          total_count: number
+          user_id: string
+          verified_account: boolean
+        }[]
+      }
+      list_event_invitations: {
+        Args: {
+          input_event_id: string
+          input_limit?: number
+          input_offset?: number
+        }
+        Returns: {
+          created_at: string
+          invitation_id: string
+          invitee_display_name: string
+          invitee_handle: string
+          invitee_id: string
+          responded_at: string
+          status: string
+          total_count: number
         }[]
       }
       list_friendships: {
@@ -2081,6 +2187,27 @@ export type Database = {
           title: string
         }[]
       }
+      list_my_event_participation: {
+        Args: { input_limit?: number; input_offset?: number }
+        Returns: {
+          attendance_id: string
+          attendance_status: string
+          away_team_name: string
+          city_name: string
+          competition_name: string
+          event_id: string
+          home_team_name: string
+          host_kind: string
+          invitation_id: string
+          invitation_status: string
+          place_kind: string
+          remaining_capacity: number
+          requires_approval: boolean
+          starts_at: string
+          title: string
+          total_count: number
+        }[]
+      }
       list_owned_venues: {
         Args: { input_limit?: number; input_offset?: number }
         Returns: {
@@ -2138,6 +2265,14 @@ export type Database = {
         Args: { audit_request_id: string }
         Returns: undefined
       }
+      remove_attendee: {
+        Args: {
+          audit_request_id?: string
+          input_attendance_id: string
+          input_reason: string
+        }
+        Returns: boolean
+      }
       remove_friendship: {
         Args: { audit_request_id?: string; input_friendship_id: string }
         Returns: boolean
@@ -2150,6 +2285,23 @@ export type Database = {
         }
         Returns: boolean
       }
+      request_context: {
+        Args: { input_event_id: string; input_requester_id: string }
+        Returns: {
+          account_age_days: number
+          follows_audience_team: boolean
+          follows_away_team: boolean
+          follows_competition: boolean
+          follows_home_team: boolean
+          follows_sport: boolean
+          mutual_friend_count: number
+          requester_city_name: string
+          requester_display_name: string
+          requester_handle: string
+          shared_active_group_count: number
+          verified_account: boolean
+        }[]
+      }
       request_friendship: {
         Args: { audit_request_id?: string; target_user_id: string }
         Returns: string
@@ -2158,6 +2310,26 @@ export type Database = {
         Args: { audit_request_id?: string; target_handle: string }
         Returns: string
       }
+      request_or_join_event: {
+        Args: { audit_request_id?: string; input_event_id: string }
+        Returns: {
+          attendance_id: string
+          status: string
+        }[]
+      }
+      respond_to_event_invitation: {
+        Args: {
+          audit_request_id?: string
+          input_decision: string
+          input_invitation_id: string
+        }
+        Returns: {
+          attendance_id: string
+          attendance_status: string
+          event_id: string
+          invitation_status: string
+        }[]
+      }
       respond_to_friendship: {
         Args: {
           audit_request_id?: string
@@ -2165,6 +2337,17 @@ export type Database = {
           input_friendship_id: string
         }
         Returns: string
+      }
+      review_attendance: {
+        Args: {
+          audit_request_id?: string
+          input_attendance_id: string
+          input_decision: string
+        }
+        Returns: {
+          attendance_id: string
+          status: string
+        }[]
       }
       review_group_membership: {
         Args: {
@@ -2178,6 +2361,10 @@ export type Database = {
           status: string
           user_id: string
         }[]
+      }
+      revoke_event_invitation: {
+        Args: { audit_request_id?: string; input_invitation_id: string }
+        Returns: boolean
       }
       revoke_group_invite: {
         Args: { audit_request_id?: string; input_invite_id: string }
