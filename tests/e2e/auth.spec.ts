@@ -1073,9 +1073,9 @@ test("a confidential report becomes an independently reviewed moderation appeal"
   const targetHandle = `b11_target_${suffix}`;
   const targetDisplayName = `B11 Group Admin ${suffix}`;
   const confidentialDetails = `Confidential B11 evidence ${suffix} must stay inside platform moderation.`;
-  const decisionReason = `A documented warning is proportionate for the B11 test ${suffix}.`;
+  const decisionReason = `A documented temporary suspension is proportionate for B11 ${suffix}.`;
   const appealReason = `Please independently review the context for B11 decision ${suffix}.`;
-  const appealOutcome = `Independent review reversed the B11 warning ${suffix}.`;
+  const appealOutcome = `Independent review reversed the B11 suspension ${suffix}.`;
 
   await seedCompletedUser(reporterEmail, password, reporterHandle, "B11 Reporter");
   const targetId = await seedCompletedUser(targetEmail, password, targetHandle, targetDisplayName);
@@ -1144,14 +1144,25 @@ test("a confidential report becomes an independently reviewed moderation appeal"
     await expect(reportCard).toContainText(`@${reporterHandle}`);
     await reportCard.getByRole("button", { name: "Assign to me" }).click();
     await expect(reportCard.getByLabel("Proportional action")).toBeVisible();
-    await reportCard.getByLabel("Proportional action").selectOption("warning");
+    await reportCard.getByLabel("Proportional action").selectOption("temporary_suspension");
     await reportCard.getByRole("textbox", { name: "Decision reason" }).fill(decisionReason);
-    await reportCard.getByRole("button", { name: "Apply and audit action" }).click();
+    await reportCard.getByRole("button", { name: "Review temporary suspension" }).click();
+    const destructiveConfirmation = firstModeratorPage.getByRole("alertdialog");
+    await expect(destructiveConfirmation).toContainText("takes effect immediately");
+    await destructiveConfirmation.getByRole("button", { name: "Cancel" }).click();
+    await expect(destructiveConfirmation).toHaveCount(0);
+    await expect(reportCard).toContainText("reviewing");
+
+    await reportCard.getByRole("button", { name: "Review temporary suspension" }).click();
+    await firstModeratorPage
+      .getByRole("alertdialog")
+      .getByRole("button", { name: "Confirm temporary suspension" })
+      .click();
     await expect(reportCard).toContainText("resolved");
 
     await targetPage.goto(new URL("/reports", targetPage.url()).toString());
     const actionCard = targetPage.locator('[data-slot="card"]').filter({ hasText: decisionReason });
-    await expect(actionCard).toContainText("warning");
+    await expect(actionCard).toContainText("temporary suspension");
     await actionCard.getByText("Appeal this action", { exact: true }).click();
     await actionCard
       .getByRole("textbox", { name: "Why should this decision be reviewed?" })

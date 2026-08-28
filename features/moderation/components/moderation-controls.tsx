@@ -1,7 +1,17 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { startTransition, useActionState, useRef, useState } from "react";
 
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
@@ -17,6 +27,14 @@ import { ModerationActionFeedback } from "@/features/moderation/components/actio
 import type { ModerationActionKind, ModerationTargetType } from "@/features/moderation/schemas";
 
 const commonActions = ["content_correction"] as const;
+const destructiveActions = new Set<ModerationActionKind>([
+  "feature_restriction",
+  "temporary_suspension",
+  "permanent_account_ban",
+  "group_suspension",
+  "venue_suspension",
+  "event_cancellation",
+]);
 const actionsByTarget: Readonly<Record<ModerationTargetType, readonly ModerationActionKind[]>> = {
   profile: [
     ...commonActions,
@@ -62,14 +80,35 @@ export function ReportDecisionControls({
   const [selectedAction, setSelectedAction] = useState<ModerationActionKind>(
     actionsByTarget[targetType][0],
   );
+  const [confirmingAction, setConfirmingAction] = useState(false);
+  const actionFormRef = useRef<HTMLFormElement>(null);
   const actionErrors = actionState?.ok === false ? actionState.error.fields : undefined;
   const dismissErrors = dismissState?.ok === false ? dismissState.error.fields : undefined;
   const timed =
     selectedAction === "feature_restriction" || selectedAction === "temporary_suspension";
+  const destructive = destructiveActions.has(selectedAction);
+  const selectedActionLabel = selectedAction.replaceAll("_", " ");
+  const actionFormId = `moderation-action-form-${reportId}`;
+
+  function confirmDestructiveAction() {
+    if (actionFormRef.current === null) return;
+    const formData = new FormData(actionFormRef.current);
+
+    startTransition(() => {
+      action(formData);
+      setConfirmingAction(false);
+    });
+  }
 
   return (
     <div className="grid gap-5 xl:grid-cols-2">
-      <form action={action} className="space-y-4 rounded-xl border border-border p-4" noValidate>
+      <form
+        action={action}
+        className="space-y-4 rounded-xl border border-border p-4"
+        id={actionFormId}
+        noValidate
+        ref={actionFormRef}
+      >
         <input name="reportId" type="hidden" value={reportId} />
         <div>
           <Label htmlFor={`moderation-action-${reportId}`}>Proportional action</Label>
@@ -133,9 +172,40 @@ export function ReportDecisionControls({
           />
         </div>
         <ModerationActionFeedback state={actionState} />
-        <Button disabled={actionPending} type="submit" variant="destructive">
-          {actionPending ? "Applying…" : "Apply and audit action"}
-        </Button>
+        {destructive ? (
+          <AlertDialog onOpenChange={setConfirmingAction} open={confirmingAction}>
+            <AlertDialogTrigger asChild>
+              <Button disabled={actionPending} type="button" variant="destructive">
+                {actionPending ? "Applying…" : `Review ${selectedActionLabel}`}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Apply {selectedActionLabel}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action takes effect immediately and may revoke access, suspend a community,
+                  or cancel an event. Review the selected action, duration, and reason before
+                  confirming.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <Button
+                  disabled={actionPending}
+                  onClick={confirmDestructiveAction}
+                  type="button"
+                  variant="destructive"
+                >
+                  {actionPending ? "Applying…" : `Confirm ${selectedActionLabel}`}
+                </Button>
+                <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        ) : (
+          <Button disabled={actionPending} type="submit" variant="destructive">
+            {actionPending ? "Applying…" : "Apply and audit action"}
+          </Button>
+        )}
       </form>
 
       <form action={dismiss} className="space-y-4 rounded-xl border border-border p-4" noValidate>

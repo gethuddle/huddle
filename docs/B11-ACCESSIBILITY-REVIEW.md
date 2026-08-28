@@ -14,10 +14,11 @@ Playwright users; it is not a formal WCAG conformance claim.
 - Server-action feedback uses text plus `alert` or `status` semantics. Pending
   buttons expose a textual busy state and disable repeat submission; status is
   never conveyed by badge color alone.
-- Destructive block, leave, attendee-removal, and cancellation confirmations
-  use the repository-owned Radix AlertDialog primitive. Component tests cover
-  focus entry, contained keyboard navigation, Escape cancellation, and focus
-  restoration to the trigger.
+- Destructive block, leave, attendee-removal, event-cancellation, and
+  moderation-enforcement confirmations use the repository-owned Radix
+  AlertDialog primitive. Component tests cover deliberate confirmation,
+  cancellation without mutation, focus entry, contained keyboard navigation,
+  Escape cancellation, and focus restoration to the trigger.
 - The phone navigation uses the repository-owned Radix DropdownMenu primitive.
   Its component and Playwright tests prove named menu items, Escape dismissal,
   and trigger-focus restoration. Safety remains reachable on a phone, and the
