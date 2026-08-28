@@ -1868,7 +1868,10 @@ begin
 end;
 $function$;
 
-create or replace function private.has_eligible_moderator_peer(input_moderator_id uuid)
+create or replace function private.has_eligible_moderator_peer(
+  input_moderator_id uuid,
+  input_appellant_id uuid
+)
 returns boolean
 language sql
 security definer
@@ -1880,6 +1883,7 @@ as $function$
     from public.platform_roles as platform_role
     join public.profiles as profile on profile.id = platform_role.profile_id
     where platform_role.profile_id <> input_moderator_id
+      and platform_role.profile_id <> input_appellant_id
       and platform_role.role in ('moderator', 'admin')
       and private.profile_is_community_eligible(profile.id)
       and profile.community_restricted_at is null
@@ -1936,7 +1940,7 @@ begin
     appeal.appellant_id <> actor_id
       and not (
         moderation_action.moderator_id = actor_id
-        and private.has_eligible_moderator_peer(actor_id)
+        and private.has_eligible_moderator_peer(actor_id, appeal.appellant_id)
       ),
     appeal.created_at
   from public.moderation_appeals as appeal
@@ -2005,7 +2009,7 @@ begin
   for update;
 
   if target_action.moderator_id = actor_id
-    and private.has_eligible_moderator_peer(actor_id) then
+    and private.has_eligible_moderator_peer(actor_id, target_appeal.appellant_id) then
     raise exception using errcode = 'P0001', message = 'NOT_ALLOWED';
   end if;
 
@@ -2058,7 +2062,7 @@ revoke all on function private.report_target_is_available(uuid, public.moderatio
 revoke all on function private.moderation_target_appellant(
   public.moderation_target_type, uuid, uuid, uuid, uuid
 ) from public, anon, authenticated;
-revoke all on function private.has_eligible_moderator_peer(uuid)
+revoke all on function private.has_eligible_moderator_peer(uuid, uuid)
   from public, anon, authenticated;
 revoke all on function private.reverse_moderation_action_state(uuid, uuid, text, uuid)
   from public, anon, authenticated;

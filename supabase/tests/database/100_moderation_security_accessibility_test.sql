@@ -720,6 +720,86 @@ select is(
   'the appellant sees the bounded appeal outcome'
 );
 
+-- With exactly two moderators, an appellant who is also a moderator is not an
+-- eligible independent reviewer. The original moderator must remain able to
+-- decide the appeal so the queue cannot deadlock.
+set local "request.jwt.claim.sub" = 'b1100000-0000-4000-8000-000000000107';
+select set_config(
+  'test.b11_moderator_target_report',
+  (
+    select report_id::text
+    from public.submit_report(
+      'profile', 'b1100000-0000-4000-8000-000000000106', 'other',
+      'This report exercises the two-moderator appeal fallback path.', null
+    )
+  ),
+  true
+);
+
+set local "request.jwt.claim.sub" = 'b1100000-0000-4000-8000-000000000105';
+select is(
+  public.assign_report(current_setting('test.b11_moderator_target_report')::uuid, null),
+  true,
+  'the original moderator can assign the moderator-target report'
+);
+select set_config(
+  'test.b11_moderator_target_action',
+  (
+    select moderation_action_id::text
+    from public.apply_moderation_action(
+      current_setting('test.b11_moderator_target_report')::uuid,
+      'warning',
+      'A documented warning creates the two-moderator appeal regression.',
+      null,
+      null
+    )
+  ),
+  true
+);
+
+set local "request.jwt.claim.sub" = 'b1100000-0000-4000-8000-000000000106';
+select set_config(
+  'test.b11_moderator_target_appeal',
+  (
+    select appeal_id::text
+    from public.submit_moderation_appeal(
+      current_setting('test.b11_moderator_target_action')::uuid,
+      'The moderator target requests review of the warning evidence.',
+      null
+    )
+  ),
+  true
+);
+select throws_ok(
+  $$select public.review_moderation_appeal(current_setting('test.b11_moderator_target_appeal')::uuid,'uphold','An appellant must never review their own moderation appeal.',null)$$,
+  'P0001', 'NOT_ALLOWED',
+  'a moderator appellant cannot review their own appeal'
+);
+
+set local "request.jwt.claim.sub" = 'b1100000-0000-4000-8000-000000000105';
+select is(
+  (
+    select can_current_moderator_review
+    from public.list_moderation_appeals(null,20,0)
+    where appeal_id = current_setting('test.b11_moderator_target_appeal')::uuid
+  ),
+  true,
+  'the queue does not count the appellant as an eligible moderator peer'
+);
+select lives_ok(
+  $$select public.review_moderation_appeal(current_setting('test.b11_moderator_target_appeal')::uuid,'uphold','No independent eligible peer exists, so the original moderator must decide.',null)$$,
+  'the original moderator can decide when the only peer is the appellant'
+);
+select is(
+  (
+    select status
+    from public.list_moderation_appeals(null,20,0)
+    where appeal_id = current_setting('test.b11_moderator_target_appeal')::uuid
+  ),
+  'upheld',
+  'the two-moderator appeal reaches a terminal decision'
+);
+
 set local "request.jwt.claim.sub" = 'b1100000-0000-4000-8000-000000000105';
 select is(
   public.assign_report(current_setting('test.b11_group_report')::uuid, null),
