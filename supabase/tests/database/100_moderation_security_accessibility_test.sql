@@ -663,6 +663,38 @@ select throws_ok(
 set local "request.jwt.claim.sub" = 'b1100000-0000-4000-8000-000000000105';
 select is(
   (
+    select has_active_appeal
+    from public.list_moderation_actions(true,20,0)
+    where moderation_action_id = current_setting('test.b11_profile_action')::uuid
+  ),
+  true,
+  'the moderator action inventory marks an action with an active appeal'
+);
+select throws_ok(
+  $$select public.reverse_moderation_action(current_setting('test.b11_profile_action')::uuid,'An active appeal must own the reversal decision.',null)$$,
+  'P0001', 'INVALID_TRANSITION',
+  'a moderator cannot directly reverse an action while its appeal is active'
+);
+select is(
+  (
+    select count(*)
+    from public.list_moderation_actions(true,20,0)
+    where moderation_action_id = current_setting('test.b11_profile_action')::uuid
+  ),
+  1::bigint,
+  'a denied direct reversal leaves the moderation action active'
+);
+select is(
+  (
+    select status
+    from public.list_moderation_appeals(null,20,0)
+    where appeal_id = current_setting('test.b11_appeal')::uuid
+  ),
+  'open',
+  'a denied direct reversal leaves the appeal available for independent review'
+);
+select is(
+  (
     select can_current_moderator_review
     from public.list_moderation_appeals(null,20,0)
     where appeal_id = current_setting('test.b11_appeal')::uuid

@@ -1616,9 +1616,32 @@ as $function$
 declare
   actor_id uuid := private.assert_platform_moderator();
   normalized_reason text := btrim(input_reason);
+  locked_action_id uuid;
 begin
   if char_length(normalized_reason) not between 10 and 1000 then
     raise exception using errcode = 'P0001', message = 'VALIDATION_FAILED';
+  end if;
+
+  -- Appeal submission takes this same action-row lock before creating an
+  -- active appeal. Serializing both paths makes the active-appeal check and
+  -- direct reversal one atomic workflow decision.
+  select moderation_action.id
+  into locked_action_id
+  from public.moderation_actions as moderation_action
+  where moderation_action.id = input_action_id
+  for update;
+
+  if not found then
+    raise exception using errcode = 'P0001', message = 'NOT_FOUND';
+  end if;
+
+  if exists (
+    select 1
+    from public.moderation_appeals as appeal
+    where appeal.moderation_action_id = locked_action_id
+      and appeal.status in ('open', 'reviewing')
+  ) then
+    raise exception using errcode = 'P0001', message = 'INVALID_TRANSITION';
   end if;
 
   perform private.reverse_moderation_action_state(
@@ -1827,7 +1850,8 @@ returns table (
   expires_at timestamptz,
   created_at timestamptz,
   reversed_at timestamptz,
-  reversal_reason text
+  reversal_reason text,
+  has_active_appeal boolean
 )
 language plpgsql
 security definer
@@ -1852,7 +1876,13 @@ begin
     moderation_action.expires_at,
     moderation_action.created_at,
     moderation_action.reversed_at,
-    moderation_action.reversal_reason
+    moderation_action.reversal_reason,
+    exists (
+      select 1
+      from public.moderation_appeals as appeal
+      where appeal.moderation_action_id = moderation_action.id
+        and appeal.status in ('open', 'reviewing')
+    )
   from public.moderation_actions as moderation_action
   left join public.profiles as profile on profile.id = moderation_action.profile_id
   left join public.groups as supporter_group on supporter_group.id = moderation_action.group_id

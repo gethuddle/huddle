@@ -2493,6 +2493,7 @@ export type Database = {
           action: string
           created_at: string
           expires_at: string
+          has_active_appeal: boolean
           moderation_action_id: string
           reason: string
           reversal_reason: string

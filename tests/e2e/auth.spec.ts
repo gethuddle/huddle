@@ -1160,6 +1160,16 @@ test("a confidential report becomes an independently reviewed moderation appeal"
     await expect(actionCard).toContainText("Appeal under review.");
 
     await firstModeratorPage.reload();
+    const appealedAction = firstModeratorPage
+      .getByRole("region", { name: "Active enforcement actions" })
+      .locator('[data-slot="card"]')
+      .filter({ hasText: decisionReason });
+    await expect(appealedAction).toContainText(
+      "An active appeal must be decided from the appeal queue",
+    );
+    await expect(
+      appealedAction.getByRole("button", { name: "Reverse with audit evidence" }),
+    ).toHaveCount(0);
     const originalModeratorAppeal = firstModeratorPage
       .locator('[data-slot="card"]')
       .filter({ hasText: appealReason });

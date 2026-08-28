@@ -194,7 +194,14 @@ export default async function ModerationPage({ searchParams }: Props) {
                     Recorded {formatDate(item.created_at)}
                     {item.expires_at === null ? "" : ` · Review due ${formatDate(item.expires_at)}`}
                   </p>
-                  <ModerationReversalControl moderationActionId={item.moderation_action_id} />
+                  {item.has_active_appeal ? (
+                    <p className="mt-5 text-sm font-semibold text-muted-dark">
+                      An active appeal must be decided from the appeal queue before this action can
+                      be reversed.
+                    </p>
+                  ) : (
+                    <ModerationReversalControl moderationActionId={item.moderation_action_id} />
+                  )}
                 </CardContent>
               </Card>
             ))}

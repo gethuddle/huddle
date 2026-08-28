@@ -94,6 +94,7 @@ const platformModerationActionSchema = z
     created_at: z.string(),
     reversed_at: z.string().nullable(),
     reversal_reason: z.string().nullable(),
+    has_active_appeal: z.boolean(),
   })
   .strict();
 
