@@ -20,6 +20,7 @@ type MailpitMessage = Readonly<{
 const mailpitUrl = process.env.HUDDLE_MAILPIT_URL ?? "http://127.0.0.1:54324";
 const captureB08Evidence = process.env.HUDDLE_CAPTURE_B08_EVIDENCE === "1";
 const captureB09Evidence = process.env.HUDDLE_CAPTURE_B09_EVIDENCE === "1";
+const captureB10Evidence = process.env.HUDDLE_CAPTURE_B10_EVIDENCE === "1";
 
 function localAdminClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -535,8 +536,7 @@ test("a completed user creates and administers reviewed group membership", async
     await applicantPage.getByRole("link", { name: "Open safe event summary" }).click();
     await expect(applicantPage.getByRole("heading", { name: groupEventTitle })).toBeVisible();
     await expect(applicantPage.getByText("published", { exact: true })).toBeVisible();
-    await expect(applicantPage.getByText(exactGroupEventAddress)).toHaveCount(0);
-    expect(await applicantPage.content()).not.toContain(exactGroupEventAddress);
+    await expect(applicantPage.getByText(new RegExp(exactGroupEventAddress))).toBeVisible();
     await applicantPage.goto(new URL(`/groups/${slug}`, applicantPage.url()).toString());
     await expect(applicantPage.getByRole("link", { name: groupEventTitle })).toBeVisible();
 
@@ -807,7 +807,159 @@ test("completed users create venue and private events with safe projections", as
   await expect(page.getByText(exactHomeAddress)).toHaveCount(0);
   await page.getByRole("link", { name: "Open safe event summary" }).click();
   await expect(page.getByRole("heading", { name: `Arsenal at home ${suffix}` })).toBeVisible();
-  await expect(page.getByText("Protected home location saved")).toBeVisible();
-  await expect(page.getByText(exactHomeAddress)).toHaveCount(0);
-  expect(await page.content()).not.toContain(exactHomeAddress);
+  await expect(page.getByText(new RegExp(exactHomeAddress))).toBeVisible();
+});
+
+test("direct invitation and attendance approval reveal then revoke a protected address", async ({
+  browser,
+  context,
+  page,
+}) => {
+  test.setTimeout(90_000);
+  await clearMailbox();
+  await seedCachedFixtureCatalogAfterFailure();
+
+  const suffix = Date.now().toString().slice(-8);
+  const password = "matchday-local-test";
+  const hostHandle = `b10_host_${suffix}`;
+  const inviteeHandle = `b10_invited_${suffix}`;
+  const requesterHandle = `b10_request_${suffix}`;
+  const eventTitle = `B10 home huddle ${suffix}`;
+  const exactAddress = `77 Protected B10 Home ${suffix}, Haifa`;
+
+  await signUpAndVerify(page, context, `b10-host-${suffix}@example.com`, password);
+  await completeProfile(page, hostHandle, "B10 Host");
+
+  const inviteeContext = await browser.newContext({ baseURL: "http://127.0.0.1:3000" });
+  const inviteePage = await inviteeContext.newPage();
+  const requesterContext = await browser.newContext({ baseURL: "http://127.0.0.1:3000" });
+  const requesterPage = await requesterContext.newPage();
+
+  try {
+    await signUpAndVerify(
+      inviteePage,
+      inviteeContext,
+      `b10-invited-${suffix}@example.com`,
+      password,
+    );
+    await completeProfile(inviteePage, inviteeHandle, "B10 Invited Fan");
+    await inviteePage.goto(new URL(`/people/${hostHandle}`, inviteePage.url()).toString());
+    await inviteePage.getByRole("button", { name: "Add friend" }).click();
+    await expect(inviteePage.getByRole("status")).toHaveText("Friend request sent.");
+    await page.goto(new URL(`/people/${inviteeHandle}`, page.url()).toString());
+    await page.getByRole("button", { name: "Accept" }).click();
+    await expect(page.getByRole("status")).toHaveText("Friend request accepted.");
+
+    await signUpAndVerify(
+      requesterPage,
+      requesterContext,
+      `b10-requester-${suffix}@example.com`,
+      password,
+    );
+    await completeProfile(requesterPage, requesterHandle, "B10 Requesting Fan");
+    await requesterPage.goto(new URL(`/people/${hostHandle}`, requesterPage.url()).toString());
+    await requesterPage.getByRole("button", { name: "Add friend" }).click();
+    await expect(requesterPage.getByRole("status")).toHaveText("Friend request sent.");
+    await page.goto(new URL(`/people/${requesterHandle}`, page.url()).toString());
+    await page.getByRole("button", { name: "Accept" }).click();
+    await expect(page.getByRole("status")).toHaveText("Friend request accepted.");
+
+    await page.goto(new URL("/events/new", page.url()).toString());
+    await page.getByRole("combobox", { name: "Future fixture" }).selectOption({ index: 1 });
+    await page.getByRole("textbox", { name: "Event title" }).fill(eventTitle);
+    await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
+    await page
+      .getByRole("textbox", { name: "Description" })
+      .fill("A protected home event proving direct invitations and attendance approval.");
+    await page.getByRole("textbox", { name: "Exact home address" }).fill(exactAddress);
+    await page.getByRole("spinbutton", { name: "Longitude" }).fill("34.99800");
+    await page.getByRole("spinbutton", { name: "Latitude" }).fill("32.81200");
+    await page.getByRole("radio", { name: /Friends/ }).click();
+    await page.getByRole("checkbox", { name: /I confirm that I am the host/i }).click();
+    await page.getByRole("button", { name: "Publish event" }).click();
+    await page.getByRole("link", { name: "Open safe event summary" }).click();
+    await expect(page).toHaveURL(/\/events\/[0-9a-f-]{36}$/);
+    await expect(page.getByText(new RegExp(exactAddress))).toBeVisible();
+    const eventPath = new URL(page.url()).pathname;
+
+    await page.getByRole("link", { name: "Manage invitations and attendance" }).click();
+    await page.getByRole("textbox", { name: "Huddle handle" }).fill(inviteeHandle);
+    await page.getByRole("button", { name: "Send invitation" }).click();
+    await expect(page.getByRole("status")).toContainText(`@${inviteeHandle}`);
+
+    await inviteePage.goto(new URL("/events", inviteePage.url()).toString());
+    await expect(inviteePage.getByRole("heading", { name: eventTitle })).toBeVisible();
+    await inviteePage.getByRole("button", { name: "Accept invitation" }).click();
+    await expect(inviteePage.getByRole("status")).toContainText("place is confirmed");
+
+    await requesterPage.goto(new URL(eventPath, requesterPage.url()).toString());
+    await expect(requesterPage.getByRole("heading", { name: eventTitle })).toBeVisible();
+    await expect(requesterPage.getByText(exactAddress)).toHaveCount(0);
+    expect(await requesterPage.content()).not.toContain(exactAddress);
+    await expect(requesterPage.getByRole("button", { name: "Request to attend" })).toBeVisible();
+    await requesterPage.getByRole("button", { name: "Request to attend" }).click();
+    await expect(requesterPage.getByRole("status")).toContainText("request was sent");
+
+    await page.reload();
+    const requesterCard = page
+      .getByRole("link", { name: `B10 Requesting Fan · @${requesterHandle}` })
+      .locator("xpath=ancestor::div[contains(@class,'rounded-2xl')][1]");
+    await expect(requesterCard.getByRole("button", { name: "Approve" })).toBeVisible();
+    if (captureB10Evidence) {
+      await page.screenshot({
+        fullPage: true,
+        path: "docs/evidence/b10/attendance-review-desktop.png",
+      });
+    }
+    await requesterCard.getByRole("button", { name: "Approve" }).click();
+    await expect(page.getByRole("status")).toHaveText("Request approved.");
+
+    await inviteePage.goto(new URL(eventPath, inviteePage.url()).toString());
+    await expect(inviteePage.getByText(new RegExp(exactAddress))).toBeVisible();
+    const eventId = eventPath.split("/").at(-1);
+    const calendarPath = `/api/events/${eventId}/calendar.ics`;
+    const authorizedCalendar = await inviteePage.evaluate(async (path) => {
+      const response = await fetch(path);
+      return { body: await response.text(), ok: response.ok };
+    }, calendarPath);
+    expect(authorizedCalendar.ok, authorizedCalendar.body).toBe(true);
+    expect(authorizedCalendar.body).toContain(`LOCATION:${exactAddress.replace(",", "\\,")}`);
+
+    if (captureB10Evidence) {
+      await inviteePage.screenshot({
+        fullPage: true,
+        path: "docs/evidence/b10/approved-private-event-desktop.png",
+      });
+    }
+
+    const inviteeCard = page
+      .getByRole("link", { name: `B10 Invited Fan · @${inviteeHandle}` })
+      .locator("xpath=ancestor::div[contains(@class,'rounded-2xl')][1]");
+    await inviteeCard.getByRole("button", { name: "Remove attendee" }).click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "Confirm removal" }).click();
+    await expect(page.getByRole("status")).toContainText("Attendee removed");
+
+    await inviteePage.reload();
+    await expect(inviteePage.getByText(exactAddress)).toHaveCount(0);
+    expect(await inviteePage.content()).not.toContain(exactAddress);
+    const revokedCalendar = await inviteePage.evaluate(async (path) => {
+      const response = await fetch(path);
+      return { body: await response.text(), ok: response.ok };
+    }, calendarPath);
+    expect(revokedCalendar.ok, revokedCalendar.body).toBe(true);
+    expect(revokedCalendar.body).not.toContain(exactAddress);
+
+    await requesterPage.reload();
+    await expect(requesterPage.getByText(new RegExp(exactAddress))).toBeVisible();
+    await requesterPage.getByRole("button", { name: "Leave event" }).click();
+    await requesterPage
+      .getByRole("alertdialog")
+      .getByRole("button", { name: "Confirm leave" })
+      .click();
+    await expect(requesterPage.getByRole("status")).toContainText("history was retained");
+    await expect(requesterPage.getByText(exactAddress)).toHaveCount(0);
+  } finally {
+    await inviteeContext.close();
+    await requesterContext.close();
+  }
 });

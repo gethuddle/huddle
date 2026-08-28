@@ -91,15 +91,15 @@ select ok(not has_function_privilege('anon', 'public.create_venue(text,text,uuid
 select ok(has_function_privilege('anon', 'public.get_venue_by_slug(text)', 'execute'), 'public venue details use a safe projection');
 select ok(has_function_privilege('authenticated', 'public.create_or_update_event(uuid,uuid,uuid,uuid,text,text,text,text,text,text,boolean,timestamptz,timestamptz,uuid,text,uuid,text,text,double precision,double precision,text,uuid,uuid,integer,boolean,text,text,double precision,double precision,text,uuid)', 'execute'), 'eligible hosts use one controlled event transaction');
 select ok(not has_function_privilege('anon', 'public.create_or_update_event(uuid,uuid,uuid,uuid,text,text,text,text,text,text,boolean,timestamptz,timestamptz,uuid,text,uuid,text,text,double precision,double precision,text,uuid,uuid,integer,boolean,text,text,double precision,double precision,text,uuid)', 'execute'), 'anonymous callers cannot create events');
-select is(
+select isnt(
   to_regprocedure('public.get_private_event_location(uuid,uuid)'),
   null::regprocedure,
-  'B07 does not publish the deferred exact-location read capability'
+  'B10 publishes the audited exact-location read capability'
 );
-select is(
+select isnt(
   to_regprocedure('public.cancel_event(uuid,text,uuid)'),
   null::regprocedure,
-  'B07 does not publish deferred cancellation and attendance side effects'
+  'B10 publishes cancellation with retained participation history'
 );
 
 insert into auth.users (
@@ -767,18 +767,19 @@ select throws_ok(
 set local role authenticated;
 set local "request.jwt.claim.sub" = '61000000-0000-4000-8000-000000000101';
 select is(public.block_user('b07_friend', null), true, 'blocking a friend is immediate');
+
+reset role;
 select is(
   (select status::text from public.event_invitations where event_id = '61000000-0000-4000-8000-000000000401'),
-  'pending',
-  'B07 leaves invitation mutation to the later attendance milestone'
+  'revoked',
+  'blocking revokes a pending direct invitation to a future home event'
 );
 select is(
   (select status::text from public.event_attendance where event_id = '61000000-0000-4000-8000-000000000401'),
-  'approved',
-  'B07 leaves attendance mutation to the later attendance milestone'
+  'removed',
+  'a home host block immediately ends the blocked attendee access'
 );
 
-reset role;
 set local role authenticated;
 set local "request.jwt.claim.sub" = '61000000-0000-4000-8000-000000000102';
 select is(

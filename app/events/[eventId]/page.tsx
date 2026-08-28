@@ -5,10 +5,21 @@ import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { EventParticipationControls } from "@/features/attendance/components/event-participation-controls";
+import { getPrivateEventLocation, listApprovedEventAttendees } from "@/features/attendance/queries";
+import { eventPageSchema } from "@/features/attendance/schemas";
 import { EventBadges } from "@/features/events/components/event-badges";
 import { getEventSummary } from "@/features/events/queries";
 import { eventRouteIdSchema } from "@/features/events/schemas";
 import { formatJerusalemKickoff } from "@/features/sports/time";
+import { DomainError } from "@/lib/errors";
 import { VenueVerificationBadge } from "@/features/venues/components/venue-verification-badge";
 
 export const metadata: Metadata = {
@@ -17,13 +28,26 @@ export const metadata: Metadata = {
 
 type EventPageProps = Readonly<{
   params: Promise<Readonly<{ eventId: string }>>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }>;
 
-export default async function EventPage({ params }: EventPageProps) {
+export default async function EventPage({ params, searchParams }: EventPageProps) {
   const parsedId = eventRouteIdSchema.safeParse((await params).eventId);
   if (!parsedId.success) notFound();
   const event = await getEventSummary(parsedId.data);
   if (event === null) notFound();
+  const rawAttendeePage = (await searchParams).attendeePage;
+  const attendeePage = eventPageSchema.parse(
+    Array.isArray(rawAttendeePage) ? rawAttendeePage[0] : rawAttendeePage,
+  );
+  const [privateLocation, approvedAttendees] = await Promise.all([
+    event.viewerCanReadPrivateLocation ? readPrivateLocation(event.id) : Promise.resolve(null),
+    event.canManage || event.viewerAttendanceStatus === "approved"
+      ? readApprovedAttendees(event.id, attendeePage)
+      : Promise.resolve([]),
+  ]);
+  const attendeeTotal = approvedAttendees.at(0)?.total_count ?? 0;
+  const attendeePageCount = Math.max(1, Math.ceil(attendeeTotal / 20));
 
   return (
     <section className="py-12 sm:py-16">
@@ -68,11 +92,13 @@ export default async function EventPage({ params }: EventPageProps) {
               <Detail
                 label="Location"
                 value={
-                  event.placeKind === "public_place" &&
-                  event.publicPlaceName !== null &&
-                  event.publicAddressText !== null
-                    ? `${event.publicPlaceName} — ${event.publicAddressText}`
-                    : event.locationSummary
+                  privateLocation !== null
+                    ? `${privateLocation.address_text}${privateLocation.directions === null ? "" : ` — ${privateLocation.directions}`}`
+                    : event.placeKind === "public_place" &&
+                        event.publicPlaceName !== null &&
+                        event.publicAddressText !== null
+                      ? `${event.publicPlaceName} — ${event.publicAddressText}`
+                      : event.locationSummary
                 }
               />
               <Detail
@@ -129,11 +155,19 @@ export default async function EventPage({ params }: EventPageProps) {
               <p className="font-semibold text-sand">Protected location boundary</p>
               <p className="mt-2 text-sm leading-6 text-muted-dark">
                 {event.placeKind === "home"
-                  ? "This summary deliberately contains no exact home address or coordinate."
+                  ? privateLocation === null
+                    ? "This summary deliberately contains no exact home address or coordinate."
+                    : "Your current authorization allowed one audited address read. Leaving, removal, blocking, suspension, relationship loss, or cancellation ends future access."
                   : event.placeKind === "venue"
                     ? "This listing uses the venue profile's public business address."
                     : "This is an ordinary public-place location."}
               </p>
+              {event.placeKind === "home" ? (
+                <p className="mt-3 text-sm leading-6 text-muted-dark">
+                  Revocation prevents future reads; Huddle cannot make an address someone already
+                  viewed unknown.
+                </p>
+              ) : null}
               {event.viewerAttendanceStatus === null ? null : (
                 <p className="mt-3 text-sm font-semibold text-court">
                   Your attendance status: {event.viewerAttendanceStatus}
@@ -145,6 +179,78 @@ export default async function EventPage({ params }: EventPageProps) {
               </p>
             </CardContent>
           </Card>
+
+          <Card size="sm">
+            <CardHeader>
+              <h2 className="text-xl font-semibold text-linen">Join this huddle</h2>
+            </CardHeader>
+            <CardContent>
+              <EventParticipationControls
+                canManage={event.canManage}
+                eventId={event.id}
+                eventStatus={event.status}
+                hostKind={event.host.kind}
+                remainingCapacity={event.remainingCapacity}
+                requiresApproval={event.requiresApproval}
+                viewerAttendanceId={event.viewerAttendanceId}
+                viewerAttendanceStatus={event.viewerAttendanceStatus}
+                viewerInvitationId={event.viewerInvitationId}
+                viewerInvitationStatus={event.viewerInvitationStatus}
+                viewerIsAuthenticated={event.viewerIsAuthenticated}
+              />
+            </CardContent>
+          </Card>
+
+          {approvedAttendees.length === 0 ? null : (
+            <Card size="sm">
+              <CardHeader>
+                <h2 className="text-xl font-semibold text-linen">Approved attendees</h2>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2">
+                  {approvedAttendees.map((attendee) => (
+                    <li key={attendee.profile_handle}>
+                      <Link
+                        className="text-sm font-semibold text-linen hover:text-court"
+                        href={`/people/${attendee.profile_handle}`}
+                      >
+                        {attendee.display_name} · @{attendee.profile_handle}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                {attendeePageCount > 1 ? (
+                  <Pagination className="mt-5">
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          aria-disabled={attendeePage === 1}
+                          href={
+                            attendeePage === 1 ? undefined : `?attendeePage=${attendeePage - 1}`
+                          }
+                        />
+                      </PaginationItem>
+                      <PaginationItem>
+                        <span className="px-3 text-xs text-muted-dark">
+                          {attendeePage}/{attendeePageCount}
+                        </span>
+                      </PaginationItem>
+                      <PaginationItem>
+                        <PaginationNext
+                          aria-disabled={attendeePage >= attendeePageCount}
+                          href={
+                            attendeePage >= attendeePageCount
+                              ? undefined
+                              : `?attendeePage=${attendeePage + 1}`
+                          }
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                ) : null}
+              </CardContent>
+            </Card>
+          )}
 
           {event.organizingGroupName === null ? null : (
             <Card size="sm">
@@ -160,6 +266,24 @@ export default async function EventPage({ params }: EventPageProps) {
       </div>
     </section>
   );
+}
+
+async function readPrivateLocation(eventId: string) {
+  try {
+    return await getPrivateEventLocation(eventId);
+  } catch (error) {
+    if (error instanceof DomainError && error.code !== "INTERNAL_ERROR") return null;
+    throw error;
+  }
+}
+
+async function readApprovedAttendees(eventId: string, page: number) {
+  try {
+    return await listApprovedEventAttendees(eventId, page);
+  } catch (error) {
+    if (error instanceof DomainError && error.code !== "INTERNAL_ERROR") return [];
+    throw error;
+  }
 }
 
 function Detail({ label, value }: Readonly<{ label: string; value: string }>) {

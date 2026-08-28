@@ -1020,13 +1020,13 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Create invite/revoke/respond functions around the existing invitation schema.
-- [ ] Prevent duplicate, self, blocked, suspended, ineligible, cancelled, started, or full invitations/acceptance.
-- [ ] Treat accepted private-event invitation as pre-approved attendance.
-- [ ] Allow direct invitation to override only team-follow for venue events.
-- [ ] Never bypass adult/completion, block, capacity, cancellation, or one-seat rules.
-- [ ] Make pending invite revocation distinct from removing an approved attendee.
-- [ ] Build invite manager and invitee dashboard states.
+- [x] Create invite/revoke/respond functions around the existing invitation schema.
+- [x] Prevent duplicate, self, blocked, suspended, ineligible, cancelled, started, or full invitations/acceptance.
+- [x] Treat accepted private-event invitation as pre-approved attendance.
+- [x] Allow direct invitation to override only team-follow for venue events.
+- [x] Never bypass adult/completion, block, capacity, cancellation, or one-seat rules.
+- [x] Make pending invite revocation distinct from removing an approved attendee.
+- [x] Build invite manager and invitee dashboard states.
 
 **Tests/evidence:** transition matrix, invitation override boundaries, capacity race on acceptance, no guest field/control, component/E2E.
 
@@ -1040,15 +1040,15 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Implement `request_or_join_event` with all current eligibility checks.
-- [ ] Keep pending requests from consuming capacity.
-- [ ] Implement review transaction that locks event, rechecks manager/attendee/event, counts approved rows, and updates once.
-- [ ] Return stable conflicts such as `EVENT_FULL` without partial changes.
-- [ ] Keep one event/user attendance row through transitions.
-- [ ] Implement factual request context: verified account, age of account, mutual accepted friends, shared active groups, relevant follows.
-- [ ] Do not add a numeric reputation score or reveal full graphs.
-- [ ] Build attendee request/review lists and TanStack mutation invalidation.
-- [ ] Never optimistically claim an approved seat.
+- [x] Implement `request_or_join_event` with all current eligibility checks.
+- [x] Keep pending requests from consuming capacity.
+- [x] Implement review transaction that locks event, rechecks manager/attendee/event, counts approved rows, and updates once.
+- [x] Return stable conflicts such as `EVENT_FULL` without partial changes.
+- [x] Keep one event/user attendance row through transitions.
+- [x] Implement factual request context: verified account, age of account, mutual accepted friends, shared active groups, relevant follows.
+- [x] Do not add a numeric reputation score or reveal full graphs.
+- [x] Build attendee request/review lists and TanStack mutation invalidation.
+- [x] Never optimistically claim an approved seat.
 
 **Tests/evidence:** concurrent approval pgTAP/integration test, eligibility matrix, stable error mapping, component pending/error/success, host-review E2E.
 
@@ -1062,15 +1062,15 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Implement audited `get_private_event_location` with a fixed safe search path and minimal result.
-- [ ] Recheck current approval, relationship, group eligibility, block, ban, suspension, and cancellation on every call.
-- [ ] Implement attendee leave as retained `left` history.
-- [ ] Implement host removal as retained `removed` history with reason/audit.
-- [ ] Extend block transaction to end affected future home attendance/address access atomically.
-- [ ] Revoke access after group ban/loss, cancellation, suspension, leave, and removal.
-- [ ] Reject material host/audience/place/private-address changes after first approval and require cancellation/new event.
-- [ ] Keep invitations and attendance on cancellation.
-- [ ] Build authorized-details, leave, remove, and cancel controls with confirmations.
+- [x] Implement audited `get_private_event_location` with a fixed safe search path and minimal result.
+- [x] Recheck current approval, relationship, group eligibility, block, ban, suspension, and cancellation on every call.
+- [x] Implement attendee leave as retained `left` history.
+- [x] Implement host removal as retained `removed` history with reason/audit.
+- [x] Extend block transaction to end affected future home attendance/address access atomically.
+- [x] Revoke access after group ban/loss, cancellation, suspension, leave, and removal.
+- [x] Reject material host/audience/place/private-address changes after first approval and require cancellation/new event.
+- [x] Keep invitations and attendance on cancellation.
+- [x] Build authorized-details, leave, remove, and cancel controls with confirmations.
 
 **Tests/evidence:** direct table denial; before/after approval, leave, removal, block, ban, cancellation, and suspension tests; audit records; material-change denial; payload/source/log inspection; E2E flows.
 
@@ -1084,15 +1084,17 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Add pure calendar serialization with RFC 5545 text escaping and line folding.
-- [ ] Emit stable UID, DTSTAMP, UTC DTSTART/DTEND, summary, description, URL, and authorized location.
-- [ ] Add the route with safe content type/disposition and cache policy.
-- [ ] Allow anonymous calendar only for safe public venue events.
-- [ ] Require current session/audience authorization for private events.
-- [ ] Reuse the audited private-location function; do not duplicate authorization.
-- [ ] Omit private address after any revocation transition.
+- [x] Add pure calendar serialization with RFC 5545 text escaping and line folding.
+- [x] Emit stable UID, DTSTAMP, UTC DTSTART/DTEND, summary, description, URL, and authorized location.
+- [x] Add the route with safe content type/disposition and cache policy.
+- [x] Allow anonymous calendar only for safe public venue events.
+- [x] Require current session/audience authorization for private events.
+- [x] Reuse the audited private-location function; do not duplicate authorization.
+- [x] Omit private address after any revocation transition.
 
 **Tests/evidence:** unit fixtures for escaping/folding/time/UID, authorization matrix, valid file manual import, private no-store header, E2E location before/after revocation.
+
+**B10 implementation decisions:** invitations and attendance mutate only through authenticated security-definer functions; direct invitation supplies invite-only eligibility and bypasses only the venue team-follow requirement. Event-row locks serialize every seat reservation, deterministic canonical-pair locks coordinate block-sensitive transitions, and separate two-connection regressions prove both approval and direct-invitation acceptance cannot overfill the final place. Direct table reads are removed in favor of bounded manager, attendee, and dashboard projections. Protected home details are returned only through one current-authorization function that writes an address-free audit record, while leave, removal, blocking, suspension, relationship or group eligibility loss, and cancellation revoke later reads. Hosts may remove or cancel during an in-progress event so the safety transition remains usable when it matters. The repository-owned Radix confirmation controls expose retained history clearly, and the RFC 5545 route includes a home location only when that same audited authorization succeeds.
 
 ---
 
@@ -1346,8 +1348,8 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 | B06 Group membership and administration | `G03`–`G05` | done | [#20](https://github.com/gethuddle/huddle/issues/20) / [PR #21](https://github.com/gethuddle/huddle/pull/21) |
 | B07 Venues and private-event foundations | `E01`–`E03` | done | [#22](https://github.com/gethuddle/huddle/issues/22) / [PR #23](https://github.com/gethuddle/huddle/pull/23) |
 | B08 Venue/group events and safe visibility | `E04`–`E06` | done | [#24](https://github.com/gethuddle/huddle/issues/24) / [PR #25](https://github.com/gethuddle/huddle/pull/25) |
-| B09 Group and event discovery | `G06`, `E07` | review | [#26](https://github.com/gethuddle/huddle/issues/26) |
-| B10 Invitations, attendance, and calendar | `T01`–`T04` | not started | — |
+| B09 Group and event discovery | `G06`, `E07` | done | [#26](https://github.com/gethuddle/huddle/issues/26) / [PR #27](https://github.com/gethuddle/huddle/pull/27) |
+| B10 Invitations, attendance, and calendar | `T01`–`T04` | review | [#28](https://github.com/gethuddle/huddle/issues/28) |
 | B11 Moderation, security, and accessibility | `M01`–`M04` | not started | — |
 | B12 Acceptance, production, and submission | `D01`–`D04` | not started | — |
 

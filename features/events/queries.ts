@@ -37,9 +37,14 @@ const eventSummaryRowSchema = z
     capacity: z.number().int().positive(),
     approved_attendee_count: z.number().int().nonnegative(),
     remaining_capacity: z.number().int().nonnegative(),
+    viewer_attendance_id: z.uuid().nullable(),
     viewer_attendance_status: z
       .enum(["requested", "approved", "declined", "left", "removed"])
       .nullable(),
+    viewer_invitation_id: z.uuid().nullable(),
+    viewer_invitation_status: z.enum(["pending", "accepted", "declined", "revoked"]).nullable(),
+    viewer_is_authenticated: z.boolean(),
+    viewer_can_read_private_location: z.boolean(),
     requires_approval: z.boolean(),
     organizing_group_name: z.string().nullable(),
     can_manage: z.boolean(),
@@ -81,7 +86,12 @@ export type EventSummary = Readonly<{
   capacity: number;
   approvedAttendeeCount: number;
   remainingCapacity: number;
+  viewerAttendanceId: string | null;
   viewerAttendanceStatus: "requested" | "approved" | "declined" | "left" | "removed" | null;
+  viewerInvitationId: string | null;
+  viewerInvitationStatus: "pending" | "accepted" | "declined" | "revoked" | null;
+  viewerIsAuthenticated: boolean;
+  viewerCanReadPrivateLocation: boolean;
   requiresApproval: boolean;
   organizingGroupName: string | null;
   canManage: boolean;
@@ -131,7 +141,12 @@ export async function getEventSummary(eventId: string): Promise<EventSummary | n
       capacity: row.capacity,
       approvedAttendeeCount: row.approved_attendee_count,
       remainingCapacity: row.remaining_capacity,
+      viewerAttendanceId: row.viewer_attendance_id,
       viewerAttendanceStatus: row.viewer_attendance_status,
+      viewerInvitationId: row.viewer_invitation_id,
+      viewerInvitationStatus: row.viewer_invitation_status,
+      viewerIsAuthenticated: row.viewer_is_authenticated,
+      viewerCanReadPrivateLocation: row.viewer_can_read_private_location,
       requiresApproval: row.requires_approval,
       organizingGroupName: row.organizing_group_name,
       canManage: row.can_manage,
