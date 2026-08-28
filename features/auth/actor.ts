@@ -5,7 +5,7 @@ import { DomainError, type DomainErrorCode } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/database.generated";
 
-export type ActorRequirement = "onboarding" | "community";
+export type ActorRequirement = "onboarding" | "community" | "safety";
 
 export type ActorFacts = Readonly<{
   authenticated: boolean;
@@ -15,6 +15,7 @@ export type ActorFacts = Readonly<{
   rulesCurrent: boolean;
   profileComplete: boolean;
   suspended: boolean;
+  restricted: boolean;
 }>;
 
 export function actorGateCode(
@@ -24,6 +25,7 @@ export function actorGateCode(
   if (!facts.authenticated) return "AUTH_REQUIRED";
   if (!facts.emailVerified) return "EMAIL_NOT_VERIFIED";
   if (!facts.profileExists) return "PROFILE_INCOMPLETE";
+  if (requirement === "safety") return null;
   if (facts.suspended) return "ACCOUNT_SUSPENDED";
 
   if (requirement === "community") {
@@ -31,6 +33,8 @@ export function actorGateCode(
     if (!facts.rulesCurrent) return "RULES_ACCEPTANCE_REQUIRED";
     if (!facts.profileComplete) return "PROFILE_INCOMPLETE";
   }
+
+  if (requirement === "community" && facts.restricted) return "ACCOUNT_RESTRICTED";
 
   return null;
 }
@@ -46,6 +50,9 @@ type ActorProfile = Pick<
   | "rules_accepted_at"
   | "profile_completed_at"
   | "suspended_at"
+  | "suspension_expires_at"
+  | "community_restricted_at"
+  | "community_restricted_until"
 >;
 
 type ServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -72,7 +79,7 @@ export async function requireActor(
   const { data: profile, error } = await supabase
     .from("profiles")
     .select(
-      "id, handle, display_name, city_id, adult_attested_at, rules_version, rules_accepted_at, profile_completed_at, suspended_at",
+      "id, handle, display_name, city_id, adult_attested_at, rules_version, rules_accepted_at, profile_completed_at, suspended_at, suspension_expires_at, community_restricted_at, community_restricted_until",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -96,6 +103,8 @@ export async function requireActor(
       profile.display_name !== null &&
       profile.city_id !== null,
     suspended: profile?.suspended_at !== null && profile?.suspended_at !== undefined,
+    restricted:
+      profile?.community_restricted_at !== null && profile?.community_restricted_at !== undefined,
   };
   const failureCode = actorGateCode(facts, requirement);
 

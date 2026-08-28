@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   createProvider: vi.fn(),
   createServiceRoleClient: vi.fn(),
   runSportsSync: vi.fn(),
+  safeLog: vi.fn(),
 }));
 
 vi.mock("@/lib/env/server", () => ({
@@ -36,6 +37,11 @@ vi.mock("@/lib/supabase/service-role", () => ({
 vi.mock("@/features/sports/sync", () => ({
   createFootballDataSyncProvider: mocks.createProvider,
   runSportsSync: mocks.runSportsSync,
+}));
+
+vi.mock("@/lib/observability/server", () => ({
+  elapsedMilliseconds: () => 42,
+  safeLog: mocks.safeLog,
 }));
 
 function syncRequest(
@@ -73,7 +79,10 @@ describe("POST /api/internal/sports-sync", () => {
     mocks.anonymousRpc.mockResolvedValue({ data: undefined, error: null });
     mocks.createAnonymousServerClient.mockReturnValue({ rpc: mocks.anonymousRpc });
     mocks.createServiceRoleClient.mockReturnValue({ kind: "service-client" });
-    mocks.createProvider.mockReturnValue({ kind: "provider" });
+    mocks.createProvider.mockReturnValue({
+      kind: "provider",
+      getRequestMetadata: () => ({ quotaRemaining: 8, requestCount: 3, retryCount: 0 }),
+    });
     mocks.runSportsSync.mockResolvedValue({
       runId: "50000000-0000-4000-8000-000000000001",
       summary: {
@@ -81,6 +90,7 @@ describe("POST /api/internal/sports-sync", () => {
         teamsChanged: 4,
         matchesChanged: 2,
         durationMs: 42,
+        quotaRemaining: 8,
         requestCount: 3,
         retryCount: 0,
       },
@@ -133,9 +143,18 @@ describe("POST /api/internal/sports-sync", () => {
     expect(mocks.createProvider).toHaveBeenCalledWith("provider-token");
     expect(mocks.runSportsSync).toHaveBeenCalledWith({
       database: { kind: "service-client" },
-      provider: { kind: "provider" },
+      provider: expect.objectContaining({ kind: "provider" }),
       reason: "manual",
     });
+    expect(mocks.safeLog).toHaveBeenCalledWith(
+      "info",
+      "route.completed",
+      expect.objectContaining({
+        syncRequestCount: 3,
+        retryCount: 0,
+        quotaRemaining: 8,
+      }),
+    );
   });
 
   it("defaults an empty authenticated request to the scheduled reason", async () => {

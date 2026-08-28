@@ -78,7 +78,7 @@ function providerFixture(overrides: Partial<InstrumentedSportsProvider> = {}) {
     name: "football-data",
     listCompetitions: vi.fn(async () => [pl, cl, ignoredCompetition]),
     listFixtures: vi.fn(async () => [fixture]),
-    getRequestMetadata: vi.fn(() => ({ requestCount: 3, retryCount: 1 })),
+    getRequestMetadata: vi.fn(() => ({ quotaRemaining: 6, requestCount: 3, retryCount: 1 })),
     ...overrides,
   } satisfies InstrumentedSportsProvider;
 }
@@ -132,6 +132,7 @@ describe("sports synchronization orchestration", () => {
         competitionsChanged: 2,
         teamsChanged: 2,
         matchesChanged: 1,
+        quotaRemaining: 6,
         durationMs: 27,
         requestCount: 3,
         retryCount: 1,
@@ -227,7 +228,7 @@ describe("sports synchronization orchestration", () => {
       listCompetitions: vi.fn(async () => {
         throw new ProviderAdapterError("RATE_LIMIT");
       }),
-      getRequestMetadata: vi.fn(() => ({ requestCount: 1, retryCount: 0 })),
+      getRequestMetadata: vi.fn(() => ({ quotaRemaining: 0, requestCount: 1, retryCount: 0 })),
     });
     const logger = quietLogger();
 

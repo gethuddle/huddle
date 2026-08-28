@@ -70,6 +70,13 @@ function errorForResponse(response: Response): ProviderAdapterError {
   return new ProviderAdapterError("UPSTREAM_4XX", { status: response.status });
 }
 
+function quotaRemainingFromHeaders(headers: Headers): number | null {
+  const raw = headers.get("x-requestsavailable") ?? headers.get("x-requests-available-minute");
+  if (raw === null || !/^\d+$/.test(raw)) return null;
+  const value = Number(raw);
+  return Number.isSafeInteger(value) ? value : null;
+}
+
 export class FootballDataProvider implements SportsProvider {
   readonly name = FOOTBALL_DATA_PROVIDER;
 
@@ -78,6 +85,7 @@ export class FootballDataProvider implements SportsProvider {
   private readonly random: () => number;
   private readonly sleep: (milliseconds: number) => Promise<void>;
   private readonly timeoutMs: number;
+  private quotaRemaining: number | null = null;
   private requestCount = 0;
   private retryCount = 0;
 
@@ -99,7 +107,11 @@ export class FootballDataProvider implements SportsProvider {
   }
 
   getRequestMetadata(): ProviderRequestMetadata {
-    return { requestCount: this.requestCount, retryCount: this.retryCount };
+    return {
+      quotaRemaining: this.quotaRemaining,
+      requestCount: this.requestCount,
+      retryCount: this.retryCount,
+    };
   }
 
   async listCompetitions(): Promise<NormalizedCompetition[]> {
@@ -155,6 +167,8 @@ export class FootballDataProvider implements SportsProvider {
           headers: { "X-Auth-Token": this.token },
           signal: controller.signal,
         });
+        const observedQuota = quotaRemainingFromHeaders(response.headers);
+        if (observedQuota !== null) this.quotaRemaining = observedQuota;
 
         if (!response.ok) {
           const providerError = errorForResponse(response);

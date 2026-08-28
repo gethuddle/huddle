@@ -4,6 +4,7 @@ import { getCalendarEvent } from "@/features/attendance/queries";
 import { serializeCalendarEvent } from "@/features/calendar/ics";
 import { eventRouteIdSchema } from "@/features/events/schemas";
 import { toHttpError } from "@/lib/errors";
+import { elapsedMilliseconds, safeLog } from "@/lib/observability/server";
 import { REQUEST_ID_HEADER, resolveRequestId } from "@/lib/request-id";
 
 const PRIVATE_CACHE = "private, no-cache, no-store, must-revalidate, max-age=0";
@@ -13,6 +14,7 @@ type Context = Readonly<{ params: Promise<Readonly<{ eventId: string }>> }>;
 
 export async function GET(request: NextRequest, { params }: Context) {
   const requestId = resolveRequestId(request.headers.get(REQUEST_ID_HEADER));
+  const startedAt = performance.now();
   try {
     const eventId = eventRouteIdSchema.parse((await params).eventId);
     const event = await getCalendarEvent(eventId, requestId);
@@ -26,6 +28,13 @@ export async function GET(request: NextRequest, { params }: Context) {
       location: event.location_text,
       url: new URL(`/events/${event.event_id}`, request.nextUrl.origin).toString(),
     });
+    safeLog("info", "route.completed", {
+      requestId,
+      route: "/api/events/[eventId]/calendar.ics",
+      outcome: "succeeded",
+      status: 200,
+      durationMs: elapsedMilliseconds(startedAt),
+    });
     return new Response(body, {
       status: 200,
       headers: {
@@ -37,6 +46,14 @@ export async function GET(request: NextRequest, { params }: Context) {
     });
   } catch (error) {
     const failure = toHttpError(error, requestId);
+    safeLog("error", "route.failed", {
+      requestId,
+      route: "/api/events/[eventId]/calendar.ics",
+      outcome: "failed",
+      code: failure.body.error.code,
+      status: failure.status,
+      durationMs: elapsedMilliseconds(startedAt),
+    });
     return Response.json(failure.body, {
       status: failure.status,
       headers: { "Cache-Control": PRIVATE_CACHE, [REQUEST_ID_HEADER]: requestId },

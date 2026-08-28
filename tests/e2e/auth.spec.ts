@@ -1,5 +1,7 @@
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { execFileSync } from "node:child_process";
+import path from "node:path";
 
 import type { Database } from "@/types/database.generated";
 
@@ -21,6 +23,7 @@ const mailpitUrl = process.env.HUDDLE_MAILPIT_URL ?? "http://127.0.0.1:54324";
 const captureB08Evidence = process.env.HUDDLE_CAPTURE_B08_EVIDENCE === "1";
 const captureB09Evidence = process.env.HUDDLE_CAPTURE_B09_EVIDENCE === "1";
 const captureB10Evidence = process.env.HUDDLE_CAPTURE_B10_EVIDENCE === "1";
+const captureB11Evidence = process.env.HUDDLE_CAPTURE_B11_EVIDENCE === "1";
 
 function localAdminClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -36,6 +39,96 @@ function localAdminClient() {
 
 function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
+}
+
+function sqlLiteral(value: string) {
+  return `'${value.replaceAll("'", "''")}'`;
+}
+
+function localDatabaseQuery(sql: string) {
+  const executable = path.join(
+    process.cwd(),
+    "node_modules",
+    ".bin",
+    process.platform === "win32" ? "supabase.cmd" : "supabase",
+  );
+  execFileSync(executable, ["db", "query", "--local", sql], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    stdio: "pipe",
+  });
+}
+
+async function seedCompletedUser(
+  email: string,
+  password: string,
+  handle: string,
+  displayName: string,
+) {
+  const admin = localAdminClient();
+  const { data: created, error: createError } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+  if (createError !== null) throw createError;
+
+  const completedAt = new Date().toISOString();
+  localDatabaseQuery(`
+    update public.profiles
+    set adult_attested_at = ${sqlLiteral(completedAt)}::timestamptz,
+        city_id = '00000000-0000-4000-8000-000000000003'::uuid,
+        display_name = ${sqlLiteral(displayName)},
+        handle = ${sqlLiteral(handle)},
+        profile_completed_at = ${sqlLiteral(completedAt)}::timestamptz,
+        rules_accepted_at = ${sqlLiteral(completedAt)}::timestamptz,
+        rules_version = 1
+    where id = ${sqlLiteral(created.user.id)}::uuid;
+  `);
+
+  return created.user.id;
+}
+
+async function signIn(page: Page, email: string, password: string) {
+  await page.goto("/auth/sign-in");
+  await page.getByRole("textbox", { name: "Email address" }).fill(email);
+  await page.getByLabel("Password", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/^http:\/\/(?:localhost|127\.0\.0\.1):3000\/$/);
+}
+
+async function seedGroupOwner(ownerId: string, suffix: string) {
+  const slug = `safety-circle-${suffix}`;
+  const reviewedAt = new Date().toISOString();
+  localDatabaseQuery(`
+    with new_group as (
+      insert into public.groups (
+        city_id, description, lifecycle, name, owner_id, slug, visibility
+      ) values (
+        '00000000-0000-4000-8000-000000000003'::uuid,
+        'A deterministic group proving group administrators cannot inspect reports.',
+        'forming',
+        ${sqlLiteral(`Safety Circle ${suffix}`)},
+        ${sqlLiteral(ownerId)}::uuid,
+        ${sqlLiteral(slug)},
+        'unlisted'
+      )
+      returning id
+    )
+    insert into public.group_memberships (
+      group_id, reviewed_at, reviewed_by, role, status, user_id
+    )
+    select
+      id,
+      ${sqlLiteral(reviewedAt)}::timestamptz,
+      ${sqlLiteral(ownerId)}::uuid,
+      'owner',
+      'active',
+      ${sqlLiteral(ownerId)}::uuid
+    from new_group;
+  `);
+
+  return slug;
 }
 
 async function seedCachedFixtureCatalogAfterFailure() {
@@ -961,5 +1054,177 @@ test("direct invitation and attendance approval reveal then revoke a protected a
   } finally {
     await inviteeContext.close();
     await requesterContext.close();
+  }
+});
+
+test("a confidential report becomes an independently reviewed moderation appeal", async ({
+  browser,
+  page,
+}) => {
+  test.setTimeout(90_000);
+
+  const suffix = Date.now().toString().slice(-8);
+  const password = "matchday-local-test";
+  const reporterEmail = `b11-reporter-${suffix}@example.com`;
+  const targetEmail = `b11-target-${suffix}@example.com`;
+  const firstModeratorEmail = `b11-moderator-a-${suffix}@example.com`;
+  const secondModeratorEmail = `b11-moderator-b-${suffix}@example.com`;
+  const reporterHandle = `b11_report_${suffix}`;
+  const targetHandle = `b11_target_${suffix}`;
+  const targetDisplayName = `B11 Group Admin ${suffix}`;
+  const confidentialDetails = `Confidential B11 evidence ${suffix} must stay inside platform moderation.`;
+  const decisionReason = `A documented warning is proportionate for the B11 test ${suffix}.`;
+  const appealReason = `Please independently review the context for B11 decision ${suffix}.`;
+  const appealOutcome = `Independent review reversed the B11 warning ${suffix}.`;
+
+  await seedCompletedUser(reporterEmail, password, reporterHandle, "B11 Reporter");
+  const targetId = await seedCompletedUser(targetEmail, password, targetHandle, targetDisplayName);
+  const firstModeratorId = await seedCompletedUser(
+    firstModeratorEmail,
+    password,
+    `b11_moda_${suffix}`,
+    "B11 Moderator A",
+  );
+  const secondModeratorId = await seedCompletedUser(
+    secondModeratorEmail,
+    password,
+    `b11_modb_${suffix}`,
+    "B11 Moderator B",
+  );
+  const groupSlug = await seedGroupOwner(targetId, suffix);
+
+  localDatabaseQuery(`
+    insert into public.platform_roles (profile_id, role)
+    values
+      (${sqlLiteral(firstModeratorId)}::uuid, 'moderator'),
+      (${sqlLiteral(secondModeratorId)}::uuid, 'moderator');
+  `);
+
+  await signIn(page, reporterEmail, password);
+  await page.goto(new URL(`/people/${targetHandle}`, page.url()).toString());
+  await page.getByText(`Report @${targetHandle}`, { exact: true }).click();
+  await page.getByRole("combobox", { name: "What happened?" }).selectOption("other");
+  await page.getByRole("textbox", { name: "Details" }).fill(confidentialDetails);
+  await page.getByRole("button", { name: "Submit confidential report" }).click();
+  await expect(page.getByRole("status")).toContainText("Report received");
+
+  await page.goto(new URL("/reports", page.url()).toString());
+  await expect(page.getByText(targetHandle, { exact: true })).toBeVisible();
+  await expect(page.getByText("received", { exact: true })).toBeVisible();
+  await expect(page.getByText(confidentialDetails)).toHaveCount(0);
+
+  const targetContext = await browser.newContext({ baseURL: "http://127.0.0.1:3000" });
+  const targetPage = await targetContext.newPage();
+  const firstModeratorContext = await browser.newContext({ baseURL: "http://127.0.0.1:3000" });
+  const firstModeratorPage = await firstModeratorContext.newPage();
+  const secondModeratorContext = await browser.newContext({ baseURL: "http://127.0.0.1:3000" });
+  const secondModeratorPage = await secondModeratorContext.newPage();
+
+  try {
+    await signIn(targetPage, targetEmail, password);
+    await targetPage.goto(new URL(`/groups/${groupSlug}`, targetPage.url()).toString());
+    await expect(targetPage.getByText("Your role: owner")).toBeVisible();
+    await expect(targetPage.getByRole("link", { name: "Manage group" })).toBeVisible();
+    await expect(targetPage.getByText(confidentialDetails)).toHaveCount(0);
+
+    await targetPage.goto(new URL("/moderation", targetPage.url()).toString());
+    await expect(targetPage.getByRole("heading", { name: "Page not found" })).toBeVisible();
+    await targetPage.goto(new URL("/reports", targetPage.url()).toString());
+    await expect(targetPage.getByText("No reports submitted.")).toBeVisible();
+    await expect(targetPage.getByText(confidentialDetails)).toHaveCount(0);
+    await expect(targetPage.getByText(reporterHandle)).toHaveCount(0);
+
+    await signIn(firstModeratorPage, firstModeratorEmail, password);
+    await firstModeratorPage.goto(new URL("/moderation", firstModeratorPage.url()).toString());
+    const reportCard = firstModeratorPage
+      .getByRole("region", { name: "Confidential reports" })
+      .locator('[data-slot="card"]')
+      .filter({ hasText: targetHandle });
+    await expect(reportCard).toContainText(confidentialDetails);
+    await expect(reportCard).toContainText(`@${reporterHandle}`);
+    await reportCard.getByRole("button", { name: "Assign to me" }).click();
+    await expect(reportCard.getByLabel("Proportional action")).toBeVisible();
+    await reportCard.getByLabel("Proportional action").selectOption("warning");
+    await reportCard.getByRole("textbox", { name: "Decision reason" }).fill(decisionReason);
+    await reportCard.getByRole("button", { name: "Apply and audit action" }).click();
+    await expect(reportCard).toContainText("resolved");
+
+    await targetPage.goto(new URL("/reports", targetPage.url()).toString());
+    const actionCard = targetPage.locator('[data-slot="card"]').filter({ hasText: decisionReason });
+    await expect(actionCard).toContainText("warning");
+    await actionCard.getByText("Appeal this action", { exact: true }).click();
+    await actionCard
+      .getByRole("textbox", { name: "Why should this decision be reviewed?" })
+      .fill(appealReason);
+    await actionCard.getByRole("button", { name: "Submit appeal" }).click();
+    await expect(actionCard).toContainText("Appeal under review.");
+
+    await firstModeratorPage.reload();
+    const originalModeratorAppeal = firstModeratorPage
+      .locator('[data-slot="card"]')
+      .filter({ hasText: appealReason });
+    await expect(originalModeratorAppeal).toContainText(
+      "You made the original decision. Another active moderator must review this appeal",
+    );
+    await expect(
+      originalModeratorAppeal.getByRole("button", { name: "Record outcome" }),
+    ).toHaveCount(0);
+
+    await signIn(secondModeratorPage, secondModeratorEmail, password);
+    await secondModeratorPage.goto(new URL("/moderation", secondModeratorPage.url()).toString());
+    const independentAppeal = secondModeratorPage
+      .locator('[data-slot="card"]')
+      .filter({ hasText: appealReason });
+    await independentAppeal.getByRole("combobox", { name: "Outcome" }).selectOption("reverse");
+    await independentAppeal.getByRole("textbox", { name: "Outcome reason" }).fill(appealOutcome);
+    if (captureB11Evidence) {
+      await secondModeratorPage.screenshot({
+        fullPage: true,
+        path: "docs/evidence/b11/independent-appeal-review-desktop.png",
+      });
+    }
+
+    await secondModeratorPage.setViewportSize({ width: 390, height: 844 });
+    const mobileMenuTrigger = secondModeratorPage.getByRole("button", {
+      name: "Menu",
+      exact: true,
+    });
+    await mobileMenuTrigger.click();
+    await expect(secondModeratorPage.getByRole("menu", { name: "Menu" })).toBeVisible();
+    await expect(secondModeratorPage.getByRole("menuitem", { name: "Safety" })).toBeVisible();
+    await expect(secondModeratorPage.getByRole("menuitem", { name: "Moderation" })).toBeVisible();
+    await secondModeratorPage.keyboard.press("Escape");
+    await expect(mobileMenuTrigger).toBeFocused();
+    expect(
+      await secondModeratorPage.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
+    if (captureB11Evidence) {
+      await secondModeratorPage.screenshot({
+        fullPage: true,
+        path: "docs/evidence/b11/independent-appeal-review-mobile.png",
+      });
+    }
+
+    await secondModeratorPage.setViewportSize({ width: 1024, height: 768 });
+    await expect(mobileMenuTrigger).toBeVisible();
+    expect(
+      await secondModeratorPage.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
+    await secondModeratorPage.setViewportSize({ width: 1280, height: 720 });
+
+    await independentAppeal.getByRole("button", { name: "Record outcome" }).click();
+    await expect(independentAppeal).toContainText("reversed");
+
+    await targetPage.reload();
+    await expect(targetPage.getByText(`Outcome: ${appealOutcome}`, { exact: true })).toBeVisible();
+    await expect(targetPage.getByText("reversed", { exact: true }).first()).toBeVisible();
+  } finally {
+    await targetContext.close();
+    await firstModeratorContext.close();
+    await secondModeratorContext.close();
   }
 });

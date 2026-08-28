@@ -12,6 +12,7 @@ const completeFacts: ActorFacts = {
   rulesCurrent: true,
   profileComplete: true,
   suspended: false,
+  restricted: false,
 };
 
 describe("resolvePublicProfileViewerState", () => {
@@ -36,6 +37,16 @@ describe("resolvePublicProfileViewerState", () => {
     expect(
       resolvePublicProfileViewerState({
         facts: { ...completeFacts, suspended: true },
+        viewerHandle: "fan_one",
+        targetHandle: "fan_two",
+      }),
+    ).toBe("not-permitted");
+  });
+
+  it("shows a clear not-permitted state to a feature-restricted viewer", () => {
+    expect(
+      resolvePublicProfileViewerState({
+        facts: { ...completeFacts, restricted: true },
         viewerHandle: "fan_one",
         targetHandle: "fan_two",
       }),

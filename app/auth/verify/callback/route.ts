@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import { verificationQuerySchema } from "@/features/auth/schemas";
 import { getPublicEnvironment } from "@/lib/env/public";
+import { safeInternalRedirect } from "@/lib/security/redirect";
 import type { Database } from "@/types/database.generated";
 
 const AUTH_NO_CACHE_HEADERS = {
@@ -12,7 +13,8 @@ const AUTH_NO_CACHE_HEADERS = {
 } as const;
 
 function verificationRedirect(appUrl: string, status: "success" | "expired") {
-  const response = NextResponse.redirect(new URL(`/auth/verify?status=${status}`, appUrl), 303);
+  const path = safeInternalRedirect(`/auth/verify?status=${status}`, "/auth/verify?status=expired");
+  const response = NextResponse.redirect(new URL(path, appUrl), 303);
 
   Object.entries(AUTH_NO_CACHE_HEADERS).forEach(([name, value]) => {
     response.headers.set(name, value);
@@ -62,7 +64,10 @@ export async function GET(request: NextRequest) {
     if (error === null) {
       response.headers.set(
         "location",
-        new URL("/auth/verify?status=success", environment.NEXT_PUBLIC_APP_URL).toString(),
+        new URL(
+          safeInternalRedirect("/auth/verify?status=success"),
+          environment.NEXT_PUBLIC_APP_URL,
+        ).toString(),
       );
     }
   } catch {

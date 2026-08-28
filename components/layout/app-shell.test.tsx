@@ -7,15 +7,17 @@ import { AppShell } from "./app-shell";
 
 const mocks = vi.hoisted(() => ({
   getClaims: vi.fn(),
+  rpc: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: async () => ({ auth: { getClaims: mocks.getClaims } }),
+  createClient: async () => ({ auth: { getClaims: mocks.getClaims }, rpc: mocks.rpc }),
 }));
 
 describe("AppShell", () => {
   beforeEach(() => {
     mocks.getClaims.mockResolvedValue({ data: null, error: null });
+    mocks.rpc.mockResolvedValue({ data: false, error: null });
   });
 
   it("provides anonymous navigation, main-content access, and a truthful footer", async () => {
@@ -64,6 +66,16 @@ describe("AppShell", () => {
       "/settings/interests",
     );
     expect(screen.getByRole("button", { name: "Sign out" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Safety" })).toHaveAttribute("href", "/reports");
     expect(screen.queryByRole("link", { name: "Sign up" })).not.toBeInTheDocument();
+  });
+
+  it("shows the platform queue only to a server-verified moderator", async () => {
+    mocks.getClaims.mockResolvedValue({ data: { claims: { sub: "moderator-id" } }, error: null });
+    mocks.rpc.mockResolvedValue({ data: true, error: null });
+
+    render(await AppShell({ children: <h1>Moderator session</h1> }));
+
+    expect(screen.getByRole("link", { name: "Moderation" })).toHaveAttribute("href", "/moderation");
   });
 });

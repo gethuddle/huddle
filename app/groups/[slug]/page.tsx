@@ -16,6 +16,7 @@ import { EventCard } from "@/features/events/components/event-card";
 import { listGroupEvents } from "@/features/events/queries";
 import { GroupApplicationForm } from "@/features/groups/components/group-application-form";
 import { GroupMembershipControl } from "@/features/groups/components/group-membership-control";
+import { ReportControl } from "@/features/moderation/components/report-control";
 import { getGroupDetail } from "@/features/groups/detail";
 import { groupMemberListQuerySchema, groupRouteSlugSchema } from "@/features/groups/schemas";
 
@@ -126,6 +127,9 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
                     <GroupMembershipControl groupId={group.id} groupSlug={group.slug} />
                   </div>
                 ) : null}
+                <div className="mt-5">
+                  <ReportControl targetId={group.id} targetLabel={group.name} targetType="group" />
+                </div>
               </CardContent>
             </Card>
           </aside>

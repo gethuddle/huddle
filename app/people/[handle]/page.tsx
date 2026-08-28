@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { CURRENT_COMMUNITY_RULES_VERSION } from "@/content/community-rules";
+import { ReportControl } from "@/features/moderation/components/report-control";
 import { ProfileCommunityControl } from "@/features/profiles/components/profile-community-control";
 import { toPublicProfileDto } from "@/features/profiles/dto";
 import { publicProfileHandleSchema } from "@/features/profiles/schemas";
@@ -49,7 +50,7 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
     const ownProfileResult = await supabase
       .from("profiles")
       .select(
-        "handle, display_name, city_id, adult_attested_at, rules_version, rules_accepted_at, profile_completed_at, suspended_at",
+        "handle, display_name, city_id, adult_attested_at, rules_version, rules_accepted_at, profile_completed_at, suspended_at, suspension_expires_at, community_restricted_at, community_restricted_until",
       )
       .eq("id", user.id)
       .maybeSingle();
@@ -76,6 +77,9 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
           ownProfile.display_name !== null &&
           ownProfile.city_id !== null,
         suspended: ownProfile?.suspended_at !== null && ownProfile?.suspended_at !== undefined,
+        restricted:
+          ownProfile?.community_restricted_at !== null &&
+          ownProfile?.community_restricted_at !== undefined,
       },
       viewerHandle: ownProfile?.handle ?? null,
       targetHandle: profile.handle,
@@ -135,6 +139,15 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
             <p className="mt-4 px-1 text-xs leading-5 text-muted-dark">
               Public profiles never include email, private memberships, or attendance history.
             </p>
+            {viewerState === "self" ? null : (
+              <div className="mt-5">
+                <ReportControl
+                  targetHandle={profile.handle}
+                  targetLabel={`@${profile.handle}`}
+                  targetType="profile"
+                />
+              </div>
+            )}
           </aside>
         </div>
       </div>

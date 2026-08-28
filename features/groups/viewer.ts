@@ -17,7 +17,7 @@ export async function getGroupCreationViewerState(): Promise<GroupCreationViewer
   const profileResult = await supabase
     .from("profiles")
     .select(
-      "handle, display_name, city_id, adult_attested_at, rules_version, rules_accepted_at, profile_completed_at, suspended_at",
+      "handle, display_name, city_id, adult_attested_at, rules_version, rules_accepted_at, profile_completed_at, suspended_at, suspension_expires_at, community_restricted_at, community_restricted_until",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -41,8 +41,12 @@ export async function getGroupCreationViewerState(): Promise<GroupCreationViewer
       profile.display_name !== null &&
       profile.city_id !== null,
     suspended: profile.suspended_at !== null,
+    restricted:
+      profile.community_restricted_at !== null && profile.community_restricted_at !== undefined,
   };
   const gate = actorGateCode(facts, "community");
   if (gate === null) return "eligible";
-  return gate === "ACCOUNT_SUSPENDED" ? "not-permitted" : "complete-profile";
+  return gate === "ACCOUNT_SUSPENDED" || gate === "ACCOUNT_RESTRICTED"
+    ? "not-permitted"
+    : "complete-profile";
 }

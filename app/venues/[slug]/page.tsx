@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EventCard } from "@/features/events/components/event-card";
 import { listVenueEvents } from "@/features/events/queries";
 import { ProfileAccessState } from "@/features/profiles/components/profile-access-state";
+import { ReportControl } from "@/features/moderation/components/report-control";
 import { VenueFollowControl } from "@/features/venues/components/venue-follow-control";
 import { VenueVerificationBadge } from "@/features/venues/components/venue-verification-badge";
 import { getVenueBySlug } from "@/features/venues/queries";
@@ -103,6 +104,9 @@ export default async function VenuePage({ params }: VenuePageProps) {
                     />
                   </div>
                 ) : null}
+                <div className="mt-5">
+                  <ReportControl targetId={venue.id} targetLabel={venue.name} targetType="venue" />
+                </div>
               </CardContent>
             </Card>
           </aside>

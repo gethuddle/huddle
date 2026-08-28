@@ -47,6 +47,7 @@ export type SportsSyncSummary = Readonly<{
   competitionsChanged: number;
   durationMs: number;
   matchesChanged: number;
+  quotaRemaining: number | null;
   requestCount: number;
   retryCount: number;
   teamsChanged: number;
@@ -285,6 +286,7 @@ export async function runSportsSync(
       competitionsChanged: completed.competitions_changed,
       teamsChanged: completed.teams_changed,
       matchesChanged: completed.matches_changed,
+      quotaRemaining: requestMetadata.quotaRemaining,
       durationMs: completed.duration_ms,
       requestCount: requestMetadata.requestCount,
       retryCount: requestMetadata.retryCount,

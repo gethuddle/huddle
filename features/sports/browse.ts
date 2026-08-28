@@ -1,11 +1,12 @@
 import "server-only";
 
 import { DomainError } from "@/lib/errors";
+import { safeLog } from "@/lib/observability/server";
 import { createAnonymousServerClient } from "@/lib/supabase/anonymous";
 
 import type { FixtureFilters } from "./browse-schemas";
 import { toPublicMatchDto, type PublicMatchDto } from "./dto";
-import { deriveFixtureFreshness, type FixtureFreshness } from "./freshness";
+import { deriveFixtureFreshness, fixtureSyncAgeSeconds, type FixtureFreshness } from "./freshness";
 import { FIXTURES_PER_PAGE, fixtureQueryPlan } from "./query";
 
 const PUBLIC_MATCH_SELECT =
@@ -39,6 +40,18 @@ function safeMatchRows(rows: readonly unknown[]): readonly PublicMatchDto[] {
   } catch (cause) {
     throw new DomainError("INTERNAL_ERROR", { cause });
   }
+}
+
+function observedFreshness(lastSucceededAt: string | null, route: string): FixtureFreshness {
+  const now = new Date();
+  const freshness = deriveFixtureFreshness(lastSucceededAt, now);
+  safeLog("info", "sports.catalog.observed", {
+    route,
+    outcome: "succeeded",
+    code: freshness.status,
+    syncAgeSeconds: fixtureSyncAgeSeconds(lastSucceededAt, now) ?? undefined,
+  });
+  return freshness;
 }
 
 export async function getFixtureBrowserData(filters: FixtureFilters): Promise<FixtureBrowserData> {
@@ -103,10 +116,11 @@ export async function getFixtureBrowserData(filters: FixtureFilters): Promise<Fi
       shortName: team.short_name,
       tla: team.tla,
     })),
-    freshness: deriveFixtureFreshness(
+    freshness: observedFreshness(
       freshnessResult.error === null
         ? (freshnessResult.data.at(0)?.last_succeeded_at ?? null)
         : null,
+      "/matches",
     ),
     total,
     totalPages: Math.max(1, Math.ceil(total / FIXTURES_PER_PAGE)),
@@ -135,10 +149,11 @@ export async function getFixtureById(matchId: string): Promise<
 
   return {
     match: matchResult.data === null ? null : (safeMatchRows([matchResult.data]).at(0) ?? null),
-    freshness: deriveFixtureFreshness(
+    freshness: observedFreshness(
       freshnessResult.error === null
         ? (freshnessResult.data.at(0)?.last_succeeded_at ?? null)
         : null,
+      "/matches/[matchId]",
     ),
   };
 }

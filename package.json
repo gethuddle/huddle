@@ -28,7 +28,8 @@
     "test:db": "supabase test db --local supabase/tests/database",
     "db:types": "node scripts/database-types.mjs",
     "db:types:check": "node scripts/database-types.mjs --check",
-    "sports:sync": "node --env-file-if-exists=.env.local scripts/run-sports-sync.mjs"
+    "sports:sync": "node --env-file-if-exists=.env.local scripts/run-sports-sync.mjs",
+    "security:audit": "node scripts/security-audit.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.5",

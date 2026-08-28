@@ -13,6 +13,10 @@ export async function AppShell({ children }: AppShellProps) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const isSignedIn = typeof data?.claims.sub === "string";
+  const moderatorResult = isSignedIn
+    ? await supabase.rpc("viewer_is_platform_moderator")
+    : { data: false };
+  const isModerator = moderatorResult.data === true;
 
   return (
     <div className="flex min-h-screen bg-ink text-linen">
@@ -24,7 +28,7 @@ export async function AppShell({ children }: AppShellProps) {
       </a>
 
       <div className="flex min-h-screen w-full flex-col">
-        <SiteHeader isSignedIn={isSignedIn} />
+        <SiteHeader isModerator={isModerator} isSignedIn={isSignedIn} />
         <main
           className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-6 sm:px-10 lg:px-14"
           id="main-content"
