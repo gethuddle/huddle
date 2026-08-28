@@ -165,6 +165,11 @@ values
     '90000000-0000-4000-8000-000000000205',
     '90000000-0000-4000-8000-000000000108', 'member', 'active',
     '90000000-0000-4000-8000-000000000101', statement_timestamp()
+  ),
+  (
+    '90000000-0000-4000-8000-000000000205',
+    '90000000-0000-4000-8000-000000000106', 'admin', 'active',
+    '90000000-0000-4000-8000-000000000101', statement_timestamp()
   );
 
 insert into public.venues (
@@ -230,7 +235,8 @@ insert into public.events (
   id, created_by, host_user_id, match_id, title, description,
   expected_activity, cost_description, event_rules, commercial_affiliation,
   host_presence_confirmed_at, starts_at, ends_at, city_id, place_kind,
-  audience, audience_group_id, capacity, requires_approval, status, published_at
+  audience, audience_group_id, organizing_group_id, capacity, requires_approval,
+  status, published_at
 )
 values (
   '90000000-0000-4000-8000-000000000405',
@@ -243,7 +249,8 @@ values (
   statement_timestamp() + interval '9 days 3 hours',
   (select id from public.cities where slug = 'haifa'),
   'home', 'group', '90000000-0000-4000-8000-000000000205',
-  3, true, 'published', statement_timestamp()
+  '90000000-0000-4000-8000-000000000205', 3, true, 'published',
+  statement_timestamp()
 );
 
 insert into public.event_private_locations (event_id, address_text, directions, location)
@@ -314,6 +321,54 @@ select set_config(
       and user_high_id = '90000000-0000-4000-8000-000000000103'
   ),
   true
+);
+
+set local role authenticated;
+set local "request.jwt.claim.sub" = '90000000-0000-4000-8000-000000000106';
+select is(
+  (
+    select status
+    from public.request_or_join_event(
+      '90000000-0000-4000-8000-000000000405',
+      null
+    )
+  ),
+  'requested',
+  'an organizing-group admin can request attendance from the personal host'
+);
+
+reset role;
+select set_config(
+  'test.b10_group_admin_request_id',
+  (
+    select id::text
+    from public.event_attendance
+    where event_id = '90000000-0000-4000-8000-000000000405'
+      and user_id = '90000000-0000-4000-8000-000000000106'
+  ),
+  true
+);
+set local role authenticated;
+set local "request.jwt.claim.sub" = '90000000-0000-4000-8000-000000000106';
+select throws_ok(
+  $$select * from public.review_attendance(current_setting('test.b10_group_admin_request_id')::uuid,'approve',null)$$,
+  'P0001', 'NOT_ALLOWED',
+  'an organizing-group admin cannot approve their own attendance request'
+);
+select throws_ok(
+  $$select * from public.get_private_event_location('90000000-0000-4000-8000-000000000405',null)$$,
+  'P0001', 'LOCATION_NOT_AUTHORIZED',
+  'a denied self-review does not reveal the protected home location'
+);
+reset role;
+select is(
+  (
+    select status::text
+    from public.event_attendance
+    where id = current_setting('test.b10_group_admin_request_id')::uuid
+  ),
+  'requested',
+  'a denied self-review leaves the host approval request pending'
 );
 
 set local role authenticated;

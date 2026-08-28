@@ -20,8 +20,10 @@ decline and revoke transitions, invite-only and team-follow override boundaries,
 approved capacity, factual request context, retained leave/removal/cancellation history, relationship,
 group-ban, suspension, block, and cancellation revocation, address-free audits, direct table denial,
 anonymous public calendars, private no-store responses, RFC 5545 escaping and UTF-8 folding, and
-deterministic two-connection races for both invitation acceptance and host approval.
+deterministic two-connection races for both invitation acceptance and host approval. A dedicated
+organizing-group regression proves an administrator cannot review their own attendance request,
+that the request remains pending for the personal host, and that the protected location stays denied.
 
 Final local verification on 2026-08-28 passed 77 Vitest files with 322 tests, 16 pgTAP
-files with 864 assertions, and all six Playwright journeys. Formatting, lint, strict
+files with 868 assertions, and all six Playwright journeys. Formatting, lint, strict
 TypeScript, schema lint, generated-type drift, and the production build also passed.

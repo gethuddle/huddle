@@ -906,6 +906,10 @@ begin
     raise exception using errcode = 'P0001', message = 'INVALID_TRANSITION';
   end if;
 
+  if target_attendance.user_id = actor_id then
+    raise exception using errcode = 'P0001', message = 'NOT_ALLOWED';
+  end if;
+
   if parsed_decision = 'approve' then
     if private.users_are_blocked(actor_id, target_attendance.user_id)
       or not private.event_user_is_audience_eligible(
@@ -953,7 +957,7 @@ end;
 $function$;
 
 comment on function public.review_attendance(uuid, text, uuid) is
-  'Lets a current manager approve or decline one pending request. Approval serializes on the event and rechecks attendee eligibility and capacity.';
+  'Lets a current manager approve or decline another user''s pending request. Self-review is denied; approval serializes on the event and rechecks attendee eligibility and capacity.';
 
 create or replace function public.leave_event(
   input_attendance_id uuid,
