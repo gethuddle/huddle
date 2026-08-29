@@ -155,7 +155,7 @@ The database and provider boundaries may be future-ready, but deferred features 
 
 ## Project status
 
-The merged baseline includes B01–B11: repository CI; account verification and onboarding; the normalized sports catalog; Huddle-styled shadcn/Radix UI; fixture browsing and follows; friendships and supporter groups; venue and private/group event hosting; safe geospatial discovery; invitations, atomic attendance, protected locations and calendars; and confidential reporting, moderation, appeals, hardening, accessibility, and operational runbooks. B12 is under reciprocal review with the complete 17-journey acceptance gate, environment isolation, production-sync/deployment runbooks, and final course-submission package. The candidate production URL is [huddle-navy-five.vercel.app](https://huddle-navy-five.vercel.app); all 12 hosted migrations now match, while the accepted B12 Git SHA and remaining production acceptance are still pending. Local development does not mutate a hosted Supabase project.
+The merged baseline includes B01–B11: repository CI; account verification and onboarding; the normalized sports catalog; Huddle-styled shadcn/Radix UI; fixture browsing and follows; friendships and supporter groups; venue and private/group event hosting; safe geospatial discovery; invitations, atomic attendance, protected locations and calendars; and confidential reporting, moderation, appeals, hardening, accessibility, and operational runbooks. B12 is under reciprocal review as the release-candidate and automated-acceptance milestone, including the complete 17-journey gate and production-found corrections to navigation, verification/onboarding, city availability, discovery failure handling, and fixture pagination. B13 owns the remaining hosted production acceptance, scheduled-sync failure drill, final submission evidence, and presentation rehearsal. The candidate production URL is [huddle-navy-five.vercel.app](https://huddle-navy-five.vercel.app); all 12 hosted migrations now match, while the accepted B12 Git SHA and B13 exit evidence are still pending. Local development does not mutate a hosted Supabase project.
 
 ### Visual system
 
@@ -216,7 +216,7 @@ B12 also provides one fail-fast local acceptance command that runs the entire se
 npm run test:acceptance
 ```
 
-The current B12 local run passes 403 Vitest/unit/component tests, 975 pgTAP assertions, the generated-type check, the production build, and all 17 Playwright journeys. Hosted evidence remains separate and pending.
+The current B12 local run passes 403 Vitest/unit/component tests, 975 pgTAP assertions, the generated-type check, the production build, and all 17 Playwright journeys. Hosted acceptance and rehearsal evidence belong to B13 and remain pending.
 
 Production smoke is intentionally separate from CI and requires dedicated credentials in ignored `.env.production-smoke.local`. Session-only and one-time product-mutation commands are documented in the [deployment runbook](./docs/operations/DEPLOYMENT.md); neither runs implicitly.
 

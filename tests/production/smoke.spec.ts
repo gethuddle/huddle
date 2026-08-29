@@ -27,13 +27,34 @@ async function signIn(page: Page, email: string, password: string) {
 test("@session-smoke anonymous production pages and provider attribution are public", async ({
   page,
 }) => {
+  let providerRequestCount = 0;
+  page.on("request", (request) => {
+    if (new URL(request.url()).hostname.endsWith("football-data.org")) {
+      providerRequestCount += 1;
+    }
+  });
+
   await page.goto("/");
   await expect(page.getByRole("link", { name: "Huddle home" })).toBeVisible();
   await expect(page.getByRole("link", { name: "football-data.org" })).toBeVisible();
 
   await page.goto("/matches");
   await expect(page.getByRole("heading", { name: /fixture/i })).toBeVisible();
-  await expect(page.getByText(/sign in for community controls/i)).toBeVisible();
+  await expect(page.getByRole("status")).toContainText(/catalog/i);
+  await expect(page.getByRole("link", { name: /^View .+ versus .+$/ }).first()).toBeVisible();
+
+  await page.goto("/discover");
+  await expect(
+    page.getByRole("heading", { name: "Find the room where the match comes alive." }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Discovery is temporarily unavailable." }),
+  ).toHaveCount(0);
+  const cityFallback = page.getByLabel("City fallback");
+  await expect(cityFallback).toBeVisible();
+  expect(await cityFallback.getByRole("option").count()).toBeGreaterThanOrEqual(13);
+  await expect(cityFallback.getByRole("option", { name: "Jerusalem" })).toHaveCount(1);
+  expect(providerRequestCount).toBe(0);
 });
 
 test("@session-smoke two dedicated production accounts can establish separate sessions", async ({

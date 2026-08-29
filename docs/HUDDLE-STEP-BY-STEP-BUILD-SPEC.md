@@ -1,6 +1,6 @@
 # Huddle: Step-by-Step Team Build Specification
 
-**Purpose:** turn Huddle's remaining architecture and implementation scope into 12 ordered delivery milestones that two people using two separate Codex sessions can complete together. The existing `F`, `A`, `S`, `G`, `E`, `T`, `M`, and `D` IDs remain detailed requirement modules inside those milestones; they are not separate issue, branch, pull-request, or review cycles.
+**Purpose:** turn Huddle's remaining architecture and implementation scope into 13 ordered delivery milestones that two people using two separate Codex sessions can complete together. The existing `F`, `A`, `S`, `G`, `E`, `T`, `M`, and `D` IDs remain detailed requirement modules inside those milestones; they are not separate issue, branch, pull-request, or review cycles.
 
 **Status:** execution plan only. This document does not mean any application feature is implemented.
 
@@ -371,9 +371,9 @@ If an external account, paid service, production mutation, or secret is required
 
 ---
 
-## 6. Twelve remaining delivery milestones
+## 6. Thirteen remaining delivery milestones
 
-`F00`–`F03` are complete. The remaining requirement modules are consolidated into the 12 milestones below. Each milestone gets one issue, one branch, one pull request, one reciprocal review process, and one merge. The original module IDs remain the authoritative detailed checklists in §§7–14 and must be completed in their listed dependency order.
+`F00`–`F03` are complete. The remaining requirement modules are consolidated into the 13 milestones below. Each milestone gets one issue, one branch, one pull request, one reciprocal review process, and one merge. The original module IDs remain the authoritative detailed checklists in §§7–14 and must be completed in their listed dependency order.
 
 | Milestone | Included modules | Depends on | Observable exit |
 |---|---|---|---|
@@ -388,7 +388,8 @@ If an external account, paid service, production mutation, or secret is required
 | `B09` Group and event discovery | `G06`, `E07` | `B08` | Only eligible groups and future events appear through gated search and cursor-paginated PostGIS discovery |
 | `B10` Invitations, attendance, and calendar | `T01`–`T04` | `B09` | Invitation, join/request, approval, capacity, revocation, cancellation, protected-location, and `.ics` flows are safe and atomic |
 | `B11` Moderation, security, and accessibility | `M01`–`M04` | `B10` | Reports, moderation, appeals, hardening, accessibility, failure states, and operational evidence cover the complete product loop |
-| `B12` Acceptance, production, and submission | `D01`–`D04` | `B11` | Full automated acceptance is green, production sync/deployment works, and the truthful submission and presentation are complete |
+| `B12` Release candidate and automated acceptance | `D01` | `B11` | Full automated acceptance is green and the complete application is published as a reviewable release candidate |
+| `B13` Production acceptance and submission | `D02`–`D04` | `B12` | Isolated hosted environments, production sync/deployment, truthful submission evidence, and the presentation rehearsal are complete |
 
 The milestone grouping reduces coordination overhead only. It removes no module task, test, authorization rule, migration requirement, or definition-of-done evidence. `G06` remains after `E05` inside the milestone order because group discovery depends on an approved future group event.
 
@@ -1185,7 +1186,7 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tests/evidence:** component accessibility tests, manual keyboard/screen-reader naming pass, phone/desktop screenshots, failure-state E2E, runbook review by both partners.
 
-**B11 implementation decisions:** confidential reports, enforcement actions, appeals, and reversals are exposed only through bounded security-definer functions; reporters receive a safe status projection while report details remain platform-only. Ordinary community mutations take a shared profile lock, and enforcement takes the matching exclusive lock so suspension cannot race past an eligibility check. Timed restrictions and suspensions use a review deadline but stay effective until a moderator records an audited reversal. High-impact enforcement choices require a deliberate Radix confirmation before submission; warnings and correction requests remain direct, while feature restriction, account/group/venue suspension, permanent ban, and event cancellation are confirmed with keyboard focus containment, Escape/cancel behavior, and trigger-focus restoration. Once an appeal is active, its review path owns the terminal decision: direct reversal takes the same action-row lock as appeal submission and is rejected until the appeal is decided. Appeal review is assigned to a different eligible non-appellant moderator whenever one exists; when the only peer is the appellant, the original moderator may decide so the appeal cannot deadlock. All exposed tables are re-inventoried for forced RLS, route/action inputs are bounded, internal redirects are allowlisted, production security headers are explicit, and logs accept only safe operational fields. GET routes do not mutate product state; the private calendar path writes only the mandated address-free access audit. Local secret comparison ignores only the exact committed placeholder for each variable. Repository-owned Radix dialogs and the mobile menu provide keyboard focus behavior; the B11 journey proves a confidential report, proportional action, independent appeal, phone navigation, and overflow-safe moderation UI. The final deployed VoiceOver and production smoke pass remains in B12.
+**B11 implementation decisions:** confidential reports, enforcement actions, appeals, and reversals are exposed only through bounded security-definer functions; reporters receive a safe status projection while report details remain platform-only. Ordinary community mutations take a shared profile lock, and enforcement takes the matching exclusive lock so suspension cannot race past an eligibility check. Timed restrictions and suspensions use a review deadline but stay effective until a moderator records an audited reversal. High-impact enforcement choices require a deliberate Radix confirmation before submission; warnings and correction requests remain direct, while feature restriction, account/group/venue suspension, permanent ban, and event cancellation are confirmed with keyboard focus containment, Escape/cancel behavior, and trigger-focus restoration. Once an appeal is active, its review path owns the terminal decision: direct reversal takes the same action-row lock as appeal submission and is rejected until the appeal is decided. Appeal review is assigned to a different eligible non-appellant moderator whenever one exists; when the only peer is the appellant, the original moderator may decide so the appeal cannot deadlock. All exposed tables are re-inventoried for forced RLS, route/action inputs are bounded, internal redirects are allowlisted, production security headers are explicit, and logs accept only safe operational fields. GET routes do not mutate product state; the private calendar path writes only the mandated address-free access audit. Local secret comparison ignores only the exact committed placeholder for each variable. Repository-owned Radix dialogs and the mobile menu provide keyboard focus behavior; the B11 journey proves a confidential report, proportional action, independent appeal, phone navigation, and overflow-safe moderation UI. The final deployed VoiceOver and production smoke pass remains in B13.
 
 ---
 
@@ -1215,7 +1216,7 @@ passed from a clean lockfile install with format, lint, typecheck, 90 Vitest fil
 tests and coverage, reset migrations/seed plus schema lint, 18 pgTAP files / 975 assertions,
 generated-type drift, production build, all 17 Playwright journeys, secret/artifact
 audit, and diff hygiene. PR/main CI and the independent partner run remain the exit
-evidence for merge; hosted checks remain D02–D04.
+evidence for merge; hosted checks remain B13 (`D02`–`D04`).
 
 **Team checkpoint:** split test-writing checkpoints, not feature ownership. Each partner must write or meaningfully improve database, unit/component, and E2E coverage.
 
@@ -1345,7 +1346,7 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 | F02 Environment and app shell | done | [#5](https://github.com/gethuddle/huddle/issues/5) / [PR #6](https://github.com/gethuddle/huddle/pull/6) |
 | F03 Local Supabase foundation | done | [#7](https://github.com/gethuddle/huddle/issues/7) / [PR #8](https://github.com/gethuddle/huddle/pull/8) |
 
-### Twelve remaining milestones
+### Thirteen remaining milestones
 
 | Milestone | Included modules | Status | Issue/PR |
 |---|---|---|---|
@@ -1360,7 +1361,8 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 | B09 Group and event discovery | `G06`, `E07` | done | [#26](https://github.com/gethuddle/huddle/issues/26) / [PR #27](https://github.com/gethuddle/huddle/pull/27) |
 | B10 Invitations, attendance, and calendar | `T01`–`T04` | done | [#28](https://github.com/gethuddle/huddle/issues/28) / [PR #29](https://github.com/gethuddle/huddle/pull/29) |
 | B11 Moderation, security, and accessibility | `M01`–`M04` | done | [#30](https://github.com/gethuddle/huddle/issues/30) / [PR #31](https://github.com/gethuddle/huddle/pull/31) |
-| B12 Acceptance, production, and submission | `D01`–`D04` | review | [#32](https://github.com/gethuddle/huddle/issues/32) |
+| B12 Release candidate and automated acceptance | `D01` | review | [#32](https://github.com/gethuddle/huddle/issues/32) |
+| B13 Production acceptance and submission | `D02`–`D04` | not started | — |
 
 ---
 
