@@ -89,7 +89,7 @@ select ok(
   to_regprocedure(
     'private.discovery_window_is_valid(timestamptz,timestamptz,timestamptz)'
   ) is not null,
-  'the Jerusalem calendar-window validator exists'
+  'the Israel-time calendar-window validator exists'
 );
 select ok(
   not has_function_privilege(
@@ -97,7 +97,7 @@ select ok(
     'private.discovery_window_is_valid(timestamptz,timestamptz,timestamptz)',
     'execute'
   ),
-  'the Jerusalem calendar-window validator is not exposed to anonymous callers'
+  'the Israel-time calendar-window validator is not exposed to anonymous callers'
 );
 select ok(
   private.discovery_window_is_valid(
@@ -105,7 +105,7 @@ select ok(
     make_timestamptz(2026, 10, 30, 0, 0, 0, 'Asia/Jerusalem'),
     make_timestamptz(2026, 9, 15, 12, 0, 0, 'Asia/Jerusalem')
   ),
-  'a 45-calendar-day Jerusalem window survives the autumn DST fallback'
+  'a 45-calendar-day Israel-time window survives the autumn DST fallback'
 );
 select ok(
   not private.discovery_window_is_valid(
@@ -113,7 +113,7 @@ select ok(
     make_timestamptz(2026, 10, 31, 0, 0, 0, 'Asia/Jerusalem'),
     make_timestamptz(2026, 9, 15, 12, 0, 0, 'Asia/Jerusalem')
   ),
-  'a 46-calendar-day Jerusalem window remains rejected across the fallback'
+  'a 46-calendar-day Israel-time window remains rejected across the fallback'
 );
 select ok(
   private.discovery_window_is_valid(
@@ -129,7 +129,7 @@ select ok(
       'public.discover_events(uuid,double precision,double precision,integer,timestamptz,timestamptz,uuid,uuid,uuid,integer,integer,timestamptz,uuid,integer)'::regprocedure
     )
   ) > 0,
-  'event discovery delegates date bounds to the Jerusalem calendar validator'
+  'event discovery delegates date bounds to the Israel-time calendar validator'
 );
 
 insert into auth.users (

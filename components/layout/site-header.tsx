@@ -43,9 +43,9 @@ export function SiteHeader({
             {isSignedIn && isProfileComplete ? (
               <Link
                 className="text-sm font-medium text-muted-dark transition hover:text-linen"
-                href="/events"
+                href="/dashboard"
               >
-                My events
+                My Huddle
               </Link>
             ) : null}
           </nav>

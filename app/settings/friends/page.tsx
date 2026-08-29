@@ -99,6 +99,9 @@ export default async function FriendsSettingsPage({ searchParams }: FriendsPageP
             access through friends of friends.
           </p>
         </div>
+        <Button asChild>
+          <Link href="/people">Find people</Link>
+        </Button>
       </div>
 
       <nav aria-label="Friendship lists" className="mt-10 flex flex-wrap gap-2">
@@ -119,7 +122,7 @@ export default async function FriendsSettingsPage({ searchParams }: FriendsPageP
           action={
             query.bucket === "outgoing" ? (
               <Button asChild variant="outline">
-                <Link href="/matches">Browse fixtures</Link>
+                <Link href="/people">Find people</Link>
               </Button>
             ) : undefined
           }

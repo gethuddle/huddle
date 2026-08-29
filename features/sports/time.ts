@@ -1,4 +1,4 @@
-const JERUSALEM_TIME_ZONE = "Asia/Jerusalem";
+const ISRAEL_TIME_ZONE = "Asia/Jerusalem";
 
 type DateParts = Readonly<{
   year: number;
@@ -69,19 +69,19 @@ function nextDateValue(dateValue: string): string {
   ].join("-");
 }
 
-export function jerusalemDayUtcBounds(dateValue: string): Readonly<{
+export function israelDayUtcBounds(dateValue: string): Readonly<{
   start: string;
   end: string;
 }> {
   return {
-    start: localMidnightToUtc(dateValue, JERUSALEM_TIME_ZONE).toISOString(),
-    end: localMidnightToUtc(nextDateValue(dateValue), JERUSALEM_TIME_ZONE).toISOString(),
+    start: localMidnightToUtc(dateValue, ISRAEL_TIME_ZONE).toISOString(),
+    end: localMidnightToUtc(nextDateValue(dateValue), ISRAEL_TIME_ZONE).toISOString(),
   };
 }
 
-export function formatJerusalemKickoff(value: string): string {
+export function formatIsraelKickoff(value: string): string {
   return new Intl.DateTimeFormat("en-IL", {
-    timeZone: JERUSALEM_TIME_ZONE,
+    timeZone: ISRAEL_TIME_ZONE,
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -92,8 +92,8 @@ export function formatJerusalemKickoff(value: string): string {
   }).format(new Date(value));
 }
 
-export function formatJerusalemDateValue(date = new Date()): string {
-  const parts = partsInTimeZone(date, JERUSALEM_TIME_ZONE);
+export function formatIsraelDateValue(date = new Date()): string {
+  const parts = partsInTimeZone(date, ISRAEL_TIME_ZONE);
   return [
     parts.year,
     String(parts.month).padStart(2, "0"),

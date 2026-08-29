@@ -6,7 +6,7 @@
 
 **Pilot:** Israel, English interface, football first
 
-**Default display time zone:** `Asia/Jerusalem`
+**Default display time zone:** Israel time (implemented with the canonical IANA identifier `Asia/Jerusalem` for daylight-saving correctness)
 
 **Required delivery stack:** Next.js, TypeScript, Supabase, and Vercel
 
@@ -223,7 +223,7 @@ Pending requests do not consume capacity. Approval is one atomic database operat
 
 ### 5.10 Location-aware discovery
 
-Onboarding asks for an Israel city. The user may optionally share current browser location for a more precise nearby search; declining geolocation never blocks the app. PostGIS performs distance filtering and sorting for public business-venue events and privately evaluates eligible private-person events without returning a home coordinate.
+Onboarding asks for a city in the Israel pilot. The user may optionally share current browser location for a more precise nearby search; declining geolocation never blocks the app. PostGIS performs distance filtering and sorting for public business-venue events and privately evaluates eligible private-person events without returning a home coordinate.
 
 The feed combines location, future time, followed interests, audience eligibility, match, and event status. Results use cursor pagination so a larger catalog does not require loading or re-counting every earlier row.
 

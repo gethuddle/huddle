@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useState, type ReactNode } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +17,7 @@ import { saveVenueEventAction } from "@/features/events/actions";
 import type { VenueEventCatalog } from "@/features/events/catalog";
 import type { VenueEventFormValues } from "@/features/events/state";
 import { INITIAL_VENUE_EVENT_MUTATION_STATE } from "@/features/events/state";
-import { formatJerusalemKickoff } from "@/features/sports/time";
+import { formatIsraelKickoff } from "@/features/sports/time";
 import { VenueVerificationBadge } from "@/features/venues/components/venue-verification-badge";
 
 type VenueEventFormProps = Readonly<{
@@ -56,6 +57,7 @@ function emptyValues(
 }
 
 export function VenueEventForm({ catalog, venue, initialMatchId = "" }: VenueEventFormProps) {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(
     saveVenueEventAction,
     INITIAL_VENUE_EVENT_MUTATION_STATE,
@@ -64,6 +66,12 @@ export function VenueEventForm({ catalog, venue, initialMatchId = "" }: VenueEve
   const [audience, setAudience] = useState<"public" | "team_followers">(
     values.audience === "team_followers" ? "team_followers" : "public",
   );
+
+  useEffect(() => {
+    if (state?.ok === true) {
+      router.replace(`/events/${state.data.event.id}?created=1`);
+    }
+  }, [router, state]);
 
   if (state?.ok === true) {
     return (
@@ -77,6 +85,9 @@ export function VenueEventForm({ catalog, venue, initialMatchId = "" }: VenueEve
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-3">
+          <p className="w-full leading-7 text-muted-dark">
+            Opening the saved event now. It will also stay in My Huddle and on the venue page.
+          </p>
           <Button asChild>
             <Link href={`/events/${state.data.event.id}`}>Open event</Link>
           </Button>
@@ -128,7 +139,7 @@ export function VenueEventForm({ catalog, venue, initialMatchId = "" }: VenueEve
             <NativeSelectOption value="">Choose a synchronized match</NativeSelectOption>
             {catalog.matches.map((match) => (
               <NativeSelectOption key={match.id} value={match.id}>
-                {match.label} — {formatJerusalemKickoff(match.startsAt)}
+                {match.label} — {formatIsraelKickoff(match.startsAt)}
               </NativeSelectOption>
             ))}
           </NativeSelect>

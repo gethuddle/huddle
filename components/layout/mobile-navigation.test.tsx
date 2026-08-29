@@ -55,7 +55,7 @@ describe("MobileNavigation", () => {
       "href",
       "/settings/profile",
     );
-    expect(screen.queryByRole("menuitem", { name: "My events" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "My Huddle" })).not.toBeInTheDocument();
     expect(screen.queryByRole("menuitem", { name: "Host event" })).not.toBeInTheDocument();
   });
 });

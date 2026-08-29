@@ -39,7 +39,7 @@ const match: PublicMatchDto = {
 };
 
 describe("fixture browser components", () => {
-  it("renders a provider-neutral match card in Jerusalem time", () => {
+  it("renders a provider-neutral match card in Israel time", () => {
     render(<MatchCard match={match} />);
 
     expect(screen.getByText("Arsenal")).toBeVisible();
@@ -73,7 +73,7 @@ describe("fixture browser components", () => {
       />,
     );
 
-    expect(screen.getByLabelText("Jerusalem date")).toHaveValue("2026-08-26");
+    expect(screen.getByLabelText("Israel date")).toHaveValue("2026-08-26");
     expect(screen.getByRole("combobox", { name: "Competition" })).toHaveValue(match.competition.id);
     expect(screen.getByRole("combobox", { name: "Team" })).toHaveValue(match.homeTeam.id);
     expect(screen.getByRole("button", { name: "Apply filters" })).toBeVisible();

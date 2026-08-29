@@ -1,5 +1,5 @@
 import type { FixtureFilters } from "./browse-schemas";
-import { jerusalemDayUtcBounds } from "./time";
+import { israelDayUtcBounds } from "./time";
 
 export const FIXTURES_PER_PAGE = 12;
 
@@ -12,7 +12,7 @@ export type FixtureQueryPlan = Readonly<{
 
 export function fixtureQueryPlan(filters: FixtureFilters): FixtureQueryPlan {
   const offset = (filters.page - 1) * FIXTURES_PER_PAGE;
-  const bounds = filters.date === undefined ? null : jerusalemDayUtcBounds(filters.date);
+  const bounds = filters.date === undefined ? null : israelDayUtcBounds(filters.date);
 
   return {
     offset,

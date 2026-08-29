@@ -24,6 +24,11 @@ The 2026-08-29 B12 run passed 90 Vitest files / 403 tests (78.7% statements,
 and all 17 Playwright journeys. The PR/main CI run and second-computer reproduction
 remain separate evidence.
 
+The current post-B12 PR #35 inventory contains 94 Vitest files / 412 tests,
+14 ordered migrations, 19 pgTAP files / 990 assertions, and the same 17 Playwright
+journeys. The B12 numbers above are retained as historical accepted evidence rather
+than presented as the current repository inventory.
+
 ## Seventeen deterministic Playwright journeys
 
 All numbered journeys are in `tests/e2e/auth.spec.ts`. Provider input is a saved,
@@ -60,7 +65,7 @@ accounts and a fresh event.
 
 ## Database coverage
 
-The 18 pgTAP files under `supabase/tests/database/` cover all exposed-table RLS
+The 19 pgTAP files under `supabase/tests/database/` cover all exposed-table RLS
 inventory, CHECK/unique/FK invariants, minimum grants, safe reads, denied reads and
 mutations, lifecycle transitions, cooldowns, exact-address authorization, capacity,
 and moderation. Dedicated two-connection regressions cover friendship/block,
@@ -70,7 +75,7 @@ and suspension/mutation races.
 ## Manual and hosted acceptance
 
 The final pass adds keyboard-only and VoiceOver checks, phone/desktop review,
-Jerusalem DST display, public attribution, unauthorized HTML/network/cache/log
+Israel-time DST display, public attribution, unauthorized HTML/network/cache/log
 inspection, and the production smoke described in
 [`PRODUCTION-ACCEPTANCE.md`](../operations/PRODUCTION-ACCEPTANCE.md). Hosted checks
 are evidence, not CI dependencies.

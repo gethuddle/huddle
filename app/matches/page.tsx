@@ -12,7 +12,7 @@ import { ProviderFreshness } from "@/features/sports/components/provider-freshne
 
 export const metadata: Metadata = {
   title: "Football fixtures — Huddle",
-  description: "Browse locally cached football fixtures in Jerusalem time.",
+  description: "Browse locally cached football fixtures in Israel time.",
 };
 
 type MatchesPageProps = Readonly<{
@@ -34,8 +34,7 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
             Find the fixture. Then find your huddle.
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-dark">
-            Browse the local match catalog by Jerusalem date, competition, or team. Page loads never
-            call the sports provider.
+            Browse every fixture currently in Huddle by Israel date, competition, or team.
           </p>
         </div>
         <ProviderFreshness freshness={data.freshness} />
@@ -66,7 +65,7 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
               <Link href="/matches">Clear filters</Link>
             </Button>
           }
-          description="Try another Jerusalem date, competition, or team. The last good catalog remains available even if an import fails."
+          description="Try another Israel date, competition, or team."
           headingLevel="h3"
           title={
             data.total === 0 ? "No fixtures match these filters." : "No fixtures on this page."

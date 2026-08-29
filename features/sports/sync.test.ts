@@ -88,10 +88,21 @@ function quietLogger() {
 }
 
 describe("sports synchronization orchestration", () => {
-  it("builds the reviewed yesterday-through-45-days UTC window", () => {
+  it("builds a yesterday-through-season-end UTC window", () => {
     expect(getSportsSyncWindow(new Date("2026-08-25T23:58:00-07:00"))).toEqual({
       from: "2026-08-25",
-      to: "2026-10-10",
+      to: "2027-05-31",
+    });
+  });
+
+  it("keeps the current May as season end before June and rolls over after it", () => {
+    expect(getSportsSyncWindow(new Date("2027-01-10T12:00:00Z"))).toEqual({
+      from: "2027-01-09",
+      to: "2027-05-31",
+    });
+    expect(getSportsSyncWindow(new Date("2027-06-01T12:00:00Z"))).toEqual({
+      from: "2027-05-31",
+      to: "2028-05-31",
     });
   });
 
@@ -139,14 +150,14 @@ describe("sports synchronization orchestration", () => {
       },
     });
 
-    expect(provider.listFixtures).toHaveBeenCalledWith({ from: "2026-08-24", to: "2026-10-09" }, [
+    expect(provider.listFixtures).toHaveBeenCalledWith({ from: "2026-08-24", to: "2027-05-31" }, [
       "2021",
       "2001",
     ]);
     expect(rpc).toHaveBeenNthCalledWith(1, "begin_sports_sync", {
       input_provider: "football-data",
       input_window_start: "2026-08-24",
-      input_window_end: "2026-10-09",
+      input_window_end: "2027-05-31",
       input_trigger_source: "manual",
     });
     expect(rpc).toHaveBeenNthCalledWith(

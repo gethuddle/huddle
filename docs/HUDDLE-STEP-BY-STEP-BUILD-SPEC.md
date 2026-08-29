@@ -669,7 +669,7 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 - [x] Add an advisory lock and `SYNC_ALREADY_RUNNING` response.
 - [x] Record a running sync row before provider work.
 - [x] Intersect provider-accessible competitions with a configuration allowlist.
-- [x] Use the yesterday-through-45-days-ahead window.
+- [x] Use the yesterday-through-current-season-end window, ending May 31.
 - [x] Fetch sequentially or with bounded rate-aware concurrency.
 - [x] Upsert normalized rows by provider identity in safe batches/transactions.
 - [x] Record counts, duration, request count, outcome, and safe errors.
@@ -700,7 +700,7 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 - [x] Keep a provider outage from making cached matches unavailable.
 - [x] Add visible football-data.org attribution and a data-sources page.
 - [x] Use text initials or original art rather than provider crests.
-- [x] Confirm Jerusalem display time around UTC conversion.
+- [x] Confirm Israel display time around UTC conversion.
 
 **Tests/evidence:** shared-component and migrated-flow regression tests, query/unit tests, component empty/stale/error states, responsive visual evidence, E2E cached browsing during simulated provider failure, and manual network proof that page loads do not call the provider.
 
@@ -1005,7 +1005,7 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tests/evidence:** SQL query and authorization matrix, cursor tests, query-count inspection, component geolocation denial, E2E personalized/anonymous discovery, representative `EXPLAIN` evidence.
 
-**B09 implementation decisions:** group lifecycle is recalculated from current gate facts after every relevant membership, role, rule, description, event, ban, and suspension transition; search also requires a currently future published group event so wall-clock expiry cannot leak a stale group. Event discovery uses one authorization-filtered RPC and one safe DTO page rather than per-card reads. Spatial candidates are selected separately from indexed public-place, venue, and protected-home locations, while responses expose only a coarse distance band and never an exact address, coordinate, or distance. Signed cursors are endpoint-scoped and bound to normalized filters. Browser coordinates are requested only after an explicit click, sent for that discovery request, omitted from address-bar state, and discarded when city fallback is restored. Database date bounds compare Jerusalem calendar timestamps, so 23-hour and 25-hour daylight-saving transition days do not change the accepted discovery window.
+**B09 implementation decisions:** group lifecycle is recalculated from current gate facts after every relevant membership, role, rule, description, event, ban, and suspension transition; search also requires a currently future published group event so wall-clock expiry cannot leak a stale group. Event discovery uses one authorization-filtered RPC and one safe DTO page rather than per-card reads. Spatial candidates are selected separately from indexed public-place, venue, and protected-home locations, while responses expose only a coarse distance band and never an exact address, coordinate, or distance. Signed cursors are endpoint-scoped and bound to normalized filters. Browser coordinates are requested only after an explicit click, sent for that discovery request, omitted from address-bar state, and discarded when city fallback is restored. Database date bounds compare Israel calendar timestamps, so 23-hour and 25-hour daylight-saving transition days do not change the accepted discovery window.
 
 ---
 
@@ -1180,7 +1180,7 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 - [x] Ensure status is not communicated only by color.
 - [x] Add responsive checks for all presentation/demo routes.
 - [x] Cover loading, empty, retry, stale, denied, cancelled, removed, suspended, and not-found states.
-- [x] Check Jerusalem dates around daylight-saving transitions.
+- [x] Check Israel dates around daylight-saving transitions.
 - [x] Track discovery duration, sync age/outcome, sync requests, route/action errors, quota observations, and repeated authorization failures.
 - [x] Write short runbooks for failed sync, token rotation, bad migration, suspension, and urgent report removal.
 
@@ -1301,7 +1301,7 @@ These are not final-week cleanup items. Apply them in every relevant module and 
 - Add constraints and indexes in the same migration as a new table/relationship.
 - Add allowed and denied pgTAP cases with every security-sensitive migration.
 - Regenerate database TypeScript types after schema changes.
-- Store all dates as UTC and display `Asia/Jerusalem` by default.
+- Store all dates as UTC and display Israel time by default, using `Asia/Jerusalem` internally for daylight-saving correctness.
 - Keep user text plain and React-escaped; do not render raw HTML.
 - Keep exact home data, secrets, invite tokens, sessions, and reports out of logs and public DTOs.
 - Retain attendance/moderation history through status transitions instead of routine hard deletes.
@@ -1361,7 +1361,7 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 | B09 Group and event discovery | `G06`, `E07` | done | [#26](https://github.com/gethuddle/huddle/issues/26) / [PR #27](https://github.com/gethuddle/huddle/pull/27) |
 | B10 Invitations, attendance, and calendar | `T01`–`T04` | done | [#28](https://github.com/gethuddle/huddle/issues/28) / [PR #29](https://github.com/gethuddle/huddle/pull/29) |
 | B11 Moderation, security, and accessibility | `M01`–`M04` | done | [#30](https://github.com/gethuddle/huddle/issues/30) / [PR #31](https://github.com/gethuddle/huddle/pull/31) |
-| B12 Release candidate and automated acceptance | `D01` | review | [#32](https://github.com/gethuddle/huddle/issues/32) |
+| B12 Release candidate and automated acceptance | `D01` | done | [#32](https://github.com/gethuddle/huddle/issues/32) / [PR #33](https://github.com/gethuddle/huddle/pull/33) |
 | B13 Production acceptance and submission | `D02`–`D04` | not started | — |
 
 ---

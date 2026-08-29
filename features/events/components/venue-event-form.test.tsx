@@ -6,11 +6,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { VenueEventForm } from "./venue-event-form";
 
-const mocks = vi.hoisted(() => ({ saveVenueEventAction: vi.fn() }));
+const mocks = vi.hoisted(() => ({ replace: vi.fn(), saveVenueEventAction: vi.fn() }));
 
 vi.mock("@/features/events/actions", () => ({
   saveVenueEventAction: mocks.saveVenueEventAction,
 }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: mocks.replace }) }));
 
 const matchId = "60000000-0000-4000-8000-000000000101";
 const teamId = "60000000-0000-4000-8000-000000000102";
@@ -59,7 +60,7 @@ describe("VenueEventForm", () => {
     expect(screen.getByRole("combobox", { name: "Follower team" })).toHaveValue(teamId);
   });
 
-  it("returns only safe event and venue destinations after publication", async () => {
+  it("redirects to the saved venue event and keeps only safe fallback destinations", async () => {
     mocks.saveVenueEventAction.mockResolvedValue({
       ok: true,
       data: {
@@ -84,6 +85,11 @@ describe("VenueEventForm", () => {
     expect(screen.getByRole("link", { name: "Open venue listings" })).toHaveAttribute(
       "href",
       "/venues/match-corner",
+    );
+    await waitFor(() =>
+      expect(mocks.replace).toHaveBeenCalledWith(
+        "/events/60000000-0000-4000-8000-000000000104?created=1",
+      ),
     );
   });
 });

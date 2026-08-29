@@ -66,7 +66,8 @@ function shiftUtcDate(date: Date, days: number): string {
 }
 
 export function getSportsSyncWindow(now: Date = new Date()): SportsSyncWindow {
-  return { from: shiftUtcDate(now, -1), to: shiftUtcDate(now, 45) };
+  const seasonEndYear = now.getUTCMonth() <= 4 ? now.getUTCFullYear() : now.getUTCFullYear() + 1;
+  return { from: shiftUtcDate(now, -1), to: `${seasonEndYear}-05-31` };
 }
 
 function selectAllowedCompetitions(

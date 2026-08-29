@@ -2560,6 +2560,44 @@ export type Database = {
           total_count: number
         }[]
       }
+      list_my_groups: {
+        Args: { input_limit?: number; input_offset?: number }
+        Returns: {
+          active_member_count: number
+          can_manage: boolean
+          city_name: string
+          description: string
+          group_id: string
+          lifecycle: string
+          member_role: string
+          membership_status: string
+          name: string
+          slug: string
+          team_name: string
+          total_count: number
+          visibility: string
+        }[]
+      }
+      list_my_huddle_events: {
+        Args: { input_limit?: number; input_offset?: number }
+        Returns: {
+          attendance_status: string
+          audience: string
+          away_team_name: string
+          can_manage: boolean
+          city_name: string
+          competition_name: string
+          event_id: string
+          home_team_name: string
+          invitation_status: string
+          involvement: string
+          place_kind: string
+          starts_at: string
+          status: string
+          title: string
+          total_count: number
+        }[]
+      }
       list_my_moderation_actions: {
         Args: { input_limit?: number; input_offset?: number }
         Returns: {
@@ -2797,6 +2835,22 @@ export type Database = {
           name: string
           slug: string
           team_name: string
+        }[]
+      }
+      search_people: {
+        Args: {
+          input_limit?: number
+          input_offset?: number
+          input_query: string
+        }
+        Returns: {
+          city_name: string
+          display_name: string
+          friendship_direction: string
+          friendship_id: string
+          friendship_status: string
+          handle: string
+          total_count: number
         }[]
       }
       set_venue_verification_status: {

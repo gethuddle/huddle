@@ -22,7 +22,7 @@ Huddle MUST let a person:
 
 1. create and verify an adult account;
 2. attest that they are 18+, accept the community rules, complete a profile, and follow football interests;
-3. discover safe, relevant future watch events near an Israel city or optional browser location;
+3. discover safe, relevant future watch events near a city in Israel or an optional browser location;
 4. form trust through accepted friendships or moderated supporter groups;
 5. request or accept attendance without exposing a home address prematurely;
 6. host and manage a private, group, public-place, or venue event;
@@ -42,7 +42,7 @@ The system MUST also let an unverified venue demonstrate the commercial listing 
 - Group applications, `owner`/`admin`/`member` roles, bans, invite links, and event approval.
 - Private-person events restricted to `group`, `friends`, or `invite_only`.
 - Business-venue events using `public` or `team_followers`.
-- Location discovery using a seeded Israel city list, optional browser geolocation, and PostGIS.
+- Location discovery using a seeded list of cities in Israel, optional browser geolocation, and PostGIS.
 - Attendance request, accept/approve, decline, host removal, and leave flows with atomic capacity enforcement and no unregistered guests.
 - RFC 5545 `.ics` event download.
 - Basic reporting, moderation, audit records, tests, CI, Vercel deployment, and Supabase hosting.
@@ -74,7 +74,7 @@ Deferred behavior MUST NOT be represented by fake controls, placeholder entitlem
 - Anonymous visitors MAY read explicitly public projections.
 - Authentication is required for any mutation.
 - A verified email, adult attestation, accepted current community rules, and completed profile are required to follow, befriend, apply, join, host, create a group, or create a venue.
-- A profile is complete when it has a unique handle, display name, Israel city, `adult_attested_at`, and `rules_accepted_at` for the current rules version.
+- A profile is complete when it has a unique handle, display name, pilot city, `adult_attested_at`, and `rules_accepted_at` for the current rules version.
 - One account represents one attendee. The MVP MUST NOT support anonymous guests or plus-ones.
 - A block MUST be immediate, private from the blocked person, and independent of reporting. It removes any friendship, prevents new friend requests/invitations, hides future private events hosted by either person from the other, and revokes attendance/address access when the two users are host and attendee of the same future home event.
 - A numeric trust score MUST NOT be calculated. Request-review UI SHOULD show only factual context: verified account, account age, mutual accepted friends, shared active groups, and relevant team follows.
@@ -139,7 +139,7 @@ Deferred behavior MUST NOT be represented by fake controls, placeholder entitlem
 - Leaving, host removal, blocking, event cancellation, account suspension, or loss of the required group eligibility MUST revoke future private-location reads. The product MUST disclose that it cannot make a previously viewed address unknown.
 - After the first approval, an event's host type, audience, place kind, and private address are immutable. A material change requires cancellation and a new event so attendees consent again.
 - Business-venue addresses and coordinates MAY be public. A private person's public-place address is visible only through that event's group/friends/invite-only audience, even though it is not treated as a secret home address.
-- Dates MUST be stored as `timestamptz` in UTC and rendered in `Asia/Jerusalem` by default.
+- Dates MUST be stored as `timestamptz` in UTC and rendered as Israel time by default. The implementation MUST use the canonical IANA identifier `Asia/Jerusalem` for daylight-saving correctness without presenting that identifier as user-facing location copy.
 
 ### 2.6 Attendance and capacity
 
@@ -207,7 +207,7 @@ Authorization MUST be enforced twice for sensitive transitions: application logi
 
 | Route | Access | Purpose |
 |---|---|---|
-| `/` | Public | Value proposition plus selected future public business-venue events/matches |
+| `/` | Public with personal signed-in view | Value proposition for visitors; direct My Huddle continuation for complete members |
 | `/discover` | Public with richer signed-in view | Event discovery filters, cursor feed, location consent |
 | `/matches` | Public | Future football fixtures by date/competition/team |
 | `/matches/[matchId]` | Public | Match summary and eligible linked events |
@@ -215,7 +215,7 @@ Authorization MUST be enforced twice for sensitive transitions: application logi
 | `/events/[eventId]` | Audience policy | Event summary, attendance state/action, permitted attendee context, calendar link |
 | `/events/new` | Complete user | Event creation wizard |
 | `/events/[eventId]/manage` | Host/group reviewer | Edit, invite, review attendance, submit/approve/cancel |
-| `/groups` | Public | Search active discoverable groups and explain unlisted groups |
+| `/groups` | Public with personal signed-in view | Search active discoverable groups; show the viewer own forming and unlisted groups separately |
 | `/groups/new` | Complete user | Similar-group check then group creation |
 | `/groups/[slug]` | Group visibility rules | Public summary or member content, application state, approved events |
 | `/groups/[slug]/manage` | Owner/admin | Applications, members, roles, bans, rules, invites, submitted events |
@@ -224,10 +224,11 @@ Authorization MUST be enforced twice for sensitive transitions: application logi
 | `/venues/new` | Complete user | Create an unverified venue |
 | `/venues/[slug]/manage` | Owner | Edit venue and manage venue event links |
 | `/people/[handle]` | Public/signed-in safe projection | Safe profile, friendship/block state; never email/private attendance |
+| `/people` | Complete user | Bounded safe search by display name or handle, excluding self, suspended profiles, and blocked pairs |
 | `/settings/profile` | Signed-in | Complete/edit profile and city |
 | `/settings/interests` | Complete user | Manage sport/competition/team follows |
 | `/settings/friends` | Complete user | Incoming/outgoing/accepted friendships |
-| `/dashboard` | Complete user | Hosted, submitted, invited, requested, and attending events |
+| `/dashboard` | Complete user | Hosted, submitted, invited, requested, and attending events plus the viewer own group relationships |
 | `/moderation` | Platform moderator | Report queue and moderation actions |
 | `/auth/sign-up` | Anonymous | Email/password signup |
 | `/auth/sign-in` | Anonymous | Sign in |
@@ -863,7 +864,7 @@ Rules:
 
 - Supabase Cron/`pg_net` calls the protected Vercel route every six hours.
 - The call secret is stored in Supabase Vault and mirrored as a Vercel server environment secret.
-- Each regular run synchronizes accessible competitions and matches from yesterday through 45 days ahead.
+- Each regular run synchronizes accessible competitions and matches from yesterday through the current football season end on May 31.
 - A configuration file/environment allowlist defines competition codes/IDs; request input cannot override it.
 - A database advisory lock prevents overlapping runs.
 
@@ -1187,7 +1188,7 @@ Seed deterministic users, relationships, groups, venues, matches, and events. Re
 - Responsive phone and desktop review.
 - Keyboard-only navigation and visible focus.
 - Basic screen-reader naming/landmarks/forms.
-- Israel/Jerusalem date rendering around daylight-saving transitions.
+- Israel-time date rendering around daylight-saving transitions.
 - Real Vercel production smoke test with anonymous and two test accounts.
 - Attribution/footer and unverified-venue labels visible.
 - No exact address in HTML source, network payload, client cache, logs, or unauthorized `.ics`.
@@ -1335,7 +1336,7 @@ The MVP is done only when:
 
 | Decision | Chosen answer | Consequence |
 |---|---|---|
-| Pilot | Israel, English, Jerusalem display time | Small city seed and consistent time UX |
+| Pilot | Israel, English, Israel display time | Small city seed and consistent time UX |
 | Sports | Football first | One provider adapter; NBA stays future-ready |
 | Provider | football-data.org v4 | Six-hour sync and local cache under free-rate constraints |
 | Auth | Supabase email/password SSR | No OAuth and no application password storage |

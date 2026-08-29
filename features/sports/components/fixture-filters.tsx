@@ -21,7 +21,7 @@ export function FixtureFilters({ filters, competitions, teams }: FixtureFiltersP
       method="get"
     >
       <div>
-        <Label htmlFor="fixture-date">Jerusalem date</Label>
+        <Label htmlFor="fixture-date">Israel date</Label>
         <Input
           className="mt-2"
           defaultValue={filters.date}

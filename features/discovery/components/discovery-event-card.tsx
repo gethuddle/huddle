@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatJerusalemKickoff } from "@/features/sports/time";
+import { formatIsraelKickoff } from "@/features/sports/time";
 import type { DiscoveryEvent } from "@/features/discovery/types";
 
 export function DiscoveryEventCard({ event }: Readonly<{ event: DiscoveryEvent }>) {
@@ -23,7 +23,7 @@ export function DiscoveryEventCard({ event }: Readonly<{ event: DiscoveryEvent }
             {event.match.homeTeamName} vs {event.match.awayTeamName}
           </p>
           <p className="mt-1 text-sm text-muted-dark">
-            {formatJerusalemKickoff(event.startsAt)} · Asia/Jerusalem
+            {formatIsraelKickoff(event.startsAt)} · Israel time
           </p>
         </div>
         <div className="space-y-2 text-sm text-muted-dark">

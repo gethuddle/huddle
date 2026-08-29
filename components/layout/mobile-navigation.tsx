@@ -21,9 +21,11 @@ const publicLinks = [
 ] as const;
 
 const signedInLinks = [
-  ["My events", "/events"],
+  ["My Huddle", "/dashboard"],
+  ["Attendance", "/events"],
   ["Interests", "/settings/interests"],
   ["Friends", "/settings/friends"],
+  ["Find people", "/people"],
   ["Safety", "/reports"],
   ["Create group", "/groups/new"],
   ["Create venue", "/venues/new"],

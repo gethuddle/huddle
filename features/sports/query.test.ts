@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { fixturePageHref, fixtureQueryPlan } from "./query";
 
 describe("fixture query planning", () => {
-  it("bounds page ranges and a Jerusalem date before the catalog query", () => {
+  it("bounds page ranges and an Israel date before the catalog query", () => {
     expect(
       fixtureQueryPlan({
         date: "2026-08-26",

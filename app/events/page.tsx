@@ -17,10 +17,10 @@ import { listMyEventParticipation } from "@/features/attendance/queries";
 import { eventPageSchema } from "@/features/attendance/schemas";
 import { requireActor } from "@/features/auth/actor";
 import { ProfileAccessState } from "@/features/profiles/components/profile-access-state";
-import { formatJerusalemKickoff } from "@/features/sports/time";
+import { formatIsraelKickoff } from "@/features/sports/time";
 import { DomainError } from "@/lib/errors";
 
-export const metadata: Metadata = { title: "Your events — Huddle" };
+export const metadata: Metadata = { title: "Attendance — Huddle" };
 
 type Props = Readonly<{
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -68,10 +68,10 @@ export default async function EventsDashboardPage({ searchParams }: Props) {
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-court">
-            Your event activity
+            Attendance inbox
           </p>
           <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-linen sm:text-6xl">
-            Invitations and attendance
+            Invitations and requests
           </h1>
           <p className="mt-4 max-w-3xl text-muted-dark">
             Every response represents your own registered place. There are no anonymous guests or
@@ -87,7 +87,7 @@ export default async function EventsDashboardPage({ searchParams }: Props) {
         <EmptyState
           description="Eligible invitations and attendance responses for upcoming events will appear here."
           headingLevel="h2"
-          title="No upcoming event activity yet."
+          title="No invitations or attendance requests yet."
         />
       ) : (
         <div className="mt-10 grid gap-5 lg:grid-cols-2">
@@ -107,7 +107,7 @@ export default async function EventsDashboardPage({ searchParams }: Props) {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-dark">
-                  {formatJerusalemKickoff(item.starts_at)} · {item.city_name}
+                  {formatIsraelKickoff(item.starts_at)} · {item.city_name}
                 </p>
                 <div className="mt-5">
                   <EventParticipationControls

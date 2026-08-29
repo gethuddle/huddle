@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { formatJerusalemDateValue, jerusalemDayUtcBounds } from "@/features/sports/time";
+import { formatIsraelDateValue, israelDayUtcBounds } from "@/features/sports/time";
 
 export const DISCOVERY_RADIUS_OPTIONS = [5, 15, 30, 50] as const;
 export const DISCOVERY_PAGE_SIZE = 20;
@@ -97,7 +97,7 @@ export type DiscoveryFilters = Readonly<{
 
 export function parseDiscoveryFilters(input: unknown, now = new Date()): DiscoveryFilters {
   const raw = rawDiscoveryFiltersSchema.parse(input);
-  const today = formatJerusalemDateValue(now);
+  const today = formatIsraelDateValue(now);
   const from = raw.from === undefined || raw.from === "" ? today : raw.from;
   const to = raw.to === undefined || raw.to === "" ? addUtcDays(from, 14) : raw.to;
   const maximumFutureDate = addUtcDays(today, 45);
@@ -134,8 +134,8 @@ export function discoveryUtcRange(filters: DiscoveryFilters): Readonly<{
   to: string;
 }> {
   return {
-    from: jerusalemDayUtcBounds(filters.from).start,
-    to: jerusalemDayUtcBounds(filters.to).end,
+    from: israelDayUtcBounds(filters.from).start,
+    to: israelDayUtcBounds(filters.to).end,
   };
 }
 

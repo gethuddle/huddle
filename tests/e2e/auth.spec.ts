@@ -25,6 +25,7 @@ const captureB08Evidence = process.env.HUDDLE_CAPTURE_B08_EVIDENCE === "1";
 const captureB09Evidence = process.env.HUDDLE_CAPTURE_B09_EVIDENCE === "1";
 const captureB10Evidence = process.env.HUDDLE_CAPTURE_B10_EVIDENCE === "1";
 const captureB11Evidence = process.env.HUDDLE_CAPTURE_B11_EVIDENCE === "1";
+const captureUxEvidence = process.env.HUDDLE_CAPTURE_UX_EVIDENCE === "1";
 const haifaCityId = "00000000-0000-4000-8000-000000000003";
 
 function uniqueSuffix() {
@@ -553,7 +554,7 @@ async function completeProfile(
   await page.goto(new URL("/settings/profile", page.url()).toString());
   await page.getByRole("textbox", { name: "Display name" }).fill(displayName);
   await page.getByRole("textbox", { name: "Handle" }).fill(handle);
-  await page.getByRole("combobox", { name: "Israel city" }).selectOption("haifa");
+  await page.getByRole("combobox", { name: "City" }).selectOption("haifa");
 
   if (proveRequiredConfirmations) {
     await page.getByRole("button", { name: "Complete profile" }).click();
@@ -677,7 +678,26 @@ test("a block is private, directional, auditable, and reversible", async ({
     await signUpAndVerify(secondPage, secondContext, secondEmail, password);
     await completeProfile(secondPage, secondHandle, "Target Fan");
 
-    await page.goto(new URL(`/people/${secondHandle}`, page.url()).toString());
+    await page.goto(
+      new URL(`/people?q=${encodeURIComponent(`@${secondHandle}`)}`, page.url()).toString(),
+    );
+    await expect(page.getByRole("heading", { name: "Find people." })).toBeVisible();
+    const targetResult = page.getByRole("link", { name: "Target Fan", exact: true });
+    await expect(targetResult).toHaveAttribute("href", `/people/${secondHandle}`);
+    if (captureUxEvidence) {
+      await page.getByRole("textbox", { name: "Name or Huddle handle" }).evaluate((element) => {
+        (element as HTMLInputElement).value = "@target_fan";
+      });
+      await page.getByText(`@${secondHandle}`, { exact: true }).evaluate((element) => {
+        element.textContent = "@target_fan";
+      });
+      await page.screenshot({
+        fullPage: true,
+        path: "docs/evidence/ux/people-search-desktop.png",
+      });
+    }
+    await targetResult.click();
+    await expect(page).toHaveURL(new RegExp(`/people/${secondHandle}$`));
     await page.getByRole("button", { name: "Add friend" }).click();
     await expect(page.getByRole("status")).toHaveText("Friend request sent.");
     await expect(page.getByText("Request sent", { exact: true })).toBeVisible();
@@ -753,11 +773,11 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
 
   await page.getByRole("textbox", { name: "Group name" }).fill(`Haifa Huddle ${suffix}`);
   await page.getByRole("textbox", { name: "Group URL" }).fill(slug);
-  await page.getByRole("combobox", { name: "Israel city" }).selectOption({ label: "Haifa" });
+  await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
   await page
     .getByRole("textbox", { name: /Description/ })
     .fill("A local group for respectful match-day gatherings.");
-  await page.getByRole("button", { name: "Check similar groups" }).click();
+  await page.getByRole("button", { name: "Review group" }).click();
 
   await expect(page.getByRole("status")).toContainText(
     /No similar discoverable groups found|Review these discoverable groups/,
@@ -765,14 +785,19 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
   await expect(page.getByRole("button", { name: "Create group" })).toBeVisible();
   await page.getByRole("button", { name: "Create group" }).click();
 
-  await expect(page.getByRole("heading", { name: "You own this group." })).toBeVisible();
-  await page.getByRole("link", { name: "Open group" }).click();
-  await expect(page).toHaveURL(new RegExp(`/groups/${slug}$`));
+  await expect(page).toHaveURL(new RegExp(`/groups/${slug}[?]created=1$`));
+  await expect(page.getByText(/Your group is ready/i)).toBeVisible();
   await expect(page.getByRole("heading", { name: `Haifa Huddle ${suffix}` })).toBeVisible();
   await expect(page.getByText("Your role: owner")).toBeVisible();
   await expect(page.getByText("Forming and accepting applications")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Active members" })).toBeVisible();
   await expect(page.getByText("Group Owner")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Share group" })).toBeVisible();
+
+  await page.goto(new URL("/dashboard", page.url()).toString());
+  await expect(page.getByRole("heading", { name: "Everything you're part of." })).toBeVisible();
+  await expect(page.getByText(`Haifa Huddle ${suffix}`, { exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Open group" }).click();
 
   await page.getByRole("link", { name: "Manage group" }).click();
   await page.getByRole("link", { name: "Rules" }).click();
@@ -836,9 +861,8 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
       .selectOption({ label: `Haifa Huddle ${suffix} (forming)` });
     await applicantPage.getByRole("checkbox", { name: /I confirm that I am the host/i }).click();
     await applicantPage.getByRole("button", { name: "Submit for group review" }).click();
-    await expect(
-      applicantPage.getByText("Event submitted to its organizing group for review."),
-    ).toBeVisible();
+    await expect(applicantPage).toHaveURL(/\/events\/[0-9a-f-]{36}\?created=1$/);
+    await expect(applicantPage.getByText(/Your event is saved/i)).toBeVisible();
     await expect(applicantPage.getByText(exactGroupEventAddress)).toHaveCount(0);
 
     await page.goto(new URL(`/groups/${slug}/manage?section=events`, page.url()).toString());
@@ -853,7 +877,7 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
     await page.getByRole("button", { name: "Approve and publish" }).click();
     await expect(page.getByText("published", { exact: true })).toBeVisible();
 
-    await applicantPage.getByRole("link", { name: "Open safe event summary" }).click();
+    await applicantPage.reload();
     await expect(applicantPage.getByRole("heading", { name: groupEventTitle })).toBeVisible();
     await expect(applicantPage.getByText("published", { exact: true })).toBeVisible();
     await expect(applicantPage.getByText(new RegExp(exactGroupEventAddress))).toBeVisible();
@@ -866,7 +890,12 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
         applicantPage.url(),
       ).toString(),
     );
-    await expect(applicantPage.getByText(`Haifa Huddle ${suffix}`, { exact: true })).toHaveCount(0);
+    const publicGroupResults = applicantPage.getByRole("region", {
+      name: "Public group search results",
+    });
+    await expect(
+      publicGroupResults.getByText(`Haifa Huddle ${suffix}`, { exact: true }),
+    ).toHaveCount(0);
 
     await page.goto(new URL(`/groups/${slug}/manage?section=members`, page.url()).toString());
     await expect(page.getByText("Still forming", { exact: true })).toBeVisible();
@@ -895,7 +924,11 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
         applicantPage.url(),
       ).toString(),
     );
-    await expect(applicantPage.getByText(`Haifa Huddle ${suffix}`, { exact: true })).toBeVisible();
+    await expect(
+      applicantPage
+        .getByRole("region", { name: "Public group search results" })
+        .getByText(`Haifa Huddle ${suffix}`, { exact: true }),
+    ).toBeVisible();
 
     await applicantPage.goto(new URL("/discover?city=haifa", applicantPage.url()).toString());
     await expect(applicantPage.getByText(groupEventTitle, { exact: true })).toBeVisible();
@@ -912,15 +945,15 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
     await page.goto(new URL("/groups/new", page.url()).toString());
     await page.getByRole("textbox", { name: "Group name" }).fill(`Haifa Private Circle ${suffix}`);
     await page.getByRole("textbox", { name: "Group URL" }).fill(unlistedSlug);
-    await page.getByRole("combobox", { name: "Israel city" }).selectOption({ label: "Haifa" });
+    await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
     await page.getByRole("combobox", { name: "Visibility" }).selectOption("unlisted");
     await page
       .getByRole("textbox", { name: /Description/ })
       .fill("An unlisted circle with reviewed invitation applications.");
-    await page.getByRole("button", { name: "Check similar groups" }).click();
+    await page.getByRole("button", { name: "Review group" }).click();
     await expect(page.getByRole("button", { name: "Create group" })).toBeVisible();
     await page.getByRole("button", { name: "Create group" }).click();
-    await page.getByRole("link", { name: "Open group" }).click();
+    await expect(page).toHaveURL(new RegExp(`/groups/${unlistedSlug}[?]created=1$`));
     await page.getByRole("link", { name: "Manage group" }).click();
     await page.getByRole("link", { name: "Invitations" }).click();
     await page.getByRole("button", { name: "Create invitation" }).click();
@@ -948,6 +981,14 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
       await expect(
         inviteePage.getByRole("heading", { name: "Your application is pending." }),
       ).toBeVisible();
+      await inviteePage.goto(new URL("/dashboard", inviteePage.url()).toString());
+      await expect(
+        inviteePage.getByRole("heading", { name: "Everything you're part of." }),
+      ).toBeVisible();
+      await expect(
+        inviteePage.getByText(`Haifa Private Circle ${suffix}`, { exact: true }),
+      ).toHaveCount(0);
+      await expect(inviteePage.locator(`a[href="/groups/${unlistedSlug}"]`)).toHaveCount(0);
 
       await page.goto(
         new URL(`/groups/${unlistedSlug}/manage?section=applications`, page.url()).toString(),
@@ -1040,7 +1081,7 @@ test("completed users create venue and private events with safe projections", as
   await page.goto(new URL("/venues/new", page.url()).toString());
   await page.getByRole("textbox", { name: "Venue name" }).fill(`Match Corner ${suffix}`);
   await page.getByRole("textbox", { name: "Venue URL" }).fill(venueSlug);
-  await page.getByRole("combobox", { name: "Israel city" }).selectOption({ label: "Haifa" });
+  await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
   await page.getByRole("textbox", { name: "Public address" }).fill("12 Hanassi Boulevard, Haifa");
   await page.getByRole("spinbutton", { name: "Latitude" }).fill("32.81303");
   await page.getByRole("spinbutton", { name: "Longitude" }).fill("34.99928");
@@ -1068,9 +1109,10 @@ test("completed users create venue and private events with safe projections", as
   await expect(page.getByRole("checkbox", { name: /Require staff approval/ })).not.toBeChecked();
   await page.getByRole("checkbox", { name: /venue staff will host/i }).click();
   await page.getByRole("button", { name: "Publish venue event" }).click();
-  await expect(page.getByText("Venue event published for safe public browsing.")).toBeVisible();
-  const venueEventHref = await page.getByRole("link", { name: "Open event" }).getAttribute("href");
-  expect(venueEventHref).toMatch(/^\/events\/[0-9a-f-]+$/);
+  await expect(page).toHaveURL(/\/events\/[0-9a-f-]{36}\?created=1$/);
+  await expect(page.getByText(/Your event is saved/i)).toBeVisible();
+  await expect(page.getByRole("heading", { name: venueEventTitle })).toBeVisible();
+  const venueEventHref = new URL(page.url()).pathname;
 
   const anonymousContext = await browser.newContext({ baseURL: "http://127.0.0.1:3000" });
   const anonymousPage = await anonymousContext.newPage();
@@ -1123,10 +1165,33 @@ test("completed users create venue and private events with safe projections", as
   await page.getByRole("checkbox", { name: /I confirm that I am the host/i }).click();
   await page.getByRole("button", { name: "Publish event" }).click();
 
-  await expect(page.getByText("Private event published to its eligible audience.")).toBeVisible();
-  await expect(page.getByText(exactHomeAddress)).toHaveCount(0);
-  await page.getByRole("link", { name: "Open safe event summary" }).click();
+  await expect(page).toHaveURL(/\/events\/[0-9a-f-]{36}\?created=1$/);
+  await expect(page.getByText(/Your event is saved/i)).toBeVisible();
   await expect(page.getByRole("heading", { name: `Arsenal at home ${suffix}` })).toBeVisible();
+  await expect(page.getByText(new RegExp(exactHomeAddress))).toBeVisible();
+  await expect(page.getByRole("button", { name: "Share event" })).toBeVisible();
+
+  const privateEventPath = new URL(page.url()).pathname;
+  await page.goto(new URL("/dashboard", page.url()).toString());
+  await expect(page.getByRole("heading", { name: "Everything you're part of." })).toBeVisible();
+  const dashboardEventTitle = page.getByText(`Arsenal at home ${suffix}`, { exact: true });
+  await expect(dashboardEventTitle).toBeVisible();
+  if (captureUxEvidence) {
+    await dashboardEventTitle.evaluate((element) => {
+      element.textContent = "Arsenal at home";
+    });
+    await page
+      .getByText(/ · Haifa$/)
+      .first()
+      .evaluate((element) => {
+        element.textContent = "Tue, 1 Sept 2026, 20:00 · Haifa";
+      });
+    await page.screenshot({
+      fullPage: true,
+      path: "docs/evidence/ux/my-huddle-desktop.png",
+    });
+  }
+  await page.goto(new URL(privateEventPath, page.url()).toString());
   await expect(page.getByText(new RegExp(exactHomeAddress))).toBeVisible();
 });
 
@@ -1197,8 +1262,7 @@ test("08 and 12 approval reveals a home address and host removal revokes it", as
     await page.getByRole("radio", { name: /Friends/ }).click();
     await page.getByRole("checkbox", { name: /I confirm that I am the host/i }).click();
     await page.getByRole("button", { name: "Publish event" }).click();
-    await page.getByRole("link", { name: "Open safe event summary" }).click();
-    await expect(page).toHaveURL(/\/events\/[0-9a-f-]{36}$/);
+    await expect(page).toHaveURL(/\/events\/[0-9a-f-]{36}\?created=1$/);
     await expect(page.getByText(new RegExp(exactAddress))).toBeVisible();
     const eventPath = new URL(page.url()).pathname;
 
@@ -1746,10 +1810,11 @@ test("09 home capacity, no-plus-one, and one-account-one-seat rules hold", async
 
   await signIn(page, hostEmail, password);
   await page.goto(new URL("/events/new", page.url()).toString());
-  await expect(
-    page.getByRole("spinbutton", { name: "Registered-account capacity" }),
-  ).toHaveAttribute("max", "12");
-  await expect(page.getByText(/No plus-ones\./)).toBeVisible();
+  await expect(page.getByRole("spinbutton", { name: "Maximum people" })).toHaveAttribute(
+    "max",
+    "12",
+  );
+  await expect(page.getByText(/Everyone needs their own Huddle account\./)).toBeVisible();
   await expect(page.locator('input[name*="guest" i], input[name*="plus" i]')).toHaveCount(0);
 });
 

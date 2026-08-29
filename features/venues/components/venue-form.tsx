@@ -110,7 +110,7 @@ export function VenueForm({ mode, catalog, initialValues = EMPTY_VALUES }: Venue
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field id="venue-city" label="Israel city" messages={fieldErrors?.cityId}>
+        <Field id="venue-city" label="City" messages={fieldErrors?.cityId}>
           <NativeSelect
             aria-describedby="venue-city-error"
             aria-invalid={fieldErrors?.cityId === undefined ? undefined : true}

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import type { PublicMatchDto, TeamSummary } from "@/features/sports/dto";
-import { formatJerusalemKickoff } from "@/features/sports/time";
+import { formatIsraelKickoff } from "@/features/sports/time";
 
 import { TeamInitials } from "./team-initials";
 
@@ -35,8 +35,8 @@ export function MatchCard({ match }: Readonly<{ match: PublicMatchDto }>) {
         <Separator />
         <TeamRow side="Away" team={match.awayTeam} />
         <div className="pt-2">
-          <p className="font-semibold text-linen">{formatJerusalemKickoff(match.startsAt)}</p>
-          <p className="mt-1 text-xs text-muted-dark">Asia/Jerusalem</p>
+          <p className="font-semibold text-linen">{formatIsraelKickoff(match.startsAt)}</p>
+          <p className="mt-1 text-xs text-muted-dark">Israel time</p>
         </div>
       </CardContent>
       <CardFooter className="mt-auto justify-between gap-3">

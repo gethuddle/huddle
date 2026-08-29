@@ -8,8 +8,9 @@ private addresses, report content, invite tokens, or raw provider payloads here.
 
 - [ ] Final HTTPS URL is recorded in the root README and submission index.
 - [ ] Deployed Git SHA equals the accepted `main` commit.
-- [x] Hosted migration history equals the 12 committed migrations; generated types
-  have no drift.
+- [x] Hosted migration history equals the 12 migrations in accepted B12 SHA
+  `94c99156011ae20fdcdbe14b807b5884cfe77555`; generated types had no drift at
+  that baseline.
 - [x] The hosted reference catalog contains all 13 active reviewed Israel cities.
 - [ ] Signed-out home/fixtures/discovery work in a clean browser.
 - [ ] Verification email returns to the production origin with no token in the final URL.

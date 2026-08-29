@@ -145,7 +145,7 @@ export function ProfileForm({ cities, initialValue }: ProfileFormProps) {
 
       <div>
         <Label className="text-linen" htmlFor="profile-city">
-          Israel city
+          City
         </Label>
         <NativeSelect
           aria-describedby="profile-city-help profile-city-error"
