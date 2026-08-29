@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { signInSchema, signUpSchema } from "@/features/auth/schemas";
 import type { AuthActionState } from "@/features/auth/state";
+import { getPublicEnvironment } from "@/lib/env/public";
 import { actionFailure, actionSuccess, DomainError } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
 
@@ -22,10 +23,17 @@ export async function signUpAction(
   }
 
   const supabase = await createClient();
+  const environment = getPublicEnvironment();
   try {
     await supabase.auth.signUp({
       email: parsed.data.email,
       password: parsed.data.password,
+      options: {
+        emailRedirectTo: new URL(
+          "/auth/verify/callback",
+          environment.NEXT_PUBLIC_APP_URL,
+        ).toString(),
+      },
     });
   } catch {
     // Keep the signup response identical: neither an account lookup nor an
@@ -55,23 +63,45 @@ export async function signInAction(
   }
 
   const supabase = await createClient();
-  let error: unknown;
+  let signInResult: Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>;
 
   try {
-    ({ error } = await supabase.auth.signInWithPassword(parsed.data));
+    signInResult = await supabase.auth.signInWithPassword(parsed.data);
   } catch (cause) {
     return actionFailure(new DomainError("UPSTREAM_UNAVAILABLE", { cause }));
   }
 
-  if (error !== null) {
-    return actionFailure(new DomainError("AUTH_FAILED", { cause: error }));
+  if (signInResult.error !== null || signInResult.data.user === null) {
+    return actionFailure(new DomainError("AUTH_FAILED", { cause: signInResult.error }));
+  }
+
+  let redirectTo = "/settings/profile";
+  try {
+    const profileResult = await supabase
+      .from("profiles")
+      .select("profile_completed_at")
+      .eq("id", signInResult.data.user.id)
+      .maybeSingle();
+    if (
+      profileResult.error === null &&
+      profileResult.data?.profile_completed_at !== null &&
+      profileResult.data?.profile_completed_at !== undefined
+    ) {
+      redirectTo = "/";
+    }
+  } catch {
+    // A verified user with an unavailable or incomplete profile is safest in
+    // the onboarding route, which already renders a controlled service state.
   }
 
   revalidatePath("/", "layout");
 
   return actionSuccess({
-    message: "Signed in. Taking you back to Huddle…",
-    redirectTo: "/",
+    message:
+      redirectTo === "/settings/profile"
+        ? "Signed in. Let’s finish setting up your account…"
+        : "Signed in. Taking you back to Huddle…",
+    redirectTo,
   });
 }
 

@@ -21,9 +21,9 @@ const publicLinks = [
 ] as const;
 
 const signedInLinks = [
+  ["My events", "/events"],
   ["Interests", "/settings/interests"],
   ["Friends", "/settings/friends"],
-  ["My events", "/events"],
   ["Safety", "/reports"],
   ["Create group", "/groups/new"],
   ["Create venue", "/venues/new"],
@@ -33,8 +33,9 @@ const signedInLinks = [
 
 export function MobileNavigation({
   isModerator,
+  isProfileComplete,
   isSignedIn,
-}: Readonly<{ isModerator: boolean; isSignedIn: boolean }>) {
+}: Readonly<{ isModerator: boolean; isProfileComplete: boolean; isSignedIn: boolean }>) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -50,7 +51,17 @@ export function MobileNavigation({
             <Link href={href}>{label}</Link>
           </DropdownMenuItem>
         ))}
-        {isSignedIn ? (
+        {!isSignedIn ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/auth/sign-in">Sign in</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/auth/sign-up">Sign up</Link>
+            </DropdownMenuItem>
+          </>
+        ) : isProfileComplete ? (
           <>
             <DropdownMenuSeparator />
             {signedInLinks.map(([label, href]) => (
@@ -64,7 +75,15 @@ export function MobileNavigation({
               </DropdownMenuItem>
             ) : null}
           </>
-        ) : null}
+        ) : (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>Account setup</DropdownMenuLabel>
+            <DropdownMenuItem asChild>
+              <Link href="/settings/profile">Finish setup</Link>
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
