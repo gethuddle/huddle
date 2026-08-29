@@ -69,7 +69,7 @@ describe("discovery filter schemas", () => {
     ).not.toThrow();
   });
 
-  it("preserves a 45-day Jerusalem window across the autumn DST fallback", () => {
+  it("preserves a 45-day Israel-time window across the autumn DST fallback", () => {
     const filters = parseDiscoveryFilters(
       { city: "haifa", from: "2026-09-15", to: "2026-10-29" },
       new Date("2026-09-15T09:00:00.000Z"),

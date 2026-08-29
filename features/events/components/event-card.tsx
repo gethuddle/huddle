@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { audienceLabel } from "@/features/events/components/event-badges";
 import type { EventListItem } from "@/features/events/queries";
-import { formatJerusalemKickoff } from "@/features/sports/time";
+import { formatIsraelKickoff } from "@/features/sports/time";
 
 export function EventCard({ event }: Readonly<{ event: EventListItem }>) {
   return (
@@ -31,7 +31,7 @@ export function EventCard({ event }: Readonly<{ event: EventListItem }>) {
         </p>
         <p className="mt-2 text-sm text-muted-dark">{event.match.competitionName}</p>
         <p className="mt-4 text-sm font-semibold text-court">
-          {formatJerusalemKickoff(event.startsAt)}
+          {formatIsraelKickoff(event.startsAt)}
         </p>
         <p className="mt-3 text-xs leading-5 text-muted-dark">
           {event.approvedAttendeeCount} approved · {event.capacity} registered-account capacity ·{" "}

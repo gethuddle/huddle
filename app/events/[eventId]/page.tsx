@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ShareLinkButton } from "@/components/share/share-link-button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -19,7 +21,7 @@ import { EventBadges } from "@/features/events/components/event-badges";
 import { getEventSummary } from "@/features/events/queries";
 import { ReportControl } from "@/features/moderation/components/report-control";
 import { eventRouteIdSchema } from "@/features/events/schemas";
-import { formatJerusalemKickoff } from "@/features/sports/time";
+import { formatIsraelKickoff } from "@/features/sports/time";
 import { DomainError } from "@/lib/errors";
 import { VenueVerificationBadge } from "@/features/venues/components/venue-verification-badge";
 
@@ -37,7 +39,8 @@ export default async function EventPage({ params, searchParams }: EventPageProps
   if (!parsedId.success) notFound();
   const event = await getEventSummary(parsedId.data);
   if (event === null) notFound();
-  const rawAttendeePage = (await searchParams).attendeePage;
+  const rawQuery = await searchParams;
+  const rawAttendeePage = rawQuery.attendeePage;
   const attendeePage = eventPageSchema.parse(
     Array.isArray(rawAttendeePage) ? rawAttendeePage[0] : rawAttendeePage,
   );
@@ -52,11 +55,22 @@ export default async function EventPage({ params, searchParams }: EventPageProps
 
   return (
     <section className="py-12 sm:py-16">
+      {rawQuery.created === "1" ? (
+        <Alert className="mb-6 border-court/30 bg-court/10" role="status">
+          <AlertDescription className="text-court-hover">
+            Your event is saved and now lives in My Huddle. Invite eligible people or manage it
+            whenever you need.
+          </AlertDescription>
+        </Alert>
+      ) : null}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <Button asChild variant="ghost">
           <Link href={"/matches/" + event.match.id}>← Fixture details</Link>
         </Button>
-        <Badge variant="outline">{event.status.replaceAll("_", " ")}</Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline">{event.status.replaceAll("_", " ")}</Badge>
+          <ShareLinkButton label="Share event" title={event.title} />
+        </div>
       </div>
 
       <div className="mt-5">
@@ -88,7 +102,7 @@ export default async function EventPage({ params, searchParams }: EventPageProps
               {event.description}
             </p>
             <dl className="mt-8 grid gap-5 border-y border-border-dark py-6 sm:grid-cols-2">
-              <Detail label="Kickoff" value={formatJerusalemKickoff(event.startsAt)} />
+              <Detail label="Kickoff" value={formatIsraelKickoff(event.startsAt)} />
               <Detail label="City" value={event.cityName} />
               <Detail
                 label="Location"
@@ -153,20 +167,19 @@ export default async function EventPage({ params, searchParams }: EventPageProps
 
           <Card className="border-sand/40 bg-sand/10" size="sm">
             <CardContent>
-              <p className="font-semibold text-sand">Protected location boundary</p>
+              <p className="font-semibold text-sand">Location privacy</p>
               <p className="mt-2 text-sm leading-6 text-muted-dark">
                 {event.placeKind === "home"
                   ? privateLocation === null
-                    ? "This summary deliberately contains no exact home address or coordinate."
-                    : "Your current authorization allowed one audited address read. Leaving, removal, blocking, suspension, relationship loss, or cancellation ends future access."
+                    ? "The exact home address stays hidden until your attendance is approved."
+                    : "You can see the address while your attendance is approved. Leaving, removal, blocking or cancellation removes future access."
                   : event.placeKind === "venue"
-                    ? "This listing uses the venue profile's public business address."
-                    : "This is an ordinary public-place location."}
+                    ? "This event uses the venue's public address."
+                    : "This event takes place at a public location."}
               </p>
               {event.placeKind === "home" ? (
                 <p className="mt-3 text-sm leading-6 text-muted-dark">
-                  Revocation prevents future reads; Huddle cannot make an address someone already
-                  viewed unknown.
+                  Removing access cannot erase an address someone already viewed.
                 </p>
               ) : null}
               {event.viewerAttendanceStatus === null ? null : (
@@ -175,7 +188,7 @@ export default async function EventPage({ params, searchParams }: EventPageProps
                 </p>
               )}
               <p className="mt-3 text-sm leading-6 text-muted-dark">
-                Attendance requires one registered account per person
+                Everyone attends with their own Huddle account
                 {event.requiresApproval ? " and host approval." : "."}
               </p>
             </CardContent>

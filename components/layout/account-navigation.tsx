@@ -14,9 +14,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const accountLinks = [
+  ["My Huddle", "/dashboard"],
   ["Profile", "/settings/profile"],
   ["Interests", "/settings/interests"],
   ["Friends", "/settings/friends"],
+  ["Find people", "/people"],
   ["Safety", "/reports"],
 ] as const;
 

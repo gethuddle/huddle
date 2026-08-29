@@ -11,7 +11,7 @@ import { matchIdSchema } from "@/features/sports/browse-schemas";
 import { ProviderFreshness } from "@/features/sports/components/provider-freshness";
 import { TeamInitials } from "@/features/sports/components/team-initials";
 import type { TeamSummary } from "@/features/sports/dto";
-import { formatJerusalemKickoff } from "@/features/sports/time";
+import { formatIsraelKickoff } from "@/features/sports/time";
 import { FollowControl } from "@/features/subscriptions/components/follow-control";
 import { InterestAccessPrompt } from "@/features/subscriptions/components/interest-access-prompt";
 import type { SubscriptionKind } from "@/features/subscriptions/schemas";
@@ -105,9 +105,9 @@ export default async function MatchDetailPage({ params }: MatchDetailPageProps) 
             <div>
               <dt className="text-xs uppercase tracking-[0.14em] text-muted-dark">Kickoff</dt>
               <dd className="mt-2 font-semibold text-linen">
-                {formatJerusalemKickoff(match.startsAt)}
+                {formatIsraelKickoff(match.startsAt)}
               </dd>
-              <dd className="mt-1 text-xs text-muted-dark">Asia/Jerusalem</dd>
+              <dd className="mt-1 text-xs text-muted-dark">Israel time</dd>
             </div>
             <div>
               <dt className="text-xs uppercase tracking-[0.14em] text-muted-dark">Status</dt>

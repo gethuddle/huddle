@@ -65,6 +65,6 @@ describe("ProfileSettingsPage", () => {
 
     expect(screen.getByRole("heading", { name: "We couldn’t load the city list." })).toBeVisible();
     expect(screen.getByRole("alert")).toHaveTextContent("No active Israel cities");
-    expect(screen.queryByRole("combobox", { name: "Israel city" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "City" })).not.toBeInTheDocument();
   });
 });

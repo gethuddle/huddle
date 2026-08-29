@@ -20,7 +20,7 @@ export const venueFormSchema = z.object({
   venueId: z.preprocess((value) => (value === "" ? null : value), z.uuid().nullable()),
   name: z.string().trim().min(2, "Use at least 2 characters.").max(120),
   slug: venueSlugSchema,
-  cityId: z.uuid("Choose an Israel city."),
+  cityId: z.uuid("Choose a city."),
   addressText: z.string().trim().min(3, "Enter the public address.").max(300),
   longitude: z.coerce.number().min(34, "Use a coordinate in Israel.").max(36),
   latitude: z.coerce.number().min(29, "Use a coordinate in Israel.").max(34),

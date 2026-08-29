@@ -38,7 +38,7 @@ describe("ProfileForm", () => {
 
     expect(screen.getByRole("textbox", { name: "Display name" })).toBeVisible();
     expect(screen.getByRole("textbox", { name: "Handle" })).toBeVisible();
-    expect(screen.getByRole("combobox", { name: "Israel city" })).toBeVisible();
+    expect(screen.getByRole("combobox", { name: "City" })).toBeVisible();
     expect(screen.getByRole("checkbox", { name: /18 or older/i })).toBeVisible();
     expect(screen.getByRole("checkbox", { name: /accept the current/i })).toBeVisible();
     expect(screen.getByRole("button", { name: "Complete profile" })).toBeVisible();
@@ -77,17 +77,17 @@ describe("ProfileForm", () => {
 
     await user.type(screen.getByRole("textbox", { name: "Display name" }), "Fan One");
     await user.type(screen.getByRole("textbox", { name: "Handle" }), "fan_one");
-    await user.selectOptions(screen.getByRole("combobox", { name: "Israel city" }), "haifa");
+    await user.selectOptions(screen.getByRole("combobox", { name: "City" }), "haifa");
     await user.click(screen.getByRole("checkbox", { name: /18 or older/i }));
     await user.click(screen.getByRole("checkbox", { name: /accept the current/i }));
-    expect(screen.getByRole("combobox", { name: "Israel city" })).toHaveValue("haifa");
+    expect(screen.getByRole("combobox", { name: "City" })).toHaveValue("haifa");
     await user.click(screen.getByRole("button", { name: "Complete profile" }));
 
     await waitFor(() => expect(mocks.saveProfileAction).toHaveBeenCalledOnce());
     expect(await screen.findByRole("alert")).toHaveTextContent("Choose another handle.");
     expect(screen.getByRole("textbox", { name: "Display name" })).toHaveValue("Fan One");
     expect(screen.getByRole("textbox", { name: "Handle" })).toHaveValue("fan_one");
-    expect(screen.getByRole("combobox", { name: "Israel city" })).toHaveValue("haifa");
+    expect(screen.getByRole("combobox", { name: "City" })).toHaveValue("haifa");
     expect(screen.getByRole("checkbox", { name: /18 or older/i })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: /accept the current/i })).toBeChecked();
   });

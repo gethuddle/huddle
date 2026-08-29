@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useState, type ReactNode } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +16,7 @@ import { savePrivateEventAction } from "@/features/events/actions";
 import type { PrivateEventCatalog } from "@/features/events/catalog";
 import type { PrivateEventFormValues } from "@/features/events/state";
 import { INITIAL_PRIVATE_EVENT_MUTATION_STATE } from "@/features/events/state";
-import { formatJerusalemKickoff } from "@/features/sports/time";
+import { formatIsraelKickoff } from "@/features/sports/time";
 
 type PrivateEventFormProps = Readonly<{
   catalog: PrivateEventCatalog;
@@ -51,6 +52,7 @@ function emptyValues(initialMatchId: string): PrivateEventFormValues {
 }
 
 export function PrivateEventForm({ catalog, initialMatchId = "" }: PrivateEventFormProps) {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(
     savePrivateEventAction,
     INITIAL_PRIVATE_EVENT_MUTATION_STATE,
@@ -63,6 +65,19 @@ export function PrivateEventForm({ catalog, initialMatchId = "" }: PrivateEventF
     values.audience === "group" || values.audience === "friends" ? values.audience : "invite_only",
   );
   const [organizingGroupId, setOrganizingGroupId] = useState(values.organizingGroupId);
+  const [moreDetailsOpen, setMoreDetailsOpen] = useState(false);
+  const hasOptionalDetailErrors =
+    state?.ok === false &&
+    (state.error.fields?.expectedActivity !== undefined ||
+      state.error.fields?.costDescription !== undefined ||
+      state.error.fields?.eventRules !== undefined ||
+      state.error.fields?.commercialAffiliation !== undefined);
+
+  useEffect(() => {
+    if (state?.ok === true) {
+      router.replace(`/events/${state.data.event.id}?created=1`);
+    }
+  }, [router, state]);
 
   if (state?.ok === true) {
     return (
@@ -77,11 +92,11 @@ export function PrivateEventForm({ catalog, initialMatchId = "" }: PrivateEventF
         </CardHeader>
         <CardContent>
           <p className="leading-7 text-muted-dark">
-            The ordinary event response contains only safe location context. Exact home details
-            remain in the protected private-location domain.
+            Opening the event now. It will also stay in My Huddle so you can always find and manage
+            it later.
           </p>
           <Button asChild className="mt-6">
-            <Link href={"/events/" + state.data.event.id}>Open safe event summary</Link>
+            <Link href={"/events/" + state.data.event.id}>Open event</Link>
           </Button>
         </CardContent>
       </Card>
@@ -100,16 +115,16 @@ export function PrivateEventForm({ catalog, initialMatchId = "" }: PrivateEventF
       <input name="eventId" type="hidden" value={values.eventId} />
 
       <FormSection
-        description="Every MVP event is attached to locally synchronized sports data. Kickoff and the three-hour event window are derived server-side."
+        description="Choose the match you are gathering for. Huddle sets the kickoff and event time automatically."
         number="01"
         title="Choose the fixture"
       >
         <Field id="event-match" label="Future fixture" messages={fieldErrors?.matchId}>
           <NativeSelect defaultValue={values.matchId} id="event-match" name="matchId" required>
-            <NativeSelectOption value="">Choose a synchronized match</NativeSelectOption>
+            <NativeSelectOption value="">Choose a fixture</NativeSelectOption>
             {catalog.matches.map((match) => (
               <NativeSelectOption key={match.id} value={match.id}>
-                {match.label} — {formatJerusalemKickoff(match.startsAt)}
+                {match.label} — {formatIsraelKickoff(match.startsAt)}
               </NativeSelectOption>
             ))}
           </NativeSelect>
@@ -117,7 +132,7 @@ export function PrivateEventForm({ catalog, initialMatchId = "" }: PrivateEventF
       </FormSection>
 
       <FormSection
-        description="Set expectations before anyone asks to attend. Nothing here replaces server-side eligibility checks."
+        description="Give people a clear reason to join and enough detail to know what to expect."
         number="02"
         title="Describe the huddle"
       >
@@ -152,63 +167,74 @@ export function PrivateEventForm({ catalog, initialMatchId = "" }: PrivateEventF
             required
           />
         </Field>
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field
-            id="event-activity"
-            label="Expected activity"
-            messages={fieldErrors?.expectedActivity}
-          >
-            <Textarea
-              defaultValue={values.expectedActivity}
+        <details
+          className="rounded-xl border border-border-dark bg-surface-deep p-4"
+          onToggle={(event) => setMoreDetailsOpen(event.currentTarget.open)}
+          open={moreDetailsOpen || hasOptionalDetailErrors}
+        >
+          <summary className="cursor-pointer font-semibold text-linen">More event details</summary>
+          <p className="mt-2 text-sm text-muted-dark">
+            Huddle has filled in sensible defaults. Open this section only if you want to change the
+            activity, cost, rules or business connection.
+          </p>
+          <div className="mt-5 grid gap-5 sm:grid-cols-2">
+            <Field
               id="event-activity"
-              maxLength={500}
-              name="expectedActivity"
-              required
-            />
-          </Field>
-          <Field id="event-cost" label="Cost" messages={fieldErrors?.costDescription}>
-            <Input
-              defaultValue={values.costDescription}
-              id="event-cost"
-              maxLength={300}
-              name="costDescription"
-              required
-            />
-          </Field>
-          <Field id="event-rules" label="Event rules" messages={fieldErrors?.eventRules}>
-            <Textarea
-              defaultValue={values.eventRules}
-              id="event-rules"
-              maxLength={1000}
-              name="eventRules"
-              required
-            />
-          </Field>
-          <Field
-            id="event-affiliation"
-            label="Commercial affiliation"
-            messages={fieldErrors?.commercialAffiliation}
-          >
-            <Input
-              defaultValue={values.commercialAffiliation}
+              label="What will happen"
+              messages={fieldErrors?.expectedActivity}
+            >
+              <Textarea
+                defaultValue={values.expectedActivity}
+                id="event-activity"
+                maxLength={500}
+                name="expectedActivity"
+                required
+              />
+            </Field>
+            <Field id="event-cost" label="Cost" messages={fieldErrors?.costDescription}>
+              <Input
+                defaultValue={values.costDescription}
+                id="event-cost"
+                maxLength={300}
+                name="costDescription"
+                required
+              />
+            </Field>
+            <Field id="event-rules" label="Event rules" messages={fieldErrors?.eventRules}>
+              <Textarea
+                defaultValue={values.eventRules}
+                id="event-rules"
+                maxLength={1000}
+                name="eventRules"
+                required
+              />
+            </Field>
+            <Field
               id="event-affiliation"
-              maxLength={300}
-              name="commercialAffiliation"
-              required
-            />
-          </Field>
-        </div>
+              label="Business connection"
+              messages={fieldErrors?.commercialAffiliation}
+            >
+              <Input
+                defaultValue={values.commercialAffiliation}
+                id="event-affiliation"
+                maxLength={300}
+                name="commercialAffiliation"
+                required
+              />
+            </Field>
+          </div>
+        </details>
       </FormSection>
 
       <FormSection
-        description="A personal host may choose only a home or ordinary public place. Business-venue events use the separate venue-owner flow."
+        description="Choose where you will watch. Home addresses stay private until attendance is approved."
         number="03"
         title="Set the place"
       >
         <ChoiceGrid>
           <Choice
             checked={placeKind === "home"}
-            description="Exact address and coordinates stay in the protected location table."
+            description="Your exact address and map pin stay hidden until an attendee is approved."
             label="My home"
             name="placeKind"
             onChange={() => setPlaceKind("home")}
@@ -216,7 +242,7 @@ export function PrivateEventForm({ catalog, initialMatchId = "" }: PrivateEventF
           />
           <Choice
             checked={placeKind === "public_place"}
-            description="The name, public address, and coordinate appear in safe event details."
+            description="The place name, public address and map pin appear on the event page."
             label="Public place"
             name="placeKind"
             onChange={() => setPlaceKind("public_place")}
@@ -227,8 +253,8 @@ export function PrivateEventForm({ catalog, initialMatchId = "" }: PrivateEventF
         {placeKind === "home" ? (
           <div className="space-y-5 rounded-2xl border border-sand/40 bg-sand/10 p-5">
             <p className="text-sm font-semibold text-sand">
-              Address sharing warning: saving this does not expose it. A later attendance flow may
-              reveal it only to a currently authorized, approved attendee and records that read.
+              Your exact home address is protected. Only an approved attendee can open it, and
+              Huddle records that access.
             </p>
             <Field
               id="event-private-address"
@@ -307,14 +333,14 @@ export function PrivateEventForm({ catalog, initialMatchId = "" }: PrivateEventF
       </FormSection>
 
       <FormSection
-        description="Personal events are restricted. Audience controls eligibility; an optional organizing group separately reviews the event before publication."
+        description="Choose the people who are allowed to open and attend this event."
         number="04"
         title="Choose who may see it"
       >
         <ChoiceGrid>
           <Choice
             checked={audience === "invite_only"}
-            description="Host-only until direct invitations are implemented in B10."
+            description="Only people you invite directly can open and join the event."
             label="Invite only"
             name="audience"
             onChange={() => setAudience("invite_only")}
@@ -335,7 +361,7 @@ export function PrivateEventForm({ catalog, initialMatchId = "" }: PrivateEventF
           />
           <Choice
             checked={audience === "group"}
-            description="Active members of one of your groups; publishing submits for group review."
+            description="Active members of one group. A group admin reviews it before publication."
             disabled={catalog.groups.length === 0}
             label="Supporter group"
             name="audience"
@@ -380,22 +406,18 @@ export function PrivateEventForm({ catalog, initialMatchId = "" }: PrivateEventF
             ))}
           </NativeSelect>
           <span className="mt-2 block text-xs leading-5 text-muted-dark">
-            Selecting a group sends publication to that group&apos;s admins. It does not change who
-            may see or attend the event.
+            Use this only when a group is helping organize. Its admins will review the event before
+            it appears.
           </span>
         </Field>
       </FormSection>
 
       <FormSection
-        description="Capacity counts registered accounts. A pending request does not reserve a seat."
+        description="Set the maximum number of people and confirm that you will be there."
         number="05"
         title="Confirm safety details"
       >
-        <Field
-          id="event-capacity"
-          label="Registered-account capacity"
-          messages={fieldErrors?.capacity}
-        >
+        <Field id="event-capacity" label="Maximum people" messages={fieldErrors?.capacity}>
           <Input
             defaultValue={values.capacity}
             id="event-capacity"
@@ -407,7 +429,8 @@ export function PrivateEventForm({ catalog, initialMatchId = "" }: PrivateEventF
           />
           {placeKind === "home" ? (
             <span className="mt-2 block text-xs font-semibold text-sand">
-              Hard home maximum: 12 registered accounts, including the host. No plus-ones.
+              Home events can have at most 12 people, including you. Everyone needs their own Huddle
+              account.
             </span>
           ) : null}
         </Field>
@@ -533,32 +556,74 @@ function CoordinateFields({
 }>) {
   const longitudeKey = prefix + "Longitude";
   const latitudeKey = prefix + "Latitude";
+  const [longitudeValue, setLongitudeValue] = useState(longitude);
+  const [latitudeValue, setLatitudeValue] = useState(latitude);
+  const [locationStatus, setLocationStatus] = useState<string | null>(null);
+
+  function useCurrentLocation() {
+    if (!("geolocation" in navigator)) {
+      setLocationStatus("Location is not available in this browser. Enter the pin manually.");
+      return;
+    }
+
+    setLocationStatus("Finding your location…");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLongitudeValue(position.coords.longitude.toFixed(5));
+        setLatitudeValue(position.coords.latitude.toFixed(5));
+        setLocationStatus("Location pin added. Check that it matches the event address.");
+      },
+      () => setLocationStatus("Location was not shared. You can enter the pin manually."),
+      { enableHighAccuracy: true, timeout: 10_000 },
+    );
+  }
+
   return (
-    <div className="grid gap-5 sm:grid-cols-2">
-      <Field id={prefix + "-longitude"} label="Longitude" messages={errors?.[longitudeKey]}>
-        <Input
-          defaultValue={longitude}
-          id={prefix + "-longitude"}
-          max={36}
-          min={34}
-          name={longitudeKey}
-          required
-          step="0.00001"
-          type="number"
-        />
-      </Field>
-      <Field id={prefix + "-latitude"} label="Latitude" messages={errors?.[latitudeKey]}>
-        <Input
-          defaultValue={latitude}
-          id={prefix + "-latitude"}
-          max={34}
-          min={29}
-          name={latitudeKey}
-          required
-          step="0.00001"
-          type="number"
-        />
-      </Field>
+    <div className="space-y-4 rounded-xl border border-border-dark bg-ink/30 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="font-semibold text-linen">Location pin</p>
+          <p className="mt-1 text-xs leading-5 text-muted-dark">
+            This makes nearby discovery work. It never publishes a home location.
+          </p>
+        </div>
+        <Button onClick={useCurrentLocation} size="sm" type="button" variant="outline">
+          Use my current location
+        </Button>
+      </div>
+      {locationStatus === null ? null : (
+        <p aria-live="polite" className="text-sm text-muted-dark">
+          {locationStatus}
+        </p>
+      )}
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field id={prefix + "-longitude"} label="Longitude" messages={errors?.[longitudeKey]}>
+          <Input
+            id={prefix + "-longitude"}
+            max={36}
+            min={34}
+            name={longitudeKey}
+            onChange={(event) => setLongitudeValue(event.target.value)}
+            required
+            step="0.00001"
+            type="number"
+            value={longitudeValue}
+          />
+        </Field>
+        <Field id={prefix + "-latitude"} label="Latitude" messages={errors?.[latitudeKey]}>
+          <Input
+            id={prefix + "-latitude"}
+            max={34}
+            min={29}
+            name={latitudeKey}
+            onChange={(event) => setLatitudeValue(event.target.value)}
+            required
+            step="0.00001"
+            type="number"
+            value={latitudeValue}
+          />
+        </Field>
+      </div>
     </div>
   );
 }

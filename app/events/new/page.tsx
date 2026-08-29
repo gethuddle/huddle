@@ -90,15 +90,15 @@ export default async function NewEventPage({ searchParams }: NewEventPageProps) 
               Put the fixture on the big screen.
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-dark">
-              Publish a safe public or team-follower listing from an owned venue. The venue profile
-              remains visibly {venue.verificationStatus}.
+              Choose a fixture and publish a public event—or one just for followers of a team—from
+              {` ${venue.name}`}. The venue profile remains visibly {venue.verificationStatus}.
             </p>
           </div>
           <aside className="self-start rounded-2xl border border-sand/40 bg-sand/10 p-6">
             <p className="font-semibold text-sand">Commercial listing</p>
             <p className="mt-3 text-sm leading-6 text-muted-dark">
-              Costs and commercial affiliation stay explicit. Huddle does not verify the business
-              identity or add paid promotion in the MVP.
+              Costs and business connections stay visible. Huddle currently does not verify the
+              business identity or offer paid promotion.
             </p>
           </aside>
         </div>
@@ -106,9 +106,9 @@ export default async function NewEventPage({ searchParams }: NewEventPageProps) 
         <div className="mt-12 max-w-4xl">
           {catalog.matches.length === 0 ? (
             <ProfileAccessState
-              description="Run the protected sports synchronization and try again. Normal page requests never call the provider."
+              description="Try again after Huddle's fixture list updates."
               eyebrow="Fixture catalog empty"
-              title="No synchronized future match is available."
+              title="No future fixture is available yet."
               warning
             />
           ) : (
@@ -142,21 +142,21 @@ export default async function NewEventPage({ searchParams }: NewEventPageProps) 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-court">
-            Private-person event
+            Host an event
           </p>
           <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-linen sm:text-6xl">
             Host match day safely.
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-dark">
-            Start from a synchronized fixture, choose a restricted audience, and keep any home
-            location outside the ordinary event response.
+            Choose the match, say where you&apos;re watching, and choose who can join. Home
+            addresses stay hidden until you approve attendance.
           </p>
         </div>
         <aside className="self-start rounded-2xl border border-sand/40 bg-sand/10 p-6">
-          <p className="font-semibold text-sand">One account, one attendee</p>
+          <p className="font-semibold text-sand">Everyone joins with their own account</p>
           <p className="mt-3 text-sm leading-6 text-muted-dark">
-            Personal events always require host approval. Home events allow at most 12 registered
-            accounts and never accept anonymous guests or plus-ones.
+            You approve each attendee. Home events allow at most 12 people, and Huddle does not use
+            anonymous guests or plus-ones.
           </p>
         </aside>
       </div>
@@ -164,9 +164,9 @@ export default async function NewEventPage({ searchParams }: NewEventPageProps) 
       <div className="mt-12 max-w-4xl">
         {catalog.matches.length === 0 ? (
           <ProfileAccessState
-            description="Run the protected sports synchronization and try again. Normal page requests never call the provider."
+            description="Try again after Huddle's fixture list updates."
             eyebrow="Fixture catalog empty"
-            title="No synchronized future match is available."
+            title="No future fixture is available yet."
             warning
           />
         ) : (

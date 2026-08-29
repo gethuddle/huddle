@@ -73,7 +73,7 @@ describe("AppShell", () => {
 
     render(await AppShell({ children: <h1>Private session</h1> }));
 
-    expect(screen.getByRole("link", { name: "My events" })).toHaveAttribute("href", "/events");
+    expect(screen.getByRole("link", { name: "My Huddle" })).toHaveAttribute("href", "/dashboard");
     expect(screen.getByRole("link", { name: "Host event" })).toHaveAttribute("href", "/events/new");
     expect(screen.getByRole("button", { name: "Sign out" })).toBeVisible();
     expect(screen.queryByRole("link", { name: "Sign up" })).not.toBeInTheDocument();
@@ -105,7 +105,7 @@ describe("AppShell", () => {
       "href",
       "/settings/profile",
     );
-    expect(screen.queryByRole("link", { name: "My events" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "My Huddle" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Host event" })).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Open account navigation" }),

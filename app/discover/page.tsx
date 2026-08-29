@@ -14,7 +14,7 @@ import { ProviderFreshness } from "@/features/sports/components/provider-freshne
 
 export const metadata: Metadata = {
   title: "Discover watch events — Huddle",
-  description: "Find eligible future sports watch events near an Israel city.",
+  description: "Find eligible future sports watch events near a city in Israel.",
 };
 
 type DiscoverPageProps = Readonly<{
@@ -32,7 +32,7 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps) 
   if (defaultCitySlug === undefined) {
     return (
       <ErrorState
-        description="Huddle has no active Israel city fallbacks right now. The event catalog is safe, but discovery needs a city before it can calculate nearby results."
+        description="Huddle has no active city fallbacks right now. The event catalog is safe, but discovery needs a city before it can calculate nearby results."
         title="Discovery is temporarily unavailable."
       />
     );

@@ -33,7 +33,7 @@ block/ban removal, deterministic keyset pages, signed cursor tampering and filte
 radius bounds, interest ordering, all three spatial sources, location-permission denial and fallback,
 anonymous and signed-in browser journeys, exact-location payload absence, and fail-closed private
 caching when the authentication lookup is uncertain. Date-bound coverage proves the 45-day
-Jerusalem window and current-day search remain valid across the autumn daylight-saving fallback,
+Israel-time window and current-day search remain valid across the autumn daylight-saving fallback,
 while 46 calendar days remain rejected.
 
 The final clean local run passed 303 Vitest/component tests, 781 pgTAP assertions, Huddle-owned

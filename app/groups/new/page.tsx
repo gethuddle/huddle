@@ -58,16 +58,17 @@ export default async function NewGroupPage() {
             Create a supporter group.
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-dark">
-            Check for similar discoverable groups, choose a clear visibility boundary, and become
-            the group’s active owner in one atomic step.
+            Name your group, choose whether people can find it, and review similar groups before you
+            create it.
           </p>
         </div>
         <div className="rounded-2xl border border-border bg-surface-deep p-6">
           <p className="font-semibold text-linen">What happens now</p>
           <ul className="mt-3 space-y-2 text-sm leading-6 text-muted-dark">
-            <li>One group and exactly one active owner membership.</li>
-            <li>A discoverable group starts forming; an unlisted group works immediately.</li>
-            <li>This step does not invite anyone or publish a discoverable group.</li>
+            <li>Your group gets a page you can always find in My Huddle.</li>
+            <li>Discoverable groups appear in search after their activity and safety setup.</li>
+            <li>Unlisted groups stay invite-only.</li>
+            <li>After creation, you go straight to the group so you can invite people.</li>
           </ul>
         </div>
       </div>

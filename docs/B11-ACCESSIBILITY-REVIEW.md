@@ -63,7 +63,7 @@ closes with Escape, and returns focus to the Menu trigger.
 - Restricted or suspended accounts lose community mutations and
   private-location access, while their report history and appeal path remain
   reachable.
-- Jerusalem date helpers have regression coverage across spring and autumn DST
+- Israel-time date helpers have regression coverage across spring and autumn DST
   transitions.
 
 ## Remaining acceptance boundary

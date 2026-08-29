@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ShareLinkButton } from "@/components/share/share-link-button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,6 +50,13 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
 
   return (
     <section className="py-12 sm:py-16">
+      {rawQuery.created === "1" ? (
+        <Alert className="mb-6 border-court/30 bg-court/10" role="status">
+          <AlertDescription className="text-court-hover">
+            Your group is ready. It now lives in My Huddle, and you can start inviting people.
+          </AlertDescription>
+        </Alert>
+      ) : null}
       <div className="overflow-hidden rounded-[2rem] border border-border-dark bg-surface-raised shadow-2xl shadow-black/20">
         <div className="h-2 bg-court" />
         <div className="grid gap-10 p-7 sm:p-10 lg:grid-cols-[1fr_19rem]">
@@ -118,10 +127,20 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
                   </p>
                 ) : null}
                 {group.viewerRole === "owner" || group.viewerRole === "admin" ? (
-                  <Button asChild className="mt-5 w-full">
-                    <Link href={`/groups/${group.slug}/manage`}>Manage group</Link>
-                  </Button>
+                  <div className="mt-5 space-y-2">
+                    <Button asChild className="w-full">
+                      <Link href={`/groups/${group.slug}/manage`}>Manage group</Link>
+                    </Button>
+                    <Button asChild className="w-full" variant="outline">
+                      <Link href={`/groups/${group.slug}/manage?section=invites`}>
+                        Invite people
+                      </Link>
+                    </Button>
+                  </div>
                 ) : null}
+                <div className="mt-3">
+                  <ShareLinkButton label="Share group" title={group.name} />
+                </div>
                 {group.viewerRole === "member" || group.viewerRole === "admin" ? (
                   <div className="mt-5">
                     <GroupMembershipControl groupId={group.id} groupSlug={group.slug} />

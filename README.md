@@ -21,7 +21,9 @@ Huddle answers:
 3. Browse synchronized upcoming fixtures and discover eligible watch events nearby.
 4. Join a public venue event, or request access to an eligible private event.
 5. Host and manage a gathering, its capacity, invitations, and attendance.
-6. Download an approved event as an `.ics` calendar file.
+6. Return to My Huddle to find every hosted/submitted event, invitation, attendance state, and group relationship.
+7. Find another member by name or handle, send a direct friend request, and share eligible event or group links.
+8. Download an approved event as an `.ics` calendar file.
 
 ## People, groups, and venues
 
@@ -74,7 +76,7 @@ flowchart LR
     Catalog --> Huddle[Huddle pages and discovery]
 ```
 
-The scheduled job runs approximately every six hours—four times per day—and synchronizes a bounded window from yesterday through roughly 45 days ahead. It upserts changed records instead of downloading the entire catalog on every request. A failed run records the error and freshness state without deleting the last good data.
+The scheduled job runs approximately every six hours—four times per day—and synchronizes a bounded window from yesterday through the end of the current football season on May 31. It upserts changed records instead of downloading the catalog on page requests. A failed run records the error and freshness state without deleting the last good data.
 
 The backup unit is the whole PostgreSQL database, not a separate sports-data dump. Whole-database backups preserve the relationships between matches and Huddle events. The schema and deterministic seed data live in Git migrations; provider-owned catalog data can also be rebuilt by rerunning synchronization. Matches referenced by Huddle events are retained rather than deleted when they leave the active synchronization window.
 
@@ -105,13 +107,15 @@ The submitted implementation remains **football-first**: [football-data.org](htt
 - Football catalog and upcoming fixtures synchronized from an external provider.
 - Follows for sports, competitions, teams, and venues.
 - Mutual friendships with no friends-of-friends visibility.
+- Safe signed-in people search by display name or handle.
 - Discoverable and unlisted supporter groups with applications, roles, invitations, bans, and event review.
 - Private-person events limited to group, friends, or invite-only audiences.
 - Business-venue events with public or team-follower audiences.
-- Israel city-based discovery, optional browser geolocation, and PostGIS distance queries.
+- City-based discovery across the Israel pilot, optional browser geolocation, and PostGIS distance queries.
 - Attendance request, approval, decline, removal, and leave flows with atomic capacity enforcement.
 - Protected home locations, blocking, reporting, moderation, and audit records.
 - RFC 5545 `.ics` calendar download.
+- A personal My Huddle home for owned groups plus hosted, submitted, invited, requested, and attending events.
 - Automated tests, CI, public Vercel deployment, and Supabase-managed Auth/PostgreSQL.
 
 ## Architecture and course stack

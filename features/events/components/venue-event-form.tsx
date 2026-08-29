@@ -16,7 +16,7 @@ import { saveVenueEventAction } from "@/features/events/actions";
 import type { VenueEventCatalog } from "@/features/events/catalog";
 import type { VenueEventFormValues } from "@/features/events/state";
 import { INITIAL_VENUE_EVENT_MUTATION_STATE } from "@/features/events/state";
-import { formatJerusalemKickoff } from "@/features/sports/time";
+import { formatIsraelKickoff } from "@/features/sports/time";
 import { VenueVerificationBadge } from "@/features/venues/components/venue-verification-badge";
 
 type VenueEventFormProps = Readonly<{
@@ -128,7 +128,7 @@ export function VenueEventForm({ catalog, venue, initialMatchId = "" }: VenueEve
             <NativeSelectOption value="">Choose a synchronized match</NativeSelectOption>
             {catalog.matches.map((match) => (
               <NativeSelectOption key={match.id} value={match.id}>
-                {match.label} — {formatJerusalemKickoff(match.startsAt)}
+                {match.label} — {formatIsraelKickoff(match.startsAt)}
               </NativeSelectOption>
             ))}
           </NativeSelect>

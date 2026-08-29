@@ -44,7 +44,7 @@ describe("DiscoverPage", () => {
     expect(
       screen.getByRole("heading", { name: "Discovery is temporarily unavailable." }),
     ).toBeVisible();
-    expect(screen.getByRole("alert")).toHaveTextContent("no active Israel city fallbacks");
+    expect(screen.getByRole("alert")).toHaveTextContent("no active city fallbacks");
     expect(mocks.getDiscoveryPage).not.toHaveBeenCalled();
   });
 });

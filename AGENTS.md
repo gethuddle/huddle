@@ -128,7 +128,7 @@ The skills automate the mechanics but do not override the one-writer rule, accep
 - Regenerate and check database TypeScript types after schema changes once the command exists.
 - Avoid speculative abstractions, unused tables, fake controls, and partially implemented deferred features.
 - Use saved, sanitized sports-provider fixtures in automated tests. CI must not call live sports APIs.
-- Store dates as UTC `timestamptz`; display them using `Asia/Jerusalem` by default.
+- Store dates as UTC `timestamptz`; display them as Israel time. Use the canonical IANA identifier `Asia/Jerusalem` internally so Israeli daylight-saving changes remain correct, but do not expose that implementation label in product copy.
 - React-render user text; do not introduce raw user HTML.
 - Paginate potentially growing collections and use the indexes specified by the implementation plan.
 - Run the relevant repository scripts after changes. Do not claim a test, lint, typecheck, migration, build, or deployment passed without current command output.

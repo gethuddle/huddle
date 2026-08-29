@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useRef } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -19,10 +20,19 @@ import {
 } from "@/features/groups/state";
 
 export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCatalog }>) {
+  const router = useRouter();
+  const slugInput = useRef<HTMLInputElement>(null);
+  const slugWasEdited = useRef(false);
   const [state, formAction, pending] = useActionState(
     createGroupAction,
     INITIAL_GROUP_CREATION_ACTION_STATE,
   );
+
+  useEffect(() => {
+    if (state?.ok === true && state.data.phase === "created") {
+      router.replace(`/groups/${state.data.group.slug}?created=1`);
+    }
+  }, [router, state]);
 
   if (state?.ok === true && state.data.phase === "created") {
     return (
@@ -30,11 +40,13 @@ export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCa
         <CardHeader>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-court">Created</p>
           <CardTitle className="mt-2 text-2xl text-linen">
-            <h2>You own this group.</h2>
+            <h2>Your group is ready.</h2>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="leading-7 text-muted-dark">{state.data.message}</p>
+          <p className="leading-7 text-muted-dark">
+            {state.data.message} Opening it now so you can invite people and keep building.
+          </p>
           <Button asChild className="mt-6">
             <Link href={`/groups/${state.data.group.slug}`}>Open group</Link>
           </Button>
@@ -82,6 +94,11 @@ export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCa
             id="group-name"
             maxLength={80}
             name="name"
+            onChange={(event) => {
+              if (!slugWasEdited.current && slugInput.current !== null) {
+                slugInput.current.value = groupSlugFromName(event.target.value);
+              }
+            }}
             placeholder="Haifa matchday supporters"
             required
           />
@@ -90,7 +107,10 @@ export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCa
 
         <div>
           <Label className="text-linen" htmlFor="group-slug">
-            Group URL
+            Group URL{" "}
+            <span aria-hidden="true" className="font-normal text-muted-dark">
+              (suggested)
+            </span>
           </Label>
           <div className="relative">
             <span
@@ -100,6 +120,7 @@ export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCa
               /groups/
             </span>
             <Input
+              aria-label="Group URL"
               aria-describedby="group-slug-help group-slug-error"
               aria-invalid={fieldErrors?.slug === undefined ? undefined : true}
               className="mt-2 pl-[5.4rem]"
@@ -107,12 +128,16 @@ export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCa
               id="group-slug"
               maxLength={60}
               name="slug"
+              onChange={() => {
+                slugWasEdited.current = true;
+              }}
               placeholder="haifa-matchday"
+              ref={slugInput}
               required
             />
           </div>
           <span className="mt-2 block text-xs text-muted-dark" id="group-slug-help">
-            Lowercase words separated by hyphens.
+            Huddle fills this from the group name. You can change it before creating the group.
           </span>
           <FieldError id="group-slug-error" messages={fieldErrors?.slug} />
         </div>
@@ -121,7 +146,7 @@ export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCa
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <Label className="text-linen" htmlFor="group-city">
-            Israel city
+            City
           </Label>
           <NativeSelect
             aria-describedby="group-city-error"
@@ -174,15 +199,13 @@ export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCa
           <div className="rounded-xl border border-border bg-surface-deep p-4">
             <p className="font-semibold text-linen">Discoverable</p>
             <p className="mt-1 text-sm leading-6 text-muted-dark">
-              Starts forming. It becomes publicly searchable only after the required activity and
-              moderation thresholds are met.
+              People can find it after you finish its description, rules and first activity checks.
             </p>
           </div>
           <div className="rounded-xl border border-border bg-surface-deep p-4">
             <p className="font-semibold text-linen">Unlisted</p>
             <p className="mt-1 text-sm leading-6 text-muted-dark">
-              Usable immediately by members, absent from public search, and later joined through a
-              protected invite application.
+              Only people with an invite can join. It will still appear in your My Huddle page.
             </p>
           </div>
         </div>
@@ -203,7 +226,7 @@ export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCa
           placeholder="Who the group is for and how you watch together"
         />
         <span className="mt-2 block text-xs text-muted-dark" id="group-description-help">
-          A non-empty description is required before a discoverable group can become active.
+          Tell people who the group is for and what you watch together.
         </span>
         <FieldError id="group-description-error" messages={fieldErrors?.description} />
       </div>
@@ -234,7 +257,7 @@ export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCa
             ? "Checking…"
             : "Creating…"
           : review === null
-            ? "Check similar groups"
+            ? "Review group"
             : "Create group"}
       </Button>
     </form>
@@ -249,7 +272,7 @@ function SimilarGroupReview({
   if (review.suggestions.length === 0) {
     return (
       <div className="rounded-xl border border-court/30 bg-court/10 p-4 text-sm text-court-hover">
-        No similar discoverable group was found. Unlisted groups are never exposed here.
+        No similar public group was found. You can create this one.
       </div>
     );
   }
@@ -260,7 +283,7 @@ function SimilarGroupReview({
         Similar discoverable groups
       </h2>
       <p className="text-sm leading-6 text-muted-dark">
-        Similarity is advisory. You may still create a distinct group.
+        These may be close to what you are creating. You can still continue with your own group.
       </p>
       {review.suggestions.map((group) => (
         <Card key={group.id} size="sm">
@@ -295,4 +318,15 @@ function FieldError({ id, messages }: Readonly<{ id: string; messages?: string[]
       {messages[0]}
     </span>
   );
+}
+
+function groupSlugFromName(value: string): string {
+  return value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60)
+    .replace(/-+$/g, "");
 }

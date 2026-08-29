@@ -2,6 +2,10 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { MyHuddleOverview } from "@/features/dashboard/components/my-huddle-overview";
+import { getMyHuddleOverview } from "@/features/dashboard/queries";
+import { DomainError } from "@/lib/errors";
+import { createClient } from "@/lib/supabase/server";
 
 const journey = [
   {
@@ -12,7 +16,7 @@ const journey = [
   {
     number: "02",
     title: "Discover",
-    description: "Find eligible watch events connected to a fixture and an Israel city.",
+    description: "Find eligible watch events connected to a fixture and a city in Israel.",
   },
   {
     number: "03",
@@ -26,7 +30,89 @@ const journey = [
   },
 ] as const;
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient();
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const viewerId = typeof claimsData?.claims.sub === "string" ? claimsData.claims.sub : null;
+  let displayName: string | null = null;
+  let overview: Awaited<ReturnType<typeof getMyHuddleOverview>> | null = null;
+
+  if (viewerId !== null) {
+    const profileResult = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", viewerId)
+      .maybeSingle();
+    displayName = profileResult.error === null ? (profileResult.data?.display_name ?? null) : null;
+
+    try {
+      overview = await getMyHuddleOverview();
+    } catch (error) {
+      if (!(error instanceof DomainError) || error.code === "INTERNAL_ERROR") throw error;
+    }
+  }
+
+  if (overview !== null) {
+    return (
+      <>
+        <section className="grid gap-8 py-14 lg:grid-cols-[1fr_22rem] lg:py-20">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-court">
+              Welcome back{displayName === null ? "" : `, ${displayName}`}
+            </p>
+            <h1 className="mt-4 max-w-4xl text-5xl font-semibold leading-[0.98] tracking-[-0.055em] sm:text-7xl">
+              Your next match day starts here.
+            </h1>
+            <p className="mt-7 max-w-2xl text-lg leading-8 text-muted-dark">
+              Continue an event or group you already started, respond to an invitation, or find
+              something new nearby.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Button asChild size="lg">
+                <Link href="/dashboard">Open My Huddle</Link>
+              </Button>
+              <Button asChild size="lg" variant="outline">
+                <Link href="/discover">Discover events</Link>
+              </Button>
+            </div>
+          </div>
+
+          <Card className="self-start rounded-[2rem]">
+            <CardHeader>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-court">
+                Your activity
+              </p>
+              <h2 className="mt-2 text-2xl font-semibold text-linen">Nothing gets lost.</h2>
+            </CardHeader>
+            <CardContent>
+              <dl className="grid grid-cols-2 gap-5">
+                <div>
+                  <dt className="text-sm text-muted-dark">Events</dt>
+                  <dd className="mt-1 text-3xl font-semibold text-linen">
+                    {overview.events.at(0)?.total_count ?? 0}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm text-muted-dark">Groups</dt>
+                  <dd className="mt-1 text-3xl font-semibold text-linen">
+                    {overview.groups.at(0)?.total_count ?? 0}
+                  </dd>
+                </div>
+              </dl>
+              <Button asChild className="mt-6 w-full" variant="outline">
+                <Link href="/people">Find people</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </section>
+
+        <section className="border-t border-border-dark py-12">
+          <MyHuddleOverview compact events={overview.events} groups={overview.groups} />
+        </section>
+      </>
+    );
+  }
+
   return (
     <>
       <section className="grid flex-1 items-center gap-14 py-20 lg:grid-cols-[1.3fr_0.7fr] lg:py-28">
@@ -47,7 +133,9 @@ export default function Home() {
               <Link href="/matches">Browse fixtures</Link>
             </Button>
             <Button asChild size="lg" variant="outline">
-              <Link href="/settings/interests">Choose interests</Link>
+              <Link href={viewerId === null ? "/auth/sign-up" : "/settings/profile"}>
+                {viewerId === null ? "Create your account" : "Finish account setup"}
+              </Link>
             </Button>
           </div>
         </div>
@@ -63,17 +151,17 @@ export default function Home() {
           </CardHeader>
           <CardContent className="px-8 sm:px-10">
             <p className="leading-7 text-muted-dark">
-              Secure accounts, adult onboarding, safe public profiles, blocking, the local sports
-              catalog, fixture browsing, and personal follows are now connected.
+              Pick a fixture, find a watch event nearby, and connect with people who follow the same
+              teams. Private home details stay protected until attendance is approved.
             </p>
             <dl className="mt-8 grid grid-cols-2 gap-5 border-t border-border-strong pt-7 text-sm">
               <div>
-                <dt className="text-muted-dark">Provider calls</dt>
-                <dd className="mt-1 font-semibold">Server sync only</dd>
+                <dt className="text-muted-dark">Pilot area</dt>
+                <dd className="mt-1 font-semibold">Israel</dd>
               </div>
               <div>
-                <dt className="text-muted-dark">Display time</dt>
-                <dd className="mt-1 font-semibold">Jerusalem</dd>
+                <dt className="text-muted-dark">Match times</dt>
+                <dd className="mt-1 font-semibold">Israel time</dd>
               </div>
             </dl>
           </CardContent>

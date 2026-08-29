@@ -79,6 +79,14 @@ function EventManagementControlsInner({
           </p>
         </CardHeader>
         <CardContent>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border-dark bg-surface-deep p-4">
+            <p className="text-sm text-muted-dark">
+              Don&apos;t know their exact handle? Find their profile first.
+            </p>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/people">Find people</Link>
+            </Button>
+          </div>
           <form
             className="flex flex-col gap-3 sm:flex-row sm:items-end"
             onSubmit={(event) => {

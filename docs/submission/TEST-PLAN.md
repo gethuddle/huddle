@@ -70,7 +70,7 @@ and suspension/mutation races.
 ## Manual and hosted acceptance
 
 The final pass adds keyboard-only and VoiceOver checks, phone/desktop review,
-Jerusalem DST display, public attribution, unauthorized HTML/network/cache/log
+Israel-time DST display, public attribution, unauthorized HTML/network/cache/log
 inspection, and the production smoke described in
 [`PRODUCTION-ACCEPTANCE.md`](../operations/PRODUCTION-ACCEPTANCE.md). Hosted checks
 are evidence, not CI dependencies.
