@@ -8,9 +8,9 @@ private addresses, report content, invite tokens, or raw provider payloads here.
 
 - [ ] Final HTTPS URL is recorded in the root README and submission index.
 - [ ] Deployed Git SHA equals the accepted `main` commit.
-- [ ] Hosted migration history equals the 12 committed migrations; generated types
+- [x] Hosted migration history equals the 12 committed migrations; generated types
   have no drift.
-- [ ] The hosted reference catalog contains all 13 active reviewed Israel cities.
+- [x] The hosted reference catalog contains all 13 active reviewed Israel cities.
 - [ ] Signed-out home/fixtures/discovery work in a clean browser.
 - [ ] Verification email returns to the production origin with no token in the final URL.
 - [ ] Two dedicated complete accounts establish independent sessions.
@@ -71,7 +71,7 @@ names, never values. Sources: [Supabase Cron](https://supabase.com/docs/guides/c
 |---|---|
 | Accepted Git SHA | Pending |
 | Production deployment ID/URL | Pending |
-| Migration parity timestamp | Pending |
+| Migration parity timestamp | 2026-08-29 14:27 IDT; `koeqawpgxevfhuieqtcq`; all 12 versions match and a follow-up dry run is up to date |
 | Session/full smoke timestamp | Pending |
 | Latest successful sync run ID | Pending |
 | Guy rehearsal duration/date | Pending |

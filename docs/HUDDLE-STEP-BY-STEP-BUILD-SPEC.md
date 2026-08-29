@@ -1234,7 +1234,7 @@ evidence for merge; hosted checks remain D02–D04.
 - [x] Create or confirm separate local, preview/staging, and production configurations.
 - [x] Ensure previews do not mutate production by default.
 - [ ] Create/configure Supabase and Vercel only with both partners' explicit approval.
-- [ ] Apply reviewed migrations before deploying code that requires them.
+- [x] Apply the committed 12-migration history before deploying code that requires it.
 - [ ] Configure public URLs, Auth redirects, allowed origins, and environment-specific secrets.
 - [ ] Verify anonymous public browse and signed-in session behavior.
 - [ ] Verify no service secret appears in browser bundles or network traffic.

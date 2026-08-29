@@ -89,14 +89,18 @@ function localDatabaseRows<T>(sql: string): T[] {
   );
   const output = execFileSync(
     executable,
-    ["db", "query", "--local", "--output-format", "json", sql],
+    ["db", "query", "--local", "--agent", "no", "--output", "json", sql],
     {
       cwd: process.cwd(),
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
     },
   );
-  return (JSON.parse(output) as { rows: T[] }).rows;
+  const rows: unknown = JSON.parse(output);
+  if (!Array.isArray(rows)) {
+    throw new Error("The local database query did not return a JSON row array.");
+  }
+  return rows as T[];
 }
 
 async function seedCompletedUser(
