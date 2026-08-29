@@ -1201,14 +1201,21 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Complete every pgTAP category in §14.1.
-- [ ] Complete every Vitest category in §14.2.
-- [ ] Complete every React Testing Library category in §14.3.
-- [ ] Implement all 17 Playwright flows in §14.4 with deterministic seed users/data.
-- [ ] Ensure tests never depend on ordering, clock, provider network, or production state accidentally.
-- [ ] Add coverage reports as diagnostic evidence, not a substitute for behavior tests.
-- [ ] Make the complete CI sequence match §14.6.
-- [ ] Prove generated database types have no drift.
+- [x] Complete every pgTAP category in §14.1.
+- [x] Complete every Vitest category in §14.2.
+- [x] Complete every React Testing Library category in §14.3.
+- [x] Implement all 17 Playwright flows in §14.4 with deterministic seed users/data.
+- [x] Ensure tests never depend on ordering, clock, provider network, or production state accidentally.
+- [x] Add coverage reports as diagnostic evidence, not a substitute for behavior tests.
+- [x] Make the complete CI sequence match §14.6.
+- [x] Prove generated database types have no drift.
+
+**B12 local acceptance evidence (2026-08-29):** `npm run test:acceptance`
+passed from a clean lockfile install with format, lint, typecheck, 90 Vitest files / 403
+tests and coverage, reset migrations/seed plus schema lint, 18 pgTAP files / 975 assertions,
+generated-type drift, production build, all 17 Playwright journeys, secret/artifact
+audit, and diff hygiene. PR/main CI and the independent partner run remain the exit
+evidence for merge; hosted checks remain D02–D04.
 
 **Team checkpoint:** split test-writing checkpoints, not feature ownership. Each partner must write or meaningfully improve database, unit/component, and E2E coverage.
 
@@ -1224,14 +1231,14 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Create or confirm separate local, preview/staging, and production configurations.
-- [ ] Ensure previews do not mutate production by default.
+- [x] Create or confirm separate local, preview/staging, and production configurations.
+- [x] Ensure previews do not mutate production by default.
 - [ ] Create/configure Supabase and Vercel only with both partners' explicit approval.
 - [ ] Apply reviewed migrations before deploying code that requires them.
 - [ ] Configure public URLs, Auth redirects, allowed origins, and environment-specific secrets.
 - [ ] Verify anonymous public browse and signed-in session behavior.
 - [ ] Verify no service secret appears in browser bundles or network traffic.
-- [ ] Record production quota/limit snapshots for the course scale deliverable.
+- [x] Record a dated pre-deployment quota/limit snapshot for the course scale deliverable; add selected-plan usage after deployment.
 
 **Tests/evidence:** production smoke test in a signed-out browser and with at least two deterministic test accounts; migration parity proof.
 
@@ -1245,11 +1252,11 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Reverify the current provider plan, coverage, rate limit, attribution, and terms before registration/use.
+- [x] Reverify the current provider plan, coverage, rate limit, attribution, and terms before registration/use.
 - [ ] Register/configure the football provider only with explicit partner approval.
 - [ ] Store the provider token and service role only in server secret stores.
 - [ ] Store the sync call secret in both Vercel and Supabase Vault.
-- [ ] Configure the bounded competition allowlist.
+- [x] Configure the bounded competition allowlist.
 - [ ] Configure Supabase Cron/`pg_net` for the six-hour schedule.
 - [ ] Verify one successful run and its safe `provider_sync_runs` evidence.
 - [ ] Simulate/observe a failed run and verify last-good fixtures remain browsable with stale status.
@@ -1267,10 +1274,10 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [ ] Update README setup, environment names, commands, architecture, status, and public URL.
-- [ ] Complete the official product, technical, test, scalability, and security deliverables in the required submission form.
-- [ ] Replace “specified” traceability cells with actual implementation/test/presentation evidence.
-- [ ] Add GitHub link, live URL, data attribution, and exact local reproduction steps.
+- [x] Update README setup, environment names, commands, architecture, status, and candidate public URL; final deployment acceptance remains pending.
+- [x] Complete the official product, technical, test, scalability, and security deliverable sources in the submission index.
+- [x] Replace “specified” traceability cells with truthful actual/pending implementation, test, and presentation evidence.
+- [x] Add GitHub link, candidate live URL, data attribution, and exact local reproduction steps; final URL acceptance remains pending.
 - [ ] Fresh-clone and reproduce the application on the second computer.
 - [ ] Rehearse the core demo using deterministic accounts/data.
 - [ ] Rehearse one browser-to-server-to-database/RLS trace.
@@ -1352,8 +1359,8 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 | B08 Venue/group events and safe visibility | `E04`–`E06` | done | [#24](https://github.com/gethuddle/huddle/issues/24) / [PR #25](https://github.com/gethuddle/huddle/pull/25) |
 | B09 Group and event discovery | `G06`, `E07` | done | [#26](https://github.com/gethuddle/huddle/issues/26) / [PR #27](https://github.com/gethuddle/huddle/pull/27) |
 | B10 Invitations, attendance, and calendar | `T01`–`T04` | done | [#28](https://github.com/gethuddle/huddle/issues/28) / [PR #29](https://github.com/gethuddle/huddle/pull/29) |
-| B11 Moderation, security, and accessibility | `M01`–`M04` | review | [#30](https://github.com/gethuddle/huddle/issues/30) |
-| B12 Acceptance, production, and submission | `D01`–`D04` | not started | — |
+| B11 Moderation, security, and accessibility | `M01`–`M04` | done | [#30](https://github.com/gethuddle/huddle/issues/30) / [PR #31](https://github.com/gethuddle/huddle/pull/31) |
+| B12 Acceptance, production, and submission | `D01`–`D04` | review | [#32](https://github.com/gethuddle/huddle/issues/32) |
 
 ---
 

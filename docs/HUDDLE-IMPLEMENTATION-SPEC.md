@@ -1266,7 +1266,10 @@ Use separate local, preview/staging, and production configuration. Preview deplo
 
 ## 16. Requirements traceability matrix
 
-“Specified” means the plan exists; implementation evidence must be added during the build.
+The design-to-requirement map below remains normative. Actual implementation,
+test, presentation, and pending hosted evidence is maintained in the
+[B12 traceability record](./submission/TRACEABILITY.md); a pending cell is never
+treated as implemented merely because this specification describes it.
 
 | Official requirement | Design location | Implementation evidence | Test evidence | Presentation proof |
 |---|---|---|---|---|

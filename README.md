@@ -155,7 +155,7 @@ The database and provider boundaries may be future-ready, but deferred features 
 
 ## Project status
 
-The merged baseline includes B01 repository CI; the complete B02 local account, onboarding, eligibility, safe-profile, private-block, and audit flow; B03 sports catalog and ingestion; B04's Huddle-styled shadcn/Radix component layer, anonymous freshness-aware fixture browsing, and completed-account sport, competition, and team follows; B05 direct reciprocal friendships and atomic group creation; B06 reviewed applications, digest-only unlisted invitations, bounded role/rule/ban administration, and retained membership history; B07 venue/private-event foundations; B08 venue/group event publication with audience-safe projections; B09 gated supporter-group search plus cursor-paginated PostGIS event discovery; and B10 direct invitations, one-account attendance, capacity-safe approval, protected-location access/revocation, retained cancellation history, and privacy-aware RFC 5545 calendars. B11 is implemented on its milestone branch and is under reciprocal review: it adds confidential reporting, platform moderation, proportional enforcement, independent appeals, suspension-safe authorization, security headers and audits, safe observability, accessible failure states, responsive moderation UI, and operational runbooks. Production synchronization/deployment and final submission remain B12, and local development does not mutate the shared Supabase organization.
+The merged baseline includes B01–B11: repository CI; account verification and onboarding; the normalized sports catalog; Huddle-styled shadcn/Radix UI; fixture browsing and follows; friendships and supporter groups; venue and private/group event hosting; safe geospatial discovery; invitations, atomic attendance, protected locations and calendars; and confidential reporting, moderation, appeals, hardening, accessibility, and operational runbooks. B12 is under reciprocal review with the complete 17-journey acceptance gate, environment isolation, production-sync/deployment runbooks, and final course-submission package. The candidate production URL is [huddle-navy-five.vercel.app](https://huddle-navy-five.vercel.app); matching the accepted B12 Git SHA, hosted migrations, and production acceptance remains pending. Local development does not mutate a hosted Supabase project.
 
 ### Visual system
 
@@ -183,7 +183,7 @@ The first database start downloads the pinned local images. Repository scripts u
 npm run dev
 ```
 
-`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `NEXT_PUBLIC_APP_URL` are browser-safe. `SUPABASE_SERVICE_ROLE_KEY`, `FOOTBALL_DATA_API_TOKEN`, `SPORTS_SYNC_SECRET`, and `DISCOVERY_CURSOR_SECRET` are server-only and must never enter Client Components or logs. B03 creates a service-role client only after the internal route authenticates `SPORTS_SYNC_SECRET`; ordinary sessions cannot trigger a sync or mutate the catalog. B09 uses a separate high-entropy `DISCOVERY_CURSOR_SECRET` only to sign and verify filter-bound pagination cursors. The repository-managed local stack remains unlinked, so these commands do not mutate the shared Supabase organization.
+`HUDDLE_ENVIRONMENT` labels the configuration as `local`, `preview`, or `production`. Hosted builds must also agree with Vercel's own environment label and use HTTPS. `.env.preview.example` and `.env.production.example` enumerate separate safe key names; preview must use its own non-production Supabase project. `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `NEXT_PUBLIC_APP_URL` are browser-safe. `SUPABASE_SERVICE_ROLE_KEY`, `FOOTBALL_DATA_API_TOKEN`, `SPORTS_SYNC_SECRET`, and `DISCOVERY_CURSOR_SECRET` are server-only and must never enter Client Components or logs. B03 creates a service-role client only after the internal route authenticates `SPORTS_SYNC_SECRET`; ordinary sessions cannot trigger a sync or mutate the catalog. B09 uses a separate high-entropy `DISCOVERY_CURSOR_SECRET` only to sign and verify filter-bound pagination cursors. The repository-managed local stack remains unlinked, so these commands do not mutate the shared Supabase organization.
 
 B03's automated tests use only the sanitized fixtures under `tests/fixtures/football-data` and never call the provider. To perform a deliberate real-provider sync locally, put the intended local Supabase values, provider token, and a matching high-entropy sync secret in `.env.local`, run the application with `npm run dev`, and invoke:
 
@@ -191,7 +191,7 @@ B03's automated tests use only the sanitized fixtures under `tests/fixtures/foot
 npm run sports:sync
 ```
 
-`dev:local`, CI, builds, and tests deliberately inject placeholder provider authority. The checked-in competition allowlist currently contains Premier League (`PL`) and UEFA Champions League (`CL`); recheck the active provider plan before any hosted scheduling. Supabase Cron and hosted secrets remain part of the later deployment milestone.
+`dev:local`, CI, builds, and tests deliberately inject placeholder provider authority. The checked-in competition allowlist contains Premier League (`PL`) and UEFA Champions League (`CL`), both in football-data.org's free coverage as rechecked on 2026-08-28. Hosted scheduling is prepared under `supabase/production/` but must not be run until both partners explicitly approve the exact production targets and secrets.
 
 The local stack is recreated entirely from tracked migrations and seed data. Mailpit captures verification emails at `http://127.0.0.1:54324`; it sends nothing externally. The stack is not linked to the shared Supabase organization and must not be exposed externally. See the [local database contract](./supabase/README.md) for schema conventions and database commands.
 
@@ -200,6 +200,7 @@ Before handing off a milestone, install Chromium once and run the repository gat
 ```bash
 npx --no-install playwright install chromium
 npm run test:coverage
+npm run db:lint
 npm run test:db
 npm run db:types:check
 npm run format:check
@@ -209,9 +210,21 @@ npm run build:local
 npm run test:e2e
 ```
 
+B12 also provides one fail-fast local acceptance command that runs the entire sequence, including a clean lockfile install, security audit, and diff check:
+
+```bash
+npm run test:acceptance
+```
+
+The current B12 local run passes 403 Vitest/unit/component tests, 975 pgTAP assertions, the generated-type check, the production build, and all 17 Playwright journeys. Hosted evidence remains separate and pending.
+
+Production smoke is intentionally separate from CI and requires dedicated credentials in ignored `.env.production-smoke.local`. Session-only and one-time product-mutation commands are documented in the [deployment runbook](./docs/operations/DEPLOYMENT.md); neither runs implicitly.
+
 The tracked GitHub Actions workflow runs the same local-only stack on pull requests and `main`. The protected `main` branch requires the `Repository gates` check, one approving partner review, resolution of review conversations, and an up-to-date branch before merge; force pushes and deletion are disabled.
 
 - [Product and architecture vision](./docs/HUDDLE-ARCHITECTURE.md)
 - [Implementation-ready engineering specification](./docs/HUDDLE-IMPLEMENTATION-SPEC.md)
 - [Step-by-step two-person build specification](./docs/HUDDLE-STEP-BY-STEP-BUILD-SPEC.md)
 - [Brand system and asset rules](./docs/HUDDLE-BRAND.md)
+- [Final-submission index](./docs/submission/README.md)
+- [Deployment and production-acceptance runbooks](./docs/operations/DEPLOYMENT.md)

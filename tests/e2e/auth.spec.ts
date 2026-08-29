@@ -1,6 +1,7 @@
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { execFileSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 
 import type { Database } from "@/types/database.generated";
@@ -24,6 +25,11 @@ const captureB08Evidence = process.env.HUDDLE_CAPTURE_B08_EVIDENCE === "1";
 const captureB09Evidence = process.env.HUDDLE_CAPTURE_B09_EVIDENCE === "1";
 const captureB10Evidence = process.env.HUDDLE_CAPTURE_B10_EVIDENCE === "1";
 const captureB11Evidence = process.env.HUDDLE_CAPTURE_B11_EVIDENCE === "1";
+const haifaCityId = "00000000-0000-4000-8000-000000000003";
+
+function uniqueSuffix() {
+  return randomUUID().replaceAll("-", "").slice(0, 8);
+}
 
 function localAdminClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -35,6 +41,21 @@ function localAdminClient() {
   return createSupabaseClient<Database>(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+}
+
+async function localUserClient(email: string, password: string) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (supabaseUrl === undefined || publishableKey === undefined) {
+    throw new Error("The local publishable test environment is unavailable.");
+  }
+
+  const client = createSupabaseClient<Database>(supabaseUrl, publishableKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { error } = await client.auth.signInWithPassword({ email, password });
+  if (error !== null) throw error;
+  return client;
 }
 
 function isoDate(date: Date): string {
@@ -57,6 +78,25 @@ function localDatabaseQuery(sql: string) {
     encoding: "utf8",
     stdio: "pipe",
   });
+}
+
+function localDatabaseRows<T>(sql: string): T[] {
+  const executable = path.join(
+    process.cwd(),
+    "node_modules",
+    ".bin",
+    process.platform === "win32" ? "supabase.cmd" : "supabase",
+  );
+  const output = execFileSync(
+    executable,
+    ["db", "query", "--local", "--output-format", "json", sql],
+    {
+      cwd: process.cwd(),
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
+  return (JSON.parse(output) as { rows: T[] }).rows;
 }
 
 async function seedCompletedUser(
@@ -97,7 +137,11 @@ async function signIn(page: Page, email: string, password: string) {
   await expect(page).toHaveURL(/^http:\/\/(?:localhost|127\.0\.0\.1):3000\/$/);
 }
 
-async function seedGroupOwner(ownerId: string, suffix: string) {
+async function seedGroupOwner(
+  ownerId: string,
+  suffix: string,
+  visibility: "discoverable" | "unlisted" = "unlisted",
+) {
   const slug = `safety-circle-${suffix}`;
   const reviewedAt = new Date().toISOString();
   localDatabaseQuery(`
@@ -111,7 +155,7 @@ async function seedGroupOwner(ownerId: string, suffix: string) {
         ${sqlLiteral(`Safety Circle ${suffix}`)},
         ${sqlLiteral(ownerId)}::uuid,
         ${sqlLiteral(slug)},
-        'unlisted'
+        ${sqlLiteral(visibility)}
       )
       returning id
     )
@@ -217,6 +261,166 @@ async function seedCachedFixtureCatalogAfterFailure() {
     input_error_summary: "Provider was unavailable during the test import.",
   });
   if (failureResult.error !== null) throw failureResult.error;
+
+  const fixture = localDatabaseRows<{
+    id: string;
+    home_team_id: string | null;
+    away_team_id: string | null;
+    starts_at: string;
+  }>(`
+    select id, home_team_id, away_team_id, starts_at
+    from public.matches
+    where provider = 'football-data'
+      and provider_external_id = 'b04-e2e-match';
+  `).at(0);
+  if (fixture === undefined) throw new Error("The acceptance fixture was not persisted.");
+
+  return {
+    matchId: fixture.id,
+    homeTeamId: fixture.home_team_id,
+    awayTeamId: fixture.away_team_id,
+    startsAt: fixture.starts_at,
+  };
+}
+
+function seedAcceptedFriendship(firstUserId: string, secondUserId: string) {
+  const [userLowId, userHighId] = [firstUserId, secondUserId].sort();
+  const respondedAt = new Date().toISOString();
+  localDatabaseQuery(`
+    insert into public.friendships (
+      user_low_id, user_high_id, requested_by, status, responded_at
+    ) values (
+      ${sqlLiteral(userLowId)}::uuid,
+      ${sqlLiteral(userHighId)}::uuid,
+      ${sqlLiteral(firstUserId)}::uuid,
+      'accepted',
+      ${sqlLiteral(respondedAt)}::timestamptz
+    );
+  `);
+}
+
+type FixtureSeed = Awaited<ReturnType<typeof seedCachedFixtureCatalogAfterFailure>>;
+
+function privateEventInput(
+  fixture: FixtureSeed,
+  title: string,
+  overrides: Partial<Database["public"]["Functions"]["create_or_update_event"]["Args"]> = {},
+): Database["public"]["Functions"]["create_or_update_event"]["Args"] {
+  const startsAt = new Date(fixture.startsAt);
+  return {
+    input_event_id: null as unknown as string,
+    input_host_venue_id: null as unknown as string,
+    input_organizing_group_id: null as unknown as string,
+    input_match_id: fixture.matchId,
+    input_title: title,
+    input_description: "A deterministic private acceptance event for registered Huddle users.",
+    input_expected_activity: "Watch the full match together",
+    input_cost_description: "Free",
+    input_event_rules: "Respect the host, the home, and every attendee.",
+    input_commercial_affiliation: "None",
+    input_host_presence_confirmed: true,
+    input_starts_at: startsAt.toISOString(),
+    input_ends_at: new Date(startsAt.getTime() + 3 * 60 * 60 * 1000).toISOString(),
+    input_city_id: haifaCityId,
+    input_place_kind: "home",
+    input_venue_id: null as unknown as string,
+    input_public_place_name: null as unknown as string,
+    input_public_address_text: null as unknown as string,
+    input_public_longitude: null as unknown as number,
+    input_public_latitude: null as unknown as number,
+    input_audience: "invite_only",
+    input_audience_team_id: null as unknown as string,
+    input_audience_group_id: null as unknown as string,
+    input_capacity: 6,
+    input_requires_approval: true,
+    input_private_address_text: "44 Protected Acceptance Home, Haifa",
+    input_private_directions: "Use the private entrance.",
+    input_private_longitude: 34.998,
+    input_private_latitude: 32.812,
+    input_intent: "publish",
+    ...overrides,
+  };
+}
+
+async function createPrivateEvent(
+  email: string,
+  password: string,
+  fixture: FixtureSeed,
+  title: string,
+  overrides: Partial<Database["public"]["Functions"]["create_or_update_event"]["Args"]> = {},
+) {
+  const client = await localUserClient(email, password);
+  const input = privateEventInput(fixture, title, overrides);
+  const result = await client.rpc("create_or_update_event", input);
+  if (result.error !== null) throw result.error;
+  const eventId = result.data.at(0)?.event_id;
+  if (eventId === undefined) throw new Error("Private event creation returned no event ID.");
+  return { client, eventId, input };
+}
+
+async function createVenueEvent(
+  email: string,
+  password: string,
+  fixture: FixtureSeed,
+  suffix: string,
+  overrides: Partial<Database["public"]["Functions"]["create_or_update_event"]["Args"]> = {},
+) {
+  const client = await localUserClient(email, password);
+  const venueResult = await client.rpc("create_venue", {
+    input_address_text: "12 Hanassi Boulevard, Haifa",
+    input_city_id: haifaCityId,
+    input_description: "A deterministic acceptance venue with accessible seating.",
+    input_latitude: 32.81303,
+    input_longitude: 34.99928,
+    input_name: `Acceptance Venue ${suffix}`,
+    input_screen_count: 4,
+    input_slug: `acceptance-venue-${suffix}`,
+    input_stated_capacity: 80,
+  });
+  if (venueResult.error !== null) throw venueResult.error;
+  const venueId = venueResult.data.at(0)?.venue_id;
+  if (venueId === undefined) throw new Error("Venue creation returned no venue ID.");
+
+  const startsAt = new Date(fixture.startsAt);
+  const input: Database["public"]["Functions"]["create_or_update_event"]["Args"] = {
+    input_event_id: null as unknown as string,
+    input_host_venue_id: venueId,
+    input_organizing_group_id: null as unknown as string,
+    input_match_id: fixture.matchId,
+    input_title: `Acceptance venue event ${suffix}`,
+    input_description: "A deterministic venue event for end-to-end acceptance coverage.",
+    input_expected_activity: "Watch the full match together",
+    input_cost_description: "No cover charge",
+    input_event_rules: "Respect staff and every supporter.",
+    input_commercial_affiliation: "Hosted by the listed venue",
+    input_host_presence_confirmed: true,
+    input_starts_at: startsAt.toISOString(),
+    input_ends_at: new Date(startsAt.getTime() + 3 * 60 * 60 * 1000).toISOString(),
+    input_city_id: haifaCityId,
+    input_place_kind: "venue",
+    input_venue_id: venueId,
+    input_public_place_name: null as unknown as string,
+    input_public_address_text: null as unknown as string,
+    input_public_longitude: null as unknown as number,
+    input_public_latitude: null as unknown as number,
+    input_audience: "public",
+    input_audience_team_id: null as unknown as string,
+    input_audience_group_id: null as unknown as string,
+    input_capacity: 40,
+    input_requires_approval: false,
+    input_private_address_text: null as unknown as string,
+    input_private_directions: null as unknown as string,
+    input_private_longitude: null as unknown as number,
+    input_private_latitude: null as unknown as number,
+    input_intent: "publish",
+    ...overrides,
+  };
+  const eventResult = await client.rpc("create_or_update_event", input);
+  if (eventResult.error !== null) throw eventResult.error;
+  const eventId = eventResult.data.at(0)?.event_id;
+  if (eventId === undefined) throw new Error("Venue event creation returned no event ID.");
+
+  return { client, eventId, input, venueId, venueSlug: `acceptance-venue-${suffix}` };
 }
 
 async function mailpitJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -318,7 +522,22 @@ async function signUpAndVerify(
   await page.goto(confirmationLocation!);
 
   await expect(page.getByRole("heading", { name: "You’re in." })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Profile", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Finish setup", exact: true })).toHaveAttribute(
+    "href",
+    "/settings/profile",
+  );
+}
+
+async function expectProfileNavigation(page: Page) {
+  const accountTrigger = page.getByRole("button", { name: "Open account navigation" });
+  await expect(accountTrigger).toBeVisible();
+  await accountTrigger.click();
+  await expect(page.getByRole("menuitem", { name: "Profile", exact: true })).toHaveAttribute(
+    "href",
+    "/settings/profile",
+  );
+  await page.keyboard.press("Escape");
+  await expect(accountTrigger).toBeFocused();
 }
 
 async function completeProfile(
@@ -387,16 +606,17 @@ async function addReviewedGroupMembers(
   }
 }
 
-test("signup, verification, onboarding, SSR session, sign-in, and sign-out", async ({
+test("01 signup, verification, required onboarding, and a team follow", async ({
   context,
   page,
 }) => {
   await clearMailbox();
+  await seedCachedFixtureCatalogAfterFailure();
 
-  const suffix = Date.now();
+  const suffix = uniqueSuffix();
   const email = `b02-${suffix}@example.com`;
   const password = "matchday-local-test";
-  const handle = `fan_${suffix.toString().slice(-8)}`;
+  const handle = `fan_${suffix}`;
 
   await signUpAndVerify(page, context, email, password);
   await expect(page.getByRole("link", { name: "Complete your profile" })).toHaveAttribute(
@@ -408,11 +628,14 @@ test("signup, verification, onboarding, SSR session, sign-in, and sign-out", asy
   await expect(page.getByText("This is your public profile.")).toBeVisible();
   await expect(page.getByText(email)).not.toBeVisible();
   await page.reload();
-  await expect(page.getByRole("link", { name: "Profile", exact: true })).toBeVisible();
+  await expectProfileNavigation(page);
+
+  await page.goto(new URL("/settings/interests", page.url()).toString());
+  await page.getByRole("button", { name: "Follow Arsenal" }).click();
+  await expect(page.getByRole("status")).toHaveText("Follow added.");
 
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page.getByRole("banner").getByRole("link", { name: "Sign in" })).toBeVisible();
-  await expect(page.getByText("Sign in for community controls.")).toBeVisible();
 
   await page.goto("/auth/sign-in");
   await page.getByRole("textbox", { name: "Email address" }).fill(email);
@@ -420,7 +643,7 @@ test("signup, verification, onboarding, SSR session, sign-in, and sign-out", asy
   await page.getByRole("button", { name: "Sign in" }).click();
 
   await expect(page).toHaveURL(/^http:\/\/(?:localhost|127\.0\.0\.1):3000\/$/);
-  await expect(page.getByRole("link", { name: "Profile", exact: true })).toBeVisible();
+  await expectProfileNavigation(page);
 
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page.getByRole("link", { name: "Sign up" })).toBeVisible();
@@ -433,7 +656,7 @@ test("a block is private, directional, auditable, and reversible", async ({
 }) => {
   await clearMailbox();
 
-  const suffix = Date.now().toString().slice(-8);
+  const suffix = uniqueSuffix();
   const password = "matchday-local-test";
   const firstEmail = `blocker-${suffix}@example.com`;
   const secondEmail = `target-${suffix}@example.com`;
@@ -503,7 +726,7 @@ test("a block is private, directional, auditable, and reversible", async ({
   }
 });
 
-test("a completed user creates and administers reviewed group membership", async ({
+test("05 and 07 a group reaches discovery and a member event receives admin approval", async ({
   browser,
   context,
   page,
@@ -514,7 +737,7 @@ test("a completed user creates and administers reviewed group membership", async
   await clearMailbox();
   await seedCachedFixtureCatalogAfterFailure();
 
-  const suffix = Date.now().toString().slice(-8);
+  const suffix = uniqueSuffix();
   const email = `group-owner-${suffix}@example.com`;
   const password = "matchday-local-test";
   const handle = `owner_${suffix}`;
@@ -749,7 +972,7 @@ test("a completed user creates and administers reviewed group membership", async
   }
 });
 
-test("cached fixtures survive provider failure and a completed user follows a team", async ({
+test("17 a provider failure preserves cached fixtures and exposes stale state", async ({
   context,
   page,
 }) => {
@@ -773,7 +996,7 @@ test("cached fixtures survive provider failure and a completed user follows a te
   await expect(page.getByText("No Huddle watch events yet.")).toBeVisible();
   expect(providerRequests).toEqual([]);
 
-  const suffix = Date.now().toString().slice(-8);
+  const suffix = uniqueSuffix();
   const email = `follow-${suffix}@example.com`;
   const password = "matchday-local-test";
   const handle = `follow_${suffix}`;
@@ -800,7 +1023,7 @@ test("completed users create venue and private events with safe projections", as
   await clearMailbox();
   await seedCachedFixtureCatalogAfterFailure();
 
-  const suffix = Date.now().toString().slice(-8);
+  const suffix = uniqueSuffix();
   const email = `b07-host-${suffix}@example.com`;
   const password = "matchday-local-test";
   const handle = `b07_host_${suffix}`;
@@ -903,16 +1126,16 @@ test("completed users create venue and private events with safe projections", as
   await expect(page.getByText(new RegExp(exactHomeAddress))).toBeVisible();
 });
 
-test("direct invitation and attendance approval reveal then revoke a protected address", async ({
+test("08 and 12 approval reveals a home address and host removal revokes it", async ({
   browser,
   context,
   page,
 }) => {
   test.setTimeout(90_000);
   await clearMailbox();
-  await seedCachedFixtureCatalogAfterFailure();
+  const fixture = await seedCachedFixtureCatalogAfterFailure();
 
-  const suffix = Date.now().toString().slice(-8);
+  const suffix = uniqueSuffix();
   const password = "matchday-local-test";
   const hostHandle = `b10_host_${suffix}`;
   const inviteeHandle = `b10_invited_${suffix}`;
@@ -1007,6 +1230,16 @@ test("direct invitation and attendance approval reveal then revoke a protected a
     await requesterCard.getByRole("button", { name: "Approve" }).click();
     await expect(page.getByRole("status")).toHaveText("Request approved.");
 
+    const hostClient = await localUserClient(`b10-host-${suffix}@example.com`, password);
+    const materialChange = await hostClient.rpc("create_or_update_event", {
+      ...privateEventInput(fixture, eventTitle, {
+        input_audience: "friends",
+        input_private_address_text: `Changed ${exactAddress}`,
+      }),
+      input_event_id: eventPath.split("/").at(-1) as string,
+    });
+    expect(materialChange.error?.message).toContain("MATERIAL_CHANGE_REQUIRES_NEW_EVENT");
+
     await inviteePage.goto(new URL(eventPath, inviteePage.url()).toString());
     await expect(inviteePage.getByText(new RegExp(exactAddress))).toBeVisible();
     const eventId = eventPath.split("/").at(-1);
@@ -1057,13 +1290,13 @@ test("direct invitation and attendance approval reveal then revoke a protected a
   }
 });
 
-test("a confidential report becomes an independently reviewed moderation appeal", async ({
+test("16 a confidential report becomes an independently reviewed moderation appeal", async ({
   browser,
   page,
 }) => {
   test.setTimeout(90_000);
 
-  const suffix = Date.now().toString().slice(-8);
+  const suffix = uniqueSuffix();
   const password = "matchday-local-test";
   const reporterEmail = `b11-reporter-${suffix}@example.com`;
   const targetEmail = `b11-target-${suffix}@example.com`;
@@ -1248,4 +1481,564 @@ test("a confidential report becomes an independently reviewed moderation appeal"
     await firstModeratorContext.close();
     await secondModeratorContext.close();
   }
+});
+
+test("02 personalized discovery uses a one-shot browser coordinate without persisting it", async ({
+  context,
+  page,
+}) => {
+  const suffix = uniqueSuffix();
+  const password = "matchday-local-test";
+  const viewerEmail = `b12-discovery-${suffix}@example.com`;
+  const hostEmail = `b12-discovery-host-${suffix}@example.com`;
+  const viewerId = await seedCompletedUser(
+    viewerEmail,
+    password,
+    `b12_discovery_${suffix}`,
+    "B12 Discovering Fan",
+  );
+  await seedCompletedUser(
+    hostEmail,
+    password,
+    `b12_discovery_host_${suffix}`,
+    "B12 Discovery Venue Host",
+  );
+  const fixture = await seedCachedFixtureCatalogAfterFailure();
+  const event = await createVenueEvent(hostEmail, password, fixture, suffix);
+  if (fixture.homeTeamId === null) throw new Error("The fixture has no home team.");
+  const viewerClient = await localUserClient(viewerEmail, password);
+  const followResult = await viewerClient.from("subscriptions").insert({
+    user_id: viewerId,
+    kind: "team",
+    sport_id: null,
+    competition_id: null,
+    team_id: fixture.homeTeamId,
+  });
+  if (followResult.error !== null) throw followResult.error;
+
+  await context.grantPermissions(["geolocation"], { origin: "http://127.0.0.1:3000" });
+  await context.setGeolocation({ latitude: 32.81303, longitude: 34.99928 });
+  await signIn(page, viewerEmail, password);
+  const discoveryRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/api/discovery?")) discoveryRequests.push(request.url());
+  });
+  await page.goto(new URL("/discover?city=haifa", page.url()).toString());
+  await expect(page.getByText(event.input.input_title, { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Use my location once" }).click();
+  await expect(page.getByText("Using this browser location", { exact: true })).toBeVisible();
+  await expect.poll(() => discoveryRequests.length).toBeGreaterThan(0);
+  expect(discoveryRequests.at(-1)).toContain("lat=32.81303");
+  expect(discoveryRequests.at(-1)).toContain("lng=34.99928");
+  expect(page.url()).not.toContain("lat=");
+  expect(page.url()).not.toContain("lng=");
+});
+
+test("03 accepted friends see a friends-only event while an unrelated user is denied", async ({
+  browser,
+}) => {
+  const suffix = uniqueSuffix();
+  const password = "matchday-local-test";
+  const hostEmail = `b12-friend-host-${suffix}@example.com`;
+  const friendEmail = `b12-friend-${suffix}@example.com`;
+  const strangerEmail = `b12-stranger-${suffix}@example.com`;
+  const hostId = await seedCompletedUser(
+    hostEmail,
+    password,
+    `b12_friend_host_${suffix}`,
+    "B12 Friend Host",
+  );
+  const friendId = await seedCompletedUser(
+    friendEmail,
+    password,
+    `b12_friend_${suffix}`,
+    "B12 Accepted Friend",
+  );
+  await seedCompletedUser(strangerEmail, password, `b12_stranger_${suffix}`, "B12 Unrelated Fan");
+  seedAcceptedFriendship(hostId, friendId);
+  const fixture = await seedCachedFixtureCatalogAfterFailure();
+  const address = `31 Hidden Friends Home ${suffix}, Haifa`;
+  const event = await createPrivateEvent(
+    hostEmail,
+    password,
+    fixture,
+    `Friends-only acceptance ${suffix}`,
+    {
+      input_audience: "friends",
+      input_private_address_text: address,
+    },
+  );
+
+  const friendContext = await browser.newContext({ baseURL: "http://127.0.0.1:3000" });
+  const friendPage = await friendContext.newPage();
+  const strangerContext = await browser.newContext({ baseURL: "http://127.0.0.1:3000" });
+  const strangerPage = await strangerContext.newPage();
+  try {
+    await signIn(friendPage, friendEmail, password);
+    await friendPage.goto(`/events/${event.eventId}`);
+    await expect(friendPage.getByRole("heading", { name: event.input.input_title })).toBeVisible();
+    await expect(friendPage.getByText(address)).toHaveCount(0);
+    expect(await friendPage.content()).not.toContain(address);
+
+    await signIn(strangerPage, strangerEmail, password);
+    await strangerPage.goto(`/events/${event.eventId}`);
+    await expect(strangerPage.getByRole("heading", { name: "Page not found" })).toBeVisible();
+    expect(await strangerPage.content()).not.toContain(address);
+  } finally {
+    await friendContext.close();
+    await strangerContext.close();
+  }
+});
+
+test("04 crafted host and audience boundary violations are rejected", async ({ page }) => {
+  const suffix = uniqueSuffix();
+  const password = "matchday-local-test";
+  const hostEmail = `b12-boundary-${suffix}@example.com`;
+  const friendEmail = `b12-boundary-friend-${suffix}@example.com`;
+  const hostId = await seedCompletedUser(
+    hostEmail,
+    password,
+    `b12_boundary_${suffix}`,
+    "B12 Boundary Host",
+  );
+  const friendId = await seedCompletedUser(
+    friendEmail,
+    password,
+    `b12_boundary_friend_${suffix}`,
+    "B12 Boundary Friend",
+  );
+  seedAcceptedFriendship(hostId, friendId);
+  const fixture = await seedCachedFixtureCatalogAfterFailure();
+  const hostClient = await localUserClient(hostEmail, password);
+
+  const privatePublicAttempt = await hostClient.rpc(
+    "create_or_update_event",
+    privateEventInput(fixture, `Crafted public private-host event ${suffix}`, {
+      input_audience: "public",
+    }),
+  );
+  expect(privatePublicAttempt.error?.message).toContain("NOT_ALLOWED");
+
+  const venueEvent = await createVenueEvent(hostEmail, password, fixture, suffix);
+  const venuePrivateAttempt = await hostClient.rpc("create_or_update_event", {
+    ...venueEvent.input,
+    input_event_id: null as unknown as string,
+    input_title: `Crafted friends venue event ${suffix}`,
+    input_audience: "friends",
+  });
+  expect(venuePrivateAttempt.error?.message).toContain("NOT_ALLOWED");
+
+  await signIn(page, hostEmail, password);
+  await page.goto(new URL("/events/new", page.url()).toString());
+  await expect(page.getByRole("radio", { name: /Public/ })).toHaveCount(0);
+  await expect(page.getByRole("radio", { name: /Team followers/ })).toHaveCount(0);
+  await page.goto(new URL(`/events/new?venue=${venueEvent.venueSlug}`, page.url()).toString());
+  await expect(page.getByRole("radio", { name: /Friends/ })).toHaveCount(0);
+  await expect(page.getByRole("radio", { name: /Invite only/ })).toHaveCount(0);
+});
+
+test("06 a group ban removes membership and denies a fresh application", async ({
+  browser,
+  page,
+}) => {
+  const suffix = uniqueSuffix();
+  const password = "matchday-local-test";
+  const ownerEmail = `b12-ban-owner-${suffix}@example.com`;
+  const applicantEmail = `b12-ban-applicant-${suffix}@example.com`;
+  const ownerId = await seedCompletedUser(
+    ownerEmail,
+    password,
+    `b12_ban_owner_${suffix}`,
+    "B12 Ban Owner",
+  );
+  await seedCompletedUser(
+    applicantEmail,
+    password,
+    `b12_ban_applicant_${suffix}`,
+    "B12 Banned Applicant",
+  );
+  const groupSlug = await seedGroupOwner(ownerId, `ban-${suffix}`, "discoverable");
+  const group = localDatabaseRows<{ id: string }>(`
+    select id from public.groups where slug = ${sqlLiteral(groupSlug)};
+  `).at(0);
+  if (group === undefined) throw new Error("The acceptance group was not persisted.");
+
+  const applicantContext = await browser.newContext({ baseURL: "http://127.0.0.1:3000" });
+  const applicantPage = await applicantContext.newPage();
+  try {
+    await signIn(page, ownerEmail, password);
+    await signIn(applicantPage, applicantEmail, password);
+    await applicantPage.goto(`/groups/${groupSlug}`);
+    await applicantPage
+      .getByRole("textbox", { name: /Note to the administrators/ })
+      .fill("Please review this deterministic B12 application.");
+    await applicantPage.getByRole("button", { name: "Apply to join" }).click();
+    await expect(applicantPage.getByText("Application: pending")).toBeVisible();
+
+    await page.goto(`/groups/${groupSlug}/manage?section=applications`);
+    await page.getByRole("button", { name: "Approve" }).click();
+    await expect(page.getByRole("heading", { name: "No pending applications." })).toBeVisible();
+    await page.goto(`/groups/${groupSlug}/manage?section=members`);
+    const applicantCard = page
+      .getByRole("link", { name: "B12 Banned Applicant" })
+      .locator("xpath=ancestor::*[@data-slot='card'][1]");
+    await applicantCard.getByRole("button", { name: "Ban" }).click();
+    await page.getByRole("textbox", { name: "Internal reason" }).fill("Safety boundary test");
+    await page.getByRole("alertdialog").getByRole("button", { name: "Confirm ban" }).click();
+    await expect(page.getByRole("link", { name: "B12 Banned Applicant" })).toHaveCount(0);
+
+    await applicantPage.reload();
+    await expect(applicantPage.getByRole("heading", { name: "Apply to join" })).toHaveCount(0);
+    const applicantClient = await localUserClient(applicantEmail, password);
+    const reapplication = await applicantClient.rpc("apply_to_group", {
+      input_group_id: group.id,
+      input_message: "A banned member must not be able to reapply.",
+    });
+    expect(reapplication.error?.message).toContain("GROUP_BANNED");
+  } finally {
+    await applicantContext.close();
+  }
+});
+
+test("09 home capacity, no-plus-one, and one-account-one-seat rules hold", async ({ page }) => {
+  const suffix = uniqueSuffix();
+  const password = "matchday-local-test";
+  const hostEmail = `b12-cap-host-${suffix}@example.com`;
+  const attendeeEmail = `b12-cap-attendee-${suffix}@example.com`;
+  await seedCompletedUser(hostEmail, password, `b12_cap_host_${suffix}`, "B12 Capacity Host");
+  const attendeeId = await seedCompletedUser(
+    attendeeEmail,
+    password,
+    `b12_cap_attendee_${suffix}`,
+    "B12 Capacity Attendee",
+  );
+  const fixture = await seedCachedFixtureCatalogAfterFailure();
+  const hostClient = await localUserClient(hostEmail, password);
+  const overCapacity = await hostClient.rpc(
+    "create_or_update_event",
+    privateEventInput(fixture, `Over-capacity home ${suffix}`, { input_capacity: 13 }),
+  );
+  expect(overCapacity.error?.message).toContain("VALIDATION_FAILED");
+
+  const venueEvent = await createVenueEvent(hostEmail, password, fixture, `seat-${suffix}`, {
+    input_capacity: 2,
+  });
+  const attendeeClient = await localUserClient(attendeeEmail, password);
+  const firstJoin = await attendeeClient.rpc("request_or_join_event", {
+    input_event_id: venueEvent.eventId,
+  });
+  const secondJoin = await attendeeClient.rpc("request_or_join_event", {
+    input_event_id: venueEvent.eventId,
+  });
+  expect(firstJoin.error).toBeNull();
+  expect(secondJoin.error?.message).toContain("ALREADY_ATTENDING");
+  const attendanceRows = localDatabaseRows<{ id: string }>(`
+    select id
+    from public.event_attendance
+    where event_id = ${sqlLiteral(venueEvent.eventId)}::uuid
+      and user_id = ${sqlLiteral(attendeeId)}::uuid;
+  `);
+  expect(attendanceRows).toHaveLength(1);
+
+  await signIn(page, hostEmail, password);
+  await page.goto(new URL("/events/new", page.url()).toString());
+  await expect(
+    page.getByRole("spinbutton", { name: "Registered-account capacity" }),
+  ).toHaveAttribute("max", "12");
+  await expect(page.getByText(/No plus-ones\./)).toBeVisible();
+  await expect(page.locator('input[name*="guest" i], input[name*="plus" i]')).toHaveCount(0);
+});
+
+test("10 venue follow and team-follow eligibility allow a direct-invitation override", async ({
+  browser,
+}) => {
+  const suffix = uniqueSuffix();
+  const password = "matchday-local-test";
+  const ownerEmail = `b12-team-owner-${suffix}@example.com`;
+  const followerEmail = `b12-team-follower-${suffix}@example.com`;
+  const inviteeEmail = `b12-team-invitee-${suffix}@example.com`;
+  await seedCompletedUser(ownerEmail, password, `b12_team_owner_${suffix}`, "B12 Team Venue Owner");
+  const followerId = await seedCompletedUser(
+    followerEmail,
+    password,
+    `b12_team_follower_${suffix}`,
+    "B12 Team Follower",
+  );
+  const inviteeHandle = `b12_team_invitee_${suffix}`;
+  await seedCompletedUser(inviteeEmail, password, inviteeHandle, "B12 Direct Invitee");
+  const fixture = await seedCachedFixtureCatalogAfterFailure();
+  if (fixture.homeTeamId === null) throw new Error("The fixture has no home team.");
+  const event = await createVenueEvent(ownerEmail, password, fixture, `team-${suffix}`, {
+    input_audience: "team_followers",
+    input_audience_team_id: fixture.homeTeamId,
+    input_requires_approval: false,
+  });
+  const followerClient = await localUserClient(followerEmail, password);
+  const subscription = await followerClient.from("subscriptions").insert({
+    user_id: followerId,
+    kind: "team",
+    sport_id: null,
+    competition_id: null,
+    team_id: fixture.homeTeamId,
+  });
+  if (subscription.error !== null) throw subscription.error;
+
+  const followerContext = await browser.newContext({ baseURL: "http://127.0.0.1:3000" });
+  const followerPage = await followerContext.newPage();
+  const inviteeContext = await browser.newContext({ baseURL: "http://127.0.0.1:3000" });
+  const inviteePage = await inviteeContext.newPage();
+  try {
+    await signIn(followerPage, followerEmail, password);
+    await followerPage.goto(`/venues/${event.venueSlug}`);
+    await followerPage.getByRole("button", { name: /Follow Acceptance Venue/ }).click();
+    await expect(followerPage.getByRole("status")).toHaveText("Venue followed.");
+    await followerPage.goto(`/events/${event.eventId}`);
+    await followerPage.getByRole("button", { name: "Join event" }).click();
+    await expect(followerPage.getByRole("status")).toContainText("place is confirmed");
+
+    await signIn(inviteePage, inviteeEmail, password);
+    await inviteePage.goto(`/events/${event.eventId}`);
+    await inviteePage.getByRole("button", { name: "Join event" }).click();
+    await expect(
+      inviteePage.getByRole("alert").filter({ hasText: "You cannot perform that action." }),
+    ).toBeVisible();
+
+    const ownerClient = await localUserClient(ownerEmail, password);
+    const invitation = await ownerClient.rpc("create_event_invitation", {
+      input_event_id: event.eventId,
+      input_invitee_handle: inviteeHandle,
+    });
+    if (invitation.error !== null) throw invitation.error;
+    await inviteePage.reload();
+    await inviteePage.getByRole("button", { name: "Accept invitation" }).click();
+    await expect(inviteePage.getByRole("status")).toContainText("place is confirmed");
+  } finally {
+    await followerContext.close();
+    await inviteeContext.close();
+  }
+});
+
+test("11 simultaneous joins reserve only the available venue seat", async ({ page }) => {
+  const suffix = uniqueSuffix();
+  const password = "matchday-local-test";
+  const ownerEmail = `b12-race-owner-${suffix}@example.com`;
+  const firstEmail = `b12-race-a-${suffix}@example.com`;
+  const secondEmail = `b12-race-b-${suffix}@example.com`;
+  await seedCompletedUser(ownerEmail, password, `b12_race_owner_${suffix}`, "B12 Race Venue Owner");
+  await seedCompletedUser(firstEmail, password, `b12_race_a_${suffix}`, "B12 Race Fan A");
+  await seedCompletedUser(secondEmail, password, `b12_race_b_${suffix}`, "B12 Race Fan B");
+  const fixture = await seedCachedFixtureCatalogAfterFailure();
+  const event = await createVenueEvent(ownerEmail, password, fixture, `race-${suffix}`, {
+    input_capacity: 1,
+  });
+  const [firstClient, secondClient] = await Promise.all([
+    localUserClient(firstEmail, password),
+    localUserClient(secondEmail, password),
+  ]);
+  const results = await Promise.all([
+    firstClient.rpc("request_or_join_event", { input_event_id: event.eventId }),
+    secondClient.rpc("request_or_join_event", { input_event_id: event.eventId }),
+  ]);
+  expect(results.filter((result) => result.error === null)).toHaveLength(1);
+  expect(results.filter((result) => result.error?.message.includes("EVENT_FULL"))).toHaveLength(1);
+  const approved = localDatabaseRows<{ id: string }>(`
+    select id
+    from public.event_attendance
+    where event_id = ${sqlLiteral(event.eventId)}::uuid
+      and status = 'approved';
+  `);
+  expect(approved).toHaveLength(1);
+
+  const rejectedEmail = results[0]?.error === null ? secondEmail : firstEmail;
+  await signIn(page, rejectedEmail, password);
+  await page.goto(new URL(`/events/${event.eventId}`, page.url()).toString());
+  await expect(page.getByRole("button", { name: "Event full" })).toBeDisabled();
+});
+
+test("13 blocking a future home-event participant revokes friendship attendance and address", async ({
+  page,
+}) => {
+  const suffix = uniqueSuffix();
+  const password = "matchday-local-test";
+  const hostEmail = `b12-block-host-${suffix}@example.com`;
+  const attendeeEmail = `b12-block-attendee-${suffix}@example.com`;
+  const hostHandle = `b12_block_host_${suffix}`;
+  const attendeeHandle = `b12_block_attendee_${suffix}`;
+  const hostId = await seedCompletedUser(hostEmail, password, hostHandle, "B12 Blocked Host");
+  const attendeeId = await seedCompletedUser(
+    attendeeEmail,
+    password,
+    attendeeHandle,
+    "B12 Blocking Attendee",
+  );
+  seedAcceptedFriendship(hostId, attendeeId);
+  const fixture = await seedCachedFixtureCatalogAfterFailure();
+  const address = `52 Revoked Block Home ${suffix}, Haifa`;
+  const event = await createPrivateEvent(
+    hostEmail,
+    password,
+    fixture,
+    `Block revocation event ${suffix}`,
+    { input_audience: "friends", input_private_address_text: address },
+  );
+  const attendeeClient = await localUserClient(attendeeEmail, password);
+  const request = await attendeeClient.rpc("request_or_join_event", {
+    input_event_id: event.eventId,
+  });
+  if (request.error !== null) throw request.error;
+  const attendanceId = request.data.at(0)?.attendance_id;
+  if (attendanceId === undefined) throw new Error("Attendance request returned no ID.");
+  const approval = await event.client.rpc("review_attendance", {
+    input_attendance_id: attendanceId,
+    input_decision: "approve",
+  });
+  if (approval.error !== null) throw approval.error;
+
+  await signIn(page, attendeeEmail, password);
+  await page.goto(new URL(`/events/${event.eventId}`, page.url()).toString());
+  await expect(page.getByText(new RegExp(address))).toBeVisible();
+  await page.goto(new URL(`/people/${hostHandle}`, page.url()).toString());
+  await page.getByRole("button", { name: `Block @${hostHandle}` }).click();
+  await page.getByRole("button", { name: "Confirm block" }).click();
+  await expect(page.getByRole("status")).toHaveText("Safety preference updated.");
+  await page.goto(new URL(`/events/${event.eventId}`, page.url()).toString());
+  await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
+  expect(await page.content()).not.toContain(address);
+
+  const [userLowId, userHighId] = [hostId, attendeeId].sort();
+  const attendance = localDatabaseRows<{ status: string }>(`
+    select status
+    from public.event_attendance
+    where id = ${sqlLiteral(attendanceId)}::uuid;
+  `).at(0);
+  const friendshipRows = localDatabaseRows<{ id: string }>(`
+    select id
+    from public.friendships
+    where user_low_id = ${sqlLiteral(userLowId!)}::uuid
+      and user_high_id = ${sqlLiteral(userHighId!)}::uuid;
+  `);
+  expect(attendance?.status).toBe("left");
+  expect(friendshipRows).toHaveLength(0);
+});
+
+test("14 crafted cross-user event group and venue edits are denied", async () => {
+  const suffix = uniqueSuffix();
+  const password = "matchday-local-test";
+  const eventOwnerEmail = `b12-edit-event-${suffix}@example.com`;
+  const groupOwnerEmail = `b12-edit-group-${suffix}@example.com`;
+  const venueOwnerEmail = `b12-edit-venue-${suffix}@example.com`;
+  const attackerEmail = `b12-edit-attacker-${suffix}@example.com`;
+  await seedCompletedUser(eventOwnerEmail, password, `b12_edit_event_${suffix}`, "B12 Event Owner");
+  const groupOwnerId = await seedCompletedUser(
+    groupOwnerEmail,
+    password,
+    `b12_edit_group_${suffix}`,
+    "B12 Group Owner",
+  );
+  await seedCompletedUser(venueOwnerEmail, password, `b12_edit_venue_${suffix}`, "B12 Venue Owner");
+  await seedCompletedUser(
+    attackerEmail,
+    password,
+    `b12_edit_attacker_${suffix}`,
+    "B12 Crafted Attacker",
+  );
+  const fixture = await seedCachedFixtureCatalogAfterFailure();
+  const event = await createPrivateEvent(
+    eventOwnerEmail,
+    password,
+    fixture,
+    `Protected owner event ${suffix}`,
+  );
+  const groupSlug = await seedGroupOwner(groupOwnerId, `edit-${suffix}`, "discoverable");
+  const venue = await createVenueEvent(venueOwnerEmail, password, fixture, `edit-${suffix}`);
+  const group = localDatabaseRows<{ id: string }>(`
+    select id from public.groups where slug = ${sqlLiteral(groupSlug)};
+  `).at(0);
+  if (group === undefined) throw new Error("The protected group was not persisted.");
+  const attacker = await localUserClient(attackerEmail, password);
+
+  const [eventEdit, groupEdit, venueEdit] = await Promise.all([
+    attacker.rpc("create_or_update_event", {
+      ...event.input,
+      input_event_id: event.eventId,
+      input_title: "Crafted cross-user event edit",
+    }),
+    attacker.rpc("update_group_description", {
+      input_group_id: group.id,
+      input_description: "A crafted cross-user group edit that must be rejected.",
+    }),
+    attacker.rpc("update_venue", {
+      input_venue_id: venue.venueId,
+      input_address_text: "99 Crafted Address, Haifa",
+      input_city_id: haifaCityId,
+      input_description: "A crafted cross-user venue edit that must be rejected.",
+      input_latitude: 32.81303,
+      input_longitude: 34.99928,
+      input_name: "Crafted Venue Edit",
+      input_screen_count: 2,
+      input_slug: venue.venueSlug,
+      input_stated_capacity: 30,
+    }),
+  ]);
+  expect(eventEdit.error?.message).toContain("NOT_ALLOWED");
+  expect(groupEdit.error?.message).toContain("NOT_ALLOWED");
+  expect(venueEdit.error?.message).toContain("NOT_ALLOWED");
+});
+
+test("15 calendar location appears only while private attendance remains authorized", async ({
+  page,
+}) => {
+  const suffix = uniqueSuffix();
+  const password = "matchday-local-test";
+  const hostEmail = `b12-calendar-host-${suffix}@example.com`;
+  const attendeeEmail = `b12-calendar-attendee-${suffix}@example.com`;
+  const attendeeHandle = `b12_calendar_attendee_${suffix}`;
+  await seedCompletedUser(hostEmail, password, `b12_calendar_host_${suffix}`, "B12 Calendar Host");
+  await seedCompletedUser(attendeeEmail, password, attendeeHandle, "B12 Calendar Attendee");
+  const fixture = await seedCachedFixtureCatalogAfterFailure();
+  const address = `63 Calendar Protected Home ${suffix}, Haifa`;
+  const event = await createPrivateEvent(
+    hostEmail,
+    password,
+    fixture,
+    `Calendar authorization ${suffix}`,
+    { input_private_address_text: address },
+  );
+  const invitation = await event.client.rpc("create_event_invitation", {
+    input_event_id: event.eventId,
+    input_invitee_handle: attendeeHandle,
+  });
+  if (invitation.error !== null) throw invitation.error;
+  const invitationId = invitation.data.at(0)?.invitation_id;
+  if (invitationId === undefined) throw new Error("Invitation returned no ID.");
+  const attendeeClient = await localUserClient(attendeeEmail, password);
+  const acceptance = await attendeeClient.rpc("respond_to_event_invitation", {
+    input_invitation_id: invitationId,
+    input_decision: "accept",
+  });
+  if (acceptance.error !== null) throw acceptance.error;
+
+  await signIn(page, attendeeEmail, password);
+  await page.goto(new URL(`/events/${event.eventId}`, page.url()).toString());
+  const calendarPath = `/api/events/${event.eventId}/calendar.ics`;
+  const beforeCancellation = await page.evaluate(async (path) => {
+    const response = await fetch(path);
+    return { body: await response.text(), status: response.status };
+  }, calendarPath);
+  expect(beforeCancellation.status).toBe(200);
+  expect(beforeCancellation.body).toContain("BEGIN:VCALENDAR");
+  expect(beforeCancellation.body).toContain("BEGIN:VEVENT");
+  expect(beforeCancellation.body).toContain(`LOCATION:${address.replace(",", "\\,")}`);
+
+  const cancellation = await event.client.rpc("cancel_event", {
+    input_event_id: event.eventId,
+    input_reason: "B12 calendar revocation acceptance",
+  });
+  if (cancellation.error !== null) throw cancellation.error;
+  const afterCancellation = await page.evaluate(async (path) => {
+    const response = await fetch(path);
+    return { body: await response.text(), status: response.status };
+  }, calendarPath);
+  expect(afterCancellation.status).toBe(404);
+  expect(afterCancellation.body).not.toContain(address);
 });
