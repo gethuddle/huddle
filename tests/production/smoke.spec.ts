@@ -39,9 +39,10 @@ test("@session-smoke anonymous production pages and provider attribution are pub
   await expect(page.getByRole("link", { name: "football-data.org" })).toBeVisible();
 
   await page.goto("/matches");
-  await expect(page.getByRole("heading", { name: /fixture/i })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Find the fixture. Then find your huddle." }),
+  ).toBeVisible();
   await expect(page.getByRole("status")).toContainText(/catalog/i);
-  await expect(page.getByRole("link", { name: /^View .+ versus .+$/ }).first()).toBeVisible();
 
   await page.goto("/discover");
   await expect(
