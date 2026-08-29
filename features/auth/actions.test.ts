@@ -4,6 +4,7 @@ import { signInAction, signOutAction, signUpAction } from "./actions";
 
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
+  profileMaybeSingle: vi.fn(),
   revalidatePath: vi.fn(),
   signInWithPassword: vi.fn(),
   signOut: vi.fn(),
@@ -11,6 +12,14 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
+
+vi.mock("@/lib/env/public", () => ({
+  getPublicEnvironment: () => ({
+    NEXT_PUBLIC_APP_URL: "https://huddle.test",
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "publishable-key",
+    NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+  }),
+}));
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: mocks.createClient,
@@ -25,12 +34,21 @@ function formData(values: Readonly<Record<string, string>>) {
 describe("auth Server Actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.profileMaybeSingle.mockResolvedValue({
+      data: { profile_completed_at: null },
+      error: null,
+    });
     mocks.createClient.mockResolvedValue({
       auth: {
         signInWithPassword: mocks.signInWithPassword,
         signOut: mocks.signOut,
         signUp: mocks.signUp,
       },
+      from: () => ({
+        select: () => ({
+          eq: () => ({ maybeSingle: mocks.profileMaybeSingle }),
+        }),
+      }),
     });
   });
 
@@ -68,6 +86,9 @@ describe("auth Server Actions", () => {
 
     expect(mocks.signUp).toHaveBeenCalledWith({
       email: "fan@example.com",
+      options: {
+        emailRedirectTo: "https://huddle.test/auth/verify/callback",
+      },
       password: "matchday-strong",
     });
     expect(result).toEqual({
@@ -133,6 +154,46 @@ describe("auth Server Actions", () => {
       },
     });
     expect(JSON.stringify(result)).not.toContain("socket details");
+  });
+
+  it("sends a verified incomplete account directly to profile setup", async () => {
+    mocks.signInWithPassword.mockResolvedValue({
+      data: { session: {}, user: { id: "incomplete-user-id" } },
+      error: null,
+    });
+
+    const result = await signInAction(
+      null,
+      formData({ email: "fan@example.com", password: "matchday-strong" }),
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      data: {
+        message: "Signed in. Let’s finish setting up your account…",
+        redirectTo: "/settings/profile",
+      },
+    });
+    expect(mocks.profileMaybeSingle).toHaveBeenCalledOnce();
+  });
+
+  it("returns a complete account to Huddle", async () => {
+    mocks.signInWithPassword.mockResolvedValue({
+      data: { session: {}, user: { id: "complete-user-id" } },
+      error: null,
+    });
+    mocks.profileMaybeSingle.mockResolvedValue({
+      data: { profile_completed_at: "2026-08-25T00:00:00Z" },
+      error: null,
+    });
+
+    const result = await signInAction(
+      null,
+      formData({ email: "fan@example.com", password: "matchday-strong" }),
+    );
+
+    expect(result).toMatchObject({ ok: true, data: { redirectTo: "/" } });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/", "layout");
   });
 
   it("clears only the current browser session before returning a hard-navigation target", async () => {

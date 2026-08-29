@@ -12,11 +12,22 @@ type AppShellProps = Readonly<{
 export async function AppShell({ children }: AppShellProps) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
-  const isSignedIn = typeof data?.claims.sub === "string";
-  const moderatorResult = isSignedIn
-    ? await supabase.rpc("viewer_is_platform_moderator")
-    : { data: false };
-  const isModerator = moderatorResult.data === true;
+  const viewerId = typeof data?.claims.sub === "string" ? data.claims.sub : null;
+  const isSignedIn = viewerId !== null;
+  let isModerator = false;
+  let isProfileComplete = false;
+
+  if (viewerId !== null) {
+    const [moderatorResult, profileResult] = await Promise.all([
+      supabase.rpc("viewer_is_platform_moderator"),
+      supabase.from("profiles").select("profile_completed_at").eq("id", viewerId).maybeSingle(),
+    ]);
+    isModerator = moderatorResult.data === true;
+    isProfileComplete =
+      profileResult.error === null &&
+      profileResult.data?.profile_completed_at !== null &&
+      profileResult.data?.profile_completed_at !== undefined;
+  }
 
   return (
     <div className="flex min-h-screen bg-ink text-linen">
@@ -28,7 +39,11 @@ export async function AppShell({ children }: AppShellProps) {
       </a>
 
       <div className="flex min-h-screen w-full flex-col">
-        <SiteHeader isModerator={isModerator} isSignedIn={isSignedIn} />
+        <SiteHeader
+          isModerator={isModerator}
+          isProfileComplete={isProfileComplete}
+          isSignedIn={isSignedIn}
+        />
         <main
           className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-6 sm:px-10 lg:px-14"
           id="main-content"

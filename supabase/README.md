@@ -13,7 +13,7 @@ npm run db:types:check
 npm run db:stop
 ```
 
-`db:reset` is explicitly local and replays every migration followed by `seed.sql`. The first `db:start` downloads the pinned local images and therefore takes longer.
+`db:reset` is explicitly local and replays every migration followed by `seed.sql`. The reviewed city reference rows also live in a forward migration so hosted projects receive them through normal migration deployment; the local seed remains an idempotent reset check. The first `db:start` downloads the pinned local images and therefore takes longer.
 
 ## Local Auth verification
 

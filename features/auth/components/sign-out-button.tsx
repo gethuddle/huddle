@@ -1,12 +1,14 @@
 "use client";
 
+import { LogOut } from "lucide-react";
 import { useActionState, useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import { signOutAction } from "@/features/auth/actions";
 import { INITIAL_AUTH_ACTION_STATE } from "@/features/auth/state";
+import { cn } from "@/lib/utils";
 
-export function SignOutButton() {
+export function SignOutButton({ className }: Readonly<{ className?: string }>) {
   const [state, formAction, pending] = useActionState(signOutAction, INITIAL_AUTH_ACTION_STATE);
 
   useEffect(() => {
@@ -18,8 +20,15 @@ export function SignOutButton() {
 
   return (
     <form action={formAction}>
-      <Button disabled={pending} size="sm" type="submit" variant="outline">
-        {pending ? "Signing out…" : "Sign out"}
+      <Button
+        className={cn("px-2.5 xl:px-3", className)}
+        disabled={pending}
+        size="sm"
+        type="submit"
+        variant="outline"
+      >
+        <LogOut aria-hidden="true" />
+        <span className="sr-only xl:not-sr-only">{pending ? "Signing out…" : "Sign out"}</span>
       </Button>
       {state?.ok === false ? (
         <span className="ml-2 text-xs text-sand" role="alert">

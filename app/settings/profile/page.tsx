@@ -65,6 +65,17 @@ export default async function ProfileSettingsPage() {
     );
   }
 
+  if (cityResult.data.length === 0) {
+    return (
+      <ProfileAccessState
+        description="No active Israel cities are configured right now. Your account is safe and no profile changes were made. Try again after the city catalog is restored."
+        eyebrow="Setup temporarily unavailable"
+        title="We couldn’t load the city list."
+        warning
+      />
+    );
+  }
+
   const profile = profileResult.data;
   if (profile.suspended_at !== null) {
     return (

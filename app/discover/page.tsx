@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { ErrorState } from "@/components/states/error-state";
 import {
   getDiscoveryCatalog,
   getDiscoveryFreshness,
@@ -10,7 +11,6 @@ import { DiscoveryFiltersForm } from "@/features/discovery/components/discovery-
 import { getDiscoveryPage } from "@/features/discovery/query";
 import { parseDiscoveryFilters } from "@/features/discovery/schemas";
 import { ProviderFreshness } from "@/features/sports/components/provider-freshness";
-import { DomainError } from "@/lib/errors";
 
 export const metadata: Metadata = {
   title: "Discover watch events — Huddle",
@@ -29,7 +29,14 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps) 
     getDiscoveryFreshness(),
   ]);
   const defaultCitySlug = viewerCitySlug ?? catalog.cities.at(0)?.slug;
-  if (defaultCitySlug === undefined) throw new DomainError("INTERNAL_ERROR");
+  if (defaultCitySlug === undefined) {
+    return (
+      <ErrorState
+        description="Huddle has no active Israel city fallbacks right now. The event catalog is safe, but discovery needs a city before it can calculate nearby results."
+        title="Discovery is temporarily unavailable."
+      />
+    );
+  }
 
   const filters = parseDiscoveryFilters({
     ...rawSearchParams,

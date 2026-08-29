@@ -70,4 +70,4 @@ closes with Escape, and returns focus to the Menu trigger.
 
 The local role/name and keyboard pass does not replace a final VoiceOver smoke
 test on the deployed URL. Production assistive-technology smoke testing, real
-Vercel/Supabase checks, and final presentation rehearsal belong to B12.
+Vercel/Supabase checks, and final presentation rehearsal belong to B13.

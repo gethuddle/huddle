@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { signInSchema, signUpSchema, verificationQuerySchema } from "./schemas";
+import {
+  signInSchema,
+  signUpSchema,
+  verificationCodeQuerySchema,
+  verificationQuerySchema,
+} from "./schemas";
 
 describe("auth schemas", () => {
   it("normalizes a valid signup email", () => {
@@ -48,5 +53,11 @@ describe("auth schemas", () => {
       false,
     );
     expect(verificationQuerySchema.safeParse({ tokenHash: "", type: "email" }).success).toBe(false);
+  });
+
+  it("accepts only bounded PKCE confirmation codes", () => {
+    expect(verificationCodeQuerySchema.safeParse({ code: "auth-code" }).success).toBe(true);
+    expect(verificationCodeQuerySchema.safeParse({ code: "" }).success).toBe(false);
+    expect(verificationCodeQuerySchema.safeParse({ code: null }).success).toBe(false);
   });
 });

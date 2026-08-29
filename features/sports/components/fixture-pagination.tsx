@@ -1,6 +1,7 @@
 import {
   Pagination,
   PaginationContent,
+  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
@@ -14,34 +15,66 @@ type FixturePaginationProps = Readonly<{
   totalPages: number;
 }>;
 
+type PaginationEntry = number | "ellipsis";
+
+function paginationEntries(current: number, totalPages: number): PaginationEntry[] {
+  if (totalPages <= 5) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  if (current <= 3) {
+    return [1, 2, 3, "ellipsis", totalPages];
+  }
+
+  if (current >= totalPages - 2) {
+    return [1, "ellipsis", totalPages - 2, totalPages - 1, totalPages];
+  }
+
+  return [1, "ellipsis", current, "ellipsis", totalPages];
+}
+
 export function FixturePagination({ filters, totalPages }: FixturePaginationProps) {
   if (totalPages <= 1) return null;
 
   const current = Math.min(filters.page, totalPages);
-  const pages = Array.from(new Set([1, current - 1, current, current + 1, totalPages])).filter(
-    (page) => page >= 1 && page <= totalPages,
-  );
+  const entries = paginationEntries(current, totalPages);
 
   return (
     <Pagination className="mt-10">
       <PaginationContent>
-        {current > 1 ? (
-          <PaginationItem>
-            <PaginationPrevious href={fixturePageHref(filters, current - 1)} />
-          </PaginationItem>
-        ) : null}
-        {pages.map((page) => (
-          <PaginationItem key={page}>
-            <PaginationLink href={fixturePageHref(filters, page)} isActive={page === current}>
-              {page}
-            </PaginationLink>
-          </PaginationItem>
-        ))}
-        {current < totalPages ? (
-          <PaginationItem>
-            <PaginationNext href={fixturePageHref(filters, current + 1)} />
-          </PaginationItem>
-        ) : null}
+        <PaginationItem>
+          <PaginationPrevious
+            aria-disabled={current === 1}
+            className={current === 1 ? "pointer-events-none opacity-50" : undefined}
+            href={current === 1 ? undefined : fixturePageHref(filters, current - 1)}
+          />
+        </PaginationItem>
+        {entries.map((entry, index) =>
+          entry === "ellipsis" ? (
+            <PaginationItem key={`ellipsis-${index}`}>
+              <PaginationEllipsis />
+            </PaginationItem>
+          ) : (
+            <PaginationItem key={entry}>
+              <PaginationLink
+                aria-label={
+                  entry === current ? `Page ${entry}, current page` : `Go to page ${entry}`
+                }
+                href={fixturePageHref(filters, entry)}
+                isActive={entry === current}
+              >
+                {entry}
+              </PaginationLink>
+            </PaginationItem>
+          ),
+        )}
+        <PaginationItem>
+          <PaginationNext
+            aria-disabled={current === totalPages}
+            className={current === totalPages ? "pointer-events-none opacity-50" : undefined}
+            href={current === totalPages ? undefined : fixturePageHref(filters, current + 1)}
+          />
+        </PaginationItem>
       </PaginationContent>
     </Pagination>
   );

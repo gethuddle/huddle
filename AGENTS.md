@@ -8,7 +8,7 @@ Before planning or changing Huddle, read the relevant parts of:
 
 1. `docs/HUDDLE-IMPLEMENTATION-SPEC.md` — normative product and engineering contract.
 2. `docs/HUDDLE-ARCHITECTURE.md` — human-readable product and architecture rationale.
-3. `docs/HUDDLE-STEP-BY-STEP-BUILD-SPEC.md` — the 12-milestone implementation order, detailed requirement-module checklists, and the two-person/two-Codex handoff.
+3. `docs/HUDDLE-STEP-BY-STEP-BUILD-SPEC.md` — the 13-milestone implementation order, detailed requirement-module checklists, and the two-person/two-Codex handoff.
 4. `docs/HUDDLE-BRAND.md` — visual tokens, typography, assets, and interface-brand rules for UI or collateral work.
 5. `README.md` — public project summary.
 6. The current GitHub issue and pull request, when present — the active slice and acceptance criteria.

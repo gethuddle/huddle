@@ -26,6 +26,7 @@ describe("environment schemas", () => {
   it("requires every server-only variable in the server schema", () => {
     expect(() => parseServerEnvironment(publicEnvironment)).toThrowError(
       new EnvironmentConfigurationError([
+        "HUDDLE_ENVIRONMENT",
         "SUPABASE_SERVICE_ROLE_KEY",
         "FOOTBALL_DATA_API_TOKEN",
         "SPORTS_SYNC_SECRET",
@@ -38,18 +39,53 @@ describe("environment schemas", () => {
     expect(
       parseServerEnvironment({
         ...publicEnvironment,
+        HUDDLE_ENVIRONMENT: "local",
         SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
         FOOTBALL_DATA_API_TOKEN: "provider-token",
-        SPORTS_SYNC_SECRET: "high-entropy-sync-secret",
+        SPORTS_SYNC_SECRET: "a-dedicated-sports-sync-secret-value",
         DISCOVERY_CURSOR_SECRET: "a-dedicated-discovery-cursor-secret",
       }),
     ).toEqual({
       ...publicEnvironment,
+      HUDDLE_ENVIRONMENT: "local",
       SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
       FOOTBALL_DATA_API_TOKEN: "provider-token",
-      SPORTS_SYNC_SECRET: "high-entropy-sync-secret",
+      SPORTS_SYNC_SECRET: "a-dedicated-sports-sync-secret-value",
       DISCOVERY_CURSOR_SECRET: "a-dedicated-discovery-cursor-secret",
     });
+  });
+
+  it("rejects a preview build labeled as production", () => {
+    expect(() =>
+      parseServerEnvironment({
+        ...publicEnvironment,
+        NEXT_PUBLIC_APP_URL: "https://preview.example.com",
+        NEXT_PUBLIC_SUPABASE_URL: "https://preview.supabase.co",
+        HUDDLE_ENVIRONMENT: "production",
+        VERCEL_ENV: "preview",
+        SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
+        FOOTBALL_DATA_API_TOKEN: "provider-token",
+        SPORTS_SYNC_SECRET: "a-dedicated-sports-sync-secret-value",
+        DISCOVERY_CURSOR_SECRET: "a-dedicated-discovery-cursor-secret",
+      }),
+    ).toThrowError(new EnvironmentConfigurationError(["HUDDLE_ENVIRONMENT"]));
+  });
+
+  it("requires HTTPS outside the local environment", () => {
+    expect(() =>
+      parseServerEnvironment({
+        ...publicEnvironment,
+        NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
+        HUDDLE_ENVIRONMENT: "preview",
+        VERCEL_ENV: "preview",
+        SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
+        FOOTBALL_DATA_API_TOKEN: "provider-token",
+        SPORTS_SYNC_SECRET: "a-dedicated-sports-sync-secret-value",
+        DISCOVERY_CURSOR_SECRET: "a-dedicated-discovery-cursor-secret",
+      }),
+    ).toThrowError(
+      new EnvironmentConfigurationError(["NEXT_PUBLIC_APP_URL", "NEXT_PUBLIC_SUPABASE_URL"]),
+    );
   });
 
   it("names invalid variables without echoing their values", () => {

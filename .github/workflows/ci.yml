@@ -59,6 +59,9 @@ jobs:
       - name: Reset migrations and deterministic seed
         run: npm run db:reset
 
+      - name: Lint the local database schema
+        run: npm run db:lint
+
       - name: Run pgTAP database tests
         run: npm run test:db
 
@@ -71,8 +74,14 @@ jobs:
       - name: Install the pinned Playwright browser
         run: npx --no-install playwright install --with-deps chromium
 
-      - name: Run local authentication end to end
+      - name: Run all 17 browser acceptance journeys
         run: npm run test:e2e
+
+      - name: Audit secrets and generated artifacts
+        run: npm run security:audit
+
+      - name: Check diff hygiene
+        run: git diff --check
 
       - name: Stop local Supabase
         if: always()

@@ -61,11 +61,12 @@ const childEnvironment = {
   NEXT_PUBLIC_SUPABASE_URL: localEnvironment.API_URL,
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: localEnvironment.PUBLISHABLE_KEY,
   NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+  HUDDLE_ENVIRONMENT: "local",
   SUPABASE_SERVICE_ROLE_KEY: localEnvironment.SERVICE_ROLE_KEY,
   // The local quality/auth path must never gain live provider authority from
   // an unrelated shell or ignored environment file.
   FOOTBALL_DATA_API_TOKEN: "local-test-placeholder",
-  SPORTS_SYNC_SECRET: "local-test-placeholder",
+  SPORTS_SYNC_SECRET: "local-sports-sync-secret-for-tests-only",
   DISCOVERY_CURSOR_SECRET: "local-discovery-cursor-secret-for-tests",
   HUDDLE_MAILPIT_URL:
     localEnvironment.MAILPIT_URL || localEnvironment.INBUCKET_URL || "http://127.0.0.1:54324",

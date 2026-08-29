@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
-import { verificationQuerySchema } from "@/features/auth/schemas";
+import { verificationCodeQuerySchema, verificationQuerySchema } from "@/features/auth/schemas";
 import { getPublicEnvironment } from "@/lib/env/public";
 import { safeInternalRedirect } from "@/lib/security/redirect";
 import type { Database } from "@/types/database.generated";
@@ -26,12 +26,15 @@ function verificationRedirect(appUrl: string, status: "success" | "expired") {
 export async function GET(request: NextRequest) {
   const environment = getPublicEnvironment();
   const response = verificationRedirect(environment.NEXT_PUBLIC_APP_URL, "expired");
-  const parsed = verificationQuerySchema.safeParse({
+  const tokenQuery = verificationQuerySchema.safeParse({
     tokenHash: request.nextUrl.searchParams.get("token_hash"),
     type: request.nextUrl.searchParams.get("type"),
   });
+  const codeQuery = verificationCodeQuerySchema.safeParse({
+    code: request.nextUrl.searchParams.get("code"),
+  });
 
-  if (!parsed.success) {
+  if (tokenQuery.success === codeQuery.success) {
     return response;
   }
 
@@ -56,12 +59,16 @@ export async function GET(request: NextRequest) {
   );
 
   try {
-    const { error } = await supabase.auth.verifyOtp({
-      token_hash: parsed.data.tokenHash,
-      type: parsed.data.type,
-    });
+    const verificationResult = tokenQuery.success
+      ? await supabase.auth.verifyOtp({
+          token_hash: tokenQuery.data.tokenHash,
+          type: tokenQuery.data.type,
+        })
+      : codeQuery.success
+        ? await supabase.auth.exchangeCodeForSession(codeQuery.data.code)
+        : null;
 
-    if (error === null) {
+    if (verificationResult?.error === null) {
       response.headers.set(
         "location",
         new URL(

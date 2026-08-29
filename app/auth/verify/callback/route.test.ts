@@ -16,6 +16,7 @@ type CookieAdapter = Readonly<{
 
 const mocks = vi.hoisted(() => ({
   createServerClient: vi.fn(),
+  exchangeCodeForSession: vi.fn(),
   verifyOtp: vi.fn(),
 }));
 
@@ -47,7 +48,25 @@ describe("email verification callback", () => {
         );
         return { data: {}, error: null };
       });
-      return { auth: { verifyOtp: mocks.verifyOtp } };
+      mocks.exchangeCodeForSession.mockImplementation(async () => {
+        cookies.setAll(
+          [
+            {
+              name: "sb-example-auth-token",
+              value: "verified-pkce-session",
+              options: { httpOnly: true },
+            },
+          ],
+          { "Cache-Control": "private, no-store", Pragma: "no-cache" },
+        );
+        return { data: {}, error: null };
+      });
+      return {
+        auth: {
+          exchangeCodeForSession: mocks.exchangeCodeForSession,
+          verifyOtp: mocks.verifyOtp,
+        },
+      };
     });
   });
 
@@ -69,6 +88,19 @@ describe("email verification callback", () => {
     expect(response.cookies.get("sb-example-auth-token")?.value).toBe("verified-session");
   });
 
+  it("exchanges a default-template PKCE code and redirects without carrying it forward", async () => {
+    const response = await GET(
+      new NextRequest("https://huddle.test/auth/verify/callback?code=secret-auth-code"),
+    );
+
+    expect(mocks.exchangeCodeForSession).toHaveBeenCalledWith("secret-auth-code");
+    expect(mocks.verifyOtp).not.toHaveBeenCalled();
+    expect(response.status).toBe(303);
+    expect(response.headers.get("location")).toBe("https://huddle.test/auth/verify?status=success");
+    expect(response.headers.get("location")).not.toContain("secret-auth-code");
+    expect(response.cookies.get("sb-example-auth-token")?.value).toBe("verified-pkce-session");
+  });
+
   it("rejects other OTP types before contacting Supabase", async () => {
     const response = await GET(
       new NextRequest(
@@ -79,5 +111,16 @@ describe("email verification callback", () => {
     expect(mocks.createServerClient).not.toHaveBeenCalled();
     expect(response.headers.get("location")).toBe("https://huddle.test/auth/verify?status=expired");
     expect(response.headers.get("location")).not.toContain("secret-token-hash");
+  });
+
+  it("rejects ambiguous callbacks before contacting Supabase", async () => {
+    const response = await GET(
+      new NextRequest(
+        "https://huddle.test/auth/verify/callback?token_hash=secret-token-hash&type=email&code=secret-auth-code",
+      ),
+    );
+
+    expect(mocks.createServerClient).not.toHaveBeenCalled();
+    expect(response.headers.get("location")).toBe("https://huddle.test/auth/verify?status=expired");
   });
 });

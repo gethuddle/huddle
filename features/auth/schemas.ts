@@ -34,6 +34,10 @@ export const verificationQuerySchema = z.object({
   type: z.literal("email"),
 });
 
+export const verificationCodeQuerySchema = z.object({
+  code: z.string().min(1).max(2048),
+});
+
 export const verificationStatusSchema = z.enum(["success", "expired"]);
 
 export type SignUpInput = z.infer<typeof signUpSchema>;

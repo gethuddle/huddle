@@ -7,6 +7,8 @@ const httpUrl = z
     (value) => value.startsWith("http://") || value.startsWith("https://"),
     "Must be an HTTP(S) URL",
   );
+const deploymentEnvironment = z.enum(["local", "preview", "production"]);
+const vercelEnvironment = z.enum(["development", "preview", "production"]);
 
 export const publicEnvironmentSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: httpUrl,
@@ -14,12 +16,42 @@ export const publicEnvironmentSchema = z.object({
   NEXT_PUBLIC_APP_URL: httpUrl,
 });
 
-export const serverEnvironmentSchema = publicEnvironmentSchema.extend({
-  SUPABASE_SERVICE_ROLE_KEY: nonEmptyEnvironmentValue,
-  FOOTBALL_DATA_API_TOKEN: nonEmptyEnvironmentValue,
-  SPORTS_SYNC_SECRET: nonEmptyEnvironmentValue,
-  DISCOVERY_CURSOR_SECRET: z.string().trim().min(32),
-});
+export const serverEnvironmentSchema = publicEnvironmentSchema
+  .extend({
+    HUDDLE_ENVIRONMENT: deploymentEnvironment,
+    SUPABASE_SERVICE_ROLE_KEY: nonEmptyEnvironmentValue,
+    FOOTBALL_DATA_API_TOKEN: nonEmptyEnvironmentValue,
+    SPORTS_SYNC_SECRET: z.string().trim().min(32),
+    DISCOVERY_CURSOR_SECRET: z.string().trim().min(32),
+    VERCEL_ENV: vercelEnvironment.optional(),
+  })
+  .superRefine((environment, context) => {
+    const expectedEnvironment =
+      environment.VERCEL_ENV === "development" ? "local" : environment.VERCEL_ENV;
+
+    if (
+      expectedEnvironment !== undefined &&
+      expectedEnvironment !== environment.HUDDLE_ENVIRONMENT
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Must match the active Vercel environment",
+        path: ["HUDDLE_ENVIRONMENT"],
+      });
+    }
+
+    if (environment.HUDDLE_ENVIRONMENT !== "local") {
+      for (const variable of ["NEXT_PUBLIC_APP_URL", "NEXT_PUBLIC_SUPABASE_URL"] as const) {
+        if (!environment[variable].startsWith("https://")) {
+          context.addIssue({
+            code: "custom",
+            message: "Hosted environments require HTTPS",
+            path: [variable],
+          });
+        }
+      }
+    }
+  });
 
 export type PublicEnvironment = z.infer<typeof publicEnvironmentSchema>;
 export type ServerEnvironment = z.infer<typeof serverEnvironmentSchema>;

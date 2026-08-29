@@ -19,6 +19,9 @@ course-roadmap/
 # local environment files
 .env*
 !.env.example
+!.env.preview.example
+!.env.production.example
+!.env.production-smoke.example
 
 # deployment
 .vercel

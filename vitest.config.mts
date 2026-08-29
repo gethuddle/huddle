@@ -11,7 +11,7 @@ export default defineConfig({
   },
   test: {
     setupFiles: ["./tests/setup.ts"],
-    exclude: [...configDefaults.exclude, "tests/e2e/**"],
+    exclude: [...configDefaults.exclude, "tests/e2e/**", "tests/production/**"],
     coverage: {
       provider: "v8",
       reporter: ["text", "json-summary", "html", "lcov"],
@@ -20,7 +20,9 @@ export default defineConfig({
         "coverage/**",
         "node_modules/**",
         "playwright.config.ts",
+        "playwright.production.config.ts",
         "tests/e2e/**",
+        "tests/production/**",
         "types/database.generated.ts",
       ],
     },
