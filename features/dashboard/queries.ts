@@ -17,7 +17,7 @@ const myGroupRowSchema = z
     city_name: z.string(),
     team_name: z.string().nullable(),
     member_role: z.enum(["owner", "admin", "member"]),
-    membership_status: z.enum(["pending", "active", "rejected", "left", "banned"]),
+    membership_status: z.literal("active"),
     active_member_count: z.number().int().nonnegative(),
     can_manage: z.boolean(),
     total_count: z.number().int().nonnegative(),

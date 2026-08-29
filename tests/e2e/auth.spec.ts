@@ -679,12 +679,18 @@ test("a block is private, directional, auditable, and reversible", async ({
     await completeProfile(secondPage, secondHandle, "Target Fan");
 
     await page.goto(
-      new URL(`/people?q=${encodeURIComponent("Target Fan")}`, page.url()).toString(),
+      new URL(`/people?q=${encodeURIComponent(`@${secondHandle}`)}`, page.url()).toString(),
     );
     await expect(page.getByRole("heading", { name: "Find people." })).toBeVisible();
     const targetResult = page.getByRole("link", { name: "Target Fan", exact: true });
     await expect(targetResult).toHaveAttribute("href", `/people/${secondHandle}`);
     if (captureUxEvidence) {
+      await page.getByRole("textbox", { name: "Name or Huddle handle" }).evaluate((element) => {
+        (element as HTMLInputElement).value = "@target_fan";
+      });
+      await page.getByText(`@${secondHandle}`, { exact: true }).evaluate((element) => {
+        element.textContent = "@target_fan";
+      });
       await page.screenshot({
         fullPage: true,
         path: "docs/evidence/ux/people-search-desktop.png",
@@ -975,6 +981,14 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
       await expect(
         inviteePage.getByRole("heading", { name: "Your application is pending." }),
       ).toBeVisible();
+      await inviteePage.goto(new URL("/dashboard", inviteePage.url()).toString());
+      await expect(
+        inviteePage.getByRole("heading", { name: "Everything you're part of." }),
+      ).toBeVisible();
+      await expect(
+        inviteePage.getByText(`Haifa Private Circle ${suffix}`, { exact: true }),
+      ).toHaveCount(0);
+      await expect(inviteePage.locator(`a[href="/groups/${unlistedSlug}"]`)).toHaveCount(0);
 
       await page.goto(
         new URL(`/groups/${unlistedSlug}/manage?section=applications`, page.url()).toString(),
@@ -1095,9 +1109,10 @@ test("completed users create venue and private events with safe projections", as
   await expect(page.getByRole("checkbox", { name: /Require staff approval/ })).not.toBeChecked();
   await page.getByRole("checkbox", { name: /venue staff will host/i }).click();
   await page.getByRole("button", { name: "Publish venue event" }).click();
-  await expect(page.getByText("Venue event published for safe public browsing.")).toBeVisible();
-  const venueEventHref = await page.getByRole("link", { name: "Open event" }).getAttribute("href");
-  expect(venueEventHref).toMatch(/^\/events\/[0-9a-f-]+$/);
+  await expect(page).toHaveURL(/\/events\/[0-9a-f-]{36}\?created=1$/);
+  await expect(page.getByText(/Your event is saved/i)).toBeVisible();
+  await expect(page.getByRole("heading", { name: venueEventTitle })).toBeVisible();
+  const venueEventHref = new URL(page.url()).pathname;
 
   const anonymousContext = await browser.newContext({ baseURL: "http://127.0.0.1:3000" });
   const anonymousPage = await anonymousContext.newPage();
@@ -1159,8 +1174,18 @@ test("completed users create venue and private events with safe projections", as
   const privateEventPath = new URL(page.url()).pathname;
   await page.goto(new URL("/dashboard", page.url()).toString());
   await expect(page.getByRole("heading", { name: "Everything you're part of." })).toBeVisible();
-  await expect(page.getByText(`Arsenal at home ${suffix}`, { exact: true })).toBeVisible();
+  const dashboardEventTitle = page.getByText(`Arsenal at home ${suffix}`, { exact: true });
+  await expect(dashboardEventTitle).toBeVisible();
   if (captureUxEvidence) {
+    await dashboardEventTitle.evaluate((element) => {
+      element.textContent = "Arsenal at home";
+    });
+    await page
+      .getByText(/ · Haifa$/)
+      .first()
+      .evaluate((element) => {
+        element.textContent = "Tue, 1 Sept 2026, 20:00 · Haifa";
+      });
     await page.screenshot({
       fullPage: true,
       path: "docs/evidence/ux/my-huddle-desktop.png",

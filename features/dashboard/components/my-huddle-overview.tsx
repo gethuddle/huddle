@@ -165,9 +165,6 @@ export function MyHuddleOverview({
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge>{group.member_role}</Badge>
                     <Badge variant="outline">{group.visibility}</Badge>
-                    {group.membership_status === "pending" ? (
-                      <Badge variant="secondary">application pending</Badge>
-                    ) : null}
                   </div>
                   <h3 className="mt-2 text-xl font-semibold text-linen">{group.name}</h3>
                 </CardHeader>

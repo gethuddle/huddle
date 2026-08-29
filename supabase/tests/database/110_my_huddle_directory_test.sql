@@ -116,12 +116,19 @@ values (
 );
 
 insert into public.group_memberships (group_id, user_id, role, status)
-values (
-  'b1000000-0000-4000-8000-000000000201',
-  'b1000000-0000-4000-8000-000000000101',
-  'owner',
-  'active'
-);
+values
+  (
+    'b1000000-0000-4000-8000-000000000201',
+    'b1000000-0000-4000-8000-000000000101',
+    'owner',
+    'active'
+  ),
+  (
+    'b1000000-0000-4000-8000-000000000201',
+    'b1000000-0000-4000-8000-000000000102',
+    'member',
+    'pending'
+  );
 
 insert into public.competitions (
   id, sport_id, provider, provider_external_id, code, name, country_name, last_synced_at
@@ -244,7 +251,7 @@ select is(
 select is(
   (select count(*) from public.list_my_groups(20, 0)),
   0::bigint,
-  'another member cannot enumerate the owner private group list'
+  'a pending unlisted applicant receives no member-only group projection or dead detail action'
 );
 
 reset role;

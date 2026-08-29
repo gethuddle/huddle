@@ -21,7 +21,7 @@ Huddle answers:
 3. Browse synchronized upcoming fixtures and discover eligible watch events nearby.
 4. Join a public venue event, or request access to an eligible private event.
 5. Host and manage a gathering, its capacity, invitations, and attendance.
-6. Return to My Huddle to find every hosted/submitted event, invitation, attendance state, and group relationship.
+6. Return to My Huddle to find every hosted/submitted event, invitation, attendance state, and active owned/joined group.
 7. Find another member by name or handle, send a direct friend request, and share eligible event or group links.
 8. Download an approved event as an `.ics` calendar file.
 
@@ -115,7 +115,7 @@ The submitted implementation remains **football-first**: [football-data.org](htt
 - Attendance request, approval, decline, removal, and leave flows with atomic capacity enforcement.
 - Protected home locations, blocking, reporting, moderation, and audit records.
 - RFC 5545 `.ics` calendar download.
-- A personal My Huddle home for owned groups plus hosted, submitted, invited, requested, and attending events.
+- A personal My Huddle home for actively owned/joined groups plus hosted, submitted, invited, requested, and attending events.
 - Automated tests, CI, public Vercel deployment, and Supabase-managed Auth/PostgreSQL.
 
 ## Architecture and course stack
@@ -220,7 +220,7 @@ B12 also provides one fail-fast local acceptance command that runs the entire se
 npm run test:acceptance
 ```
 
-The current B12 local run passes 403 Vitest/unit/component tests, 975 pgTAP assertions, the generated-type check, the production build, and all 17 Playwright journeys. Hosted acceptance and rehearsal evidence belong to B13 and remain pending.
+The accepted B12 local run passed 403 Vitest/unit/component tests, 975 pgTAP assertions, the generated-type check, the production build, and all 17 Playwright journeys. The current post-B12 inventory is maintained in the [submission test plan](./docs/submission/TEST-PLAN.md). Hosted acceptance and rehearsal evidence belong to B13 and remain pending.
 
 Production smoke is intentionally separate from CI and requires dedicated credentials in ignored `.env.production-smoke.local`. Session-only and one-time product-mutation commands are documented in the [deployment runbook](./docs/operations/DEPLOYMENT.md); neither runs implicitly.
 
