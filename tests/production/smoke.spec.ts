@@ -36,19 +36,35 @@ test("@session-smoke anonymous production pages and provider attribution are pub
   await expect(
     page.getByRole("heading", { name: "Find the fixture. Then find your huddle." }),
   ).toBeVisible();
-  await expect(page.getByRole("status")).toContainText(/catalog/i);
+  await expect(page.getByRole("status")).toContainText("Fixtures available through");
 
-  await page.goto("/discover");
-  await expect(
-    page.getByRole("heading", { name: "Find the room where the match comes alive." }),
-  ).toBeVisible();
+  await page.goto("/discover?city=tel-aviv-yafo");
+  await expect(page.getByRole("heading", { name: "Explore watch events" })).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Discovery is temporarily unavailable." }),
   ).toHaveCount(0);
-  const cityFallback = page.getByLabel("City fallback");
+  await page.getByRole("button", { name: "Change Explore search" }).click();
+  const cityFallback = page.getByRole("combobox", { name: "City" });
   await expect(cityFallback).toBeVisible();
   expect(await cityFallback.getByRole("option").count()).toBeGreaterThanOrEqual(13);
   await expect(cityFallback.getByRole("option", { name: "Jerusalem" })).toHaveCount(1);
+
+  await page.goto("/discover?city=tel-aviv-yafo");
+  const firstEvent = page.getByRole("article").first();
+  const eventTitle = await firstEvent.getByRole("heading").innerText();
+  await firstEvent.getByRole("link", { name: "Open event" }).click();
+  const fixtureHref = await page
+    .getByRole("link", { name: "← Fixture details" })
+    .getAttribute("href");
+  expect(fixtureHref).toMatch(/^\/matches\/[0-9a-f-]{36}$/);
+  await page.goto(fixtureHref!);
+  await expect(page.getByRole("link", { name: eventTitle })).toBeVisible();
+
+  await page.goto("/groups");
+  await expect(
+    page.getByRole("heading", { name: "Support together, beyond match day." }),
+  ).toBeVisible();
+  await expect(page.getByRole("searchbox", { name: "Group name" })).toBeVisible();
   expect(providerRequestCount).toBe(0);
 });
 
@@ -76,9 +92,7 @@ test("@session-smoke two dedicated production accounts can read every redesigned
     ).toBeVisible();
 
     await attendee.goto("/discover");
-    await expect(
-      attendee.getByRole("heading", { name: "Find the room where the match comes alive." }),
-    ).toBeVisible();
+    await expect(attendee.getByRole("heading", { name: "Explore watch events" })).toBeVisible();
 
     await attendee.goto("/dashboard");
     await expect(
