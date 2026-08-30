@@ -8,6 +8,8 @@ This is a two-person final project for the **Full-Stack & AI** course. The submi
 
 The approved post-B12 redesign gives one Supabase login two separately authorized, optional workspaces: **Fan** for attendance and private social activity, and **Venue** for commercial operations. This deliberately supersedes the older assumptions that every completed personal profile may create a venue, that every group-organized event must wait for a separate owner/admin review, and that every venue event needs a capacity-backed guest list. The project-status history below remains evidence of what was merged before the redesign, not the current permission contract.
 
+The 31 August discovery-consistency revision makes a described owner-backed group searchable without fake activity quotas, lets eligible Fans find public-place events from discoverable groups before applying, keeps group home events private, preserves managed-Venue listings when switching to Fan Explore, lists visible watch events on their fixture pages, and gives group owners a safe Delete group flow backed by audited archival retention.
+
 ## The problem
 
 Sports are better with other people, but it can be difficult to find nearby fans of the same team or a venue showing a particular match. The problem is especially noticeable for people who are new to a city, support a foreign team, or follow a less popular competition.
@@ -53,7 +55,7 @@ Groups provide the community layer between a private friendship and a public ven
 - rules, bans, and group-event approval;
 - duplicate-group suggestions based on team and city.
 
-An event authored by a current group owner or admin publishes atomically without self-review. An ordinary member may propose an event, but it remains pending until a different current owner or admin publishes or rejects it. Promotion after submission never lets the creator decide their own pending event. A new discoverable group must meet a minimum safety and activity threshold before appearing in search.
+An event authored by a current group owner or admin publishes atomically without self-review. An ordinary member may propose an event, but it remains pending until a different current owner or admin publishes or rejects it. Promotion after submission never lets the creator decide their own pending event. A discoverable group appears in search once its owner is active and it has a clear description; members, additional admins, rules, and events are optional rather than artificial launch quotas.
 
 ### Businesses and venues
 
@@ -120,9 +122,10 @@ The submitted implementation remains **football-first**: [football-data.org](htt
 - Mutual friendships with no friends-of-friends visibility.
 - Safe signed-in people search by display name or handle.
 - Discoverable and unlisted supporter groups with applications, roles, invitations, bans, atomic owner/admin-authored event publication, and different-owner/admin review of ordinary-member submissions.
+- Owner-only group deletion through audited archive, with live events/invites closed and safety history retained.
 - Private-person events limited to group, friends, or invite-only audiences.
 - Business-venue events with public or team-follower audiences, fixture-first batch planning, public open-door listings or optional registered reservations, authorized by active Venue membership and never attended by the venue itself.
-- City-based discovery across the Israel pilot, optional browser geolocation, and PostGIS distance queries.
+- City-based discovery across the Israel pilot, optional browser geolocation, PostGIS distance queries, managed-Venue continuity in Fan Explore, and signed-in acquisition previews for discoverable-group public-place events.
 - Reservation attendance request, approval, decline, removal, and leave flows with atomic capacity enforcement; open-door venue listings deliberately have no attendance state.
 - Protected home locations, blocking, reporting, moderation, and audit records.
 - RFC 5545 `.ics` calendar download.
@@ -170,7 +173,7 @@ The database and provider boundaries may be future-ready, but deferred features 
 
 ## Project status
 
-The merged baseline includes B01–B12: repository CI; account verification and onboarding; the normalized sports catalog; Huddle-styled shadcn/Radix UI; fixture browsing and follows; friendships and supporter groups; venue and private/group event hosting; safe geospatial discovery; invitations, atomic attendance, protected locations and calendars; confidential reporting, moderation, appeals, hardening, accessibility, and operational runbooks; and the B12 release-candidate and automated-acceptance milestone, including its complete 17-journey gate and production-found corrections to navigation, verification/onboarding, city availability, discovery failure handling, and fixture pagination. [PR #33](https://github.com/gethuddle/huddle/pull/33) merged as accepted SHA [`94c99156011ae20fdcdbe14b807b5884cfe77555`](https://github.com/gethuddle/huddle/commit/94c99156011ae20fdcdbe14b807b5884cfe77555) and closed [issue #32](https://github.com/gethuddle/huddle/issues/32). B13 owns the remaining hosted production acceptance, scheduled-sync failure drill, final submission evidence, and presentation rehearsal. The candidate production URL is [huddle-navy-five.vercel.app](https://huddle-navy-five.vercel.app); its 12 hosted migrations match the merged B12 baseline, while B13 exit evidence remains pending. Local development does not mutate a hosted Supabase project.
+The merged baseline includes B01–B12: repository CI; account verification and onboarding; the normalized sports catalog; Huddle-styled shadcn/Radix UI; fixture browsing and follows; friendships and supporter groups; venue and private/group event hosting; safe geospatial discovery; invitations, atomic attendance, protected locations and calendars; confidential reporting, moderation, appeals, hardening, accessibility, and operational runbooks; and the B12 release-candidate and automated-acceptance milestone, including its complete 17-journey gate and production-found corrections to navigation, verification/onboarding, city availability, discovery failure handling, and fixture pagination. [PR #33](https://github.com/gethuddle/huddle/pull/33) merged as accepted SHA [`94c99156011ae20fdcdbe14b807b5884cfe77555`](https://github.com/gethuddle/huddle/commit/94c99156011ae20fdcdbe14b807b5884cfe77555) and closed [issue #32](https://github.com/gethuddle/huddle/issues/32). B13 owns the remaining hosted production acceptance, scheduled-sync failure drill, final submission evidence, and presentation rehearsal. The candidate production URL is [huddle-navy-five.vercel.app](https://huddle-navy-five.vercel.app). The B12 baseline originally contained 12 migrations; current post-B12 repository inventory is tracked in the submission test plan, while B13 exit evidence remains pending. Local development does not mutate a hosted Supabase project.
 
 ### Visual system
 

@@ -19,6 +19,7 @@ import { getPrivateEventLocation, listApprovedEventAttendees } from "@/features/
 import { EventBadges } from "@/features/events/components/event-badges";
 import { getEventSummary } from "@/features/events/queries";
 import { deriveEventViewerRole, eventViewerPresentation } from "@/features/events/viewer-role";
+import { getGroupDetail } from "@/features/groups/detail";
 import { ReportControl } from "@/features/moderation/components/report-control";
 import { eventRouteIdSchema } from "@/features/events/schemas";
 import { formatIsraelKickoff } from "@/features/sports/time";
@@ -59,12 +60,24 @@ export default async function EventPage({ params, searchParams }: EventPageProps
     redirect(eventAttendeePageHref(event.id, attendeePageInput.page, created));
   }
   const attendeePage = attendeePageInput.page;
-  const [privateLocation, approvedAttendees] = await Promise.all([
+  const [privateLocation, approvedAttendees, organizingGroup] = await Promise.all([
     event.viewerCanReadPrivateLocation ? readPrivateLocation(event.id) : Promise.resolve(null),
     !openDoor && (event.canManage || event.viewerAttendanceStatus === "approved")
       ? readApprovedAttendees(event.id, attendeePage)
       : Promise.resolve([]),
+    event.audience === "group" &&
+    event.organizingGroupSlug !== null &&
+    event.viewerIsAuthenticated &&
+    !event.canManage
+      ? getGroupDetail(event.organizingGroupSlug)
+      : Promise.resolve(null),
   ]);
+  const viewerNeedsGroupMembership =
+    event.audience === "group" &&
+    event.organizingGroupSlug !== null &&
+    event.viewerIsAuthenticated &&
+    !event.canManage &&
+    organizingGroup?.viewerMembershipStatus !== "active";
   const attendeeTotal = approvedAttendees.at(0)?.total_count ?? 0;
   const attendeePageCount = collectionPageCount(attendeeTotal);
   if (!openDoor && attendeePage > 1 && approvedAttendees.length === 0) {
@@ -223,7 +236,13 @@ export default async function EventPage({ params, searchParams }: EventPageProps
                 {openDoor ? "How attendance works" : "Your event status"}
               </p>
               <h2 className="text-xl font-semibold text-linen">
-                {openDoor ? "No reservation needed" : viewerPresentation.status}
+                {openDoor
+                  ? "No reservation needed"
+                  : viewerNeedsGroupMembership
+                    ? organizingGroup?.viewerMembershipStatus === "pending"
+                      ? "Your group application is pending"
+                      : "Join the group to attend"
+                    : viewerPresentation.status}
               </h2>
             </CardHeader>
             <CardContent>
@@ -232,6 +251,22 @@ export default async function EventPage({ params, searchParams }: EventPageProps
                   Turn up at the venue for kickoff. Availability is managed by the venue in person,
                   not through a Huddle place counter.
                 </p>
+              ) : viewerNeedsGroupMembership ? (
+                <div className="space-y-4">
+                  <p className="text-sm leading-6 text-muted-dark">
+                    This event is organized for active members of {event.organizingGroupName}. Open
+                    the group to apply or check your membership status.
+                  </p>
+                  <Button asChild className="w-full">
+                    <Link href={`/groups/${event.organizingGroupSlug}`}>
+                      {organizingGroup?.viewerMembershipStatus === "pending"
+                        ? "View application"
+                        : organizingGroup?.canApply === false
+                          ? "View group"
+                          : "View group and apply"}
+                    </Link>
+                  </Button>
+                </div>
               ) : (
                 <EventParticipationControls
                   canManage={event.canManage}

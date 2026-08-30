@@ -390,8 +390,8 @@ select is(
       '63000000-0000-4000-8000-000000000301'
     )
   ),
-  '5:2:t:t:t:f:f:forming',
-  'the forming panel reports every gate fact before a future event is approved'
+  '5:2:t:t:t:f:t:active',
+  'readiness facts stay visible while active ownership plus a description completes discovery'
 );
 set local "request.jwt.claim.sub" = '63000000-0000-4000-8000-000000000106';
 select throws_ok(
@@ -509,8 +509,8 @@ select is(
     select count(*)
     from public.search_groups('B09', null, null, null, null, 20)
   ),
-  2::bigint,
-  'global search returns only the two active discoverable groups'
+  3::bigint,
+  'global search returns every described discoverable group with an active owner'
 );
 select is(
   (
@@ -525,8 +525,8 @@ select is(
     select count(*)
     from public.search_groups('Other Forming', null, null, null, null, 20)
   ),
-  0::bigint,
-  'another user forming a group never leaks into global search'
+  1::bigint,
+  'another ready group is searchable without artificial member, rule, or event gates'
 );
 reset role;
 
@@ -573,8 +573,8 @@ set status = 'cancelled', published_at = null, cancelled_at = statement_timestam
 where id = '63000000-0000-4000-8000-000000000501';
 select is(
   (select lifecycle::text from public.groups where id = '63000000-0000-4000-8000-000000000301'),
-  'forming',
-  'cancelling the only future event immediately removes group activation'
+  'active',
+  'cancelling the only future event does not hide an otherwise ready group'
 );
 update public.events
 set status = 'published', published_at = statement_timestamp()
@@ -586,8 +586,8 @@ where group_id = '63000000-0000-4000-8000-000000000301'
   and user_id = '63000000-0000-4000-8000-000000000105';
 select is(
   (select lifecycle::text from public.groups where id = '63000000-0000-4000-8000-000000000301'),
-  'forming',
-  'dropping below five eligible members removes group activation'
+  'active',
+  'member count is informational and does not hide an otherwise ready group'
 );
 update public.group_memberships
 set status = 'active'
@@ -600,8 +600,8 @@ where group_id = '63000000-0000-4000-8000-000000000301'
   and user_id = '63000000-0000-4000-8000-000000000102';
 select is(
   (select lifecycle::text from public.groups where id = '63000000-0000-4000-8000-000000000301'),
-  'forming',
-  'dropping below two active moderators removes group activation'
+  'active',
+  'moderator count is informational and does not hide an otherwise ready group'
 );
 update public.group_memberships
 set role = 'admin'
@@ -613,8 +613,8 @@ set published_at = null
 where group_id = '63000000-0000-4000-8000-000000000301';
 select is(
   (select lifecycle::text from public.groups where id = '63000000-0000-4000-8000-000000000301'),
-  'forming',
-  'unpublishing the final rule removes group activation'
+  'active',
+  'published rules remain useful expectations rather than a search prerequisite'
 );
 update public.group_rules
 set published_at = statement_timestamp()

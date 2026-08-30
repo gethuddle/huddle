@@ -101,6 +101,8 @@ describe("GroupManagementPage", () => {
     expect(screen.getAllByRole("button", { name: "Save role" })).toHaveLength(2);
     expect(screen.getAllByRole("button", { name: "Ban" })).toHaveLength(2);
     expect(screen.getByText("Owner").closest(".rounded-xl")).not.toHaveTextContent("Save role");
+    expect(screen.getByRole("heading", { name: "Delete group" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Delete group" })).toBeVisible();
   });
 
   it("limits an admin to banning ordinary members without role controls", async () => {
@@ -116,5 +118,6 @@ describe("GroupManagementPage", () => {
     expect(screen.queryByRole("button", { name: "Save role" })).not.toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Ban" })).toHaveLength(1);
     expect(screen.getByText("Admin").closest(".rounded-xl")).not.toHaveTextContent("Ban");
+    expect(screen.queryByRole("heading", { name: "Delete group" })).not.toBeInTheDocument();
   });
 });

@@ -193,8 +193,8 @@ set local role anon;
 set local "request.jwt.claim.sub" = '';
 select is(
   (select count(*) from public.get_group_by_slug('b06-forming-group')),
-  0::bigint,
-  'anonymous discovery remains closed for a forming discoverable group'
+  1::bigint,
+  'the described owner-backed group is immediately public after discoverability recalculation'
 );
 
 set local role authenticated;
@@ -233,8 +233,8 @@ select throws_ok(
 set local "request.jwt.claim.sub" = '52000000-0000-4000-8000-000000000106';
 select is(
   (select count(*) from public.get_group_by_slug('b06-forming-group')),
-  0::bigint,
-  'an incomplete account cannot view the forming application summary'
+  1::bigint,
+  'an incomplete account may read the same public summary while community mutations stay gated'
 );
 select throws_ok(
   $$select * from public.apply_to_group('52000000-0000-4000-8000-000000000201', '', null)$$,
@@ -251,7 +251,7 @@ set local "request.jwt.claim.sub" = '52000000-0000-4000-8000-000000000105';
 select is(
   (select count(*) from public.get_group_by_slug('b06-forming-group')),
   0::bigint,
-  'a block with the owner removes the forming direct-link summary'
+  'a block with the owner removes the active direct-link summary'
 );
 select throws_ok(
   $$select * from public.apply_to_group('52000000-0000-4000-8000-000000000201', '', null)$$,
@@ -430,7 +430,7 @@ set local "request.jwt.claim.sub" = '52000000-0000-4000-8000-000000000109';
 select is(
   (select can_view_member_content from public.get_group_by_slug('b06-forming-group')),
   null::boolean,
-  'a ban removes the forming group summary and protected-content boundary entirely'
+  'a ban removes the active group summary and protected-content boundary entirely'
 );
 select throws_ok(
   $$select * from public.apply_to_group('52000000-0000-4000-8000-000000000201', '', null)$$,
@@ -487,11 +487,10 @@ select is(
 
 set local role anon;
 set local "request.jwt.claim.sub" = '';
-select throws_ok(
-  $$select * from public.list_group_rules('52000000-0000-4000-8000-000000000202', 0, 100)$$,
-  'P0001',
-  'NOT_FOUND',
-  'anonymous viewers cannot read rules after the incomplete legacy group is recalculated to forming'
+select is(
+  (select count(*) from public.list_group_rules('52000000-0000-4000-8000-000000000202', 0, 100)),
+  1::bigint,
+  'anonymous viewers may read the published rule without making rules a search prerequisite'
 );
 
 set local role authenticated;

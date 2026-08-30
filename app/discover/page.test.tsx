@@ -80,6 +80,10 @@ describe("DiscoverPage", () => {
     render(await DiscoverPage({ searchParams: Promise.resolve({ city: "haifa" }) }));
 
     expect(screen.getByRole("heading", { name: "Explore watch events" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Supporter groups" })).toHaveAttribute(
+      "href",
+      "/groups",
+    );
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Change Explore search" }));
     expect(screen.getByRole("dialog", { name: "Change Explore search" })).toBeVisible();

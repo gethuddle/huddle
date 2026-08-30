@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { ErrorState } from "@/components/states/error-state";
+import { Button } from "@/components/ui/button";
 import { getDiscoveryCatalog, getViewerCitySlug } from "@/features/discovery/catalog";
 import { DiscoveryFeed } from "@/features/discovery/components/discovery-feed";
 import { DiscoveryFiltersForm } from "@/features/discovery/components/discovery-filters";
@@ -41,6 +43,16 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps) 
   return (
     <section className="py-6 sm:py-10">
       <h1 className="sr-only">Explore watch events</h1>
+      <nav aria-label="Explore" className="mb-6 flex flex-wrap justify-center gap-2">
+        <Button asChild size="sm">
+          <Link aria-current="page" href="/discover">
+            Watch events
+          </Link>
+        </Button>
+        <Button asChild size="sm" variant="outline">
+          <Link href="/groups">Supporter groups</Link>
+        </Button>
+      </nav>
       <DiscoveryFiltersForm catalog={catalog} filters={filters} />
       <DiscoveryFeed filters={filters} initialPage={initialPage} />
     </section>

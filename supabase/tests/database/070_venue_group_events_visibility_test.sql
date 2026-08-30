@@ -644,8 +644,8 @@ select throws_ok(
 reset role;
 select is(
   (select lifecycle::text from public.groups where id = '62000000-0000-4000-8000-000000000205'),
-  'forming',
-  'a pending event does not prematurely activate a discoverable group'
+  'active',
+  'event review state does not control the described group search lifecycle'
 );
 
 set local role authenticated;
@@ -746,8 +746,8 @@ set
 where id = current_setting('test.b08_group_event_id')::uuid;
 select is(
   (select lifecycle::text from public.groups where id = '62000000-0000-4000-8000-000000000205'),
-  'forming',
-  'event cancellation re-evaluates and removes the future-event discovery gate'
+  'active',
+  'event cancellation does not remove an otherwise searchable group'
 );
 
 set local role authenticated;

@@ -12,6 +12,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import {
+  ArchiveGroupControl,
   BanMemberControl,
   MemberRoleControl,
   RuleCreateControl,
@@ -73,6 +74,11 @@ export default async function GroupManagementPage({
         <Button asChild variant="outline">
           <Link href="#visibility">Visibility</Link>
         </Button>
+        {settings.group.viewerRole === "owner" ? (
+          <Button asChild variant="outline">
+            <Link href="#delete-group">Delete group</Link>
+          </Button>
+        ) : null}
         {settings.bans.items.length === 0 ? null : (
           <Button asChild variant="outline">
             <Link href="#bans">Bans</Link>
@@ -120,6 +126,24 @@ export default async function GroupManagementPage({
           />
         </SettingsSection>
       )}
+
+      {settings.group.viewerRole === "owner" ? (
+        <SettingsSection id="delete-group" title="Delete group">
+          <div className="rounded-2xl border border-destructive/35 bg-destructive/5 p-5">
+            <p className="max-w-3xl text-sm leading-6 text-muted-dark">
+              Delete this group when it should no longer appear or accept activity. Upcoming events
+              and usable invite links will close; Huddle retains historical safety records.
+            </p>
+            <div className="mt-5">
+              <ArchiveGroupControl
+                groupId={settings.group.id}
+                groupName={settings.group.name}
+                groupSlug={settings.group.slug}
+              />
+            </div>
+          </div>
+        </SettingsSection>
+      ) : null}
     </section>
   );
 }

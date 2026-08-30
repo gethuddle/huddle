@@ -257,7 +257,12 @@ function GroupCollection({
   const pageCount = collectionPageCount(totalCount);
   return (
     <section aria-labelledby="your-groups-heading">
-      <CollectionHeading eyebrow="Groups" id="your-groups-heading" title="Your groups" />
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <CollectionHeading eyebrow="Groups" id="your-groups-heading" title="Your groups" />
+        <Button asChild className="min-h-11" size="sm" variant="outline">
+          <Link href="/groups">Find groups</Link>
+        </Button>
+      </div>
       {groups.length === 0 ? (
         <CollectionEmpty
           copy={[
@@ -269,9 +274,6 @@ function GroupCollection({
         >
           <Button asChild className="min-h-11" size="sm">
             <Link href="/groups/new">Create a group</Link>
-          </Button>
-          <Button asChild className="min-h-11" size="sm" variant="outline">
-            <Link href="/groups">Browse groups</Link>
           </Button>
         </CollectionEmpty>
       ) : (

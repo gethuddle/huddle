@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getEventSummary: vi.fn(),
+  getGroupDetail: vi.fn(),
   getPrivateEventLocation: vi.fn(),
   listApprovedEventAttendees: vi.fn(),
   notFound: vi.fn(),
@@ -13,6 +14,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("next/navigation", () => ({ notFound: mocks.notFound, redirect: mocks.redirect }));
 vi.mock("@/features/events/queries", () => ({ getEventSummary: mocks.getEventSummary }));
+vi.mock("@/features/groups/detail", () => ({ getGroupDetail: mocks.getGroupDetail }));
 vi.mock("@/features/attendance/queries", () => ({
   getPrivateEventLocation: mocks.getPrivateEventLocation,
   listApprovedEventAttendees: mocks.listApprovedEventAttendees,
@@ -93,6 +95,7 @@ describe("EventPage attendee pagination", () => {
       throw new Error("NEXT_NOT_FOUND");
     });
     mocks.getEventSummary.mockResolvedValue(event);
+    mocks.getGroupDetail.mockResolvedValue(null);
     mocks.getPrivateEventLocation.mockResolvedValue(null);
     mocks.listApprovedEventAttendees.mockResolvedValue([]);
   });
@@ -199,6 +202,35 @@ describe("EventPage attendee pagination", () => {
     expect(
       screen.queryByRole("link", { name: "Private organizing group" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("sends a nonmember from a public group event to the group instead of a dead join action", async () => {
+    mocks.getEventSummary.mockResolvedValue({
+      ...event,
+      canManage: false,
+      audience: "group",
+      organizingGroupName: "Haifa Supporters",
+      organizingGroupSlug: "haifa-supporters",
+    });
+    mocks.getGroupDetail.mockResolvedValue({
+      viewerRole: null,
+      viewerMembershipStatus: null,
+      canApply: true,
+    });
+
+    render(
+      await EventPage({
+        params: Promise.resolve({ eventId }),
+        searchParams: Promise.resolve({}),
+      }),
+    );
+
+    expect(screen.getByRole("heading", { name: "Join the group to attend" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "View group and apply" })).toHaveAttribute(
+      "href",
+      "/groups/haifa-supporters",
+    );
+    expect(screen.queryByText("Participation controls")).not.toBeInTheDocument();
   });
 
   it("shows a walk-in contract without loading or rendering reservation controls", async () => {

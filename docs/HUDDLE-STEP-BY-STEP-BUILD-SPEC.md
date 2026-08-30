@@ -10,6 +10,8 @@
 
 **Approved post-B12 revision:** 30 August 2026. The UX/workspace redesign deliberately supersedes the completed B01–B12 model where every completed personal profile could create a venue, every group-organized event entered separate admin review, and every venue event needed a capacity-backed guest list. Checked B01–B12 tasks and implementation-decision paragraphs remain historical delivery evidence; they do not authorize the redesigned runtime.
 
+**Approved discovery consistency revision:** 31 August 2026. Current runtime and acceptance evidence supersede the historical B09 activity-quota gate: discoverable groups require an active owner plus description; eligible signed-in Fans may preview public-place events from those groups but must join before attending; group home events remain private; Fan Explore retains public listings from managed Venues; fixture details list currently visible linked events; and owner deletion is an audited archive with retained history.
+
 ---
 
 ## 1. What working together means
@@ -393,7 +395,7 @@ If an external account, paid service, production mutation, or secret is required
 | `B12` Release candidate and automated acceptance | `D01` | `B11` | Full automated acceptance is green and the complete application is published as a reviewable release candidate |
 | `B13` Production acceptance and submission | `D02`–`D04` | `B12` | Isolated hosted environments, production sync/deployment, truthful submission evidence, and the presentation rehearsal are complete |
 
-The milestone grouping reduces coordination overhead only. It removes no module task, test, authorization rule, migration requirement, or definition-of-done evidence. `G06` remains after `E05` inside the milestone order because group discovery depends on an approved future group event.
+The milestone grouping reduces coordination overhead only. It removes no module task, test, authorization rule, migration requirement, or definition-of-done evidence. The original `G06` dependency on an approved future event remains historical B09 evidence; the approved 31 August replacement gate depends only on an active owner and description.
 
 ---
 
@@ -979,6 +981,8 @@ The following checked modules describe the B01–B12 baseline. Their original ou
 
 **Tests/evidence:** one-fact-at-a-time threshold tests, leakage denials, deterministic pagination, suspension removal, search/component tests, and complete forming-to-searchable E2E.
 
+**Post-redesign replacement contract/evidence:** a discoverable group becomes active/searchable with an active owner and non-empty description. Members, extra admins, rules, and events remain factual/optional and are not blockers. Search and direct detail retain unlisted, archived, suspension, block, and ban boundaries. Owner-only product deletion invokes audited archive, revokes usable invite links, cancels future live group events, removes the group from live reads, and retains membership/attendance history.
+
 ### E06 — Audience-aware event detail and safe projections
 
 **Depends on:** `E03`–`E05`, `G01`.
@@ -1025,6 +1029,8 @@ The following checked modules describe the B01–B12 baseline. Their original ou
 **Tests/evidence:** SQL query and authorization matrix, cursor tests, query-count inspection, component geolocation denial, E2E personalized/anonymous discovery, representative `EXPLAIN` evidence.
 
 **B09 implementation decisions:** group lifecycle is recalculated from current gate facts after every relevant membership, role, rule, description, event, ban, and suspension transition; search also requires a currently future published group event so wall-clock expiry cannot leak a stale group. Event discovery uses one authorization-filtered RPC and one safe DTO page rather than per-card reads. Spatial candidates are selected separately from indexed public-place, venue, and protected-home locations, while responses expose only a coarse distance band and never an exact address, coordinate, or distance. Signed cursors are endpoint-scoped and bound to normalized filters. Browser coordinates are requested only after an explicit click, sent for that discovery request, omitted from address-bar state, and discarded when city fallback is restored. Database date bounds compare Israel calendar timestamps, so 23-hour and 25-hour daylight-saving transition days do not change the accepted discovery window.
+
+**Post-redesign discovery correction:** the historical member/moderator/rule/event thresholds above no longer control current lifecycle or search. Event discovery merges the ordinary reservation, open-door, and current Fan's managed-Venue projections with event-ID deduplication. Eligible signed-in nonmembers may receive a safe public-place event preview for an active discoverable group and are directed to apply before attendance; anonymous visitors and all nonmembers remain unable to discover group home events. Fixture detail loads one bounded authorization-filtered linked-event projection so Explore and fixture navigation do not disagree.
 
 ---
 

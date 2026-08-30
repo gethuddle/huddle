@@ -91,23 +91,33 @@ export async function getDiscoveryPage(filters: DiscoveryFilters): Promise<Disco
     input_after_event_id: decodedCursor?.id,
     input_limit: filters.limit,
   };
-  const [reservationResult, openDoorResult] = await Promise.all([
+  const [reservationResult, openDoorResult, ownedVenueResult] = await Promise.all([
     supabase.rpc("discover_events", rpcInput),
     supabase.rpc("discover_open_door_events", rpcInput),
+    authResult.error === null && authResult.data.user !== null
+      ? supabase.rpc("discover_owned_venue_events", rpcInput)
+      : Promise.resolve({ data: [], error: null }),
   ]);
   if (reservationResult.error !== null) throw domainErrorFromDatabase(reservationResult.error);
   if (openDoorResult.error !== null) throw domainErrorFromDatabase(openDoorResult.error);
+  if (ownedVenueResult.error !== null) throw domainErrorFromDatabase(ownedVenueResult.error);
 
   let reservationRows: z.infer<typeof discoveryRowSchema>[];
   let openDoorRows: z.infer<typeof discoveryRowSchema>[];
+  let ownedVenueRows: z.infer<typeof discoveryRowSchema>[];
   try {
     reservationRows = z.array(discoveryRowSchema).parse(reservationResult.data);
     openDoorRows = z.array(discoveryRowSchema).parse(openDoorResult.data);
+    ownedVenueRows = z.array(discoveryRowSchema).parse(ownedVenueResult.data);
   } catch (cause) {
     throw new DomainError("INTERNAL_ERROR", { cause });
   }
 
-  const combinedRows = [...reservationRows, ...openDoorRows].sort((left, right) => {
+  const combinedRows = [
+    ...new Map(
+      [...reservationRows, ...openDoorRows, ...ownedVenueRows].map((row) => [row.event_id, row]),
+    ).values(),
+  ].sort((left, right) => {
     if (left.interest_score !== right.interest_score) {
       return right.interest_score - left.interest_score;
     }
@@ -118,7 +128,9 @@ export async function getDiscoveryPage(filters: DiscoveryFilters): Promise<Disco
     return kickoffOrder === 0 ? left.event_id.localeCompare(right.event_id) : kickoffOrder;
   });
   const sourceHasMore =
-    reservationRows.some((row) => row.has_more) || openDoorRows.some((row) => row.has_more);
+    reservationRows.some((row) => row.has_more) ||
+    openDoorRows.some((row) => row.has_more) ||
+    ownedVenueRows.some((row) => row.has_more);
   const rows = combinedRows.slice(0, filters.limit);
   const hasMore = sourceHasMore || combinedRows.length > rows.length;
 

@@ -935,7 +935,6 @@ Run: `git diff --check && git status --short`.
 - Create: `docs/evidence/ux-redesign/desktop-1280.png`
 - Create: `docs/evidence/ux-redesign/tablet-768.png`
 - Create: `docs/evidence/ux-redesign/mobile-375.png`
-- Modify: `docs/evidence/ux-redesign/README.md`
 
 **Interfaces:**
 - Consumes: all implemented runtime slices.
@@ -1075,3 +1074,116 @@ Expected: only intentional redesign files, no secret/environment values, no comm
 Execute Tasks 1–3 first because they define the product and authorization foundation. Execute Task 8 next so public-address and private-pin controls exist before first-run Venue onboarding. Then execute Task 4, followed by Tasks 5–7 for current state, discovery, and drafts. Execute Tasks 9–13 as coherent vertical product slices, running their focused database and UI gates after each. Tasks 14–15 are the integrated acceptance and repeated-audit loop.
 
 At the end of each task, review the complete local diff for that task's files before continuing. Do not create intermediate commits under this plan; publication and reciprocal review remain governed by `$huddle-publish-pr` after the user separately authorizes them.
+
+### Task 16: Production Discovery, Fixture, and Group Consistency
+
+**Issue:** [#38](https://github.com/gethuddle/huddle/issues/38)
+
+**Files:**
+- Create: `supabase/migrations/20260831120000_production_consistency_group_archive.sql`
+- Create: `supabase/tests/database/210_production_consistency_group_archive_test.sql`
+- Modify: `features/discovery/query.ts`
+- Modify: `features/discovery/query.test.ts`
+- Modify: `features/events/queries.ts`
+- Modify: `features/events/queries.test.ts`
+- Modify: `app/matches/[matchId]/page.tsx`
+- Modify: `app/matches/[matchId]/page.test.tsx`
+- Modify: `app/events/[eventId]/page.tsx`
+- Modify: `app/events/[eventId]/page.test.tsx`
+- Modify: `app/discover/page.tsx`
+- Modify: `app/groups/page.tsx`
+- Modify: `features/dashboard/components/my-huddle-overview.tsx`
+- Modify: `features/groups/components/group-discovery-progress.tsx`
+- Modify: `features/groups/components/group-discovery-progress.test.tsx`
+- Modify: `features/groups/schemas.ts`
+- Modify: `features/groups/membership-actions.ts`
+- Modify: `features/groups/membership-actions.test.ts`
+- Modify: `features/groups/components/group-management-controls.tsx`
+- Modify: `app/groups/[slug]/manage/page.tsx`
+- Modify: `app/groups/[slug]/manage/page.test.tsx`
+- Modify: `app/groups/[slug]/page.tsx`
+- Modify: `app/groups/[slug]/page.test.tsx`
+- Modify: `supabase/tests/database/040_friendships_group_creation_test.sql`
+- Modify: `supabase/tests/database/050_group_membership_administration_test.sql`
+- Modify: `supabase/tests/database/070_venue_group_events_visibility_test.sql`
+- Modify: `supabase/tests/database/080_group_event_discovery_test.sql`
+- Modify: `docs/HUDDLE-IMPLEMENTATION-SPEC.md`
+- Modify: `docs/HUDDLE-ARCHITECTURE.md`
+- Modify: `docs/HUDDLE-STEP-BY-STEP-BUILD-SPEC.md`
+- Modify: `docs/evidence/ux-redesign/README.md`
+- Modify: `docs/submission/TRACEABILITY.md`
+- Modify: `docs/submission/TEST-PLAN.md`
+- Modify: `README.md`
+
+**Interfaces:**
+- Consumes: `private.event_is_visible_to_actor`, `private.recalculate_group_discoverability`, the
+  existing discovery cursor tuple, `EventListItem`, group settings, and the audited Server Action
+  pattern.
+- Produces: `public.discover_owned_venue_events(...)`, `public.list_match_events(uuid, integer)`,
+  `public.archive_group(uuid, uuid)`, Fan-side Venue discovery, safe discoverable-group public-place
+  summaries, persistent group-search entry points, and owner-confirmed group archival.
+
+- [x] **Step 1: Write failing pgTAP authorization and lifecycle tests**
+
+Assert that an active Fan may discover their own Venue's public listing; an active non-member may
+discover only a public-place event owned by an active discoverable group; home/group-private events
+remain hidden; `list_match_events` returns exactly the caller-visible linked rows; a description-ready
+group enters search without member/admin/rule/event thresholds; and only the active owner may archive.
+Assert archival revokes unused invite links, cancels future group events, retains relational history,
+and removes the group from all live projections.
+
+- [x] **Step 2: Run the new database test and confirm RED**
+
+Run: `supabase test db --local supabase/tests/database/210_production_consistency_group_archive_test.sql`
+Expected: FAIL because the three public functions and revised visibility/lifecycle behavior do not exist.
+
+- [x] **Step 3: Implement the migration and confirm GREEN**
+
+Add the controlled projections and owner-only archive transaction, replace the group discovery gate
+and search projection, backfill non-archived discoverable lifecycle state, and extend event visibility
+only for active discoverable-group public-place summaries. Re-run the focused pgTAP file until every
+assertion passes, then run `npm run db:types`.
+
+- [x] **Step 4: Write failing server and page tests**
+
+Cover discovery's third owned-Venue result source and deterministic de-duplication; the
+`listMatchEvents(matchId)` adapter; fixture-page linked event cards instead of an unconditional empty
+state; stable Explore/Groups cross-links; an always-visible My Huddle **Find groups** action; the
+simplified group search-status panel; and owner-only delete confirmation/action/redirect behavior.
+
+- [x] **Step 5: Run focused Vitest files and confirm RED**
+
+Run: `npm test -- features/discovery/query.test.ts features/events/queries.test.ts 'app/matches/[matchId]/page.test.tsx' features/groups/components/group-discovery-progress.test.tsx features/groups/schemas.test.ts features/groups/membership-actions.test.ts features/groups/components/group-management-controls.test.tsx`
+Expected: FAIL on the absent query, controls, actions, links, and changed discovery contract.
+
+- [x] **Step 6: Implement the UI and server adapters and confirm GREEN**
+
+Merge and de-duplicate the owned-Venue discovery rows by event ID before cursor slicing; render visible
+fixture events with existing event cards; add compact Events/Groups destination links; keep **Find
+groups** visible beside the My Huddle group heading; replace the old multi-condition activation list
+with a concise search-state panel; and add an AlertDialog-backed owner deletion control whose Server
+Action calls `archive_group`, revalidates all affected routes, and redirects to My Huddle on success.
+Re-run the focused Vitest command until clean.
+
+- [x] **Step 7: Reconcile the approved product contract and evidence**
+
+Update the implementation specification, architecture, README, redesign evidence ledger, test plan,
+and traceability counts so the former owner-event exclusion and old five-member/two-moderator/rule/
+future-event discovery gate are not described as current behavior.
+
+- [x] **Step 8: Run integrated verification**
+
+Run focused database tests, focused Vitest tests, `npm run db:types:check`, `npm run format:check`,
+`npm run lint`, `npm run typecheck`, `npm run build:local`, and
+`npm run test:e2e -- tests/e2e/ux-redesign.spec.ts`. Then run `npm run test:acceptance` once from the
+complete diff. The final Node 24.19.0 / npm 11.17.0 acceptance run passed 147 Vitest files / 724
+tests, 35 pgTAP files / 1,585 assertions, all 22 Playwright journeys, the production build, generated
+database-type drift check, schema lint, security audit, and diff hygiene without a retry.
+
+- [ ] **Step 9: Publish and deploy under the current explicit authorization**
+
+After verification, inspect the entire diff and secrets, commit with the reciprocal co-author trailer,
+push the existing branch, update or open its single PR and request `ohadsho`. Do not self-approve or
+merge the writer's PR. Apply only the new migration to the production Supabase project, deploy the
+verified exact commit to Vercel Production, and run read-only production smoke for Explore, fixture
+event consistency, group search, and the owner-only deletion control without actually deleting data.

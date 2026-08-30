@@ -12,6 +12,8 @@
 
 **Approved post-B12 revision:** 30 August 2026. The workspace contract below deliberately supersedes the B01–B12 assumption that every completed personal profile may create a venue, that every group-organized event must wait for a separate owner/admin review, and that every venue listing must operate a capacity-backed guest list. Historical milestone evidence remains evidence of what was merged before this redesign; it is not the current permission contract.
 
+**Approved discovery consistency revision:** 31 August 2026. A described discoverable group with an active owner is searchable without artificial member, moderator, rule, or event quotas. Eligible signed-in Fans may discover its published public-place events as acquisition previews, but must become active group members before attending; group home events remain private. Fan Explore also includes public listings from Venues the same human manages, fixture details list every event currently visible to that viewer, and an owner may delete a group through an audited archival transition that cancels live group events and revokes usable invites while retaining safety history.
+
 The keywords **MUST**, **MUST NOT**, **SHOULD**, and **MAY** express implementation priority. A MUST is part of acceptance for the submitted MVP unless this specification is deliberately revised.
 
 ---
@@ -100,22 +102,19 @@ Deferred behavior MUST NOT be represented by fake controls, placeholder entitlem
 - A discoverable group always uses an application reviewed by an owner/admin.
 - An unlisted group is absent from global search. It requires a hashed, expiring, revocable, usage-limited invite token to start an application.
 - Possessing an invite token MUST NOT activate membership automatically.
-- A discoverable group starts as `forming` and becomes `active`/searchable only when all are true:
-  - at least five `active` members;
-  - at least two active moderators (`owner` or `admin`), one of whom is the owner;
-  - a non-empty description and at least one published rule;
-  - at least one approved, published, non-cancelled future group event.
+- A discoverable group starts as `forming` and becomes `active`/searchable when it has an active owner and a non-empty description. Member count, additional admins, rules, and events are useful group content but MUST NOT be search prerequisites.
 - Unlisted groups MAY operate immediately and do not need the discovery gate.
 - Creation SHOULD show groups with the same team/city and similarly normalized names. Similarity warns; it does not block creation.
 - An active ordinary member MAY submit a group event for owner/admin review. An event authored by a current group owner/admin MUST publish atomically; an ordinary-member submission MUST remain pending until a current owner/admin whose user ID differs from `created_by` publishes or rejects it. Promotion after submission MUST NOT let an author review their own pending event.
 - Platform moderators do not routinely approve group creation. They handle reports and suspensions.
 - A group ban prevents content access, invitation use, and reapplication until removed by an authorized group admin or platform action.
+- Only the active owner may delete a group. Product “delete” is an audited archive: the group disappears from live product reads, usable invite links are revoked, future live group events are cancelled, and membership/attendance/security history is retained.
 
 ### 2.4 Event audiences
 
 | Host type | Allowed audience | Summary visibility | Attendance eligibility |
 |---|---|---|---|
-| Private person | `group` | Active, non-banned members of `audience_group_id` | Same membership rule, always subject to host approval unless directly invited |
+| Private person | `group` | Active, non-banned members; additionally, eligible signed-in Fans may preview a public-place event for an active discoverable group | Active, non-banned membership is still required to attend; host approval applies unless directly invited |
 | Private person | `friends` | Host and host's accepted direct friends | Same accepted-friend rule, always subject to host approval unless directly invited |
 | Private person | `invite_only` | Host and current invitees | A current invitee only |
 | Business venue | `public` | Anyone, including anonymous visitors | `open_door`: no Huddle attendance state; `reservations`: any eligible active Fan |
@@ -126,7 +125,7 @@ Deferred behavior MUST NOT be represented by fake controls, placeholder entitlem
 - A business venue MUST NOT use `group`, `friends`, or `invite_only` in the submitted MVP.
 - Direct invitation is an explicit exception to the team-follow requirement for reservation-mode venue events, but not to Fan activation, adult/completion, block, suspension, cancellation, one-account-per-seat, or capacity rules. Open-door events have no invitation mutation at all.
 - An `organizing_group_id` identifies a group whose admins review the listing. It is distinct from `audience_group_id`; for a group-only event they will normally be equal.
-- Only venue events may be publicly visible. Private-person event existence follows its relationship audience and never becomes anonymously discoverable.
+- Only venue events may be anonymously visible. A private-person public-place event for an active discoverable group MAY appear to an eligible signed-in Fan as a safe acquisition preview; it remains absent for anonymous visitors and does not make the Fan attendance-eligible before approved group membership. Other private-person event existence follows its relationship audience.
 
 ### 2.5 Place and privacy
 
@@ -143,7 +142,7 @@ Deferred behavior MUST NOT be represented by fake controls, placeholder entitlem
 - An exact private location is readable only through an audited database function by the host or an approved, currently authorized attendee.
 - Leaving, host removal, blocking, event cancellation, account suspension, or loss of the required group eligibility MUST revoke future private-location reads. The product MUST disclose that it cannot make a previously viewed address unknown.
 - After the first approval, an event's host type, audience, place kind, and private address are immutable. A material change requires cancellation and a new event so attendees consent again.
-- Business-venue addresses and coordinates MAY be public. A private person's public-place address is visible only through that event's group/friends/invite-only audience, even though it is not treated as a secret home address.
+- Business-venue addresses and coordinates MAY be public. A private person's public-place address is visible only through that event's authorized audience or the signed-in discoverable-group acquisition preview above; it is never treated as a secret home address. Home coordinates remain protected without exception.
 - A public business-venue event MAY use `open_door`. In that mode capacity is null and the listing must not imply that Huddle reserves, counts, approves, or guarantees physical admission. `team_followers` and every private-person event remain reservation-mode.
 - Dates MUST be stored as `timestamptz` in UTC and rendered as Israel time by default. The implementation MUST use the canonical IANA identifier `Asia/Jerusalem` for daylight-saving correctness without presenting that identifier as user-facing location copy.
 
@@ -206,7 +205,7 @@ Deferred behavior MUST NOT be represented by fake controls, placeholder entitlem
 | Active Venue owner/admin | Edit the authorized venue and manage its commercial events; no platform-verification power and no venue attendance identity |
 | Group member | Read group content, submit group event, leave group |
 | Group admin | Review ordinary-member group event submissions only when their user ID differs from `created_by`, atomically publish events they author, review applications, create/revoke invites, manage members and bans, edit group content |
-| Group owner | All group-admin powers, admin promotion/demotion, group suspension/ownership rules; cannot remove the sole owner invariant |
+| Group owner | All group-admin powers, admin promotion/demotion, and audited group deletion/archive; cannot remove the sole-owner invariant from a live group |
 | Platform moderator | Review reports and suspend content/accounts according to moderation flow; no routine private-address access |
 | Sync service | Upsert sports catalog and sync-run records only; no normal social mutation |
 
@@ -221,9 +220,9 @@ Authorization MUST be enforced twice for sensitive transitions: application logi
 | Route | Access | Purpose |
 |---|---|---|
 | `/` | Public with workspace-aware signed-in view | Value proposition for visitors; direct continuation into the last valid Fan or Venue workspace |
-| `/discover` | Public with richer signed-in view | Event discovery filters, cursor feed, location consent |
+| `/discover` | Public with richer signed-in view | Event discovery filters, cursor feed, location consent, eligible public-place group previews, and the Fan's managed-Venue public listings |
 | `/matches` | Public | Future football fixtures by date/competition/team |
-| `/matches/[matchId]` | Public | Match summary and eligible linked events |
+| `/matches/[matchId]` | Public | Match summary and all linked events currently visible to the viewer |
 | `/events` | Active Fan | Personal invitation and attendance dashboard |
 | `/events/[eventId]` | Audience policy | Event summary, attendance state/action, permitted attendee context, calendar link |
 | `/events/new` | Active Fan or active Venue member | Workspace-authorized event creation flow |
@@ -231,7 +230,7 @@ Authorization MUST be enforced twice for sensitive transitions: application logi
 | `/groups` | Public with personal signed-in view | Search active discoverable groups; show the viewer own forming and unlisted groups separately |
 | `/groups/new` | Active Fan | Similar-group check then group creation |
 | `/groups/[slug]` | Group visibility rules | Public summary or member content, application state, approved events |
-| `/groups/[slug]/manage` | Owner/admin | Applications, members, roles, bans, rules, invites, submitted events |
+| `/groups/[slug]/manage` | Owner/admin | Applications, members, roles, bans, rules, invites, submitted events; owner-only audited deletion/archive |
 | `/join/group/[token]` | Active Fan | Validate unlisted invite and submit membership application |
 | `/venues/[slug]` | Public | Venue summary, unverified badge, follow action, future event listings |
 | `/venues/new` | Commonly eligible account | Self-serve an Unverified venue, active owner membership, and Venue workspace with business-representation attestation |
@@ -257,7 +256,7 @@ Unauthorized access MUST render a clear `not found`, `sign in`, `finish safety s
 
 **Private home event:** choose fixture → home → choose group/friends/invite-only → enter protected address → set capacity up to 12 → publish/submit → invite or review registered users → approved attendee receives exact details. No plus-ones are available.
 
-**Group:** search → apply (or open invite) → admin reviews → member sees group content → ordinary member submits event → a different current owner/admin approves → event becomes published and may satisfy the discovery gate. An event authored by a current owner/admin publishes atomically without self-review; later promotion never lets the creator approve or reject their own pending submission.
+**Group:** search → open the safe summary → apply (or open invite) → admin reviews → member sees group content → ordinary member submits event → a different current owner/admin approves. An event authored by a current owner/admin publishes atomically without self-review; later promotion never lets the creator approve or reject their own pending submission. A published public-place event may introduce an eligible Fan to an active discoverable group, but attendance waits for active membership.
 
 **Venue:** complete common safety eligibility → attest truthful business representation → atomically create an Unverified venue, active owner membership, and Venue workspace → choose synchronized fixtures whose dates and kickoff times are inherited → assign viewing areas → publish as open-door or reservation events. Fans either read “come along; no reservation” or attend/request through an active Fan identity. The venue itself is never an attendee.
 
@@ -785,7 +784,7 @@ type DiscoveryResponse = {
 };
 ```
 
-Sort is deterministic: eligible published future events by match/interest relevance for signed-in users, then distance/time, then ID tie-breaker. Anonymous users receive only public business-venue events, ordered deterministically by distance/time without personalization. Eligible signed-in home results include only city/coarse distance band.
+Sort is deterministic: eligible published future events by match/interest relevance for signed-in users, then distance/time, then ID tie-breaker. Signed-in Fan results merge ordinary eligible events, open-door listings, and public listings from Venues the same account manages, deduplicated by event ID. Anonymous users receive only public business-venue events, ordered deterministically by distance/time without personalization. Eligible signed-in home results include only city/coarse distance band.
 
 #### `GET /api/groups/search`
 
@@ -1080,7 +1079,7 @@ Design for tens to hundreds of active users, thousands of catalog matches, and a
 | Audience/relationship checks | indexed membership/friend/follow pairs and reusable SQL helpers |
 | Attendance count/race | indexed approved rows and atomic row-locking function; derive count |
 | Personalized feed joins | bound date/radius, indexed follows, one discovery RPC, no per-card query |
-| Group discovery gate | indexed aggregate facts; recalculate on relevant transitions, not every page render |
+| Group discovery gate | active-owner and non-empty-description facts; recalculate on relevant transitions, not every page render |
 | Provider traffic | scheduled batch sync, local normalized cache, competition allowlist |
 | Large lists | keyset pagination for discovery; bounded cursor/page lists elsewhere |
 | RLS overhead | index all policy lookup columns; inspect `EXPLAIN (ANALYZE, BUFFERS)` with representative seed volumes |
@@ -1200,7 +1199,7 @@ Seed deterministic users, relationships, groups, venues, matches, and events. Re
 2. Personalized fixture/event discovery with city and mocked browser geolocation.
 3. Friend request/accept and friends-only event visibility; unrelated user denied.
 4. Host/audience boundary: a private user cannot create public/team-followers even by crafted request; a venue cannot create group/friends/invite-only.
-5. Discoverable group creation progressing from `forming` to searchable only after every threshold.
+5. A described discoverable group with its active owner becomes searchable without member/rule/event quotas; unlisted, archived, blocked, and banned boundaries remain enforced.
 6. Group application/approval, group ban/reapplication denial, and unlisted invite application.
 7. Owner/admin-authored group event publishes atomically; an ordinary-member submission remains hidden until a different current owner/admin approves it. In a two-account E2E, promoting the creator to admin still denies their self-approval/self-rejection, while a different current owner/admin can decide it.
 8. Home-event request: city/coarse context visible, exact address absent; address appears only after approval; material address/audience change then requires cancellation/new event.
@@ -1376,8 +1375,8 @@ The MVP is done only when:
 | DB access | Supabase SQL/RPC, no Prisma | RLS/PostGIS/functions remain explicit |
 | Location | City fallback + optional browser coordinate | No paid map/geocoder; privacy-safe home discovery |
 | Social | Direct mutual friends plus moderated groups | No friends-of-friends |
-| Group creation | Automatic discovery gate | Avoid platform bottleneck and search spam |
-| Audience boundary | Private people: group/friends/invite-only; business venues: public/team-followers | Strangers cannot discover private-person events |
+| Group creation | Active-owner plus description discovery gate | Avoid platform bottlenecks and fake activity quotas while keeping empty groups out of search |
+| Audience boundary | Private people: group/friends/invite-only; business venues: public/team-followers; eligible signed-in Fans may preview public-place events of active discoverable groups | Anonymous visitors never discover private-person events, and group attendance/home privacy still require membership |
 | Home safety | Restricted audience, approval, protected exact location, max 12, no plus-ones | Trust relationship alone does not reveal address; one account per seat |
 | Blocking | Immediate private control with relationship/attendance/address revocation | User protection does not wait for moderation |
 | Moderation | Confidential reports, proportional enforcement, and appeals | Group admins and platform moderators have distinct authority |

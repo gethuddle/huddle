@@ -392,7 +392,7 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
 
 function statusTitle(visibility: "discoverable" | "unlisted", lifecycle: string): string {
   if (visibility === "unlisted") return "Shared by invitation";
-  return lifecycle === "forming" ? "Setting up for group search" : "Open for applications";
+  return lifecycle === "forming" ? "Not listed yet" : "Open for applications";
 }
 
 function statusDescription(visibility: "discoverable" | "unlisted", lifecycle: string): string {
@@ -400,7 +400,7 @@ function statusDescription(visibility: "discoverable" | "unlisted", lifecycle: s
     return "This group stays out of search. Owners and admins share controlled invitation links.";
   }
   if (lifecycle === "forming") {
-    return "Eligible signed-in supporters with this link can read the summary and apply. The setup list shows what remains before it appears in search.";
+    return "Add a clear description to make this group searchable. Until then, only active members can open it.";
   }
   return "Supporters can find this page and apply. Member-only content stays protected.";
 }

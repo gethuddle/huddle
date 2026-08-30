@@ -6,6 +6,8 @@ import { EmptyState } from "@/components/states/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { EventCard } from "@/features/events/components/event-card";
+import { listMatchEvents } from "@/features/events/queries";
 import { getFixtureById } from "@/features/sports/browse";
 import { matchIdSchema } from "@/features/sports/browse-schemas";
 import { ProviderFreshness } from "@/features/sports/components/provider-freshness";
@@ -68,7 +70,11 @@ export default async function MatchDetailPage({ params }: MatchDetailPageProps) 
   const parsedId = matchIdSchema.safeParse((await params).matchId);
   if (!parsedId.success) notFound();
 
-  const [data, viewer] = await Promise.all([getFixtureById(parsedId.data), getInterestViewer()]);
+  const [data, viewer, events] = await Promise.all([
+    getFixtureById(parsedId.data),
+    getInterestViewer(),
+    listMatchEvents(parsedId.data),
+  ]);
   if (data.match === null) notFound();
   const match = data.match;
   const followed = new Set(viewer.followedKeys);
@@ -169,21 +175,44 @@ export default async function MatchDetailPage({ params }: MatchDetailPageProps) 
       </Card>
 
       <div className="mx-auto mt-10 max-w-4xl">
-        <EmptyState
-          action={
-            <div className="flex flex-wrap justify-center gap-3">
-              <Button asChild>
-                <Link href={"/events/new?matchId=" + match.id}>Host a private event</Link>
-              </Button>
+        {events.length === 0 ? (
+          <EmptyState
+            action={
+              <div className="flex flex-wrap justify-center gap-3">
+                <Button asChild>
+                  <Link href={"/events/new?matchId=" + match.id}>Plan a private huddle</Link>
+                </Button>
+                <Button asChild variant="outline">
+                  <Link href="/settings/interests">Manage all follows</Link>
+                </Button>
+              </div>
+            }
+            description="Eligible Fans may create group, friends, or invite-only events. Venue operators publish public events from their Venue workspace."
+            headingLevel="h2"
+            title="No watch events for this fixture yet."
+          />
+        ) : (
+          <section aria-labelledby="match-events-heading">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-court">
+                  Nearby watch plans
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold text-linen" id="match-events-heading">
+                  Watch this match with Huddle
+                </h2>
+              </div>
               <Button asChild variant="outline">
-                <Link href="/settings/interests">Manage all follows</Link>
+                <Link href={"/events/new?matchId=" + match.id}>Plan a private huddle</Link>
               </Button>
             </div>
-          }
-          description="Eligible Fans may create group, friends, or invite-only events. Venue operators create public or team-follower events from their Venue workspace."
-          headingLevel="h2"
-          title="No Huddle watch events yet."
-        />
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              {events.map((event) => (
+                <EventCard event={event} key={event.id} />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </section>
   );
