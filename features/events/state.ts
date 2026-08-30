@@ -1,4 +1,34 @@
 import type { ActionError } from "@/lib/errors";
+import type { ActionResult } from "@/lib/errors";
+import type { EventDraftProtectedLocation, EventDraftValues } from "@/features/events/schemas";
+
+export type EventDraftState = Readonly<{
+  id: string;
+  step: 1 | 2 | 3;
+  values: EventDraftValues;
+  savedAt: string;
+}>;
+
+export type EventDraftOwnerRecord = Readonly<{
+  draft: EventDraftState;
+  organizingGroupId: string | null;
+  protectedLocation: EventDraftProtectedLocation | null;
+}>;
+
+export type EventDraftActionData = Readonly<{
+  draft: EventDraftState;
+  organizingGroupId: string | null;
+  protectedLocation: EventDraftProtectedLocation | null;
+}>;
+
+export type FinalizedEvent = Readonly<{
+  id: string;
+  status: "pending_group_review" | "published";
+}>;
+
+export type EventDraftActionState = ActionResult<EventDraftActionData>;
+export type EventDraftDiscardActionState = ActionResult<Readonly<{ message: string }>>;
+export type EventDraftFinalizeActionState = ActionResult<never>;
 
 export type PrivateEventFormValues = Readonly<{
   eventId: string;

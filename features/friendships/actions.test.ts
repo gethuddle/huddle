@@ -41,7 +41,7 @@ describe("updateFriendshipAction", () => {
 
     const result = await updateFriendshipAction(null, friendshipForm("request", false));
 
-    expect(mocks.requireActor).toHaveBeenCalledWith("community");
+    expect(mocks.requireActor).toHaveBeenCalledWith("fan");
     expect(rpc).toHaveBeenCalledWith("request_friendship_by_handle", {
       target_handle: "fan_two",
       audit_request_id: "10000000-0000-4000-8000-000000000099",
@@ -50,6 +50,7 @@ describe("updateFriendshipAction", () => {
       ok: true,
       data: { friendship: { id: friendshipId, status: "pending", direction: "outgoing" } },
     });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/people");
   });
 
   it.each(["accept", "decline"] as const)("uses the recipient-only %s response", async (intent) => {

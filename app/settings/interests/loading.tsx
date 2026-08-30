@@ -7,7 +7,7 @@ export default function InterestSettingsLoading() {
       <Skeleton className="mt-5 h-16 max-w-3xl" />
       <div className="mt-12 grid gap-4 md:grid-cols-2">
         {Array.from({ length: 6 }, (_, index) => (
-          <Skeleton className="h-28 rounded-2xl" key={index} />
+          <Skeleton className="h-28 rounded-[1.375rem]" key={index} />
         ))}
       </div>
       <span className="sr-only">Loading sports interests…</span>

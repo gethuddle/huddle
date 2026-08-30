@@ -40,8 +40,8 @@ export default async function GroupsPage({ searchParams }: GroupsPageProps) {
             Support together, beyond match day.
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-dark">
-            Search active supporter groups by city or team. Unlisted and still-forming groups never
-            appear here.
+            Search supporter groups by city or team. Unlisted groups and groups still being set up
+            stay out of these results.
           </p>
         </div>
         <Button asChild>
@@ -63,8 +63,8 @@ export default async function GroupsPage({ searchParams }: GroupsPageProps) {
                 Pick up where you left off
               </h2>
               <p className="mt-2 text-sm text-muted-dark">
-                Your forming and unlisted groups appear here even though they stay out of public
-                search.
+                Groups you are setting up and unlisted groups appear here even though they stay out
+                of public search.
               </p>
             </div>
             <Button asChild size="sm" variant="outline">
@@ -78,7 +78,9 @@ export default async function GroupsPage({ searchParams }: GroupsPageProps) {
                   <div className="flex flex-wrap gap-2">
                     <Badge>{group.member_role}</Badge>
                     <Badge variant="outline">{group.visibility}</Badge>
-                    <Badge variant="outline">{group.lifecycle}</Badge>
+                    <Badge variant="outline">
+                      {group.lifecycle === "active" ? "Ready" : "Setting up"}
+                    </Badge>
                   </div>
                   <h3 className="mt-2 text-xl font-semibold text-linen">{group.name}</h3>
                 </CardHeader>
@@ -115,7 +117,7 @@ export default async function GroupsPage({ searchParams }: GroupsPageProps) {
                 <Link href="/groups">Clear filters</Link>
               </Button>
             }
-            description="Try another city, team, or group name. A discoverable group appears only after every safety and activity gate is currently satisfied."
+            description="Try another city, team, or group name. A discoverable group appears after its setup tasks are complete."
             headingLevel="h2"
             title="No active groups match these filters."
           />

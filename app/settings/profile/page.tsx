@@ -57,7 +57,7 @@ export default async function ProfileSettingsPage() {
   if (profileResult.error !== null || cityResult.error !== null || profileResult.data === null) {
     return (
       <ProfileAccessState
-        description="The local profile service could not prepare this form. Try again after the database is available."
+        description="Your profile could not be loaded right now. Try again in a moment."
         eyebrow="Unable to continue"
         title="We couldn’t load your profile."
         warning
@@ -116,12 +116,13 @@ export default async function ProfileSettingsPage() {
           {initialValue.completed ? "Keep your profile current." : "Finish joining Huddle."}
         </h1>
         <p className="mt-4 text-lg leading-8 text-muted-dark">
-          Choose how people know you, set your city fallback, confirm you are 18+, and accept the
-          rules that keep real gatherings safer.
+          {initialValue.completed
+            ? "Update how people know you. Your saved eligibility stays compact unless the community rules change."
+            : "Choose how people know you, set your city, and complete the eligibility steps that keep real gatherings safer."}
         </p>
       </div>
 
-      <div className="rounded-[2rem] border border-border-dark bg-surface-raised p-6 shadow-2xl shadow-black/20 sm:p-10">
+      <div className="rounded-[1.375rem] border border-border-dark bg-surface-raised p-6 sm:p-10">
         <ProfileForm cities={cities} initialValue={initialValue} />
       </div>
     </section>

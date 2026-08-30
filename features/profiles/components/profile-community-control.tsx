@@ -34,7 +34,7 @@ export function ProfileCommunityControl({
           <Separator />
           <div>
             <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-dark">
-              Safety
+              Safety actions
             </p>
             <BlockControl initiallyBlocked={viewerHasBlocked} targetHandle={targetHandle} />
           </div>

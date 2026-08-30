@@ -30,7 +30,7 @@ function refreshModerationViews() {
   revalidatePath("/events");
 }
 
-async function context(requirement: "community" | "safety") {
+async function context(requirement: "common" | "safety") {
   return Promise.all([requireActor(requirement), getRequestId()]);
 }
 
@@ -96,7 +96,7 @@ export async function assignReportAction(
   const parsed = reportAssignmentSchema.safeParse({ reportId: field(formData, "reportId") });
   if (!parsed.success) return actionFailure(parsed.error);
   try {
-    const [{ supabase }, requestId] = await context("community");
+    const [{ supabase }, requestId] = await context("common");
     const { error } = await supabase.rpc("assign_report", {
       input_report_id: parsed.data.reportId,
       audit_request_id: requestId,
@@ -119,7 +119,7 @@ export async function dismissReportAction(
   });
   if (!parsed.success) return actionFailure(parsed.error);
   try {
-    const [{ supabase }, requestId] = await context("community");
+    const [{ supabase }, requestId] = await context("common");
     const { error } = await supabase.rpc("dismiss_report", {
       input_report_id: parsed.data.reportId,
       input_reason: parsed.data.reason,
@@ -145,7 +145,7 @@ export async function applyModerationAction(
   });
   if (!parsed.success) return actionFailure(parsed.error);
   try {
-    const [{ supabase }, requestId] = await context("community");
+    const [{ supabase }, requestId] = await context("common");
     const { error } = await supabase.rpc("apply_moderation_action", {
       input_report_id: parsed.data.reportId,
       input_action: parsed.data.action,
@@ -171,7 +171,7 @@ export async function reverseModerationAction(
   });
   if (!parsed.success) return actionFailure(parsed.error);
   try {
-    const [{ supabase }, requestId] = await context("community");
+    const [{ supabase }, requestId] = await context("common");
     const { error } = await supabase.rpc("reverse_moderation_action", {
       input_action_id: parsed.data.moderationActionId,
       input_reason: parsed.data.reason,
@@ -221,7 +221,7 @@ export async function reviewModerationAppealAction(
   });
   if (!parsed.success) return actionFailure(parsed.error);
   try {
-    const [{ supabase }, requestId] = await context("community");
+    const [{ supabase }, requestId] = await context("common");
     const { error } = await supabase.rpc("review_moderation_appeal", {
       input_appeal_id: parsed.data.appealId,
       input_decision: parsed.data.decision,

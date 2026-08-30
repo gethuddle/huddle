@@ -1,10 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 
 import { requireActor } from "@/features/auth/actor";
-import { profileInputSchema } from "@/features/profiles/schemas";
+import { fanWorkspaceInputSchema } from "@/features/profiles/schemas";
 import type { ProfileActionState, ProfileFormValues } from "@/features/profiles/state";
+import { workspaceRowsSchema } from "@/features/workspaces/schemas";
+import {
+  serializeWorkspaceSelection,
+  WORKSPACE_COOKIE_NAME,
+  workspaceCookieOptions,
+} from "@/features/workspaces/state";
 import { domainErrorFromDatabase, DomainError, toActionError } from "@/lib/errors";
 
 function formString(value: FormDataEntryValue | null): string {
@@ -35,12 +42,13 @@ function profileActionFailure(
   };
 }
 
-export async function saveProfileAction(
+async function activateFanWorkspace(
   previousState: ProfileActionState,
   formData: FormData,
+  destination: "home" | "profile",
 ): Promise<ProfileActionState> {
   const values = submittedValues(formData);
-  const parsed = profileInputSchema.safeParse({
+  const parsed = fanWorkspaceInputSchema.safeParse({
     handle: formData.get("handle"),
     displayName: formData.get("displayName"),
     citySlug: formData.get("citySlug"),
@@ -55,8 +63,8 @@ export async function saveProfileAction(
   }
 
   try {
-    const { supabase } = await requireActor("onboarding");
-    const { data, error } = await supabase.rpc("complete_profile", {
+    const { supabase, user } = await requireActor("authenticated");
+    const { data, error } = await supabase.rpc("activate_fan_workspace", {
       input_handle: parsed.data.handle,
       input_display_name: parsed.data.displayName,
       input_city_slug: parsed.data.citySlug,
@@ -74,6 +82,25 @@ export async function saveProfileAction(
       throw new DomainError("INTERNAL_ERROR");
     }
 
+    if (destination === "home") {
+      const { data: currentWorkspaces, error: workspaceError } =
+        await supabase.rpc("list_my_workspaces");
+      if (workspaceError !== null) throw domainErrorFromDatabase(workspaceError);
+      const fan = workspaceRowsSchema
+        .parse(currentWorkspaces)
+        .find(
+          (workspace) => workspace.workspace_kind === "fan" && workspace.workspace_id === user.id,
+        );
+      if (fan === undefined) throw new DomainError("NOT_ALLOWED");
+
+      const cookieStore = await cookies();
+      cookieStore.set(
+        WORKSPACE_COOKIE_NAME,
+        serializeWorkspaceSelection({ kind: "fan", id: fan.workspace_id }),
+        workspaceCookieOptions(),
+      );
+    }
+
     revalidatePath("/", "layout");
     revalidatePath("/settings/profile");
     revalidatePath(`/people/${completedProfile.handle}`);
@@ -82,10 +109,26 @@ export async function saveProfileAction(
       ok: true,
       data: {
         message: "Your Huddle profile is ready.",
-        redirectTo: `/people/${completedProfile.handle}`,
+        redirectTo: destination === "home" ? "/" : `/people/${completedProfile.handle}`,
       },
     };
   } catch (error) {
     return profileActionFailure(error, values, previousState);
   }
 }
+
+export async function activateFanWorkspaceAction(
+  previousState: ProfileActionState,
+  formData: FormData,
+): Promise<ProfileActionState> {
+  return activateFanWorkspace(previousState, formData, "profile");
+}
+
+export async function activateFanOnboardingAction(
+  previousState: ProfileActionState,
+  formData: FormData,
+): Promise<ProfileActionState> {
+  return activateFanWorkspace(previousState, formData, "home");
+}
+
+export const saveProfileAction = activateFanWorkspaceAction;

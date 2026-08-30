@@ -5,7 +5,7 @@ import { DomainError, type DomainErrorCode } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/database.generated";
 
-export type ActorRequirement = "onboarding" | "community" | "safety";
+export type ActorRequirement = "authenticated" | "common" | "fan" | "safety" | { venueId: string };
 
 export type ActorFacts = Readonly<{
   authenticated: boolean;
@@ -14,27 +14,35 @@ export type ActorFacts = Readonly<{
   adultAttested: boolean;
   rulesCurrent: boolean;
   profileComplete: boolean;
+  fanEnabled: boolean;
   suspended: boolean;
   restricted: boolean;
+  venueAuthorized?: boolean;
 }>;
 
 export function actorGateCode(
   facts: ActorFacts,
   requirement: ActorRequirement,
 ): DomainErrorCode | null {
+  const effectiveRequirement =
+    (requirement as string) === "community"
+      ? "fan"
+      : (requirement as string) === "onboarding"
+        ? "authenticated"
+        : requirement;
   if (!facts.authenticated) return "AUTH_REQUIRED";
+  if (effectiveRequirement === "authenticated") return null;
   if (!facts.emailVerified) return "EMAIL_NOT_VERIFIED";
   if (!facts.profileExists) return "PROFILE_INCOMPLETE";
-  if (requirement === "safety") return null;
+  if (effectiveRequirement === "safety") return null;
   if (facts.suspended) return "ACCOUNT_SUSPENDED";
-
-  if (requirement === "community") {
-    if (!facts.adultAttested) return "ADULT_ATTESTATION_REQUIRED";
-    if (!facts.rulesCurrent) return "RULES_ACCEPTANCE_REQUIRED";
-    if (!facts.profileComplete) return "PROFILE_INCOMPLETE";
+  if (!facts.adultAttested) return "ADULT_ATTESTATION_REQUIRED";
+  if (!facts.rulesCurrent) return "RULES_ACCEPTANCE_REQUIRED";
+  if (facts.restricted) return "ACCOUNT_RESTRICTED";
+  if (effectiveRequirement === "fan" && (!facts.profileComplete || facts.fanEnabled !== true)) {
+    return "PROFILE_INCOMPLETE";
   }
-
-  if (requirement === "community" && facts.restricted) return "ACCOUNT_RESTRICTED";
+  if (typeof effectiveRequirement === "object" && !facts.venueAuthorized) return "NOT_ALLOWED";
 
   return null;
 }
@@ -49,6 +57,7 @@ type ActorProfile = Pick<
   | "rules_version"
   | "rules_accepted_at"
   | "profile_completed_at"
+  | "fan_enabled_at"
   | "suspended_at"
   | "suspension_expires_at"
   | "community_restricted_at"
@@ -79,7 +88,7 @@ export async function requireActor(
   const { data: profile, error } = await supabase
     .from("profiles")
     .select(
-      "id, handle, display_name, city_id, adult_attested_at, rules_version, rules_accepted_at, profile_completed_at, suspended_at, suspension_expires_at, community_restricted_at, community_restricted_until",
+      "id, handle, display_name, city_id, adult_attested_at, rules_version, rules_accepted_at, profile_completed_at, fan_enabled_at, suspended_at, suspension_expires_at, community_restricted_at, community_restricted_until",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -88,7 +97,7 @@ export async function requireActor(
     throw new DomainError("INTERNAL_ERROR", { cause: error });
   }
 
-  const facts: ActorFacts = {
+  let facts: ActorFacts = {
     authenticated: true,
     emailVerified: user.email_confirmed_at !== undefined && user.email_confirmed_at !== null,
     profileExists: profile !== null,
@@ -102,10 +111,30 @@ export async function requireActor(
       profile.handle !== null &&
       profile.display_name !== null &&
       profile.city_id !== null,
+    fanEnabled: profile?.fan_enabled_at !== null && profile?.fan_enabled_at !== undefined,
     suspended: profile?.suspended_at !== null && profile?.suspended_at !== undefined,
     restricted:
       profile?.community_restricted_at !== null && profile?.community_restricted_at !== undefined,
+    venueAuthorized: false,
   };
+
+  if (typeof requirement === "object") {
+    const commonFailure = actorGateCode(facts, "common");
+    if (commonFailure !== null) throw new DomainError(commonFailure);
+
+    const { data: workspaces, error: workspaceError } = await supabase.rpc("list_my_workspaces");
+
+    if (workspaceError !== null) {
+      throw new DomainError("INTERNAL_ERROR", { cause: workspaceError });
+    }
+    facts = {
+      ...facts,
+      venueAuthorized: workspaces.some(
+        (workspace) =>
+          workspace.workspace_kind === "venue" && workspace.workspace_id === requirement.venueId,
+      ),
+    };
+  }
   const failureCode = actorGateCode(facts, requirement);
 
   if (failureCode !== null) {

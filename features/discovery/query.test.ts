@@ -55,7 +55,6 @@ function safeRow() {
     approved_attendee_count: 12,
     remaining_capacity: 28,
     requires_approval: false,
-    viewer_attendance_status: null,
     interest_score: 8,
     cursor_distance_band: 1,
     has_more: true,
@@ -73,7 +72,22 @@ describe("event discovery query", () => {
       data: { user: { id: "52000000-0000-4000-8000-000000000403" } },
       error: null,
     });
-    mocks.rpc.mockResolvedValue({ data: [safeRow()], error: null });
+    mocks.rpc.mockImplementation(async (name: string) => ({
+      data:
+        name === "discover_events"
+          ? [safeRow()]
+          : name === "get_public_event_map_points"
+            ? [
+                {
+                  event_id: safeRow().event_id,
+                  place_name: "The Corner",
+                  latitude: 32.812,
+                  longitude: 34.998,
+                },
+              ]
+            : [],
+      error: null,
+    }));
     mocks.createClient.mockResolvedValue({
       auth: { getUser: mocks.getUser },
       from: vi.fn(() => {
@@ -90,10 +104,10 @@ describe("event discovery query", () => {
     });
   });
 
-  it("loads the complete card page through one RPC without exact-location fields", async () => {
+  it("adds an exact point only through the bounded public map projection", async () => {
     const result = await getDiscoveryPage(filters);
 
-    expect(mocks.rpc).toHaveBeenCalledOnce();
+    expect(mocks.rpc).toHaveBeenCalledTimes(3);
     expect(mocks.rpc).toHaveBeenCalledWith(
       "discover_events",
       expect.objectContaining({
@@ -102,6 +116,13 @@ describe("event discovery query", () => {
         input_limit: 20,
       }),
     );
+    expect(mocks.rpc).toHaveBeenCalledWith(
+      "discover_open_door_events",
+      expect.objectContaining({ input_limit: 20 }),
+    );
+    expect(mocks.rpc).toHaveBeenCalledWith("get_public_event_map_points", {
+      input_event_ids: ["52000000-0000-4000-8000-000000000401"],
+    });
     expect(result).toMatchObject({
       requiresPrivateCache: true,
       locationMode: "city",
@@ -109,19 +130,68 @@ describe("event discovery query", () => {
         {
           title: "North stand watch",
           locationSummary: "1–5 km away",
+          mapPoint: { placeName: "The Corner", latitude: 32.812, longitude: 34.998 },
           matchesFollows: true,
         },
       ],
     });
     expect(result.nextCursor).toEqual(expect.any(String));
-    expect(JSON.stringify(result)).not.toMatch(
-      /address|latitude|longitude|distance_meters|private_location/i,
-    );
+    expect(JSON.stringify(result)).not.toMatch(/address|distance_meters|private_location/i);
   });
 
   it("rejects an expanded database row that attempts to add a protected field", async () => {
     mocks.rpc.mockResolvedValue({
       data: [{ ...safeRow(), private_address_text: "Never expose this" }],
+      error: null,
+    });
+
+    await expect(getDiscoveryPage(filters)).rejects.toThrow();
+  });
+
+  it("presents a walk-in Venue without a fabricated capacity or join policy", async () => {
+    mocks.rpc.mockImplementation(async (name: string) => ({
+      data:
+        name === "discover_open_door_events"
+          ? [
+              {
+                ...safeRow(),
+                event_id: "52000000-0000-4000-8000-000000000499",
+                capacity: null,
+                approved_attendee_count: 0,
+                remaining_capacity: null,
+                requires_approval: false,
+                has_more: false,
+              },
+            ]
+          : [],
+      error: null,
+    }));
+
+    await expect(getDiscoveryPage(filters)).resolves.toMatchObject({
+      items: [
+        {
+          attendanceMode: "open_door",
+          capacity: null,
+          remainingCapacity: null,
+          requiresApproval: false,
+        },
+      ],
+      nextCursor: null,
+    });
+  });
+
+  it("rejects the legacy viewer attendance field instead of leaking relationship history", async () => {
+    mocks.rpc.mockResolvedValue({
+      data: [{ ...safeRow(), viewer_attendance_status: "approved" }],
+      error: null,
+    });
+
+    await expect(getDiscoveryPage(filters)).rejects.toThrow();
+  });
+
+  it("rejects invite-only rows that violate the acquisition audience contract", async () => {
+    mocks.rpc.mockResolvedValue({
+      data: [{ ...safeRow(), audience: "invite_only" }],
       error: null,
     });
 
@@ -137,6 +207,6 @@ describe("event discovery query", () => {
     const result = await getDiscoveryPage(filters);
 
     expect(result.requiresPrivateCache).toBe(true);
-    expect(mocks.rpc).toHaveBeenCalledOnce();
+    expect(mocks.rpc).toHaveBeenCalledTimes(3);
   });
 });

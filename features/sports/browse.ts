@@ -42,14 +42,18 @@ function safeMatchRows(rows: readonly unknown[]): readonly PublicMatchDto[] {
   }
 }
 
-function observedFreshness(lastSucceededAt: string | null, route: string): FixtureFreshness {
+function observedFreshness(
+  updatedAt: string | null,
+  coverageThrough: string | null,
+  route: string,
+): FixtureFreshness {
   const now = new Date();
-  const freshness = deriveFixtureFreshness(lastSucceededAt, now);
+  const freshness = deriveFixtureFreshness(updatedAt, coverageThrough, now);
   safeLog("info", "sports.catalog.observed", {
     route,
     outcome: "succeeded",
     code: freshness.status,
-    syncAgeSeconds: fixtureSyncAgeSeconds(lastSucceededAt, now) ?? undefined,
+    syncAgeSeconds: fixtureSyncAgeSeconds(updatedAt, now) ?? undefined,
   });
   return freshness;
 }
@@ -93,8 +97,33 @@ export async function getFixtureBrowserData(filters: FixtureFilters): Promise<Fi
     supabase.rpc("get_public_provider_freshness", { input_provider: "football-data" }),
   ]);
 
+  let matchRows = matchResult.data ?? [];
+  let total = matchResult.count ?? 0;
   if (matchResult.error !== null) {
-    throw new DomainError("INTERNAL_ERROR", { cause: matchResult.error });
+    if (matchResult.error.code !== "PGRST103") {
+      throw new DomainError("INTERNAL_ERROR", { cause: matchResult.error });
+    }
+
+    let countQuery = supabase
+      .from("public_future_matches")
+      .select("id", { count: "exact", head: true });
+    if (plan.startAt !== null && plan.endBefore !== null) {
+      countQuery = countQuery.gte("starts_at", plan.startAt).lt("starts_at", plan.endBefore);
+    }
+    if (filters.competitionId !== undefined) {
+      countQuery = countQuery.eq("competition_id", filters.competitionId);
+    }
+    if (filters.teamId !== undefined) {
+      countQuery = countQuery.or(
+        `home_team_id.eq.${filters.teamId},away_team_id.eq.${filters.teamId}`,
+      );
+    }
+    const countResult = await countQuery;
+    if (countResult.error !== null) {
+      throw new DomainError("INTERNAL_ERROR", { cause: countResult.error });
+    }
+    matchRows = [];
+    total = countResult.count ?? 0;
   }
   if (competitionResult.error !== null || teamResult.error !== null) {
     throw new DomainError("INTERNAL_ERROR", {
@@ -102,9 +131,8 @@ export async function getFixtureBrowserData(filters: FixtureFilters): Promise<Fi
     });
   }
 
-  const total = matchResult.count ?? 0;
   return {
-    matches: safeMatchRows(matchResult.data),
+    matches: safeMatchRows(matchRows),
     competitions: competitionResult.data.map((competition) => ({
       id: competition.id,
       name: competition.name,
@@ -117,8 +145,9 @@ export async function getFixtureBrowserData(filters: FixtureFilters): Promise<Fi
       tla: team.tla,
     })),
     freshness: observedFreshness(
+      freshnessResult.error === null ? (freshnessResult.data.at(0)?.updated_at ?? null) : null,
       freshnessResult.error === null
-        ? (freshnessResult.data.at(0)?.last_succeeded_at ?? null)
+        ? (freshnessResult.data.at(0)?.coverage_through ?? null)
         : null,
       "/matches",
     ),
@@ -150,8 +179,9 @@ export async function getFixtureById(matchId: string): Promise<
   return {
     match: matchResult.data === null ? null : (safeMatchRows([matchResult.data]).at(0) ?? null),
     freshness: observedFreshness(
+      freshnessResult.error === null ? (freshnessResult.data.at(0)?.updated_at ?? null) : null,
       freshnessResult.error === null
-        ? (freshnessResult.data.at(0)?.last_succeeded_at ?? null)
+        ? (freshnessResult.data.at(0)?.coverage_through ?? null)
         : null,
       "/matches/[matchId]",
     ),

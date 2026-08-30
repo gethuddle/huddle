@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { EmptyState } from "@/components/states/empty-state";
 import { Button } from "@/components/ui/button";
@@ -9,10 +10,12 @@ import { FixtureFilters } from "@/features/sports/components/fixture-filters";
 import { FixturePagination } from "@/features/sports/components/fixture-pagination";
 import { MatchCard } from "@/features/sports/components/match-card";
 import { ProviderFreshness } from "@/features/sports/components/provider-freshness";
+import { fixtureCoverageIncludesDate } from "@/features/sports/freshness";
+import { fixturePageHref } from "@/features/sports/query";
 
 export const metadata: Metadata = {
   title: "Football fixtures — Huddle",
-  description: "Browse locally cached football fixtures in Israel time.",
+  description: "Browse upcoming football fixtures in Israel time.",
 };
 
 type MatchesPageProps = Readonly<{
@@ -22,6 +25,14 @@ type MatchesPageProps = Readonly<{
 export default async function MatchesPage({ searchParams }: MatchesPageProps) {
   const filters = parseFixtureFilters(await searchParams);
   const data = await getFixtureBrowserData(filters);
+  if (filters.page > data.totalPages) {
+    redirect(fixturePageHref(filters, data.totalPages));
+  }
+  const coverageIncludesDate =
+    filters.date === undefined
+      ? null
+      : fixtureCoverageIncludesDate(data.freshness.coverageThrough, filters.date);
+  const requestedDateBeyondCoverage = data.matches.length === 0 && coverageIncludesDate === false;
 
   return (
     <section className="py-12 sm:py-16">
@@ -34,7 +45,7 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
             Find the fixture. Then find your huddle.
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-dark">
-            Browse every fixture currently in Huddle by Israel date, competition, or team.
+            Browse upcoming fixtures by Israel date, competition, or team.
           </p>
         </div>
         <ProviderFreshness freshness={data.freshness} />
@@ -65,10 +76,18 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
               <Link href="/matches">Clear filters</Link>
             </Button>
           }
-          description="Try another Israel date, competition, or team."
+          description={
+            requestedDateBeyondCoverage
+              ? `Huddle currently has fixtures through ${data.freshness.coverageLabel}. Try an earlier date or check again after the next update.`
+              : "Try another date, competition, or team."
+          }
           headingLevel="h3"
           title={
-            data.total === 0 ? "No fixtures match these filters." : "No fixtures on this page."
+            requestedDateBeyondCoverage
+              ? "Later fixtures are not yet available."
+              : data.total === 0
+                ? "No fixtures match these filters."
+                : "No fixtures on this page."
           }
         />
       ) : (
@@ -80,23 +99,6 @@ export default async function MatchesPage({ searchParams }: MatchesPageProps) {
       )}
 
       <FixturePagination filters={filters} totalPages={data.totalPages} />
-
-      <p className="mt-12 border-t border-border-dark pt-6 text-sm text-muted-dark">
-        Football data supplied by{" "}
-        <a
-          className="font-semibold text-linen underline decoration-border-strong underline-offset-4 hover:text-court"
-          href="https://www.football-data.org/"
-          rel="noreferrer"
-          target="_blank"
-        >
-          football-data.org
-        </a>
-        . Read our{" "}
-        <Link className="text-linen underline underline-offset-4" href="/data-sources">
-          data source notes
-        </Link>
-        .
-      </p>
     </section>
   );
 }

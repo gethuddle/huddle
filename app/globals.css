@@ -82,6 +82,8 @@ html {
 body {
   min-height: 100vh;
   margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
   background: var(--page-background);
   color: var(--page-foreground);
   font-family: var(--font-familjen-grotesk), "Helvetica Neue", Arial, sans-serif;

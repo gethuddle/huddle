@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   cancelEventAction: vi.fn(),
   createEventInvitationAction: vi.fn(),
+  createEventInvitationsAction: vi.fn(),
   removeAttendeeAction: vi.fn(),
   reviewAttendanceAction: vi.fn(),
   revokeEventInvitationAction: vi.fn(),
@@ -51,6 +52,9 @@ describe("EventManagementControls", () => {
             follows_home_team: true,
             follows_away_team: false,
             follows_audience_team: false,
+            review_mode: "approve_or_decline",
+            review_reason: null,
+            can_approve: true,
             total_count: 1,
           },
         ]}
@@ -72,8 +76,56 @@ describe("EventManagementControls", () => {
     expect(formData.get("decision")).toBe("approve");
   });
 
-  it("creates an invitation by handle without any guest-count input", async () => {
-    mocks.createEventInvitationAction.mockResolvedValue({
+  it("explains a decline-only request and never renders an impossible approval", async () => {
+    mocks.reviewAttendanceAction.mockResolvedValue({
+      ok: true,
+      data: { message: "Request declined." },
+    });
+    const user = userEvent.setup();
+    render(
+      <EventManagementControls
+        attendance={[
+          {
+            attendance_id: "90000000-0000-4000-8000-000000000601",
+            user_id: "90000000-0000-4000-8000-000000000102",
+            requester_handle: "supporter",
+            requester_display_name: "Supporter One",
+            requester_city_name: "Haifa",
+            status: "requested",
+            source: "self_request",
+            requested_at: "2026-08-28T12:00:00Z",
+            removal_reason: null,
+            verified_account: true,
+            account_age_days: 40,
+            mutual_friend_count: 2,
+            shared_active_group_count: 1,
+            follows_sport: true,
+            follows_competition: false,
+            follows_home_team: true,
+            follows_away_team: false,
+            follows_audience_team: false,
+            review_mode: "decline_only",
+            review_reason: "The event is full. Only decline remains.",
+            can_approve: false,
+            total_count: 1,
+          },
+        ]}
+        eventId={eventId}
+        eventStatus="published"
+        invitations={[]}
+      />,
+    );
+
+    expect(screen.getByText("The event is full. Only decline remains.")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Approve" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Decline" }));
+    await waitFor(() => expect(mocks.reviewAttendanceAction).toHaveBeenCalledOnce());
+    const formData = mocks.reviewAttendanceAction.mock.calls[0]?.[0] as FormData;
+    expect(formData.get("decision")).toBe("decline");
+  });
+
+  it("selects an eligible person inline without any guest-count input", async () => {
+    mocks.createEventInvitationsAction.mockResolvedValue({
       ok: true,
       data: { message: "Invitation sent to @supporter." },
     });
@@ -81,17 +133,31 @@ describe("EventManagementControls", () => {
     render(
       <EventManagementControls
         attendance={[]}
+        candidates={[
+          {
+            id: "90000000-0000-4000-8000-000000000102",
+            handle: "supporter",
+            displayName: "Supporter One",
+            context: "Friend · Haifa",
+            eligible: true,
+            ineligibilityReason: null,
+          },
+        ]}
         eventId={eventId}
         eventStatus="published"
         invitations={[]}
+        remainingCapacity={1}
       />,
     );
 
-    await user.type(screen.getByLabelText("Huddle handle"), "supporter");
-    await user.click(screen.getByRole("button", { name: "Send invitation" }));
-    await waitFor(() => expect(mocks.createEventInvitationAction).toHaveBeenCalledOnce());
-    const formData = mocks.createEventInvitationAction.mock.calls[0]?.[0] as FormData;
-    expect(formData.get("inviteeHandle")).toBe("supporter");
-    expect(formData.has("guestCount")).toBe(false);
+    await user.click(screen.getByRole("button", { name: "Invite people" }));
+    await user.click(screen.getByRole("checkbox", { name: "Supporter One @supporter" }));
+    await user.click(screen.getByRole("button", { name: "Invite 1 person" }));
+    await waitFor(() => expect(mocks.createEventInvitationsAction).toHaveBeenCalledOnce());
+    expect(mocks.createEventInvitationsAction).toHaveBeenCalledWith({
+      eventId,
+      inviteeIds: ["90000000-0000-4000-8000-000000000102"],
+    });
+    expect(screen.queryByLabelText(/guest|plus-one/i)).not.toBeInTheDocument();
   });
 });

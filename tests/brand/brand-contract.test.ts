@@ -39,7 +39,7 @@ function collectTsxFiles(directory: string): string[] {
       return collectTsxFiles(path);
     }
 
-    return entry.isFile() && path.endsWith(".tsx") ? [path] : [];
+    return entry.isFile() && path.endsWith(".tsx") && !path.endsWith(".test.tsx") ? [path] : [];
   });
 }
 
@@ -64,6 +64,54 @@ describe("brand contract", () => {
       ...collectTsxFiles(join(process.cwd(), "components")),
     ];
     const offenders = files.filter((file) => /#[\da-f]{3,8}/i.test(readFileSync(file, "utf8")));
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("keeps the shared product geometry and readable body baseline in primitives", () => {
+    const globalStyles = readFileSync(join(process.cwd(), "app/globals.css"), "utf8");
+    const button = readFileSync(join(process.cwd(), "components/ui/button.tsx"), "utf8");
+    const card = readFileSync(join(process.cwd(), "components/ui/card.tsx"), "utf8");
+    const input = readFileSync(join(process.cwd(), "components/ui/input.tsx"), "utf8");
+    const nativeSelect = readFileSync(
+      join(process.cwd(), "components/ui/native-select.tsx"),
+      "utf8",
+    );
+
+    expect(globalStyles).toContain("font-size: 1rem;");
+    expect(button).toContain('default: "min-h-11');
+    expect(button).toContain('icon: "size-11"');
+    expect(card).toContain("rounded-[1.375rem]");
+    expect(card).not.toContain("shadow-xl");
+    expect(input).toContain("rounded-[0.875rem]");
+    expect(nativeSelect).toContain("rounded-[0.875rem]");
+  });
+
+  it("keeps current navigation semantic and visibly selected", () => {
+    const siteHeader = readFileSync(
+      join(process.cwd(), "components/layout/site-header.tsx"),
+      "utf8",
+    );
+    const fanNavigation = readFileSync(
+      join(process.cwd(), "features/workspaces/components/fan-bottom-navigation.tsx"),
+      "utf8",
+    );
+
+    for (const source of [siteHeader, fanNavigation]) {
+      expect(source).toContain('aria-current={current ? "page" : undefined}');
+      expect(source).toContain('current && "');
+    }
+  });
+
+  it("keeps implementation and course vocabulary out of rendered product sources", () => {
+    const files = [
+      ...collectTsxFiles(join(process.cwd(), "app")),
+      ...collectTsxFiles(join(process.cwd(), "components")),
+      ...collectTsxFiles(join(process.cwd(), "features")),
+    ];
+    const forbidden =
+      /course MVP|submitted MVP|\bB(?:0[1-9]|1[0-5])\b|provider-neutral identities|raw payloads|lifecycle synchronized|Current lifecycle/i;
+    const offenders = files.filter((file) => forbidden.test(readFileSync(file, "utf8")));
 
     expect(offenders).toEqual([]);
   });

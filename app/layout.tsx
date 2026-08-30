@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { AppShell } from "@/components/layout/app-shell";
 
+import "maplibre-gl/dist/maplibre-gl.css";
 import "./globals.css";
 
 const familjenGrotesk = Familjen_Grotesk({

@@ -16,7 +16,7 @@ export function EmptyState({
   headingLevel: Heading = "h1",
 }: EmptyStateProps) {
   return (
-    <Card className="mx-auto my-16 w-full max-w-2xl rounded-[2rem] border border-dashed border-border-strong bg-surface-raised p-8 text-center sm:p-12">
+    <Card className="mx-auto my-16 w-full max-w-2xl rounded-[1.375rem] border border-dashed border-border-strong bg-surface-raised p-8 text-center sm:p-12">
       <CardHeader>
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-court">
           Nothing here yet

@@ -48,7 +48,7 @@ export async function getGroupInvitePreview(token: string): Promise<GroupInviteP
   if (!parsedToken.success) return { state: "unavailable" };
 
   try {
-    const { supabase } = await requireActor("community");
+    const { supabase } = await requireActor("fan");
     const { data, error } = await supabase.rpc("get_group_invite_preview", {
       input_token: parsedToken.data,
     });

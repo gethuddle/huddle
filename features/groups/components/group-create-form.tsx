@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +22,6 @@ import {
 export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCatalog }>) {
   const router = useRouter();
   const slugInput = useRef<HTMLInputElement>(null);
-  const slugWasEdited = useRef(false);
   const [state, formAction, pending] = useActionState(
     createGroupAction,
     INITIAL_GROUP_CREATION_ACTION_STATE,
@@ -45,7 +44,10 @@ export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCa
         </CardHeader>
         <CardContent>
           <p className="leading-7 text-muted-dark">
-            {state.data.message} Opening it now so you can invite people and keep building.
+            {state.data.message}{" "}
+            {state.data.visibility === "discoverable"
+              ? "Opening it now so you can share the application link and review requests."
+              : "Opening it now so you can create invitation links for the people you choose."}
           </p>
           <Button asChild className="mt-6">
             <Link href={`/groups/${state.data.group.slug}`}>Open group</Link>
@@ -81,66 +83,29 @@ export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCa
       key={state?.ok === false ? `error-${state.attempt}` : review === null ? "draft" : "review"}
       noValidate
     >
-      <div className="grid gap-5 sm:grid-cols-2">
-        <div>
-          <Label className="text-linen" htmlFor="group-name">
-            Group name
-          </Label>
-          <Input
-            aria-describedby="group-name-error"
-            aria-invalid={fieldErrors?.name === undefined ? undefined : true}
-            className="mt-2"
-            defaultValue={values.name}
-            id="group-name"
-            maxLength={80}
-            name="name"
-            onChange={(event) => {
-              if (!slugWasEdited.current && slugInput.current !== null) {
-                slugInput.current.value = groupSlugFromName(event.target.value);
-              }
-            }}
-            placeholder="Haifa matchday supporters"
-            required
-          />
-          <FieldError id="group-name-error" messages={fieldErrors?.name} />
-        </div>
-
-        <div>
-          <Label className="text-linen" htmlFor="group-slug">
-            Group URL{" "}
-            <span aria-hidden="true" className="font-normal text-muted-dark">
-              (suggested)
-            </span>
-          </Label>
-          <div className="relative">
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute left-4 top-[1.05rem] text-muted-dark"
-            >
-              /groups/
-            </span>
-            <Input
-              aria-label="Group URL"
-              aria-describedby="group-slug-help group-slug-error"
-              aria-invalid={fieldErrors?.slug === undefined ? undefined : true}
-              className="mt-2 pl-[5.4rem]"
-              defaultValue={values.slug}
-              id="group-slug"
-              maxLength={60}
-              name="slug"
-              onChange={() => {
-                slugWasEdited.current = true;
-              }}
-              placeholder="haifa-matchday"
-              ref={slugInput}
-              required
-            />
-          </div>
-          <span className="mt-2 block text-xs text-muted-dark" id="group-slug-help">
-            Huddle fills this from the group name. You can change it before creating the group.
-          </span>
-          <FieldError id="group-slug-error" messages={fieldErrors?.slug} />
-        </div>
+      <div>
+        <Label className="text-linen" htmlFor="group-name">
+          Group name
+        </Label>
+        <Input
+          aria-describedby="group-name-error"
+          aria-invalid={fieldErrors?.name === undefined ? undefined : true}
+          className="mt-2"
+          defaultValue={values.name}
+          id="group-name"
+          maxLength={80}
+          name="name"
+          onChange={(event) => {
+            if (slugInput.current !== null) {
+              slugInput.current.value = groupSlugFromName(event.target.value);
+            }
+          }}
+          placeholder="Haifa matchday supporters"
+          required
+        />
+        <FieldError id="group-name-error" messages={fieldErrors?.name} />
+        <input defaultValue={values.slug} name="slug" ref={slugInput} type="hidden" />
+        <FieldError id="group-slug-error" messages={fieldErrors?.slug} />
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
@@ -182,38 +147,11 @@ export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCa
         </div>
       </div>
 
-      <div>
-        <Label className="text-linen" htmlFor="group-visibility">
-          Visibility
-        </Label>
-        <NativeSelect
-          className="mt-2"
-          defaultValue={values.visibility}
-          id="group-visibility"
-          name="visibility"
-        >
-          <NativeSelectOption value="discoverable">Discoverable</NativeSelectOption>
-          <NativeSelectOption value="unlisted">Unlisted</NativeSelectOption>
-        </NativeSelect>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-xl border border-border bg-surface-deep p-4">
-            <p className="font-semibold text-linen">Discoverable</p>
-            <p className="mt-1 text-sm leading-6 text-muted-dark">
-              People can find it after you finish its description, rules and first activity checks.
-            </p>
-          </div>
-          <div className="rounded-xl border border-border bg-surface-deep p-4">
-            <p className="font-semibold text-linen">Unlisted</p>
-            <p className="mt-1 text-sm leading-6 text-muted-dark">
-              Only people with an invite can join. It will still appear in your My Huddle page.
-            </p>
-          </div>
-        </div>
-      </div>
+      <VisibilityChoice defaultValue={values.visibility as "discoverable" | "unlisted"} />
 
       <div>
         <Label className="text-linen" htmlFor="group-description">
-          Description <span className="font-normal text-muted-dark">(optional while forming)</span>
+          Short description
         </Label>
         <Textarea
           aria-describedby="group-description-help group-description-error"
@@ -303,7 +241,9 @@ function SimilarGroupReview({
                 {group.cityName} · {group.teamName ?? "Multi-team"}
               </p>
             </div>
-            <Badge variant="outline">{group.lifecycle}</Badge>
+            <Badge variant="outline">
+              {group.lifecycle === "active" ? "Open for applications" : "Setting up"}
+            </Badge>
           </CardContent>
         </Card>
       ))}
@@ -317,6 +257,39 @@ function FieldError({ id, messages }: Readonly<{ id: string; messages?: string[]
     <span className="mt-2 block text-sm text-sand" id={id}>
       {messages[0]}
     </span>
+  );
+}
+
+function VisibilityChoice({
+  defaultValue,
+}: Readonly<{ defaultValue: "discoverable" | "unlisted" }>) {
+  const [visibility, setVisibility] = useState(defaultValue);
+  return (
+    <div>
+      <Label className="text-linen" htmlFor="group-visibility">
+        Visibility
+      </Label>
+      <NativeSelect
+        className="mt-2"
+        defaultValue={defaultValue}
+        id="group-visibility"
+        name="visibility"
+        onChange={(event) =>
+          setVisibility(event.currentTarget.value as "discoverable" | "unlisted")
+        }
+      >
+        <NativeSelectOption value="discoverable">Discoverable</NativeSelectOption>
+        <NativeSelectOption value="unlisted">Unlisted</NativeSelectOption>
+      </NativeSelect>
+      <div className="mt-3 rounded-xl border border-border bg-surface-deep p-4">
+        <p className="font-semibold text-linen">What happens next</p>
+        <p className="mt-1 text-sm leading-6 text-muted-dark">
+          {visibility === "discoverable"
+            ? "People can find it and apply once the group is ready. An owner or admin reviews each application before anyone joins."
+            : "The group stays out of search. An owner or admin creates invitation links for registered supporters, and every request is still reviewed."}
+        </p>
+      </div>
+    </div>
   );
 }
 

@@ -87,5 +87,8 @@ export async function getDiscoveryFreshness(): Promise<FixtureFreshness> {
   const { data, error } = await supabase.rpc("get_public_provider_freshness", {
     input_provider: "football-data",
   });
-  return deriveFixtureFreshness(error === null ? (data.at(0)?.last_succeeded_at ?? null) : null);
+  return deriveFixtureFreshness(
+    error === null ? (data.at(0)?.updated_at ?? null) : null,
+    error === null ? (data.at(0)?.coverage_through ?? null) : null,
+  );
 }

@@ -3,65 +3,148 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import type { MyGroup, MyHuddleEvent } from "@/features/dashboard/queries";
+import type { MyEvent, MyGroupRelationship, SavedItem } from "@/features/dashboard/queries";
 
 import { MyHuddleOverview } from "./my-huddle-overview";
 
-const event: MyHuddleEvent = {
-  event_id: "c1000000-0000-4000-8000-000000000101",
+const event: MyEvent = {
+  id: "c1000000-0000-4000-8000-000000000101",
   title: "North London watch",
-  home_team_name: "Arsenal FC",
-  away_team_name: "Chelsea FC",
-  competition_name: "Premier League",
-  starts_at: "2026-09-01T17:00:00Z",
-  city_name: "Haifa",
-  place_kind: "home",
+  homeTeamName: "Arsenal FC",
+  awayTeamName: "Chelsea FC",
+  competitionName: "Premier League",
+  startsAt: "2026-09-01T17:00:00Z",
+  cityName: "Haifa",
+  placeKind: "home",
   audience: "invite_only",
   status: "published",
-  involvement: "hosting",
-  invitation_status: null,
-  attendance_status: null,
-  can_manage: true,
-  total_count: 21,
+  bucket: "hosting",
+  relationshipLabel: "You are hosting",
+  canManage: true,
+  totalCount: 21,
 };
 
-const group: MyGroup = {
-  group_id: "c1000000-0000-4000-8000-000000000102",
+const group: MyGroupRelationship = {
+  id: "c1000000-0000-4000-8000-000000000102",
   slug: "quiet-unlisted-group",
   name: "Quiet unlisted group",
   description: "A private group that must remain easy for its owner to find.",
   visibility: "unlisted",
   lifecycle: "active",
-  city_name: "Haifa",
-  team_name: "Arsenal FC",
-  member_role: "owner",
-  membership_status: "active",
-  active_member_count: 4,
-  can_manage: true,
-  total_count: 21,
+  cityName: "Haifa",
+  teamName: "Arsenal FC",
+  role: "owner",
+  membershipStatus: "active",
+  activeMemberCount: 4,
+  canManage: true,
+  totalCount: 21,
+};
+
+const saved: SavedItem = {
+  id: "c1000000-0000-4000-8000-000000000103",
+  kind: "team",
+  label: "Arsenal FC",
+  detail: "England",
+  href: "/matches?team=c1000000-0000-4000-8000-000000000103",
+  createdAt: "2026-08-30T06:00:00Z",
+  totalCount: 21,
 };
 
 describe("MyHuddleOverview", () => {
-  it("keeps owned private things visible with direct open and manage actions", () => {
-    render(<MyHuddleOverview events={[event]} groups={[group]} />);
+  it("keeps durable collections together with direct recovery actions", () => {
+    render(
+      <MyHuddleOverview
+        eventBucket="hosting"
+        events={[event]}
+        groupBucket="owner"
+        groups={[group]}
+        saved={[saved]}
+        savedBucket="all"
+      />,
+    );
 
     expect(screen.getByRole("link", { name: /Open event/ })).toHaveAttribute(
       "href",
-      `/events/${event.event_id}`,
+      `/events/${event.id}`,
     );
     expect(screen.getByRole("link", { name: "Open group" })).toHaveAttribute(
       "href",
       "/groups/quiet-unlisted-group",
     );
-    expect(screen.getByText("unlisted")).toBeVisible();
+    expect(screen.getByRole("link", { name: "Open Arsenal FC" })).toHaveAttribute(
+      "href",
+      saved.href,
+    );
     expect(screen.getAllByRole("link", { name: "Manage" })).toHaveLength(2);
   });
 
-  it("paginates growing event and group collections", () => {
-    render(<MyHuddleOverview events={[event]} groups={[group]} />);
+  it("uses labeled filters rather than route-like tabs and keeps History off by default", () => {
+    render(
+      <MyHuddleOverview
+        eventBucket="upcoming"
+        events={[]}
+        groupBucket="member"
+        groups={[]}
+        saved={[]}
+        savedBucket="all"
+      />,
+    );
+
+    expect(screen.getByRole("combobox", { name: "Show events" })).toHaveValue("upcoming");
+    expect(screen.getByRole("combobox", { name: "Show groups" })).toHaveValue("member");
+    expect(screen.getByRole("combobox", { name: "Show saved items" })).toHaveValue("all");
+    expect(screen.getByRole("button", { name: "Apply filters" })).toBeVisible();
+    expect(screen.queryByText(/past activity/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Plan a huddle" })).toHaveClass("min-h-11");
+    expect(screen.getByRole("link", { name: "Explore events" })).toHaveClass("min-h-11");
+    expect(screen.getByRole("link", { name: "Create a group" })).toHaveClass("min-h-11");
+    expect(screen.getByRole("link", { name: "Browse groups" })).toHaveClass("min-h-11");
+    expect(screen.getByRole("link", { name: "Choose interests" })).toHaveClass("min-h-11");
+  });
+
+  it("paginates each collection without losing the selected filters", () => {
+    render(
+      <MyHuddleOverview
+        eventBucket="hosting"
+        events={[event]}
+        groupBucket="owner"
+        groups={[group]}
+        saved={[saved]}
+        savedBucket="team"
+      />,
+    );
 
     const nextLinks = screen.getAllByRole("link", { name: "Go to next page" });
-    expect(nextLinks[0]).toHaveAttribute("href", "?eventsPage=2&groupsPage=1#your-events-heading");
-    expect(nextLinks[1]).toHaveAttribute("href", "?eventsPage=1&groupsPage=2#your-groups-heading");
+    expect(nextLinks[0]).toHaveAttribute(
+      "href",
+      expect.stringContaining("eventBucket=hosting&eventsPage=2"),
+    );
+    expect(nextLinks[1]).toHaveAttribute(
+      "href",
+      expect.stringContaining("groupBucket=owner&groupsPage=2"),
+    );
+    expect(nextLinks[2]).toHaveAttribute(
+      "href",
+      expect.stringContaining("savedBucket=team&savedPage=2"),
+    );
+    nextLinks.forEach((link) => expect(link).toHaveClass("min-h-11"));
+  });
+
+  it("caps navigation and explains the bounded window at page 501", () => {
+    render(
+      <MyHuddleOverview
+        eventBucket="hosting"
+        eventPage={501}
+        events={[{ ...event, totalCount: 10_021 }]}
+        groupBucket="owner"
+        groups={[]}
+        saved={[]}
+        savedBucket="all"
+      />,
+    );
+
+    expect(screen.getByText("Page 501 of 501")).toBeVisible();
+    expect(screen.getByText(/first 10,020 events/i)).toBeVisible();
+    expect(screen.queryByRole("link", { name: "Go to next page" })).not.toBeInTheDocument();
   });
 });

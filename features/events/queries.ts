@@ -34,7 +34,7 @@ const eventSummaryRowSchema = z
     audience: z.enum(["public", "team_followers", "group", "friends", "invite_only"]),
     audience_group_name: z.string().nullable(),
     audience_team_name: z.string().nullable(),
-    capacity: z.number().int().positive(),
+    capacity: z.number().int().positive().nullable(),
     approved_attendee_count: z.number().int().nonnegative(),
     remaining_capacity: z.number().int().nonnegative(),
     viewer_attendance_id: z.uuid().nullable(),
@@ -47,6 +47,7 @@ const eventSummaryRowSchema = z
     viewer_can_read_private_location: z.boolean(),
     requires_approval: z.boolean(),
     organizing_group_name: z.string().nullable(),
+    organizing_group_slug: z.string().nullable(),
     can_manage: z.boolean(),
   })
   .strict();
@@ -83,9 +84,10 @@ export type EventSummary = Readonly<{
   audience: "public" | "team_followers" | "group" | "friends" | "invite_only";
   audienceGroupName: string | null;
   audienceTeamName: string | null;
-  capacity: number;
+  attendanceMode: "open_door" | "reservations";
+  capacity: number | null;
   approvedAttendeeCount: number;
-  remainingCapacity: number;
+  remainingCapacity: number | null;
   viewerAttendanceId: string | null;
   viewerAttendanceStatus: "requested" | "approved" | "declined" | "left" | "removed" | null;
   viewerInvitationId: string | null;
@@ -94,6 +96,7 @@ export type EventSummary = Readonly<{
   viewerCanReadPrivateLocation: boolean;
   requiresApproval: boolean;
   organizingGroupName: string | null;
+  organizingGroupSlug: string | null;
   canManage: boolean;
 }>;
 
@@ -138,9 +141,10 @@ export async function getEventSummary(eventId: string): Promise<EventSummary | n
       audience: row.audience,
       audienceGroupName: row.audience_group_name,
       audienceTeamName: row.audience_team_name,
+      attendanceMode: row.capacity === null ? "open_door" : "reservations",
       capacity: row.capacity,
       approvedAttendeeCount: row.approved_attendee_count,
-      remainingCapacity: row.remaining_capacity,
+      remainingCapacity: row.capacity === null ? null : row.remaining_capacity,
       viewerAttendanceId: row.viewer_attendance_id,
       viewerAttendanceStatus: row.viewer_attendance_status,
       viewerInvitationId: row.viewer_invitation_id,
@@ -149,6 +153,7 @@ export async function getEventSummary(eventId: string): Promise<EventSummary | n
       viewerCanReadPrivateLocation: row.viewer_can_read_private_location,
       requiresApproval: row.requires_approval,
       organizingGroupName: row.organizing_group_name,
+      organizingGroupSlug: row.organizing_group_slug,
       canManage: row.can_manage,
     };
   } catch (cause) {
@@ -165,7 +170,7 @@ const publicEventListRowSchema = z
     competition_name: z.string(),
     starts_at: z.string(),
     audience: z.enum(["public", "team_followers", "group", "friends", "invite_only"]),
-    capacity: z.number().int().positive(),
+    capacity: z.number().int().positive().nullable(),
     approved_attendee_count: z.number().int().nonnegative(),
     requires_approval: z.boolean(),
   })
@@ -190,7 +195,8 @@ export type EventListItem = Readonly<{
   startsAt: string;
   audience: "public" | "team_followers" | "group" | "friends" | "invite_only";
   audienceTeamName: string | null;
-  capacity: number;
+  attendanceMode: "open_door" | "reservations";
+  capacity: number | null;
   approvedAttendeeCount: number;
   requiresApproval: boolean;
   status: "draft" | "pending_group_review" | "published" | "cancelled" | "completed";
@@ -211,6 +217,7 @@ function eventListItem(
     startsAt: row.starts_at,
     audience: row.audience,
     audienceTeamName: row.audience_team_name ?? null,
+    attendanceMode: row.capacity === null ? "open_door" : "reservations",
     capacity: row.capacity,
     approvedAttendeeCount: row.approved_attendee_count,
     requiresApproval: row.requires_approval,

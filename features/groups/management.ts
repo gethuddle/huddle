@@ -149,6 +149,25 @@ export type GroupEventSubmission = Readonly<{
   submittedAt: string;
 }>;
 
+export type GroupOverviewAttention = Readonly<{
+  applications: readonly GroupApplication[];
+  events: readonly GroupEventSubmission[];
+}>;
+
+type SettingsPage<T> = Readonly<{
+  items: readonly T[];
+  page: number;
+  pageCount: number;
+  totalCount: number;
+}>;
+
+export type GroupSettings = Readonly<{
+  group: GroupDetail;
+  members: SettingsPage<GroupAdminMember>;
+  rules: readonly GroupManagedRule[];
+  bans: SettingsPage<GroupBan>;
+}>;
+
 type ManagementBase = Readonly<{
   group: GroupDetail;
   page: number;
@@ -178,6 +197,153 @@ function parseRows<T>(schema: z.ZodType<T>, value: unknown): T[] {
   } catch (cause) {
     throw new DomainError("INTERNAL_ERROR", { cause });
   }
+}
+
+function applicationItem(row: z.infer<typeof applicationRowSchema>): GroupApplication {
+  return {
+    userId: row.user_id,
+    handle: row.handle,
+    displayName: row.display_name,
+    message: row.application_message,
+    source: row.application_source,
+    appliedAt: row.applied_at,
+  };
+}
+
+function eventSubmissionItem(row: z.infer<typeof eventSubmissionRowSchema>): GroupEventSubmission {
+  return {
+    id: row.event_id,
+    title: row.title,
+    status: row.status,
+    submitterHandle: row.submitter_handle,
+    submitterDisplayName: row.submitter_display_name,
+    audience: row.audience,
+    audienceGroupName: row.audience_group_name,
+    placeKind: row.place_kind,
+    match: {
+      homeTeamName: row.home_team_name,
+      awayTeamName: row.away_team_name,
+      competitionName: row.competition_name,
+    },
+    startsAt: row.starts_at,
+    submittedAt: row.submitted_at,
+  };
+}
+
+function memberItem(row: z.infer<typeof memberRowSchema>): GroupAdminMember {
+  return {
+    userId: row.user_id,
+    handle: row.handle,
+    displayName: row.display_name,
+    role: row.role,
+    memberSince: row.member_since,
+  };
+}
+
+function ruleItem(row: z.infer<typeof ruleRowSchema>): GroupManagedRule {
+  return {
+    id: row.rule_id,
+    position: row.rule_position,
+    text: row.rule_text,
+    publishedAt: row.published_at,
+  };
+}
+
+function banItem(row: z.infer<typeof banRowSchema>): GroupBan {
+  return {
+    userId: row.user_id,
+    handle: row.handle,
+    displayName: row.display_name,
+    reason: row.reason,
+    bannedByHandle: row.banned_by_handle,
+    bannedAt: row.banned_at,
+  };
+}
+
+function settingsPage<T>(
+  items: readonly T[],
+  rows: readonly Readonly<{ total_count: number }>[],
+  page: number,
+): SettingsPage<T> {
+  return { items, page, ...countResult(rows) };
+}
+
+export async function getGroupOverviewAttention(
+  group: GroupDetail,
+): Promise<GroupOverviewAttention> {
+  if (group.viewerRole !== "owner" && group.viewerRole !== "admin") {
+    return { applications: [], events: [] };
+  }
+
+  const supabase = await createClient();
+  const paging = { input_group_id: group.id, input_offset: 0, input_limit: 6 };
+  const [applicationResult, eventResult] = await Promise.all([
+    supabase.rpc("list_group_applications", paging),
+    supabase.rpc("list_group_event_submissions", paging),
+  ]);
+  if (applicationResult.error !== null) throw domainErrorFromDatabase(applicationResult.error);
+  if (eventResult.error !== null) throw domainErrorFromDatabase(eventResult.error);
+
+  return {
+    applications: parseRows(applicationRowSchema, applicationResult.data).map(applicationItem),
+    events: parseRows(eventSubmissionRowSchema, eventResult.data)
+      .filter((row) => row.status === "pending_group_review")
+      .map(eventSubmissionItem),
+  };
+}
+
+export async function getGroupSettings(
+  slug: string,
+  membersPage = 1,
+  bansPage = 1,
+): Promise<GroupSettings | null> {
+  const group = await getGroupDetail(slug);
+  if (group === null || (group.viewerRole !== "owner" && group.viewerRole !== "admin")) return null;
+
+  const safeMembersPage = Math.max(1, Math.trunc(membersPage));
+  const safeBansPage = Math.max(1, Math.trunc(bansPage));
+  const supabase = await createClient();
+  const [memberResult, ruleResult, banResult] = await Promise.all([
+    supabase.rpc("list_group_admin_members", {
+      input_group_id: group.id,
+      input_offset: (safeMembersPage - 1) * GROUP_MANAGEMENT_PAGE_SIZE,
+      input_limit: GROUP_MANAGEMENT_PAGE_SIZE,
+    }),
+    supabase.rpc("list_group_rules", {
+      input_group_id: group.id,
+      input_offset: 0,
+      input_limit: 100,
+    }),
+    supabase.rpc("list_group_bans", {
+      input_group_id: group.id,
+      input_offset: (safeBansPage - 1) * GROUP_MANAGEMENT_PAGE_SIZE,
+      input_limit: GROUP_MANAGEMENT_PAGE_SIZE,
+    }),
+  ]);
+  if (memberResult.error !== null) throw domainErrorFromDatabase(memberResult.error);
+  if (ruleResult.error !== null) throw domainErrorFromDatabase(ruleResult.error);
+  if (banResult.error !== null) throw domainErrorFromDatabase(banResult.error);
+
+  const memberRows = parseRows(memberRowSchema, memberResult.data);
+  const ruleRows = parseRows(ruleRowSchema, ruleResult.data);
+  const banRows = parseRows(banRowSchema, banResult.data);
+  if (
+    (memberRows.length === 0 && safeMembersPage > 1) ||
+    (banRows.length === 0 && safeBansPage > 1)
+  ) {
+    return getGroupSettings(
+      slug,
+      memberRows.length === 0 ? 1 : safeMembersPage,
+      banRows.length === 0 ? 1 : safeBansPage,
+    );
+  }
+
+  return {
+    group,
+    members: settingsPage(memberRows.map(memberItem), memberRows, safeMembersPage),
+    rules: ruleRows.map(ruleItem),
+    bans: settingsPage(banRows.map(banItem), banRows, safeBansPage),
+  };
 }
 
 export async function getGroupManagement(

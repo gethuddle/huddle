@@ -17,7 +17,7 @@ export async function getVenueCreationViewerState(): Promise<VenueCreationViewer
   const profileResult = await supabase
     .from("profiles")
     .select(
-      "handle, display_name, city_id, adult_attested_at, rules_version, rules_accepted_at, profile_completed_at, suspended_at, suspension_expires_at, community_restricted_at, community_restricted_until",
+      "handle, display_name, city_id, adult_attested_at, rules_version, rules_accepted_at, profile_completed_at, fan_enabled_at, suspended_at, suspension_expires_at, community_restricted_at, community_restricted_until",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -40,11 +40,12 @@ export async function getVenueCreationViewerState(): Promise<VenueCreationViewer
       profile.handle !== null &&
       profile.display_name !== null &&
       profile.city_id !== null,
+    fanEnabled: profile.fan_enabled_at !== null,
     suspended: profile.suspended_at !== null,
     restricted:
       profile.community_restricted_at !== null && profile.community_restricted_at !== undefined,
   };
-  const gate = actorGateCode(facts, "community");
+  const gate = actorGateCode(facts, "common");
   if (gate === null) return "eligible";
   return gate === "ACCOUNT_SUSPENDED" || gate === "ACCOUNT_RESTRICTED"
     ? "not-permitted"

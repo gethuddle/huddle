@@ -8,6 +8,8 @@
 
 **Operating rule:** one branch, one active writer, two participating humans, and two separate Codex sessions alternating between implementation and review.
 
+**Approved post-B12 revision:** 30 August 2026. The UX/workspace redesign deliberately supersedes the completed B01–B12 model where every completed personal profile could create a venue, every group-organized event entered separate admin review, and every venue event needed a capacity-backed guest list. Checked B01–B12 tasks and implementation-decision paragraphs remain historical delivery evidence; they do not authorize the redesigned runtime.
+
 ---
 
 ## 1. What working together means
@@ -371,9 +373,9 @@ If an external account, paid service, production mutation, or secret is required
 
 ---
 
-## 6. Thirteen remaining delivery milestones
+## 6. Historical B01–B12 delivery and current B13 handoff
 
-`F00`–`F03` are complete. The remaining requirement modules are consolidated into the 13 milestones below. Each milestone gets one issue, one branch, one pull request, one reciprocal review process, and one merge. The original module IDs remain the authoritative detailed checklists in §§7–14 and must be completed in their listed dependency order.
+`F00`–`F03` and B01–B12 are the completed historical delivery baseline. B13 remains the current/future production-acceptance, submission-evidence, and presentation handoff. The original module IDs remain the authoritative detailed checklists in §§7–14 and must be completed in their listed dependency order.
 
 | Milestone | Included modules | Depends on | Observable exit |
 |---|---|---|---|
@@ -548,7 +550,7 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Authority:** implementation spec §§2.1, 4.1–4.3, 6.3, 10, 11.1.
 
-**Outcome:** a verified user completes an adult profile and accepts the current versioned community rules.
+**Historical B01–B12 outcome (superseded by separate common-safety and Fan activation state):** a verified user completes an adult profile and accepts the current versioned community rules.
 
 **Tasks:**
 
@@ -573,7 +575,7 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Authority:** implementation spec §§2.1, 3, 4.1, 6.10–6.11, 11.2, 11.5.
 
-**Outcome:** anonymous and incomplete users can read only safe data; community actions require verified, complete, non-suspended adult accounts.
+**Historical B01–B12 outcome (superseded by workspace-specific authorization):** anonymous and incomplete users can read only safe data; community actions require verified, complete, non-suspended adult accounts.
 
 **Tasks:**
 
@@ -586,6 +588,8 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 - [x] Test incomplete, unverified, suspended, anonymous, owner, other-user, and moderator cases.
 
 **Tests/evidence:** pgTAP allow/deny matrix, DTO unit tests, component permission states, and crafted-request denial.
+
+**Post-B12 replacement contract/evidence:** preserve the one-to-one human trust record, add explicit optional Fan activation, and backfill existing completed profiles as enabled Fans. Common safety eligibility requires verified email, adult attestation, current rules acceptance, and a non-suspended account. Venue-only onboarding may leave Fan identity incomplete and non-public. Replacement pgTAP and E2E evidence MUST distinguish common eligibility, active Fan authorization, active Venue membership, and denial after either workspace authorization is absent or revoked.
 
 ### A04 — Blocking foundation and audit trail
 
@@ -710,7 +714,7 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Authority:** implementation spec §§1.2, 6.5, 7.3, 9.2.
 
-**Outcome:** a completed user can follow and unfollow each supported sports-catalog target without duplicates.
+**Historical B01–B12 outcome (superseded by Fan activation terminology):** a completed user can follow and unfollow each supported sports-catalog target without duplicates.
 
 **Tasks:**
 
@@ -753,7 +757,7 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Authority:** implementation spec §§2.3, 6.6, 7.4.
 
-**Outcome:** a complete user creates a discoverable `forming` or immediately usable unlisted group and becomes its active owner.
+**Historical B01–B12 outcome (superseded by Fan activation terminology):** a complete user creates a discoverable `forming` or immediately usable unlisted group and becomes its active owner.
 
 **Tasks:**
 
@@ -833,13 +837,28 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 ## 11. Venue, event, and discovery requirement modules
 
+### Approved post-B12 workspace contract
+
+The redesign work that follows B12 MUST preserve the historical evidence below while replacing its superseded permission assumptions everywhere they affect schema, RLS, controlled functions, UI, and tests:
+
+- Common safety eligibility is verified email, adult attestation, current community-rules acceptance, and a non-suspended account.
+- Fan activation is optional and is required for attendance, friendships, groups, follows, and private hosting. A venue-only operator may leave Fan identity fields incomplete and non-public.
+- Venue activation is self-serve for the course demonstration. Common eligibility, venue information, and a truthful business-representation attestation atomically create an immediately usable **Unverified** venue, one active owner membership, and its Venue workspace.
+- A generic Fan profile cannot create or manage a venue. Every commercial mutation requires an active `owner` or `admin` Venue membership.
+- A venue is never an attendee and never consumes capacity. A human who also activates Fan may attend only through that Fan identity under the one-account-per-seat rule.
+- Venue planning starts from bounded searchable fixture rows and inherits each fixture's kickoff; it never re-asks for an event date or renders the whole multi-competition schedule as one dropdown.
+- A public venue event may be `open_door`, with null capacity and no Huddle RSVP, invitations, approval queue, guest list, attendance residue, or admission guarantee. Reservation and team-follower events retain the existing atomic one-account-per-seat rules.
+- A current group owner/admin publishes an event they author atomically. An ordinary-member submission remains pending until a current owner/admin whose user ID differs from `created_by` publishes or rejects it; promotion after submission never permits self-review.
+
+The following checked modules describe the B01–B12 baseline. Their original outcomes and decisions are retained as historical evidence and are superseded where the rules above differ.
+
 ### E01 — Unverified venue profiles and follows
 
 **Depends on:** `S05`, `A03`.
 
 **Authority:** implementation spec §§2.8, 4.1, 6.7, 7.5.
 
-**Outcome:** a complete user creates and manages a visibly unverified public venue, and users can follow it.
+**Historical B01–B12 outcome (superseded by the workspace contract above):** a complete user creates and manages a visibly unverified public venue, and users can follow it.
 
 **Tasks:**
 
@@ -899,7 +918,7 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tests/evidence:** private location absent from HTML/network/DTO/log, direct-select denial, invalid public audience crafted request, capacity >12 denial, form states, private event E2E up to unpublished/eligible summary.
 
-**B07 implementation decisions:** venue owners enter a reviewed Israel coordinate manually; no map or paid address service is added. Every user-created venue remains visibly `unverified`, and only a platform moderator can change that status. The private-event wizard derives its kickoff and three-hour window from a synchronized future match. A group-audience publish action creates `pending_group_review`; friends and invite-only events may publish immediately, while invite-only remains host-only until B10 adds direct invitations. The controlled event transaction already enforces the valid venue-host invariants needed by the shared event model, but B07 exposes only the private-host creation interface and ordinary safe event projection. Exact-location retrieval, invitation mutation, attendance transitions, cancellation controls, the venue-host creation interface, group publication review, and discovery remain in their owning later milestones.
+**Historical B07 implementation decisions (superseded where the approved post-B12 workspace contract differs):** venue owners enter a reviewed Israel coordinate manually; no map or paid address service is added. Every user-created venue remains visibly `unverified`, and only a platform moderator can change that status. The private-event wizard derives its kickoff and three-hour window from a synchronized future match. A group-audience publish action creates `pending_group_review`; friends and invite-only events may publish immediately, while invite-only remains host-only until B10 adds direct invitations. The controlled event transaction already enforces the valid venue-host invariants needed by the shared event model, but B07 exposes only the private-host creation interface and ordinary safe event projection. Exact-location retrieval, invitation mutation, attendance transitions, cancellation controls, the venue-host creation interface, group publication review, and discovery remain in their owning later milestones.
 
 ### E04 — Business-venue event creation and public pages
 
@@ -907,7 +926,7 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Authority:** implementation spec §§2.4, 2.8, 4.1–4.2, 6.8.
 
-**Outcome:** a venue owner publishes a public or team-followers fixture event at their venue with a visible unverified status.
+**Historical B01–B12 outcome (superseded by active Venue membership authorization):** a venue owner publishes a public or team-followers fixture event at their venue with a visible unverified status.
 
 **Tasks:**
 
@@ -919,7 +938,7 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 - [x] Label venue verification and any costs/commercial affiliation truthfully.
 - [x] Deny private audience types and suspended/non-owned venue hosting.
 
-**Tests/evidence:** host ownership, audience/target checks, anonymous safe reads, component selector options, crafted invalid requests, and venue-event E2E.
+**Historical tests/evidence:** host ownership, audience/target checks, anonymous safe reads, component selector options, crafted invalid requests, and venue-event E2E. Post-B12 replacement evidence MUST cover active Venue membership, revoked-member denial, venue-only onboarding, and venue-as-non-attendee behavior.
 
 ### E05 — Group event submission and publication review
 
@@ -927,7 +946,7 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Authority:** implementation spec §§2.3–2.4, 6.8, 7.4.
 
-**Outcome:** an active group member submits a group event, and only an owner/admin can approve publication.
+**Historical B01–B12 outcome (superseded for owner/admin authors):** an active group member submits a group event, and only an owner/admin can approve publication.
 
 **Tasks:**
 
@@ -939,7 +958,7 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 - [x] Re-evaluate group discoverability after event approval/cancellation/time changes.
 - [x] Finish `G06` forming-to-searchable E2E only after all gate facts are met.
 
-**Tests/evidence:** non-member/banned/member/admin matrix, premature visibility denial, approval audit, cancellation gate recalculation, member-to-admin E2E.
+**Historical tests/evidence:** non-member/banned/member/admin matrix, premature visibility denial, approval audit, cancellation gate recalculation, member-to-admin E2E. Post-B12 replacement pgTAP and two-account E2E evidence MUST prove atomic owner/admin-authored publication, retained review for ordinary-member submissions, `reviewer_id <> created_by` for both approval and rejection, denial after the ordinary-member creator is promoted to admin, and a successful decision by a different current owner/admin.
 
 ### G06 — Discovery gate and group search
 
@@ -980,7 +999,7 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tests/evidence:** full anonymous/unrelated/friend/member/invitee/follower/blocked/banned/host matrix in pgTAP and E2E; payload inspection for location leakage.
 
-**B08 implementation decisions:** venue creation starts from an owned venue profile, and the server re-derives the venue, city, kickoff, and event window before using the controlled event transaction. Group organization is an independent choice from event audience; every organized publication waits in `pending_group_review`, and rejection uses the existing audited terminal `cancelled` state rather than adding an unapproved lifecycle value. Safe summaries contain bounded attendance counts and only the current viewer's attendance state, never attendee identities or exact home fields. Event approval, cancellation, and edited kickoff facts recalculate the group event gate now. The still-open cross-module `G06` search E2E above remains assigned to B09, together with the other discovery-gate triggers, progress UI, and global search endpoint.
+**Historical B08 implementation decisions (superseded where the approved post-B12 workspace contract differs):** venue creation starts from an owned venue profile, and the server re-derives the venue, city, kickoff, and event window before using the controlled event transaction. Group organization is an independent choice from event audience; every organized publication waits in `pending_group_review`, and rejection uses the existing audited terminal `cancelled` state rather than adding an unapproved lifecycle value. Safe summaries contain bounded attendance counts and only the current viewer's attendance state, never attendee identities or exact home fields. Event approval, cancellation, and edited kickoff facts recalculate the group event gate now. The still-open cross-module `G06` search E2E above remains assigned to B09, together with the other discovery-gate triggers, progress UI, and global search endpoint.
 
 ### E07 — PostGIS discovery API and interface
 

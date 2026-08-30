@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useRef } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,15 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { CURRENT_COMMUNITY_RULES } from "@/content/community-rules";
-import { saveProfileAction } from "@/features/profiles/actions";
+import { activateFanOnboardingAction, saveProfileAction } from "@/features/profiles/actions";
 import { INITIAL_PROFILE_ACTION_STATE, type ProfileActionState } from "@/features/profiles/state";
+import {
+  clearSessionFormDraft,
+  onboardingSessionDraftKey,
+  readSessionFormDraft,
+  restoreFormDraft,
+  writeSessionFormDraft,
+} from "@/features/onboarding/session-form-draft";
 
 export type CityOption = Readonly<{
   id: string;
@@ -31,7 +38,9 @@ export type ProfileFormInitialValue = Readonly<{
 
 type ProfileFormProps = Readonly<{
   cities: readonly CityOption[];
+  draftOwnerId?: string;
   initialValue: ProfileFormInitialValue;
+  mode?: "onboarding" | "settings";
 }>;
 
 function FieldError({ id, messages }: Readonly<{ id: string; messages?: string[] }>) {
@@ -60,9 +69,19 @@ function ProfileFeedback({ state }: Readonly<{ state: ProfileActionState }>) {
   );
 }
 
-export function ProfileForm({ cities, initialValue }: ProfileFormProps) {
+export function ProfileForm({
+  cities,
+  draftOwnerId,
+  initialValue,
+  mode = "settings",
+}: ProfileFormProps) {
+  const formRef = useRef<HTMLFormElement>(null);
+  const draftKey =
+    mode === "onboarding" && draftOwnerId !== undefined
+      ? onboardingSessionDraftKey("fan", draftOwnerId)
+      : null;
   const [state, formAction, pending] = useActionState(
-    saveProfileAction,
+    mode === "onboarding" ? activateFanOnboardingAction : saveProfileAction,
     INITIAL_PROFILE_ACTION_STATE,
   );
   const values =
@@ -80,9 +99,19 @@ export function ProfileForm({ cities, initialValue }: ProfileFormProps) {
 
   useEffect(() => {
     if (state?.ok === true && state.data.redirectTo !== null) {
+      if (draftKey !== null) clearSessionFormDraft(draftKey);
       window.location.assign(state.data.redirectTo);
     }
-  }, [state]);
+  }, [draftKey, state]);
+
+  useEffect(() => {
+    if (draftKey === null || formRef.current === null) return;
+    const draft = readSessionFormDraft<null>(draftKey);
+    // Resume substantive profile work, but require legal confirmations fresh. Besides
+    // being the safer consent model, this prevents a late hydration restore from
+    // replaying a stale unchecked value over the user's current click.
+    if (draft !== null) restoreFormDraft(formRef.current, draft, { restoreChecked: false });
+  }, [draftKey]);
 
   return (
     <form
@@ -90,6 +119,17 @@ export function ProfileForm({ cities, initialValue }: ProfileFormProps) {
       className="space-y-7"
       key={state?.ok === false ? state.attempt : 0}
       noValidate
+      onChange={(event) => {
+        if (draftKey !== null) {
+          writeSessionFormDraft(draftKey, event.currentTarget, null);
+        }
+      }}
+      onInput={(event) => {
+        if (draftKey !== null) {
+          writeSessionFormDraft(draftKey, event.currentTarget, null);
+        }
+      }}
+      ref={formRef}
     >
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
@@ -189,17 +229,12 @@ export function ProfileForm({ cities, initialValue }: ProfileFormProps) {
         <FieldError id="profile-bio-error" messages={fieldErrors?.bio} />
       </div>
 
-      <fieldset className="rounded-2xl border border-border-dark bg-surface-deep p-5 sm:p-6">
-        <legend className="px-2 text-sm font-semibold text-linen">Adult attestation</legend>
-        {initialValue.adultAttested ? (
-          <>
-            <input name="adultAttested" type="hidden" value="on" />
-            <p className="flex items-start gap-3 text-sm leading-6 text-muted-dark">
-              <span aria-hidden="true" className="mt-2 size-2 shrink-0 rounded-full bg-court" />
-              Your 18+ attestation is recorded. Huddle does not collect your date of birth.
-            </p>
-          </>
-        ) : (
+      <input name="rulesVersion" type="hidden" value={CURRENT_COMMUNITY_RULES.version} />
+      {initialValue.adultAttested ? (
+        <input name="adultAttested" type="hidden" value="on" />
+      ) : (
+        <fieldset className="rounded-[1.375rem] border border-border-dark p-5 sm:p-6">
+          <legend className="px-2 text-sm font-semibold text-linen">Adult attestation</legend>
           <div className="flex items-start gap-3">
             <Checkbox
               aria-describedby="profile-adult-error"
@@ -216,44 +251,37 @@ export function ProfileForm({ cities, initialValue }: ProfileFormProps) {
               I confirm that I am 18 or older.
             </Label>
           </div>
-        )}
-        <FieldError id="profile-adult-error" messages={fieldErrors?.adultAttested} />
-      </fieldset>
+          <FieldError id="profile-adult-error" messages={fieldErrors?.adultAttested} />
+        </fieldset>
+      )}
 
-      <fieldset className="rounded-2xl border border-border-dark bg-surface-deep p-5 sm:p-6">
-        <legend className="px-2 text-sm font-semibold text-linen">
-          {CURRENT_COMMUNITY_RULES.title} · version {CURRENT_COMMUNITY_RULES.version}
-        </legend>
-        <p className="mt-1 text-sm leading-6 text-muted-dark">
-          {CURRENT_COMMUNITY_RULES.introduction}
-        </p>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          {CURRENT_COMMUNITY_RULES.sections.map((section) => (
-            <section key={section.title}>
-              <h2 className="text-sm font-semibold text-linen">{section.title}</h2>
-              <ul className="mt-2 space-y-2 text-sm leading-6 text-muted-dark">
-                {section.points.map((point) => (
-                  <li className="flex gap-2" key={point}>
-                    <span aria-hidden="true" className="text-court">
-                      •
-                    </span>
-                    <span>{point}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-        </div>
-        <input name="rulesVersion" type="hidden" value={CURRENT_COMMUNITY_RULES.version} />
-        {initialValue.currentRulesAccepted ? (
-          <>
-            <input name="rulesAccepted" type="hidden" value="on" />
-            <p className="mt-5 flex items-start gap-3 border-t border-border-dark pt-5 text-sm leading-6 text-muted-dark">
-              <span aria-hidden="true" className="mt-2 size-2 shrink-0 rounded-full bg-court" />
-              You accepted this version of the rules.
-            </p>
-          </>
-        ) : (
+      {initialValue.currentRulesAccepted ? (
+        <input name="rulesAccepted" type="hidden" value="on" />
+      ) : (
+        <fieldset className="rounded-[1.375rem] border border-border-dark p-5 sm:p-6">
+          <legend className="px-2 text-sm font-semibold text-linen">
+            {CURRENT_COMMUNITY_RULES.title} · version {CURRENT_COMMUNITY_RULES.version}
+          </legend>
+          <p className="mt-1 text-sm leading-6 text-muted-dark">
+            {CURRENT_COMMUNITY_RULES.introduction}
+          </p>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            {CURRENT_COMMUNITY_RULES.sections.map((section) => (
+              <section key={section.title}>
+                <h2 className="text-sm font-semibold text-linen">{section.title}</h2>
+                <ul className="mt-2 space-y-2 text-sm leading-6 text-muted-dark">
+                  {section.points.map((point) => (
+                    <li className="flex gap-2" key={point}>
+                      <span aria-hidden="true" className="text-court">
+                        •
+                      </span>
+                      <span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
           <div className="mt-5 flex items-start gap-3 border-t border-border-dark pt-5">
             <Checkbox
               aria-describedby="profile-rules-error"
@@ -270,14 +298,49 @@ export function ProfileForm({ cities, initialValue }: ProfileFormProps) {
               I have read and accept the current Huddle community rules.
             </Label>
           </div>
-        )}
-        <FieldError id="profile-rules-error" messages={fieldErrors?.rulesAccepted} />
-      </fieldset>
+          <FieldError id="profile-rules-error" messages={fieldErrors?.rulesAccepted} />
+        </fieldset>
+      )}
+
+      {initialValue.adultAttested && initialValue.currentRulesAccepted ? (
+        <section
+          aria-label="Eligibility status"
+          className="rounded-[1.375rem] border border-border-dark p-5"
+        >
+          <p className="font-semibold text-linen">Eligibility saved</p>
+          <p className="mt-1 text-sm leading-6 text-muted-dark">
+            Your 18+ attestation and current community rules acceptance are saved.
+          </p>
+          <details className="mt-3 text-sm text-muted-dark">
+            <summary className="min-h-11 cursor-pointer content-center font-semibold text-linen">
+              View eligibility details
+            </summary>
+            <p className="mt-2 leading-6">
+              Huddle does not collect your date of birth. You accepted community rules version{" "}
+              {CURRENT_COMMUNITY_RULES.version}.
+            </p>
+          </details>
+        </section>
+      ) : initialValue.adultAttested ? (
+        <p className="rounded-[1.375rem] border border-border-dark p-4 text-sm text-muted-dark">
+          Your 18+ attestation is saved. Review the updated rules below to continue.
+        </p>
+      ) : initialValue.currentRulesAccepted ? (
+        <p className="rounded-[1.375rem] border border-border-dark p-4 text-sm text-muted-dark">
+          Your current community rules acceptance is saved.
+        </p>
+      ) : null}
 
       <ProfileFeedback state={state} />
 
       <Button className="w-full" disabled={pending} size="lg" type="submit">
-        {pending ? "Saving profile…" : initialValue.completed ? "Save profile" : "Complete profile"}
+        {pending
+          ? "Saving profile…"
+          : initialValue.completed
+            ? "Save profile"
+            : mode === "onboarding"
+              ? "Start using Huddle"
+              : "Complete profile"}
       </Button>
     </form>
   );

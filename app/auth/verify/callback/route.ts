@@ -2,6 +2,14 @@ import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
 import { verificationCodeQuerySchema, verificationQuerySchema } from "@/features/auth/schemas";
+import { parseWorkspaceCookie, workspaceRowsSchema } from "@/features/workspaces/schemas";
+import {
+  chooseWorkspace,
+  serializeWorkspaceSelection,
+  WORKSPACE_COOKIE_NAME,
+  workspaceCookieOptions,
+  workspaceLanding,
+} from "@/features/workspaces/state";
 import { getPublicEnvironment } from "@/lib/env/public";
 import { safeInternalRedirect } from "@/lib/security/redirect";
 import type { Database } from "@/types/database.generated";
@@ -69,10 +77,43 @@ export async function GET(request: NextRequest) {
         : null;
 
     if (verificationResult?.error === null) {
+      let destination = "/onboarding";
+      try {
+        const { data, error } = await supabase.rpc("list_my_workspaces");
+        if (error === null) {
+          const available = workspaceRowsSchema.parse(data).map((workspace) => ({
+            kind: workspace.workspace_kind,
+            id: workspace.workspace_id,
+            slug: workspace.slug,
+            label: workspace.name,
+            role: workspace.role,
+          }));
+          const remembered = parseWorkspaceCookie(
+            request.cookies.get(WORKSPACE_COOKIE_NAME)?.value,
+          );
+          const active = chooseWorkspace(available, remembered);
+          if (active !== null) {
+            destination = workspaceLanding(active);
+            response.cookies.set(
+              WORKSPACE_COOKIE_NAME,
+              serializeWorkspaceSelection({ kind: active.kind, id: active.id }),
+              workspaceCookieOptions(),
+            );
+          } else {
+            response.cookies.set(WORKSPACE_COOKIE_NAME, "", {
+              ...workspaceCookieOptions(),
+              maxAge: 0,
+            });
+          }
+        }
+      } catch {
+        // A verified identity with unavailable workspace state resumes from the
+        // safe setup surface; no remembered cookie grants authorization.
+      }
       response.headers.set(
         "location",
         new URL(
-          safeInternalRedirect("/auth/verify?status=success"),
+          safeInternalRedirect(destination, "/onboarding"),
           environment.NEXT_PUBLIC_APP_URL,
         ).toString(),
       );

@@ -49,6 +49,7 @@ function safeSummaryRow() {
     viewer_can_read_private_location: false,
     requires_approval: false,
     organizing_group_name: null,
+    organizing_group_slug: null,
     can_manage: false,
   };
 }
@@ -74,6 +75,24 @@ describe("event safe projections", () => {
     });
     expect(JSON.stringify(result)).not.toContain("user_id");
     expect(JSON.stringify(result)).not.toContain("address_text");
+  });
+
+  it("maps an organizing-group slug only when the database projection authorizes it", async () => {
+    rpc.mockResolvedValue({
+      data: [
+        {
+          ...safeSummaryRow(),
+          organizing_group_name: "Haifa Supporters",
+          organizing_group_slug: "haifa-supporters",
+        },
+      ],
+      error: null,
+    });
+
+    await expect(getEventSummary(eventId)).resolves.toMatchObject({
+      organizingGroupName: "Haifa Supporters",
+      organizingGroupSlug: "haifa-supporters",
+    });
   });
 
   it("uses the same empty result for nonexistent and unauthorized event IDs", async () => {

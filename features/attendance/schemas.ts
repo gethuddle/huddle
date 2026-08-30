@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { profileHandleSchema } from "@/features/profiles/schemas";
+import { boundedPageSchema } from "@/lib/pagination";
 
 const eventId = z.uuid("Choose a valid event.");
 const invitationId = z.uuid("Choose a valid invitation.");
@@ -12,6 +13,17 @@ export const invitationCreationSchema = z.object({
   eventId,
   inviteeHandle: profileHandleSchema,
 });
+
+export const invitationBatchSchema = z
+  .object({
+    eventId,
+    inviteeIds: z.array(z.uuid()).min(1).max(50),
+  })
+  .strict()
+  .refine((value) => new Set(value.inviteeIds).size === value.inviteeIds.length, {
+    path: ["inviteeIds"],
+    message: "Choose each person once.",
+  });
 
 export const invitationResponseSchema = z.object({
   eventId,
@@ -44,4 +56,4 @@ export const eventCancellationSchema = z.object({
     .max(500, "Use 500 characters or fewer."),
 });
 
-export const eventPageSchema = z.coerce.number().int().min(1).catch(1);
+export const eventPageSchema = boundedPageSchema;

@@ -244,7 +244,11 @@ export function MemberRoleControl({
   );
 }
 
-export function InviteCreateControl({ groupId, groupSlug }: GroupIdentity) {
+export function InviteCreateControl({
+  buttonLabel = "Create invitation",
+  groupId,
+  groupSlug,
+}: GroupIdentity & Readonly<{ buttonLabel?: string }>) {
   const [state, formAction, pending] = useActionState(
     createGroupInviteAction,
     INITIAL_GROUP_MEMBERSHIP_ACTION_STATE,
@@ -281,7 +285,7 @@ export function InviteCreateControl({ groupId, groupSlug }: GroupIdentity) {
         metadata.
       </p>
       <Button disabled={pending} type="submit">
-        {pending ? "Creating…" : "Create invitation"}
+        {pending ? "Creating…" : buttonLabel}
       </Button>
       <GroupActionFeedback state={state} />
     </form>

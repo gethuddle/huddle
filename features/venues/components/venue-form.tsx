@@ -144,8 +144,7 @@ export function VenueForm({ mode, catalog, initialValues = EMPTY_VALUES }: Venue
       <fieldset>
         <legend className="font-semibold text-linen">Public map coordinate</legend>
         <p className="mt-1 text-sm leading-6 text-muted-dark">
-          Enter the venue coordinate manually. Huddle does not add a paid map or address service in
-          this milestone.
+          Enter the public map point for this venue.
         </p>
         <div className="mt-4 grid gap-5 sm:grid-cols-2">
           <Field id="venue-latitude" label="Latitude" messages={fieldErrors?.latitude}>

@@ -33,6 +33,8 @@ function groupInput(formData: FormData) {
 }
 
 function refreshGroup(slug: string) {
+  revalidatePath("/");
+  revalidatePath("/dashboard");
   revalidatePath("/groups");
   revalidatePath(`/groups/${slug}`);
   revalidatePath(`/groups/${slug}/manage`);
@@ -49,10 +51,7 @@ export async function updateGroupDescriptionAction(
   if (!parsed.success) return actionFailure(parsed.error);
 
   try {
-    const [{ supabase }, requestId] = await Promise.all([
-      requireActor("community"),
-      getRequestId(),
-    ]);
+    const [{ supabase }, requestId] = await Promise.all([requireActor("fan"), getRequestId()]);
     const { error } = await supabase.rpc("update_group_description", {
       input_group_id: parsed.data.groupId,
       input_description: parsed.data.description,
@@ -78,10 +77,7 @@ export async function submitGroupApplicationAction(
   if (!parsed.success) return actionFailure(parsed.error);
 
   try {
-    const [{ supabase }, requestId] = await Promise.all([
-      requireActor("community"),
-      getRequestId(),
-    ]);
+    const [{ supabase }, requestId] = await Promise.all([requireActor("fan"), getRequestId()]);
     const { error } = await supabase.rpc("apply_to_group", {
       input_group_id: parsed.data.groupId,
       input_message: parsed.data.message,
@@ -108,10 +104,7 @@ export async function reviewGroupApplicationAction(
   if (!parsed.success) return actionFailure(parsed.error);
 
   try {
-    const [{ supabase }, requestId] = await Promise.all([
-      requireActor("community"),
-      getRequestId(),
-    ]);
+    const [{ supabase }, requestId] = await Promise.all([requireActor("fan"), getRequestId()]);
     const { error } = await supabase.rpc("review_group_membership", {
       input_group_id: parsed.data.groupId,
       input_user_id: parsed.data.userId,
@@ -142,10 +135,7 @@ export async function reviewGroupEventAction(
   if (!parsed.success) return actionFailure(parsed.error);
 
   try {
-    const [{ supabase }, requestId] = await Promise.all([
-      requireActor("community"),
-      getRequestId(),
-    ]);
+    const [{ supabase }, requestId] = await Promise.all([requireActor("fan"), getRequestId()]);
     const { error } = await supabase.rpc("publish_group_event", {
       input_event_id: parsed.data.eventId,
       input_decision: parsed.data.decision,
@@ -175,7 +165,7 @@ export async function leaveGroupAction(
 
   try {
     const [{ supabase }, requestId] = await Promise.all([
-      requireActor("onboarding"),
+      requireActor("authenticated"),
       getRequestId(),
     ]);
     const { error } = await supabase.rpc("leave_group", {
@@ -203,10 +193,7 @@ export async function createGroupInviteAction(
   if (!parsed.success) return actionFailure(parsed.error);
 
   try {
-    const [{ supabase }, requestId] = await Promise.all([
-      requireActor("community"),
-      getRequestId(),
-    ]);
+    const [{ supabase }, requestId] = await Promise.all([requireActor("fan"), getRequestId()]);
     const token = randomBytes(32).toString("base64url");
     const tokenHash = createHash("sha256").update(token, "utf8").digest("hex");
     const expiresAt = new Date(Date.now() + parsed.data.durationDays * 86_400_000).toISOString();
@@ -240,10 +227,7 @@ export async function consumeGroupInviteAction(
   if (!parsed.success) return actionFailure(parsed.error);
 
   try {
-    const [{ supabase }, requestId] = await Promise.all([
-      requireActor("community"),
-      getRequestId(),
-    ]);
+    const [{ supabase }, requestId] = await Promise.all([requireActor("fan"), getRequestId()]);
     const { data, error } = await supabase.rpc("consume_group_invite", {
       input_token: parsed.data.token,
       input_message: parsed.data.message,
@@ -270,10 +254,7 @@ export async function revokeGroupInviteAction(
   if (!parsed.success) return actionFailure(parsed.error);
 
   try {
-    const [{ supabase }, requestId] = await Promise.all([
-      requireActor("community"),
-      getRequestId(),
-    ]);
+    const [{ supabase }, requestId] = await Promise.all([requireActor("fan"), getRequestId()]);
     const { error } = await supabase.rpc("revoke_group_invite", {
       input_invite_id: parsed.data.inviteId,
       audit_request_id: requestId,
@@ -299,10 +280,7 @@ export async function changeGroupRoleAction(
   if (!parsed.success) return actionFailure(parsed.error);
 
   try {
-    const [{ supabase }, requestId] = await Promise.all([
-      requireActor("community"),
-      getRequestId(),
-    ]);
+    const [{ supabase }, requestId] = await Promise.all([requireActor("fan"), getRequestId()]);
     const { error } = await supabase.rpc("change_group_member_role", {
       input_group_id: parsed.data.groupId,
       input_user_id: parsed.data.userId,
@@ -333,10 +311,7 @@ export async function banGroupMemberAction(
   if (!parsed.success) return actionFailure(parsed.error);
 
   try {
-    const [{ supabase }, requestId] = await Promise.all([
-      requireActor("community"),
-      getRequestId(),
-    ]);
+    const [{ supabase }, requestId] = await Promise.all([requireActor("fan"), getRequestId()]);
     const { error } = await supabase.rpc("ban_group_member", {
       input_group_id: parsed.data.groupId,
       input_user_id: parsed.data.userId,
@@ -363,10 +338,7 @@ export async function unbanGroupMemberAction(
   if (!parsed.success) return actionFailure(parsed.error);
 
   try {
-    const [{ supabase }, requestId] = await Promise.all([
-      requireActor("community"),
-      getRequestId(),
-    ]);
+    const [{ supabase }, requestId] = await Promise.all([requireActor("fan"), getRequestId()]);
     const { error } = await supabase.rpc("unban_group_member", {
       input_group_id: parsed.data.groupId,
       input_user_id: parsed.data.userId,
@@ -395,10 +367,7 @@ export async function createGroupRuleAction(
   if (!parsed.success) return actionFailure(parsed.error);
 
   try {
-    const [{ supabase }, requestId] = await Promise.all([
-      requireActor("community"),
-      getRequestId(),
-    ]);
+    const [{ supabase }, requestId] = await Promise.all([requireActor("fan"), getRequestId()]);
     const { error } = await supabase.rpc("create_group_rule", {
       input_group_id: parsed.data.groupId,
       input_text: parsed.data.text,
@@ -429,10 +398,7 @@ export async function updateGroupRuleAction(
   if (!parsed.success) return actionFailure(parsed.error);
 
   try {
-    const [{ supabase }, requestId] = await Promise.all([
-      requireActor("community"),
-      getRequestId(),
-    ]);
+    const [{ supabase }, requestId] = await Promise.all([requireActor("fan"), getRequestId()]);
     const { error } = await supabase.rpc("update_group_rule", {
       input_rule_id: parsed.data.ruleId,
       input_text: parsed.data.text,
@@ -459,10 +425,7 @@ export async function reorderGroupRulesAction(
   if (!parsed.success) return actionFailure(parsed.error);
 
   try {
-    const [{ supabase }, requestId] = await Promise.all([
-      requireActor("community"),
-      getRequestId(),
-    ]);
+    const [{ supabase }, requestId] = await Promise.all([requireActor("fan"), getRequestId()]);
     const { error } = await supabase.rpc("reorder_group_rules", {
       input_group_id: parsed.data.groupId,
       input_rule_ids: parsed.data.ruleIds,

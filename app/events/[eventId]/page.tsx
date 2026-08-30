@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { ShareLinkButton } from "@/components/share/share-link-button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -16,13 +16,14 @@ import {
 } from "@/components/ui/pagination";
 import { EventParticipationControls } from "@/features/attendance/components/event-participation-controls";
 import { getPrivateEventLocation, listApprovedEventAttendees } from "@/features/attendance/queries";
-import { eventPageSchema } from "@/features/attendance/schemas";
 import { EventBadges } from "@/features/events/components/event-badges";
 import { getEventSummary } from "@/features/events/queries";
+import { deriveEventViewerRole, eventViewerPresentation } from "@/features/events/viewer-role";
 import { ReportControl } from "@/features/moderation/components/report-control";
 import { eventRouteIdSchema } from "@/features/events/schemas";
 import { formatIsraelKickoff } from "@/features/sports/time";
 import { DomainError } from "@/lib/errors";
+import { collectionPageCount, collectionPageInput } from "@/lib/pagination";
 import { VenueVerificationBadge } from "@/features/venues/components/venue-verification-badge";
 
 export const metadata: Metadata = {
@@ -39,23 +40,44 @@ export default async function EventPage({ params, searchParams }: EventPageProps
   if (!parsedId.success) notFound();
   const event = await getEventSummary(parsedId.data);
   if (event === null) notFound();
+  const openDoor = event.attendanceMode === "open_door";
+  const viewerRole = deriveEventViewerRole({
+    canManage: event.canManage,
+    hostKind: event.host.kind,
+    viewerAttendanceStatus: event.viewerAttendanceStatus,
+    viewerInvitationStatus: event.viewerInvitationStatus,
+  });
+  const viewerPresentation = eventViewerPresentation(viewerRole, event.status);
   const rawQuery = await searchParams;
+  const rawCreated = Array.isArray(rawQuery.created) ? rawQuery.created[0] : rawQuery.created;
+  const created = rawCreated === "1";
   const rawAttendeePage = rawQuery.attendeePage;
-  const attendeePage = eventPageSchema.parse(
+  const attendeePageInput = collectionPageInput(
     Array.isArray(rawAttendeePage) ? rawAttendeePage[0] : rawAttendeePage,
   );
+  if (attendeePageInput.wasAboveWindow) {
+    redirect(eventAttendeePageHref(event.id, attendeePageInput.page, created));
+  }
+  const attendeePage = attendeePageInput.page;
   const [privateLocation, approvedAttendees] = await Promise.all([
     event.viewerCanReadPrivateLocation ? readPrivateLocation(event.id) : Promise.resolve(null),
-    event.canManage || event.viewerAttendanceStatus === "approved"
+    !openDoor && (event.canManage || event.viewerAttendanceStatus === "approved")
       ? readApprovedAttendees(event.id, attendeePage)
       : Promise.resolve([]),
   ]);
   const attendeeTotal = approvedAttendees.at(0)?.total_count ?? 0;
-  const attendeePageCount = Math.max(1, Math.ceil(attendeeTotal / 20));
+  const attendeePageCount = collectionPageCount(attendeeTotal);
+  if (!openDoor && attendeePage > 1 && approvedAttendees.length === 0) {
+    const firstAttendees = await readApprovedAttendees(event.id, 1);
+    const finalPage = collectionPageCount(firstAttendees.at(0)?.total_count ?? 0);
+    if (attendeePage > finalPage) {
+      redirect(eventAttendeePageHref(event.id, finalPage, created));
+    }
+  }
 
   return (
     <section className="py-12 sm:py-16">
-      {rawQuery.created === "1" ? (
+      {created ? (
         <Alert className="mb-6 border-court/30 bg-court/10" role="status">
           <AlertDescription className="text-court-hover">
             Your event is saved and now lives in My Huddle. Invite eligible people or manage it
@@ -76,6 +98,7 @@ export default async function EventPage({ params, searchParams }: EventPageProps
       <div className="mt-5">
         <EventBadges
           approvedAttendeeCount={event.approvedAttendeeCount}
+          attendanceMode={event.attendanceMode}
           audience={event.audience}
           audienceTeamName={event.audienceTeamName}
           capacity={event.capacity}
@@ -117,8 +140,12 @@ export default async function EventPage({ params, searchParams }: EventPageProps
                 }
               />
               <Detail
-                label="Capacity"
-                value={`${event.approvedAttendeeCount} approved · ${event.remainingCapacity} remaining of ${event.capacity}`}
+                label="Attendance"
+                value={
+                  openDoor
+                    ? "Open door · just come along"
+                    : `${event.approvedAttendeeCount} approved · ${event.remainingCapacity} remaining of ${event.capacity}`
+                }
               />
               <Detail label="Expected activity" value={event.expectedActivity} />
               <Detail label="Cost" value={event.costDescription} />
@@ -182,89 +209,102 @@ export default async function EventPage({ params, searchParams }: EventPageProps
                   Removing access cannot erase an address someone already viewed.
                 </p>
               ) : null}
-              {event.viewerAttendanceStatus === null ? null : (
-                <p className="mt-3 text-sm font-semibold text-court">
-                  Your attendance status: {event.viewerAttendanceStatus}
-                </p>
-              )}
               <p className="mt-3 text-sm leading-6 text-muted-dark">
-                Everyone attends with their own Huddle account
-                {event.requiresApproval ? " and host approval." : "."}
+                {openDoor
+                  ? "This is a public walk-in event. Huddle does not collect RSVPs, invitations, or a guest list."
+                  : `Everyone attends with their own Huddle account${event.requiresApproval ? " and host approval." : "."}`}
               </p>
             </CardContent>
           </Card>
 
           <Card size="sm">
             <CardHeader>
-              <h2 className="text-xl font-semibold text-linen">Join this huddle</h2>
+              <p className="text-sm font-semibold text-court">
+                {openDoor ? "How attendance works" : "Your event status"}
+              </p>
+              <h2 className="text-xl font-semibold text-linen">
+                {openDoor ? "No reservation needed" : viewerPresentation.status}
+              </h2>
             </CardHeader>
             <CardContent>
-              <EventParticipationControls
-                canManage={event.canManage}
-                eventId={event.id}
-                eventStatus={event.status}
-                hostKind={event.host.kind}
-                remainingCapacity={event.remainingCapacity}
-                requiresApproval={event.requiresApproval}
-                viewerAttendanceId={event.viewerAttendanceId}
-                viewerAttendanceStatus={event.viewerAttendanceStatus}
-                viewerInvitationId={event.viewerInvitationId}
-                viewerInvitationStatus={event.viewerInvitationStatus}
-                viewerIsAuthenticated={event.viewerIsAuthenticated}
-              />
+              {openDoor ? (
+                <p className="text-sm leading-6 text-muted-dark">
+                  Turn up at the venue for kickoff. Availability is managed by the venue in person,
+                  not through a Huddle place counter.
+                </p>
+              ) : (
+                <EventParticipationControls
+                  canManage={event.canManage}
+                  eventId={event.id}
+                  eventStatus={event.status}
+                  hostKind={event.host.kind}
+                  remainingCapacity={event.remainingCapacity ?? 0}
+                  requiresApproval={event.requiresApproval}
+                  viewerAttendanceId={event.viewerAttendanceId}
+                  viewerAttendanceStatus={event.viewerAttendanceStatus}
+                  viewerInvitationId={event.viewerInvitationId}
+                  viewerInvitationStatus={event.viewerInvitationStatus}
+                  viewerIsAuthenticated={event.viewerIsAuthenticated}
+                  viewerRole={viewerRole}
+                />
+              )}
             </CardContent>
           </Card>
 
-          {approvedAttendees.length === 0 ? null : (
-            <Card size="sm">
-              <CardHeader>
-                <h2 className="text-xl font-semibold text-linen">Approved attendees</h2>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {approvedAttendees.map((attendee) => (
-                    <li key={attendee.profile_handle}>
-                      <Link
-                        className="text-sm font-semibold text-linen hover:text-court"
-                        href={`/people/${attendee.profile_handle}`}
-                      >
-                        {attendee.display_name} · @{attendee.profile_handle}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-                {attendeePageCount > 1 ? (
-                  <Pagination className="mt-5">
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious
-                          aria-disabled={attendeePage === 1}
-                          href={
-                            attendeePage === 1 ? undefined : `?attendeePage=${attendeePage - 1}`
-                          }
-                        />
-                      </PaginationItem>
-                      <PaginationItem>
-                        <span className="px-3 text-xs text-muted-dark">
-                          {attendeePage}/{attendeePageCount}
-                        </span>
-                      </PaginationItem>
-                      <PaginationItem>
-                        <PaginationNext
-                          aria-disabled={attendeePage >= attendeePageCount}
-                          href={
-                            attendeePage >= attendeePageCount
-                              ? undefined
-                              : `?attendeePage=${attendeePage + 1}`
-                          }
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
-                ) : null}
-              </CardContent>
-            </Card>
-          )}
+          <div className="scroll-mt-24" id="approved-attendees">
+            {approvedAttendees.length === 0 ? null : (
+              <Card size="sm">
+                <CardHeader>
+                  <h2 className="text-xl font-semibold text-linen">Approved attendees</h2>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2">
+                    {approvedAttendees.map((attendee) => (
+                      <li key={attendee.profile_handle}>
+                        <Link
+                          className="text-sm font-semibold text-linen hover:text-court"
+                          href={`/people/${attendee.profile_handle}`}
+                        >
+                          {attendee.display_name} · @{attendee.profile_handle}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                  {attendeePageCount > 1 ? (
+                    <Pagination className="mt-5">
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            aria-disabled={attendeePage === 1}
+                            href={
+                              attendeePage === 1
+                                ? undefined
+                                : eventAttendeePageHref(event.id, attendeePage - 1, created)
+                            }
+                          />
+                        </PaginationItem>
+                        <PaginationItem>
+                          <span className="px-3 text-xs text-muted-dark">
+                            {attendeePage}/{attendeePageCount}
+                          </span>
+                        </PaginationItem>
+                        <PaginationItem>
+                          <PaginationNext
+                            aria-disabled={attendeePage >= attendeePageCount}
+                            href={
+                              attendeePage >= attendeePageCount
+                                ? undefined
+                                : eventAttendeePageHref(event.id, attendeePage + 1, created)
+                            }
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  ) : null}
+                </CardContent>
+              </Card>
+            )}
+          </div>
 
           {event.organizingGroupName === null ? null : (
             <Card size="sm">
@@ -272,7 +312,16 @@ export default async function EventPage({ params, searchParams }: EventPageProps
                 <p className="text-xs uppercase tracking-[0.14em] text-muted-dark">
                   Organizing group
                 </p>
-                <p className="mt-2 font-semibold text-linen">{event.organizingGroupName}</p>
+                {event.organizingGroupSlug === null ? (
+                  <p className="mt-2 font-semibold text-linen">{event.organizingGroupName}</p>
+                ) : (
+                  <Link
+                    className="mt-2 inline-block font-semibold text-linen hover:text-court"
+                    href={`/groups/${event.organizingGroupSlug}`}
+                  >
+                    {event.organizingGroupName}
+                  </Link>
+                )}
               </CardContent>
             </Card>
           )}
@@ -300,6 +349,13 @@ async function readApprovedAttendees(eventId: string, page: number) {
     if (error instanceof DomainError && error.code !== "INTERNAL_ERROR") return [];
     throw error;
   }
+}
+
+function eventAttendeePageHref(eventId: string, page: number, created: boolean) {
+  const query = new URLSearchParams();
+  if (created) query.set("created", "1");
+  query.set("attendeePage", page.toString());
+  return `/events/${eventId}?${query.toString()}#approved-attendees`;
 }
 
 function Detail({ label, value }: Readonly<{ label: string; value: string }>) {

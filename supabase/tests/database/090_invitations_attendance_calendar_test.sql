@@ -34,6 +34,22 @@ select ok(
   'eligible users can invoke the controlled participation function'
 );
 select ok(
+  has_function_privilege(
+    'authenticated',
+    'public.resolve_event_invitation_candidate_handles(uuid,uuid[])',
+    'execute'
+  ),
+  'authenticated event managers can invoke the bounded invitation-candidate resolver'
+);
+select ok(
+  not has_function_privilege(
+    'anon',
+    'public.resolve_event_invitation_candidate_handles(uuid,uuid[])',
+    'execute'
+  ),
+  'anonymous callers cannot resolve invitation candidates'
+);
+select ok(
   not has_function_privilege(
     'anon',
     'public.get_private_event_location(uuid,uuid)',
@@ -79,7 +95,8 @@ set
   adult_attested_at = statement_timestamp(),
   rules_version = 1,
   rules_accepted_at = statement_timestamp(),
-  profile_completed_at = statement_timestamp()
+  profile_completed_at = statement_timestamp(),
+  fan_enabled_at = statement_timestamp()
 where id between
   '90000000-0000-4000-8000-000000000101' and
   '90000000-0000-4000-8000-000000000110';
@@ -260,6 +277,67 @@ values (
   extensions.st_setsrid(extensions.st_makepoint(34.996, 32.810), 4326)::extensions.geography
 );
 
+insert into public.events (
+  id, created_by, host_user_id, match_id, title, description,
+  expected_activity, cost_description, event_rules, commercial_affiliation,
+  host_presence_confirmed_at, starts_at, ends_at, city_id, place_kind,
+  public_place_name, public_address_text, public_location,
+  audience, organizing_group_id, capacity, requires_approval, status, published_at
+)
+values (
+  '90000000-0000-4000-8000-000000000406',
+  '90000000-0000-4000-8000-000000000101',
+  '90000000-0000-4000-8000-000000000101',
+  '90000000-0000-4000-8000-000000000204',
+  'B10 Unlisted Organizer',
+  'An invite-only event proving the organizing-group link projection.',
+  'Watch the full match', 'Free', 'Respect every attendee.', 'None',
+  statement_timestamp(), statement_timestamp() + interval '10 days',
+  statement_timestamp() + interval '10 days 3 hours',
+  (select id from public.cities where slug = 'haifa'),
+  'public_place', 'B10 Public Room', '20 Public Street, Haifa',
+  extensions.st_setsrid(extensions.st_makepoint(35.001, 32.815), 4326)::extensions.geography,
+  'invite_only', '90000000-0000-4000-8000-000000000205',
+  10, true, 'published', statement_timestamp()
+);
+
+insert into public.event_invitations (event_id, invitee_id, invited_by)
+values (
+  '90000000-0000-4000-8000-000000000406',
+  '90000000-0000-4000-8000-000000000104',
+  '90000000-0000-4000-8000-000000000101'
+);
+
+set local role authenticated;
+set local "request.jwt.claim.sub" = '90000000-0000-4000-8000-000000000106';
+select is(
+  (
+    select organizing_group_slug
+    from public.get_event_summary('90000000-0000-4000-8000-000000000406')
+  ),
+  'b10-group',
+  'an active organizing-group admin receives the authorized group slug link projection'
+);
+
+set local "request.jwt.claim.sub" = '90000000-0000-4000-8000-000000000104';
+select is(
+  (
+    select organizing_group_name
+    from public.get_event_summary('90000000-0000-4000-8000-000000000406')
+  ),
+  'B10 Group',
+  'a directly invited nonmember retains the approved organizing-group name context'
+);
+select is(
+  (
+    select organizing_group_slug
+    from public.get_event_summary('90000000-0000-4000-8000-000000000406')
+  ),
+  null,
+  'an invited nonmember cannot obtain an unlisted organizing-group slug'
+);
+reset role;
+
 insert into public.event_attendance (
   event_id, user_id, status, source, reviewed_by, reviewed_at
 )
@@ -374,11 +452,24 @@ select is(
 set local role authenticated;
 set local "request.jwt.claim.sub" = '90000000-0000-4000-8000-000000000109';
 select throws_ok(
+  $$select * from public.resolve_event_invitation_candidate_handles('90000000-0000-4000-8000-000000000401',array['90000000-0000-4000-8000-000000000102'::uuid])$$,
+  'P0001', 'NOT_FOUND', 'a non-manager cannot resolve candidates for another host event'
+);
+select throws_ok(
   $$select * from public.create_event_invitation('90000000-0000-4000-8000-000000000401','b10_user_102',null)$$,
   'P0001', 'NOT_FOUND', 'a non-manager cannot invite to another host event'
 );
 
 set local "request.jwt.claim.sub" = '90000000-0000-4000-8000-000000000101';
+select results_eq(
+  $$select profile_id, handle from public.resolve_event_invitation_candidate_handles('90000000-0000-4000-8000-000000000401',array['90000000-0000-4000-8000-000000000102'::uuid,'90000000-0000-4000-8000-000000000103'::uuid])$$,
+  $$values ('90000000-0000-4000-8000-000000000102'::uuid,'b10_user_102'::text),('90000000-0000-4000-8000-000000000103'::uuid,'b10_user_103'::text)$$,
+  'an event manager resolves only the selected profile ids to their current handles in selection order'
+);
+select throws_ok(
+  $$select * from public.resolve_event_invitation_candidate_handles('90000000-0000-4000-8000-000000000401',array['90000000-0000-4000-8000-000000000102'::uuid,'90000000-0000-4000-8000-000000000102'::uuid])$$,
+  'P0001', 'VALIDATION_FAILED', 'the candidate resolver rejects duplicate profile ids'
+);
 select throws_ok(
   $$select * from public.create_event_invitation('90000000-0000-4000-8000-000000000401','b10_user_101',null)$$,
   'P0001', 'NOT_ALLOWED', 'self-invitation is rejected'

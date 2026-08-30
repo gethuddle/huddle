@@ -63,7 +63,7 @@ describe("B06 group membership actions", () => {
 
     const result = await submitGroupApplicationAction(null, formData);
 
-    expect(mocks.requireActor).toHaveBeenCalledWith("community");
+    expect(mocks.requireActor).toHaveBeenCalledWith("fan");
     expect(rpc).toHaveBeenCalledWith("apply_to_group", {
       input_group_id: groupId,
       input_message: "I would like to join.",
@@ -113,10 +113,10 @@ describe("B06 group membership actions", () => {
     );
   });
 
-  it("uses the onboarding gate for a retained-history leave", async () => {
+  it("uses the authenticated gate for a retained-history leave", async () => {
     const result = await leaveGroupAction(null, groupForm());
 
-    expect(mocks.requireActor).toHaveBeenCalledWith("onboarding");
+    expect(mocks.requireActor).toHaveBeenCalledWith("authenticated");
     expect(rpc).toHaveBeenCalledWith("leave_group", {
       input_group_id: groupId,
       audit_request_id: requestId,

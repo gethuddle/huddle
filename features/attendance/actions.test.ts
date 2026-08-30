@@ -12,6 +12,7 @@ vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 
 import {
   createEventInvitationAction,
+  createEventInvitationsAction,
   leaveEventAction,
   requestOrJoinEventAction,
   reviewAttendanceAction,
@@ -41,6 +42,7 @@ describe("attendance server actions", () => {
 
     const result = await requestOrJoinEventAction(form({ eventId }));
 
+    expect(mocks.requireActor).toHaveBeenCalledWith("fan");
     expect(rpc).toHaveBeenCalledWith("request_or_join_event", {
       input_event_id: eventId,
       audit_request_id: "90000000-0000-4000-8000-000000000999",
@@ -58,6 +60,50 @@ describe("attendance server actions", () => {
     expect(mocks.requireActor).not.toHaveBeenCalled();
   });
 
+  it("resolves selected profile IDs server-side and explains partial invitation results", async () => {
+    const inviteeA = "90000000-0000-4000-8000-000000000102";
+    const inviteeB = "90000000-0000-4000-8000-000000000103";
+    const rpc = vi
+      .fn()
+      .mockResolvedValueOnce({
+        data: [
+          { profile_id: inviteeA, handle: "supporter_one" },
+          { profile_id: inviteeB, handle: "supporter_two" },
+        ],
+        error: null,
+      })
+      .mockResolvedValueOnce({ data: null, error: null })
+      .mockResolvedValueOnce({ data: null, error: { message: "INVITEE_NOT_ELIGIBLE" } });
+    mocks.requireActor.mockResolvedValue({ supabase: { rpc } });
+
+    const result = await createEventInvitationsAction({
+      eventId,
+      inviteeIds: [inviteeA, inviteeB],
+    });
+
+    expect(rpc).toHaveBeenNthCalledWith(1, "resolve_event_invitation_candidate_handles", {
+      input_event_id: eventId,
+      input_profile_ids: [inviteeA, inviteeB],
+    });
+    expect(rpc).toHaveBeenNthCalledWith(2, "create_event_invitation", {
+      input_event_id: eventId,
+      input_invitee_handle: "supporter_one",
+      audit_request_id: "90000000-0000-4000-8000-000000000999",
+    });
+    expect(result).toEqual({
+      ok: true,
+      data: {
+        message:
+          "1 invitation sent. 1 could not be sent; refresh the picker to see current eligibility.",
+        invitedIds: [inviteeA],
+        rejectedIds: [inviteeB],
+      },
+    });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/dashboard");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith(`/events/${eventId}/manage`);
+  });
+
   it("maps the transactional full-event token without exposing database detail", async () => {
     const rpc = vi.fn().mockResolvedValue({
       data: null,
@@ -69,6 +115,7 @@ describe("attendance server actions", () => {
       form({ eventId, attendanceId, decision: "approve" }),
     );
 
+    expect(mocks.requireActor).toHaveBeenCalledWith("common");
     expect(result).toEqual({
       ok: false,
       error: { code: "EVENT_FULL", message: "This event is full." },
@@ -83,7 +130,7 @@ describe("attendance server actions", () => {
 
     const result = await leaveEventAction(form({ eventId, attendanceId }));
 
-    expect(mocks.requireActor).toHaveBeenCalledWith("onboarding");
+    expect(mocks.requireActor).toHaveBeenCalledWith("authenticated");
     expect(rpc).toHaveBeenCalledWith("leave_event", {
       input_attendance_id: attendanceId,
       audit_request_id: "90000000-0000-4000-8000-000000000999",

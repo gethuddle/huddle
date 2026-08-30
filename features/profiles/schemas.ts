@@ -26,7 +26,7 @@ export const citySlugSchema = z
   .max(80, "Choose a valid city.")
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Choose a valid city.");
 
-export const profileInputSchema = z.object({
+export const fanWorkspaceInputSchema = z.object({
   handle: profileHandleSchema,
   displayName: z
     .string()
@@ -45,6 +45,7 @@ export const profileInputSchema = z.object({
     }),
 });
 
+export const profileInputSchema = fanWorkspaceInputSchema;
 export const publicProfileHandleSchema = profileHandleSchema;
 
-export type ProfileInput = z.infer<typeof profileInputSchema>;
+export type ProfileInput = z.infer<typeof fanWorkspaceInputSchema>;

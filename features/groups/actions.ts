@@ -106,10 +106,7 @@ export async function createGroupAction(
   const values = valuesFromInput(parsed.data);
 
   try {
-    const [{ supabase }, requestId] = await Promise.all([
-      requireActor("community"),
-      getRequestId(),
-    ]);
+    const [{ supabase }, requestId] = await Promise.all([requireActor("fan"), getRequestId()]);
 
     if (parsed.data.intent === "check") {
       const { data, error } = await supabase.rpc("suggest_similar_groups", {
@@ -172,6 +169,7 @@ export async function createGroupAction(
       data: {
         phase: "created",
         message: "Group created. You are its active owner.",
+        visibility: values.visibility,
         group: { id: row.group_id, slug: row.slug, lifecycle: row.lifecycle },
       },
     };

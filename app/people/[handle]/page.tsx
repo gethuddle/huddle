@@ -50,7 +50,7 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
     const ownProfileResult = await supabase
       .from("profiles")
       .select(
-        "handle, display_name, city_id, adult_attested_at, rules_version, rules_accepted_at, profile_completed_at, suspended_at, suspension_expires_at, community_restricted_at, community_restricted_until",
+        "handle, display_name, city_id, adult_attested_at, rules_version, rules_accepted_at, profile_completed_at, fan_enabled_at, suspended_at, suspension_expires_at, community_restricted_at, community_restricted_until",
       )
       .eq("id", user.id)
       .maybeSingle();
@@ -76,6 +76,7 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
           ownProfile.handle !== null &&
           ownProfile.display_name !== null &&
           ownProfile.city_id !== null,
+        fanEnabled: ownProfile?.fan_enabled_at !== null && ownProfile?.fan_enabled_at !== undefined,
         suspended: ownProfile?.suspended_at !== null && ownProfile?.suspended_at !== undefined,
         restricted:
           ownProfile?.community_restricted_at !== null &&

@@ -11,6 +11,11 @@ import type {
   VenueMutationState,
 } from "@/features/venues/state";
 import {
+  createVenueWorkspaceAction as activateVenueWorkspaceAction,
+  saveVenueSpaceAction,
+  updateVenueWorkspaceAction,
+} from "@/features/venues/workspace/actions";
+import {
   actionFailure,
   actionSuccess,
   DomainError,
@@ -92,7 +97,7 @@ async function mutateVenue(
 
   try {
     const [{ supabase }, requestId] = await Promise.all([
-      requireActor("community"),
+      requireActor(mode === "create" ? "common" : { venueId: parsed.data.venueId as string }),
       getRequestId(),
     ]);
     const sharedArgs = {
@@ -143,7 +148,20 @@ export async function createVenueAction(
   previousState: VenueMutationState,
   formData: FormData,
 ): Promise<VenueMutationState> {
-  return mutateVenue("create", previousState, formData);
+  const result = await activateVenueWorkspaceAction(null, formData);
+  if (result?.ok === true) return result;
+  if (result?.ok === false) {
+    return {
+      ...result,
+      values: submittedVenueValues(formData),
+      attempt: previousState?.ok === false ? previousState.attempt + 1 : 1,
+    };
+  }
+  return venueFailure(
+    new DomainError("INTERNAL_ERROR"),
+    submittedVenueValues(formData),
+    previousState,
+  );
 }
 
 export async function updateVenueAction(
@@ -173,7 +191,7 @@ export async function setVenueFollowAction(
   if (!parsed.success) return actionFailure(parsed.error);
 
   try {
-    const { supabase, user } = await requireActor("community");
+    const { supabase, user } = await requireActor("fan");
 
     if (parsed.data.intent === "follow") {
       const { error } = await supabase.from("venue_follows").insert({
@@ -210,3 +228,9 @@ export async function setVenueFollowAction(
     return actionFailure(error);
   }
 }
+
+export {
+  activateVenueWorkspaceAction as createVenueWorkspaceAction,
+  saveVenueSpaceAction,
+  updateVenueWorkspaceAction,
+};

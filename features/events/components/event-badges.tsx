@@ -18,6 +18,7 @@ export function EventBadges({
   audienceTeamName,
   placeKind,
   hostKind,
+  attendanceMode,
   capacity,
   approvedAttendeeCount,
   requiresApproval,
@@ -27,7 +28,8 @@ export function EventBadges({
   audienceTeamName: string | null;
   placeKind: "home" | "venue" | "public_place";
   hostKind: "person" | "venue";
-  capacity: number;
+  attendanceMode: "open_door" | "reservations";
+  capacity: number | null;
   approvedAttendeeCount: number;
   requiresApproval: boolean;
   venueVerificationStatus: "unverified" | "verified" | "suspended" | null;
@@ -40,10 +42,18 @@ export function EventBadges({
       </Badge>
       <Badge variant="outline">{placeLabel(placeKind)}</Badge>
       <Badge variant="outline">{hostKind === "venue" ? "Venue-hosted" : "Person-hosted"}</Badge>
-      <Badge variant="outline">
-        {approvedAttendeeCount} approved · {capacity} capacity
-      </Badge>
-      <Badge variant="outline">{requiresApproval ? "Approval required" : "Immediate join"}</Badge>
+      {attendanceMode === "open_door" ? (
+        <Badge variant="outline">Open door · no RSVP</Badge>
+      ) : (
+        <>
+          <Badge variant="outline">
+            {approvedAttendeeCount} approved · {capacity} capacity
+          </Badge>
+          <Badge variant="outline">
+            {requiresApproval ? "Approval required" : "Immediate join"}
+          </Badge>
+        </>
+      )}
       {venueVerificationStatus === null ? null : (
         <VenueVerificationBadge status={venueVerificationStatus} />
       )}

@@ -69,6 +69,20 @@ const fixture: NormalizedFixture = {
   seasonLabel: "2026",
 };
 
+const octoberFixture: NormalizedFixture = {
+  ...fixture,
+  providerExternalId: "5003",
+  startsAt: "2026-10-12T18:00:00.000Z",
+  matchday: 8,
+};
+
+const mayFixture: NormalizedFixture = {
+  ...fixture,
+  providerExternalId: "5004",
+  startsAt: "2027-05-24T18:00:00.000Z",
+  matchday: 38,
+};
+
 function databaseFromRpc(rpc: ReturnType<typeof vi.fn>): SportsSyncDatabaseClient {
   return { rpc: rpc as unknown as SportsSyncDatabaseClient["rpc"] };
 }
@@ -77,7 +91,7 @@ function providerFixture(overrides: Partial<InstrumentedSportsProvider> = {}) {
   return {
     name: "football-data",
     listCompetitions: vi.fn(async () => [pl, cl, ignoredCompetition]),
-    listFixtures: vi.fn(async () => [fixture]),
+    listFixtures: vi.fn(async () => [fixture, octoberFixture, mayFixture]),
     getRequestMetadata: vi.fn(() => ({ quotaRemaining: 6, requestCount: 3, retryCount: 1 })),
     ...overrides,
   } satisfies InstrumentedSportsProvider;
@@ -117,7 +131,7 @@ describe("sports synchronization orchestration", () => {
             {
               competitions_changed: 2,
               teams_changed: 2,
-              matches_changed: 1,
+              matches_changed: 3,
               duration_ms: 27,
             },
           ],
@@ -142,7 +156,7 @@ describe("sports synchronization orchestration", () => {
       summary: {
         competitionsChanged: 2,
         teamsChanged: 2,
-        matchesChanged: 1,
+        matchesChanged: 3,
         quotaRemaining: 6,
         durationMs: 27,
         requestCount: 3,
@@ -199,6 +213,14 @@ describe("sports synchronization orchestration", () => {
             provider_external_id: "5001",
             home_team_external_id: "57",
             away_team_external_id: "61",
+          }),
+          expect.objectContaining({
+            provider_external_id: "5003",
+            starts_at: "2026-10-12T18:00:00.000Z",
+          }),
+          expect.objectContaining({
+            provider_external_id: "5004",
+            starts_at: "2027-05-24T18:00:00.000Z",
           }),
         ],
       }),

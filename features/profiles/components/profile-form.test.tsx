@@ -1,13 +1,17 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ProfileForm } from "./profile-form";
 
-const mocks = vi.hoisted(() => ({ saveProfileAction: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  activateFanOnboardingAction: vi.fn(),
+  saveProfileAction: vi.fn(),
+}));
 
 vi.mock("@/features/profiles/actions", () => ({
+  activateFanOnboardingAction: mocks.activateFanOnboardingAction,
   saveProfileAction: mocks.saveProfileAction,
 }));
 
@@ -17,7 +21,11 @@ const cities = [
 ] as const;
 
 describe("ProfileForm", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.sessionStorage.clear();
+  });
+  afterEach(() => window.sessionStorage.clear());
 
   it("renders labelled onboarding fields and both required confirmations", () => {
     render(
@@ -114,9 +122,98 @@ describe("ProfileForm", () => {
       />,
     );
 
-    expect(screen.getByText(/18\+ attestation is recorded/i)).toBeVisible();
-    expect(screen.getByText(/accepted this version/i)).toBeVisible();
+    expect(screen.getByText("Eligibility saved")).toBeVisible();
+    expect(screen.getByText(/18\+ attestation and current community rules/i)).toBeVisible();
+    expect(screen.queryByText(/No threats, planned fights/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save profile" })).toBeVisible();
+  });
+
+  it("shows the full rules only when a completed profile must accept a newer version", () => {
+    render(
+      <ProfileForm
+        cities={cities}
+        initialValue={{
+          handle: "fan_one",
+          displayName: "Fan One",
+          citySlug: "haifa",
+          bio: "Match day regular",
+          adultAttested: true,
+          currentRulesAccepted: false,
+          completed: true,
+        }}
+      />,
+    );
+
+    expect(screen.getByText(/No threats, planned fights/i)).toBeVisible();
+    expect(screen.getByRole("checkbox", { name: /accept the current/i })).toBeVisible();
+    expect(screen.queryByRole("checkbox", { name: /18 or older/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Display name" })).toHaveValue("Fan One");
+    expect(screen.getByRole("textbox", { name: "Short bio (optional)" })).toHaveValue(
+      "Match day regular",
+    );
+  });
+
+  it("presents onboarding as an entry into Fan Home", () => {
+    render(
+      <ProfileForm
+        cities={cities}
+        initialValue={{
+          handle: "",
+          displayName: "",
+          citySlug: "",
+          bio: "",
+          adultAttested: false,
+          currentRulesAccepted: false,
+          completed: false,
+        }}
+        draftOwnerId="account-a"
+        mode="onboarding"
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Start using Huddle" })).toBeVisible();
+  });
+
+  it("restores unfinished Fan profile fields without persisting legal confirmations", () => {
+    const props = {
+      cities,
+      draftOwnerId: "account-a",
+      initialValue: {
+        handle: "",
+        displayName: "",
+        citySlug: "",
+        bio: "",
+        adultAttested: false,
+        currentRulesAccepted: false,
+        completed: false,
+      },
+      mode: "onboarding" as const,
+    };
+    const first = render(<ProfileForm {...props} />);
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Display name" }), {
+      target: { value: "Alex Local" },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "Handle" }), {
+      target: { value: "alex_local" },
+    });
+    fireEvent.change(screen.getByRole("combobox", { name: "City" }), {
+      target: { value: "haifa" },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "Short bio (optional)" }), {
+      target: { value: "Arsenal and away days" },
+    });
+    fireEvent.click(screen.getByRole("checkbox", { name: /18 or older/i }));
+    first.unmount();
+
+    render(<ProfileForm {...props} />);
+    expect(screen.getByRole("textbox", { name: "Display name" })).toHaveValue("Alex Local");
+    expect(screen.getByRole("textbox", { name: "Handle" })).toHaveValue("alex_local");
+    expect(screen.getByRole("combobox", { name: "City" })).toHaveValue("haifa");
+    expect(screen.getByRole("textbox", { name: "Short bio (optional)" })).toHaveValue(
+      "Arsenal and away days",
+    );
+    expect(screen.getByRole("checkbox", { name: /18 or older/i })).not.toBeChecked();
   });
 });

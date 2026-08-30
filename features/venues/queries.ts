@@ -19,7 +19,7 @@ const publicVenueRowSchema = z
     screen_count: z.number().int().positive().nullable(),
     stated_capacity: z.number().int().positive().nullable(),
     verification_status: verificationStatusSchema,
-    owner_handle: z.string(),
+    owner_handle: z.string().nullable(),
     follower_count: z.number().int().nonnegative(),
     viewer_follows: z.boolean(),
     viewer_is_owner: z.boolean(),
@@ -55,7 +55,7 @@ export type PublicVenue = Readonly<{
   screenCount: number | null;
   statedCapacity: number | null;
   verificationStatus: z.infer<typeof verificationStatusSchema>;
-  ownerHandle: string;
+  ownerHandle: string | null;
   followerCount: number;
   viewerFollows: boolean;
   viewerIsOwner: boolean;
@@ -150,3 +150,5 @@ export async function getVenueForManagement(slug: string): Promise<ManagedVenue 
     throw new DomainError("INTERNAL_ERROR", { cause });
   }
 }
+
+export { getVenueWorkspace, listVenueCalendar } from "@/features/venues/workspace/queries";

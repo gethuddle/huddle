@@ -17,7 +17,7 @@ export function resolvePublicProfileViewerState({
   if (facts === null || !facts.authenticated) return "anonymous";
   if (viewerHandle === targetHandle) return "self";
 
-  const gateCode = actorGateCode(facts, "community");
+  const gateCode = actorGateCode(facts, "fan");
   if (gateCode === null) return "eligible";
   if (gateCode === "ACCOUNT_SUSPENDED" || gateCode === "ACCOUNT_RESTRICTED") {
     return "not-permitted";

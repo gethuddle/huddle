@@ -72,12 +72,18 @@ export default async function VenuePage({ params }: VenuePageProps) {
               </div>
             </dl>
             <p className="mt-6 font-semibold text-linen">{venue.addressText}</p>
-            <p className="mt-2 text-sm text-muted-dark">
-              <span>Profile owner: </span>
-              <Link className="text-linen hover:text-court" href={"/people/" + venue.ownerHandle}>
-                @{venue.ownerHandle}
-              </Link>
-            </p>
+            {venue.ownerHandle === null ? (
+              <p className="mt-2 text-sm text-muted-dark">
+                Managed through a dedicated Venue account.
+              </p>
+            ) : (
+              <p className="mt-2 text-sm text-muted-dark">
+                <span>Profile owner: </span>
+                <Link className="text-linen hover:text-court" href={"/people/" + venue.ownerHandle}>
+                  @{venue.ownerHandle}
+                </Link>
+              </p>
+            )}
           </div>
 
           <aside aria-label="Venue controls" className="self-start">
@@ -92,7 +98,7 @@ export default async function VenuePage({ params }: VenuePageProps) {
                 </p>
                 {venue.viewerIsOwner ? (
                   <Button asChild className="mt-5 w-full">
-                    <Link href={"/venues/" + venue.slug + "/manage"}>Manage venue</Link>
+                    <Link href={`/venues/${venue.slug}/workspace`}>Open Venue workspace</Link>
                   </Button>
                 ) : viewerState === "eligible" ? (
                   <div className="mt-5">
@@ -137,7 +143,7 @@ export default async function VenuePage({ params }: VenuePageProps) {
           </div>
           {venue.viewerIsOwner ? (
             <Button asChild>
-              <Link href={`/events/new?venue=${venue.slug}`}>Create venue event</Link>
+              <Link href={`/venues/${venue.slug}/workspace/plan`}>Plan events</Link>
             </Button>
           ) : null}
         </div>

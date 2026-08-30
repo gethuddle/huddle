@@ -12,7 +12,7 @@ vi.mock("@/features/groups/membership-actions", () => ({
 import { GroupDiscoveryProgress } from "./group-discovery-progress";
 
 describe("GroupDiscoveryProgress", () => {
-  it("explains each unmet forming gate with current counts", () => {
+  it("turns forming facts into ordered user actions without database jargon", () => {
     render(
       <GroupDiscoveryProgress
         description={null}
@@ -32,9 +32,12 @@ describe("GroupDiscoveryProgress", () => {
       />,
     );
 
-    expect(screen.getByText("Still forming")).toBeVisible();
-    expect(screen.getByText("4 of 5 eligible active members")).toBeVisible();
-    expect(screen.getByText(/1 of 2 active owner\/admin roles/)).toBeVisible();
+    expect(screen.getByText("Invite 1 more member")).toBeVisible();
+    expect(screen.getByText("Add 1 more admin")).toBeVisible();
+    expect(screen.getByText("Add one rule")).toBeVisible();
+    expect(screen.getByText("Publish one upcoming event")).toBeVisible();
+    expect(screen.getAllByText("Incomplete").length).toBeGreaterThan(0);
+    expect(document.body).not.toHaveTextContent(/lifecycle|synchronized|published rule/i);
     expect(screen.getByRole("textbox", { name: "Group description" })).toHaveValue("");
     expect(screen.getByRole("button", { name: "Save description" })).toBeVisible();
   });
@@ -59,7 +62,7 @@ describe("GroupDiscoveryProgress", () => {
       />,
     );
 
-    expect(screen.getByText("Unlisted by choice")).toBeVisible();
-    expect(screen.getByText(/Unlisted groups never appear in search/)).toBeVisible();
+    expect(screen.getByText("Sharing by invitation")).toBeVisible();
+    expect(screen.getByText(/will not appear in search/i)).toBeVisible();
   });
 });

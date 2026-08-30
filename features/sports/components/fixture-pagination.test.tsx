@@ -54,6 +54,25 @@ describe("FixturePagination", () => {
     );
   });
 
+  it("uses an explicit opening sequence and 44px page targets for a long catalog", () => {
+    render(<FixturePagination filters={filters} totalPages={10} />);
+
+    expect(
+      screen
+        .getAllByRole("link")
+        .filter((link) => /^(Page|Go to page)/.test(link.getAttribute("aria-label") ?? ""))
+        .map((link) => link.textContent),
+    ).toEqual(["1", "2", "3", "10"]);
+    expect(screen.getAllByText("More pages")).toHaveLength(1);
+    for (const page of [1, 2, 3, 10]) {
+      expect(
+        screen.getByRole("link", {
+          name: page === 1 ? "Page 1, current page" : `Go to page ${page}`,
+        }),
+      ).toHaveClass("min-h-11", "min-w-11");
+    }
+  });
+
   it("keeps boundary controls stable and disables only the unavailable direction", () => {
     const { rerender } = render(<FixturePagination filters={filters} totalPages={5} />);
 

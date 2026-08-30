@@ -24,12 +24,13 @@ The 2026-08-29 B12 run passed 90 Vitest files / 403 tests (78.7% statements,
 and all 17 Playwright journeys. The PR/main CI run and second-computer reproduction
 remain separate evidence.
 
-The current post-B12 PR #35 inventory contains 94 Vitest files / 412 tests,
-14 ordered migrations, 19 pgTAP files / 990 assertions, and the same 17 Playwright
-journeys. The B12 numbers above are retained as historical accepted evidence rather
-than presented as the current repository inventory.
+The current UX-redesign inventory contains 146 Vitest files / 717 tests,
+28 ordered migrations, 34 pgTAP files / 1559 assertions, and 22 Playwright scenarios.
+The final local acceptance run passed all of those gates. The B12 numbers above are
+retained as historical accepted evidence rather than presented as the current repository
+inventory. Hosted migration and production acceptance remain separately evidenced operations.
 
-## Seventeen deterministic Playwright journeys
+## Twenty-two deterministic Playwright scenarios
 
 All numbered journeys are in `tests/e2e/auth.spec.ts`. Provider input is a saved,
 normalized fixture inserted through the real sync transaction; identifiers are
@@ -56,8 +57,11 @@ depend on execution order, wall-clock equality, a provider network, or hosted da
 | 16 | Confidential report, proportional action, independent appeal, and responsive/accessible moderation | moderation functions and Radix confirmation UI |
 | 17 | Provider failure preserves last-good fixtures and exposes stale state | sync transaction and freshness projection |
 
-Supporting unnumbered journeys exercise reversible blocking and both venue/private
-event creation paths. Production smoke tests are deliberately separate under
+The 17 numbered contract journeys plus two supporting unnumbered journeys run once
+in the acceptance project. One complete Fan/Venue journey runs independently at
+1280, 768, and 375 px, producing 22 Playwright scenarios in total. The supporting
+journeys exercise reversible blocking and both venue/private event creation paths.
+Production smoke tests are deliberately separate under
 `tests/production/`: `npm run test:production:session` creates only ordinary Auth
 sessions (which may update Auth sign-in metadata), while `npm run test:production`
 includes a one-time product request/approval/calendar mutation against dedicated
@@ -65,12 +69,14 @@ accounts and a fresh event.
 
 ## Database coverage
 
-The 19 pgTAP files under `supabase/tests/database/` cover all exposed-table RLS
+The 34 pgTAP files under `supabase/tests/database/` cover all exposed-table RLS
 inventory, CHECK/unique/FK invariants, minimum grants, safe reads, denied reads and
 mutations, lifecycle transitions, cooldowns, exact-address authorization, capacity,
-and moderation. Dedicated two-connection regressions cover friendship/block,
+moderation, workspace membership, protected drafts, current-state projections,
+public-address caching, fixture coverage, open-door venue events, and the public map
+projection. Dedicated two-connection regressions cover friendship/block,
 application/block, group invite, event creation, group review/block, attendance,
-and suspension/mutation races.
+onboarding/workspace activation, protected drafts, and suspension/mutation races.
 
 ## Manual and hosted acceptance
 

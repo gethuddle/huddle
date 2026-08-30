@@ -40,11 +40,12 @@ describe("setBlockPreferenceAction", () => {
 
       const result = await setBlockPreferenceAction(null, preferenceForm("Fan_One", intent));
 
-      expect(mocks.requireActor).toHaveBeenCalledWith("community");
+      expect(mocks.requireActor).toHaveBeenCalledWith("common");
       expect(rpc).toHaveBeenCalledWith(`${intent}_user`, {
         target_handle: "fan_one",
         audit_request_id: "10000000-0000-4000-8000-000000000099",
       });
+      expect(mocks.revalidatePath).toHaveBeenCalledWith("/people");
       expect(result).toEqual({
         ok: true,
         data: {

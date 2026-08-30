@@ -10,6 +10,8 @@
 
 **Required delivery stack:** Next.js, TypeScript, Supabase, and Vercel
 
+**Approved post-B12 revision:** 30 August 2026. Huddle now has separately authorized Fan and Venue workspaces behind one Supabase login. This deliberately supersedes the B01–B12 assumptions that every completed personal profile may create a venue, that every group-organized event must wait for a separate owner/admin review, and that every venue listing needs a capacity-backed guest list. Historical milestone evidence remains a record of the merged baseline, not the current permission contract.
+
 The source of truth for the course deliverables is the [official project brief](<../course-roadmap/project instructions.pdf>). The [course roadmap](../course-roadmap/ROADMAP.md) is a wider technology menu, not a requirement to use every tool mentioned in the lectures.
 
 ---
@@ -30,14 +32,14 @@ Huddle answers: **“Who near me is watching this match, and where may I join th
 | Private host | Bring trusted people together without publishing a home address | Controlled audiences, approval, invitations, capacity, and protected location details |
 | Supporter-group member | Build a lasting local community | Searchable or unlisted groups, membership approval, roles, and group events |
 | Group administrator | Keep a group relevant and safe | Applications, invitations, event review, moderation, and bans |
-| Venue owner | Reach the exact supporters likely to attend | A venue page, fixture-linked listings, and followers |
+| Venue owner | Reach the exact supporters likely to attend | A reusable venue profile, fixture-first batch planner, open-door listings, optional reservations, and followers |
 | Platform moderator | Handle serious abuse without running every community | Reports, suspensions, and an audit trail |
 
-The users are fans, hosts, group members/admins, and venue operators. The future paying customer is the commercial venue. Ordinary fans, friendships, supporter groups, and private hosting remain free.
+The users are fans, hosts, group members/admins, and venue operators. A human may activate either or both workspaces, but each workspace is independently authorized. The future paying customer is the commercial venue. Ordinary fans, friendships, supporter groups, and private hosting remain free.
 
 ### Business model boundary
 
-The course MVP does **not** implement billing. A verified Huddle user may create an **unverified venue profile** so the complete discovery flow can be demonstrated. In a production version, venues would need an active subscription before publishing commercial listings.
+The course MVP does **not** implement billing. A commonly eligible operator may self-serve a Venue workspace, with venue information and a truthful business-representation attestation, without first publishing a Fan identity. Activation atomically creates an immediately usable **Unverified** venue and one active owner membership; every commercial mutation requires an active Venue owner/admin membership. In a production version, venues would need an active subscription before publishing commercial listings.
 
 Possible paid venue benefits are:
 
@@ -55,15 +57,15 @@ Promotion must never bypass distance, audience, privacy, moderation, or match re
 
 ### Submitted MVP
 
-- Email/password authentication, verified email, 18+ attestation, community-rules acceptance, and profile onboarding.
+- Email/password authentication, common safety eligibility, optional Fan activation, and self-serve Venue activation.
 - Public browsing of information that is safe to expose.
 - A football catalog and synchronized future fixtures.
 - Follows for sports, competitions, teams, and venues.
 - Mutual friendships, with no friends-of-friends access.
 - Discoverable and unlisted supporter groups.
-- Group applications, roles, bans, invite links, and administrator-approved group events.
+- Group applications, roles, bans, invite links, atomic owner/admin-authored event publication, and review of ordinary-member submissions by a different current owner/admin.
 - Fan-hosted events restricted to group, friend, or invite-only audiences.
-- Venue-hosted events using public or team-follower audiences.
+- Venue-hosted events using public or team-follower audiences; public listings may be open-door with no Huddle reservation or guest list.
 - City and optional browser-location discovery using PostGIS.
 - Attendance request, approval, decline, host removal, leave, and capacity flows; no unregistered plus-one guests.
 - A standards-based `.ics` calendar download.
@@ -150,7 +152,9 @@ There is no second Express application. Next.js is both the web frontend and the
 
 ### 5.1 Authentication and profiles
 
-Supabase Auth owns passwords, email verification, and cookie-based sessions. Huddle owns the public profile: display name, city, short biography, adult attestation, community-rules acceptance, and onboarding completion. The course MVP is 18+; it records the attestation time rather than collecting a full birth date. A user may browse safe public content without signing in, but following, joining, hosting, befriending, creating a group, or creating a venue requires a verified account and completed profile.
+Supabase Auth owns passwords, email verification, and cookie-based sessions. Huddle owns the one-to-one human trust record: adult attestation, community-rules acceptance, suspension state, and optional public Fan identity. The course MVP is 18+; it records the attestation time rather than collecting a full birth date.
+
+Common safety eligibility means verified email, adult attestation, current community-rules acceptance, and a non-suspended account. Fan activation is optional and adds a public display name, unique handle, and pilot city. Following, attendance, friendships, groups, and private hosting require Fan activation. Venue-only onboarding may satisfy common safety eligibility while leaving Fan identity fields incomplete and non-public; commercial venue mutations require active Venue membership instead of an invented Fan identity.
 
 This is the first trust layer. It is deliberately simple: no social login in the MVP and no application-managed password table.
 
@@ -183,27 +187,29 @@ Groups are stronger community boundaries than friendships. A group may be:
 
 A new discoverable group begins in `forming`. It enters search after it has five approved members, two moderators including its owner, published rules and description, and one approved future event. During creation, Huddle shows similar team/location groups to discourage duplicates without giving the platform a routine approval bottleneck.
 
-Roles are `owner`, `admin`, and `member`. Members may propose events, but an owner/admin approves publication. Admins may reject applications or ban a member. Platform staff step in for reports and suspensions rather than operating every group.
+Roles are `owner`, `admin`, and `member`. An event authored by a current owner/admin publishes atomically without self-review. An ordinary member may submit an event, but it remains pending until a current owner/admin whose user ID differs from the creator publishes or rejects it. Promoting the author after submission never permits self-approval or self-rejection. Admins may reject applications or ban a member. Platform staff step in for reports and suspensions rather than operating every group.
 
-### 5.6 Venue profiles
+### 5.6 Venue workspaces and profiles
 
-A completed user can create an unverified venue profile with its name, city, public address, location, screen count, capacity, and description. Venue follows allow fans to track future listings.
+A commonly eligible venue operator can self-serve activation with venue information and a truthful business-representation attestation. Activation atomically creates an immediately usable Unverified venue, one active owner membership, and its Venue workspace; it does not activate or publish a Fan identity. Every commercial read or mutation is authorized through an active `owner` or `admin` Venue membership, not merely a remembered workspace or legacy `owner_id`. Venue follows allow active Fans to track future listings.
 
-The `unverified` label is always visible in the course MVP. It must not imply that Huddle has checked ownership, licensing, safety, or accessibility. Paid verification and commercial entitlements belong to the later subscription module.
+The **Unverified** label is always visible in the course MVP. It must not imply that Huddle has checked ownership, licensing, safety, or accessibility. Paid verification and commercial entitlements belong to the later subscription module.
 
 ### 5.7 Events and audiences
 
-An event attaches to a real fixture when possible and has a host, time, capacity, place type, approval rule, and exactly one audience policy. The host type determines which audiences are even available:
+An event attaches to a real fixture when possible; fixture kickoff is inherited rather than re-entered. It has a host, place type, attendance mode, and exactly one audience policy. Reservation events also have a capacity and approval rule. The host type determines which audiences are even available:
 
 | Host type | Allowed audiences | Meaning |
 |---|---|---|
 | Private person | `group` | Only active, non-banned members of the selected group may see and request |
 | Private person | `friends` | Only the host's accepted direct friends may see and request |
 | Private person | `invite_only` | Only explicitly invited Huddle members may see and accept |
-| Business venue | `public` | Everyone may see; any verified, completed user may attend/request |
-| Business venue | `team_followers` | Everyone may see; attendance requires following the selected team unless directly invited |
+| Business venue | `public` | Everyone may see; open-door listings have no Huddle attendance state, while reservations accept eligible active Fans |
+| Business venue | `team_followers` | Everyone may see; attendance requires an active Fan who follows the selected team unless directly invited |
 
 This is a host rule, not a location rule. A private person using a café or other public place is still limited to group, friends, or invite-only. A private host can never publish to all strangers or all followers of a team. Conversely, a business venue does not use private friendship/group audiences in the submitted MVP.
+
+A public venue chooses `open_door` or `reservations` per event, with a reusable venue default. Open door means the venue is advertising that it will show the fixture: fans simply come along, Huddle does not reserve admission, and the product shows no capacity, RSVP, invitation, approval queue, or attendee history. Reservations keep the existing one-account-per-place model. Team-follower and all private events remain reservations.
 
 ### 5.8 Home-location safety
 
@@ -215,11 +221,13 @@ After the first attendee approval, a host cannot change the event's host type, a
 
 ### 5.9 Attendance and capacity
 
-Venue events normally allow immediate attendance, although their host can require approval. Private-person events require host approval unless the attendee was directly invited.
+Reservation-mode venue events normally allow immediate Fan attendance, although their host can require approval. Private-person events require host approval unless the attendee was directly invited. A venue is never an attendee and never consumes capacity. The same human may attend only through a separately activated Fan identity, where one account still reserves exactly one place.
 
 Pending requests do not consume capacity. Approval is one atomic database operation: lock the event, confirm permissions and eligibility, count approved attendees, check capacity, and update the record. This prevents two simultaneous approvals from taking the final seat. A host may remove an attendee; an attendee may leave at any time. Both transitions retain history and revoke private-location access. Cancellation retains all attendance records.
 
 “RSVP” is the general response to an invitation or event. In Huddle, that response is represented explicitly as requested, approved, declined, left, or removed instead of being a vague counter. One account reserves exactly one place.
+
+Open-door venue listings deliberately do not use that RSVP state machine. Database constraints require public venue hosting, null capacity, and no approval, while controlled functions reject invitation and attendance mutations. Discovery keeps these listings visible with explicit “no reservation” copy and never fabricates remaining places or a guest list.
 
 ### 5.10 Location-aware discovery
 
@@ -233,7 +241,7 @@ An event page offers an RFC 5545 `.ics` download. It works with many calendar pr
 
 ### 5.12 Community rules, reports, and moderation
 
-Every completed user accepts short, readable rules. They prohibit threats and planned fights; harassment, stalking, sexual misconduct, hate and discriminatory abuse; doxxing or sharing a home address; impersonation and venue fraud; scams, illegal goods, weapons, and dangerous activity; ban/block evasion; unapproved guests; and hidden commercial charges or affiliations. Team rivalry is never an excuse to threaten or target people.
+Every commonly eligible account accepts short, readable rules. They prohibit threats and planned fights; harassment, stalking, sexual misconduct, hate and discriminatory abuse; doxxing or sharing a home address; impersonation and venue fraud; scams, illegal goods, weapons, and dangerous activity; ban/block evasion; unapproved guests; and hidden commercial charges or affiliations. Team rivalry is never an excuse to threaten or target people.
 
 Each event must honestly identify its host, location type, expected activity, costs, rules, and commercial affiliation. A named host or venue contact must be physically present. Application/request notes must not solicit sensitive information such as an address, phone number, financial data, health data, or full legal identity.
 
@@ -247,7 +255,7 @@ Important decisions—attendance approval/removal, group approval, bans, moderat
 
 The testing pyramid matches the risks:
 
-- pgTAP verifies host/audience constraints, the 18+ completion gate, RLS, address revocation, roles, blocks, bans, and capacity concurrency;
+- pgTAP verifies host/audience constraints, common safety and workspace gates, RLS, address revocation, roles, blocks, bans, and capacity concurrency;
 - Vitest verifies domain rules, Zod schemas, provider normalization, and calendar output;
 - React Testing Library verifies forms, permission-aware controls, and accessible UI states;
 - Playwright verifies complete user journeys in a browser;
@@ -322,10 +330,10 @@ Each phase should finish with working tests and updated documentation before the
 
 ### Phase 2 — Authentication and onboarding
 
-- Implement email/password signup, verification, sign-in/out, SSR sessions, 18+ attestation, community-rules acceptance, profile completion, city selection, and protected actions.
+- Implement email/password signup, verification, sign-in/out, SSR sessions, common safety eligibility, optional Fan activation, city selection, self-serve Venue activation, and protected actions.
 - Add safe public profile projection, account blocks, and authorization tests.
 
-**Exit:** a verified user can finish onboarding; anonymous and incomplete users are correctly limited.
+**Exit:** a verified user can complete common safety setup and activate either workspace; anonymous, ineligible, and workspace-unauthorized users are correctly limited.
 
 ### Phase 3 — Sports-data synchronization
 
@@ -344,8 +352,8 @@ Each phase should finish with working tests and updated documentation before the
 
 ### Phase 5 — Events, venues, and discovery
 
-- Add unverified venue profiles and follows.
-- Add event creation, fixture attachment, private-versus-business audience constraints, 12-person home cap, protected home locations, group submission/approval, and PostGIS discovery.
+- Add self-serve Unverified Venue workspaces, active owner/admin memberships, venue defaults, and Fan follows.
+- Add event creation, fixture attachment, private-versus-business audience constraints, venue-as-non-attendee enforcement, 12-person home cap, protected home locations, atomic owner/admin-authored group publication, different-reviewer enforcement for ordinary-member submissions, and PostGIS discovery.
 
 **Exit:** each audience sees exactly the permitted event summaries; private addresses remain hidden.
 

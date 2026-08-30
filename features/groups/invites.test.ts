@@ -63,6 +63,7 @@ describe("getGroupInvitePreview", () => {
 
     const result = await getGroupInvitePreview(token);
 
+    expect(mocks.requireActor).toHaveBeenCalledWith("fan");
     expect(result).toEqual({
       state: "available",
       group: {

@@ -22,7 +22,7 @@ export function ProfileAccessState({
 }: ProfileAccessStateProps) {
   return (
     <Card
-      className="mx-auto my-16 w-full max-w-2xl rounded-[2rem] text-center sm:my-24"
+      className="mx-auto my-16 w-full max-w-2xl rounded-[1.375rem] text-center sm:my-24"
       role={warning ? "alert" : undefined}
     >
       <CardHeader className="px-8 sm:px-12">

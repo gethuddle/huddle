@@ -79,30 +79,42 @@ describe("fixture browser components", () => {
     expect(screen.getByRole("button", { name: "Apply filters" })).toBeVisible();
   });
 
-  it("communicates stale and unknown catalog states without relying on color", () => {
+  it("separates stale updates from short coverage without a completeness claim", () => {
     const { rerender } = render(
       <ProviderFreshness
         freshness={{
           status: "stale",
-          lastSucceededAt: "2026-08-25T10:00:00Z",
-          message: "Fixture data may be stale. Last successful update was 1 day ago.",
+          coverageStatus: "short",
+          updatedAt: "2026-08-25T10:00:00Z",
+          coverageThrough: "2026-10-12T18:00:00Z",
+          updatedLabel: "1 day ago",
+          coverageLabel: "12 Oct",
         }}
       />,
     );
 
-    expect(screen.getByRole("status")).toHaveTextContent("Cached fixture catalog");
-    expect(screen.getByRole("status")).toHaveTextContent("may be stale");
+    expect(screen.getByRole("status")).toHaveTextContent("Updated 1 day ago");
+    expect(screen.getByRole("status")).toHaveTextContent("Fixtures available through 12 Oct");
+    expect(screen.getByRole("status")).toHaveTextContent("Updates are delayed");
+    expect(screen.getByRole("status")).toHaveTextContent("Later fixtures are not yet available");
+    expect(screen.getByRole("status")).not.toHaveTextContent("Catalog current");
 
     rerender(
       <ProviderFreshness
         freshness={{
           status: "unknown",
-          lastSucceededAt: null,
-          message: "Fixture freshness is not available yet.",
+          coverageStatus: "unknown",
+          updatedAt: null,
+          coverageThrough: null,
+          updatedLabel: "Not available yet",
+          coverageLabel: "Not available yet",
         }}
       />,
     );
-    expect(screen.getByRole("status")).toHaveTextContent("not available yet");
+    expect(screen.getByRole("status")).toHaveTextContent("Updated Not available yet");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Fixtures available through Not available yet",
+    );
   });
 
   it("uses provider-neutral initials when no TLA exists", () => {

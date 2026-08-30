@@ -7,6 +7,27 @@ export default defineConfig({
   retries: 0,
   reporter: "list",
   outputDir: "test-results",
+  projects: [
+    {
+      name: "acceptance",
+      testIgnore: /ux-redesign\.spec\.ts/,
+    },
+    {
+      name: "ux-desktop-1280",
+      testMatch: /ux-redesign\.spec\.ts/,
+      use: { viewport: { width: 1280, height: 800 } },
+    },
+    {
+      name: "ux-tablet-768",
+      testMatch: /ux-redesign\.spec\.ts/,
+      use: { viewport: { width: 768, height: 1024 } },
+    },
+    {
+      name: "ux-mobile-375",
+      testMatch: /ux-redesign\.spec\.ts/,
+      use: { viewport: { width: 375, height: 812 } },
+    },
+  ],
   use: {
     baseURL: "http://127.0.0.1:3000",
     screenshot: "off",

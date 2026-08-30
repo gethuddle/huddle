@@ -40,7 +40,7 @@ describe("setSubscriptionPreferenceAction", () => {
 
     const result = await setSubscriptionPreferenceAction(null, preferenceForm());
 
-    expect(mocks.requireActor).toHaveBeenCalledWith("community");
+    expect(mocks.requireActor).toHaveBeenCalledWith("fan");
     expect(from).toHaveBeenCalledWith("subscriptions");
     expect(insert).toHaveBeenCalledWith({
       user_id: userId,

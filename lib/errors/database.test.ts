@@ -9,6 +9,13 @@ describe("domainErrorFromDatabase", () => {
     );
   });
 
+  it.each(["VENUE_DEFAULTS_INCOMPLETE", "VENUE_SPACE_OVERLAP", "MATCH_ALREADY_PLANNED"] as const)(
+    "maps the reviewed planner token %s without exposing database detail",
+    (code) => {
+      expect(domainErrorFromDatabase({ message: code })).toMatchObject({ code });
+    },
+  );
+
   it("does not expose arbitrary database detail", () => {
     const error = domainErrorFromDatabase({ message: "profiles_handle_lower_uidx failed" });
 

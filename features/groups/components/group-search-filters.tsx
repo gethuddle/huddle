@@ -14,13 +14,13 @@ export function GroupSearchFilters({
   return (
     <form
       action="/groups"
-      className="grid gap-4 rounded-2xl border border-border-dark bg-surface-raised p-5 md:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr_auto] lg:items-end"
+      className="grid gap-4 rounded-[1.375rem] border border-border-dark bg-surface-raised p-5 md:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr_auto] lg:items-end"
       method="get"
     >
       <div>
         <Label htmlFor="group-search-query">Group name</Label>
         <Input
-          className="mt-2"
+          className="mt-2 [&_select]:rounded-full"
           defaultValue={filters.query ?? ""}
           id="group-search-query"
           maxLength={80}
@@ -33,7 +33,7 @@ export function GroupSearchFilters({
       <div>
         <Label htmlFor="group-search-city">City</Label>
         <NativeSelect
-          className="mt-2"
+          className="mt-2 [&_select]:rounded-full"
           defaultValue={filters.citySlug ?? ""}
           id="group-search-city"
           name="city"
@@ -63,10 +63,10 @@ export function GroupSearchFilters({
         </NativeSelect>
       </div>
       <div className="flex gap-2 md:col-span-2 lg:col-span-1">
-        <Button className="flex-1 lg:flex-none" type="submit">
+        <Button className="flex-1 rounded-full lg:flex-none" type="submit">
           Search
         </Button>
-        <Button asChild variant="ghost">
+        <Button asChild className="rounded-full" variant="ghost">
           <Link href="/groups">Clear</Link>
         </Button>
       </div>

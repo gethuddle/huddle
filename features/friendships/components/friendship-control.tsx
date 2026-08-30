@@ -3,6 +3,16 @@
 import { useActionState } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { updateFriendshipAction } from "@/features/friendships/actions";
@@ -73,16 +83,12 @@ export function FriendshipControl({
       {friendship?.status === "accepted" ? (
         <div className="space-y-3">
           <Badge variant="secondary">Friends</Badge>
-          <MutationForm
+          <FriendRemovalControl
             action={formAction}
             friendshipId={friendship.id}
-            intent="remove"
             pending={pending}
             targetHandle={targetHandle}
-            variant="outline"
-          >
-            Remove friend
-          </MutationForm>
+          />
         </div>
       ) : null}
 
@@ -134,6 +140,48 @@ export function FriendshipControl({
   );
 }
 
+function FriendRemovalControl({
+  action,
+  friendshipId,
+  pending,
+  targetHandle,
+}: Readonly<{
+  action: (payload: FormData) => void;
+  friendshipId: string;
+  pending: boolean;
+  targetHandle: string;
+}>) {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button className="min-h-11" disabled={pending} type="button" variant="outline">
+          Remove friend
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Remove @{targetHandle} from your friends?</AlertDialogTitle>
+          <AlertDialogDescription>
+            You will immediately lose access to each other’s friends-only events. Existing
+            attendance history stays recorded, and either person can send a new request later.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <form action={action}>
+          <input name="targetHandle" type="hidden" value={targetHandle} />
+          <input name="intent" type="hidden" value="remove" />
+          <input name="friendshipId" type="hidden" value={friendshipId} />
+          <AlertDialogFooter>
+            <AlertDialogCancel type="button">Keep friend</AlertDialogCancel>
+            <Button disabled={pending} type="submit" variant="destructive">
+              {pending ? "Removing…" : "Confirm removal"}
+            </Button>
+          </AlertDialogFooter>
+        </form>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 function MutationForm({
   action,
   children,
@@ -158,7 +206,7 @@ function MutationForm({
       {friendshipId === undefined ? null : (
         <input name="friendshipId" type="hidden" value={friendshipId} />
       )}
-      <Button disabled={pending} type="submit" variant={variant}>
+      <Button className="min-h-11" disabled={pending} type="submit" variant={variant}>
         {pending ? "Updating…" : children}
       </Button>
     </form>

@@ -62,6 +62,7 @@ export function FixturePagination({ filters, totalPages }: FixturePaginationProp
                 }
                 href={fixturePageHref(filters, entry)}
                 isActive={entry === current}
+                className="min-h-11 min-w-11"
               >
                 {entry}
               </PaginationLink>

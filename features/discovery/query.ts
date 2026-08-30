@@ -30,19 +30,25 @@ const discoveryRowSchema = z
     city_name: z.string(),
     place_kind: z.enum(["home", "venue", "public_place"]),
     location_summary: z.string(),
-    audience: z.enum(["public", "team_followers", "group", "friends", "invite_only"]),
+    audience: z.enum(["public", "team_followers", "group", "friends"]),
     audience_group_name: z.string().nullable(),
     audience_team_name: z.string().nullable(),
-    capacity: z.number().int().positive(),
+    capacity: z.number().int().positive().nullable(),
     approved_attendee_count: z.number().int().nonnegative(),
-    remaining_capacity: z.number().int().nonnegative(),
+    remaining_capacity: z.number().int().nonnegative().nullable(),
     requires_approval: z.boolean(),
-    viewer_attendance_status: z
-      .enum(["requested", "approved", "declined", "left", "removed"])
-      .nullable(),
     interest_score: z.number().int().nonnegative(),
     cursor_distance_band: z.number().int().min(0).max(4),
     has_more: z.boolean(),
+  })
+  .strict();
+
+const discoveryMapPointRowSchema = z
+  .object({
+    event_id: z.uuid(),
+    place_name: z.string().min(1).max(120),
+    latitude: z.number().min(29).max(34),
+    longitude: z.number().min(34).max(36),
   })
   .strict();
 
@@ -69,7 +75,7 @@ export async function getDiscoveryPage(filters: DiscoveryFilters): Promise<Disco
   }
 
   const range = discoveryUtcRange(filters);
-  const { data, error } = await supabase.rpc("discover_events", {
+  const rpcInput = {
     input_city_id: cityResult.data.id,
     input_lat: filters.lat as number,
     input_lng: filters.lng as number,
@@ -84,19 +90,56 @@ export async function getDiscoveryPage(filters: DiscoveryFilters): Promise<Disco
     input_after_starts_at: decodedCursor?.startsAt,
     input_after_event_id: decodedCursor?.id,
     input_limit: filters.limit,
-  });
-  if (error !== null) throw domainErrorFromDatabase(error);
+  };
+  const [reservationResult, openDoorResult] = await Promise.all([
+    supabase.rpc("discover_events", rpcInput),
+    supabase.rpc("discover_open_door_events", rpcInput),
+  ]);
+  if (reservationResult.error !== null) throw domainErrorFromDatabase(reservationResult.error);
+  if (openDoorResult.error !== null) throw domainErrorFromDatabase(openDoorResult.error);
 
-  let rows: z.infer<typeof discoveryRowSchema>[];
+  let reservationRows: z.infer<typeof discoveryRowSchema>[];
+  let openDoorRows: z.infer<typeof discoveryRowSchema>[];
   try {
-    rows = z.array(discoveryRowSchema).parse(data);
+    reservationRows = z.array(discoveryRowSchema).parse(reservationResult.data);
+    openDoorRows = z.array(discoveryRowSchema).parse(openDoorResult.data);
   } catch (cause) {
     throw new DomainError("INTERNAL_ERROR", { cause });
   }
 
+  const combinedRows = [...reservationRows, ...openDoorRows].sort((left, right) => {
+    if (left.interest_score !== right.interest_score) {
+      return right.interest_score - left.interest_score;
+    }
+    if (left.cursor_distance_band !== right.cursor_distance_band) {
+      return left.cursor_distance_band - right.cursor_distance_band;
+    }
+    const kickoffOrder = Date.parse(left.starts_at) - Date.parse(right.starts_at);
+    return kickoffOrder === 0 ? left.event_id.localeCompare(right.event_id) : kickoffOrder;
+  });
+  const sourceHasMore =
+    reservationRows.some((row) => row.has_more) || openDoorRows.some((row) => row.has_more);
+  const rows = combinedRows.slice(0, filters.limit);
+  const hasMore = sourceHasMore || combinedRows.length > rows.length;
+
+  const mapResult =
+    rows.length === 0
+      ? { data: [], error: null }
+      : await supabase.rpc("get_public_event_map_points", {
+          input_event_ids: rows.map((row) => row.event_id),
+        });
+  if (mapResult.error !== null) throw domainErrorFromDatabase(mapResult.error);
+  let mapPoints: z.infer<typeof discoveryMapPointRowSchema>[];
+  try {
+    mapPoints = z.array(discoveryMapPointRowSchema).parse(mapResult.data);
+  } catch (cause) {
+    throw new DomainError("INTERNAL_ERROR", { cause });
+  }
+  const mapPointsByEvent = new Map(mapPoints.map((point) => [point.event_id, point]));
+
   const last = rows.at(-1);
   const nextCursor =
-    last?.has_more === true
+    last !== undefined && hasMore
       ? encodeEventCursor(
           {
             filterKey,
@@ -134,14 +177,21 @@ export async function getDiscoveryPage(filters: DiscoveryFilters): Promise<Disco
       cityName: row.city_name,
       placeKind: row.place_kind,
       locationSummary: row.location_summary,
+      mapPoint: mapPointsByEvent.has(row.event_id)
+        ? {
+            placeName: mapPointsByEvent.get(row.event_id)!.place_name,
+            latitude: mapPointsByEvent.get(row.event_id)!.latitude,
+            longitude: mapPointsByEvent.get(row.event_id)!.longitude,
+          }
+        : null,
       audience: row.audience,
       audienceGroupName: row.audience_group_name,
       audienceTeamName: row.audience_team_name,
+      attendanceMode: row.capacity === null ? "open_door" : "reservations",
       capacity: row.capacity,
       approvedAttendeeCount: row.approved_attendee_count,
       remainingCapacity: row.remaining_capacity,
       requiresApproval: row.requires_approval,
-      viewerAttendanceStatus: row.viewer_attendance_status,
       matchesFollows: row.interest_score > 0,
     })),
     nextCursor,

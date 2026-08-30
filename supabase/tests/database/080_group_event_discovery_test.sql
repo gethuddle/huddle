@@ -175,7 +175,8 @@ set
   adult_attested_at = statement_timestamp(),
   rules_version = 1,
   rules_accepted_at = statement_timestamp(),
-  profile_completed_at = statement_timestamp()
+  profile_completed_at = statement_timestamp(),
+  fan_enabled_at = statement_timestamp()
 where id between
   '63000000-0000-4000-8000-000000000101' and
   '63000000-0000-4000-8000-000000000108';

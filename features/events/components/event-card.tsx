@@ -34,8 +34,9 @@ export function EventCard({ event }: Readonly<{ event: EventListItem }>) {
           {formatIsraelKickoff(event.startsAt)}
         </p>
         <p className="mt-3 text-xs leading-5 text-muted-dark">
-          {event.approvedAttendeeCount} approved · {event.capacity} registered-account capacity ·{" "}
-          {event.requiresApproval ? "attendance review" : "immediate join"}
+          {event.attendanceMode === "open_door"
+            ? "Open door · no RSVP, invitation, or guest list"
+            : `${event.approvedAttendeeCount} approved · ${event.capacity} registered-account capacity · ${event.requiresApproval ? "attendance review" : "immediate join"}`}
         </p>
       </CardContent>
     </Card>

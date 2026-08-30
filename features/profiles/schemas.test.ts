@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { profileInputSchema } from "./schemas";
+import { fanWorkspaceInputSchema } from "./schemas";
 
 const validInput = {
   handle: "  Fan_One ",
@@ -14,7 +14,7 @@ const validInput = {
 
 describe("profileInputSchema", () => {
   it("normalizes safe profile input", () => {
-    const profile = profileInputSchema.parse(validInput);
+    const profile = fanWorkspaceInputSchema.parse(validInput);
 
     expect(profile).toMatchObject({
       handle: "fan_one",
@@ -27,7 +27,7 @@ describe("profileInputSchema", () => {
   });
 
   it("requires adult attestation and current rules acceptance", () => {
-    const result = profileInputSchema.safeParse({
+    const result = fanWorkspaceInputSchema.safeParse({
       ...validInput,
       adultAttested: null,
       rulesAccepted: null,
@@ -45,7 +45,11 @@ describe("profileInputSchema", () => {
   });
 
   it("rejects unsafe handles and stale rule versions", () => {
-    expect(profileInputSchema.safeParse({ ...validInput, handle: "fan-one" }).success).toBe(false);
-    expect(profileInputSchema.safeParse({ ...validInput, rulesVersion: "2" }).success).toBe(false);
+    expect(fanWorkspaceInputSchema.safeParse({ ...validInput, handle: "fan-one" }).success).toBe(
+      false,
+    );
+    expect(fanWorkspaceInputSchema.safeParse({ ...validInput, rulesVersion: "2" }).success).toBe(
+      false,
+    );
   });
 });

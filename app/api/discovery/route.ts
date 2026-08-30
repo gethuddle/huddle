@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import { getDiscoveryPage } from "@/features/discovery/query";
 import { parseDiscoveryFilters } from "@/features/discovery/schemas";
+import type { DiscoveryEvent } from "@/features/discovery/types";
 import { toHttpError } from "@/lib/errors";
 import { elapsedMilliseconds, safeLog } from "@/lib/observability/server";
 import { REQUEST_ID_HEADER, resolveRequestId } from "@/lib/request-id";
@@ -13,6 +14,40 @@ function responseHeaders(cacheControl: string, requestId: string) {
   return {
     "Cache-Control": cacheControl,
     [REQUEST_ID_HEADER]: requestId,
+  };
+}
+
+function acquisitionItemDto(item: DiscoveryEvent): DiscoveryEvent {
+  return {
+    id: item.id,
+    title: item.title,
+    host: {
+      kind: item.host.kind,
+      displayName: item.host.displayName,
+      venueSlug: item.host.venueSlug,
+      verificationStatus: item.host.verificationStatus,
+    },
+    match: {
+      id: item.match.id,
+      competitionName: item.match.competitionName,
+      homeTeamName: item.match.homeTeamName,
+      awayTeamName: item.match.awayTeamName,
+    },
+    startsAt: item.startsAt,
+    endsAt: item.endsAt,
+    cityName: item.cityName,
+    placeKind: item.placeKind,
+    locationSummary: item.locationSummary,
+    mapPoint: item.mapPoint,
+    audience: item.audience,
+    audienceGroupName: item.audienceGroupName,
+    audienceTeamName: item.audienceTeamName,
+    attendanceMode: item.attendanceMode,
+    capacity: item.capacity,
+    approvedAttendeeCount: item.approvedAttendeeCount,
+    remainingCapacity: item.remainingCapacity,
+    requiresApproval: item.requiresApproval,
+    matchesFollows: item.matchesFollows,
   };
 }
 
@@ -37,7 +72,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       {
-        items: page.items,
+        items: page.items.map(acquisitionItemDto),
         nextCursor: page.nextCursor,
         locationMode: page.locationMode,
         generatedAt: page.generatedAt,
