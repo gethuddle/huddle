@@ -21,32 +21,39 @@ const catalog = {
 
 async function fillForm(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText("Group name"), "Haifa Arsenal Supporters");
-  await user.clear(screen.getByLabelText("Group URL"));
-  await user.type(screen.getByLabelText("Group URL"), "haifa-arsenal-supporters");
   await user.selectOptions(screen.getByLabelText("City"), cityId);
   await user.selectOptions(screen.getByLabelText(/Team/), teamId);
-  await user.type(screen.getByLabelText(/Description/), "Match-going supporters in Haifa.");
+  await user.type(screen.getByLabelText(/description/i), "Match-going supporters in Haifa.");
 }
 
 describe("GroupCreateForm", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("explains discoverable and unlisted boundaries before creation", () => {
+  it("explains the selected visibility boundary before creation", async () => {
+    const user = userEvent.setup();
     render(<GroupCreateForm catalog={catalog} />);
 
-    expect(screen.getByText(/People can find it after/i)).toBeVisible();
-    expect(screen.getByText(/Only people with an invite/i)).toBeVisible();
+    expect(screen.getByText(/People can find it and apply/i)).toBeVisible();
+    expect(screen.getByText(/owner or admin reviews each application/i)).toBeVisible();
+    expect(screen.queryByLabelText("Group URL")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Review group" })).toBeVisible();
     expect(screen.queryByRole("button", { name: "Create group" })).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("Visibility"), "unlisted");
+    expect(screen.getByText(/owner or admin creates invitation links/i)).toBeVisible();
+    expect(screen.getByText(/every request is still reviewed/i)).toBeVisible();
   });
 
-  it("suggests a usable group URL from the name", async () => {
+  it("derives the group URL without making it another creation field", async () => {
     const user = userEvent.setup();
     render(<GroupCreateForm catalog={catalog} />);
 
     await user.type(screen.getByLabelText("Group name"), "Haifa Match Night");
 
-    expect(screen.getByLabelText("Group URL")).toHaveValue("haifa-match-night");
+    expect(screen.queryByLabelText("Group URL")).not.toBeInTheDocument();
+    expect(document.querySelector<HTMLInputElement>('input[name="slug"]')).toHaveValue(
+      "haifa-match-night",
+    );
   });
 
   it("requires the similarity review before showing creation", async () => {
@@ -82,6 +89,8 @@ describe("GroupCreateForm", () => {
     await user.click(screen.getByRole("button", { name: "Review group" }));
 
     await waitFor(() => expect(mocks.createGroupAction).toHaveBeenCalledOnce());
+    const submitted = mocks.createGroupAction.mock.calls[0]?.[1] as FormData;
+    expect(submitted.get("slug")).toBe("haifa-arsenal-supporters");
     expect(
       await screen.findByRole("heading", { name: "Similar discoverable groups" }),
     ).toBeVisible();
@@ -98,6 +107,7 @@ describe("GroupCreateForm", () => {
       data: {
         phase: "created",
         message: "Group created. You are its active owner.",
+        visibility: "discoverable",
         group: { id: groupId, slug: "haifa-arsenal-supporters", lifecycle: "forming" },
       },
     });
@@ -111,8 +121,29 @@ describe("GroupCreateForm", () => {
       "href",
       "/groups/haifa-arsenal-supporters",
     );
+    expect(screen.getByText(/share the application link/i)).toBeVisible();
+    expect(screen.queryByText(/invite people and keep building/i)).not.toBeInTheDocument();
     await waitFor(() =>
       expect(mocks.replace).toHaveBeenCalledWith("/groups/haifa-arsenal-supporters?created=1"),
     );
+  });
+
+  it("uses invitation copy after an unlisted group is created", async () => {
+    mocks.createGroupAction.mockResolvedValue({
+      ok: true,
+      data: {
+        phase: "created",
+        message: "Group created. You are its active owner.",
+        visibility: "unlisted",
+        group: { id: groupId, slug: "private-haifa-group", lifecycle: "forming" },
+      },
+    });
+    const user = userEvent.setup();
+    render(<GroupCreateForm catalog={catalog} />);
+    await fillForm(user);
+    await user.click(screen.getByRole("button", { name: "Review group" }));
+
+    expect(await screen.findByText(/create invitation links/i)).toBeVisible();
+    expect(screen.queryByText(/share the application link/i)).not.toBeInTheDocument();
   });
 });

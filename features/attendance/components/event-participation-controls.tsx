@@ -23,6 +23,7 @@ import {
 } from "@/features/attendance/actions";
 import { AttendanceActionFeedback } from "@/features/attendance/components/action-feedback";
 import type { AttendanceActionState } from "@/features/attendance/state";
+import { deriveEventViewerRole, type EventViewerRole } from "@/features/events/viewer-role";
 
 type Props = Readonly<{
   eventId: string;
@@ -36,6 +37,7 @@ type Props = Readonly<{
   viewerAttendanceId: string | null;
   viewerAttendanceStatus: "requested" | "approved" | "declined" | "left" | "removed" | null;
   canManage: boolean;
+  viewerRole?: EventViewerRole;
 }>;
 
 function form(values: Record<string, string>) {
@@ -62,11 +64,20 @@ function EventParticipationControlsInner(props: Props) {
     },
   });
 
-  if (props.canManage) {
+  const viewerRole =
+    props.viewerRole ??
+    deriveEventViewerRole({
+      canManage: props.canManage,
+      hostKind: props.hostKind,
+      viewerAttendanceStatus: props.viewerAttendanceStatus,
+      viewerInvitationStatus: props.viewerInvitationStatus,
+    });
+
+  if (viewerRole === "host" || viewerRole === "venue_operator") {
     return (
       <div className="space-y-3">
         <Button asChild className="w-full">
-          <Link href={`/events/${props.eventId}/manage`}>Manage invitations and attendance</Link>
+          <Link href={`/events/${props.eventId}/manage`}>Manage event</Link>
         </Button>
         {props.eventStatus === "published" ? (
           <Button asChild className="w-full" variant="outline">
@@ -98,7 +109,7 @@ function EventParticipationControlsInner(props: Props) {
 
   return (
     <div className="space-y-3">
-      {props.viewerInvitationId !== null && props.viewerInvitationStatus === "pending" ? (
+      {viewerRole === "invited" && props.viewerInvitationId !== null ? (
         <div className="grid gap-2 sm:grid-cols-2">
           <Button
             disabled={pending}
@@ -134,7 +145,7 @@ function EventParticipationControlsInner(props: Props) {
             Decline
           </Button>
         </div>
-      ) : canLeave ? (
+      ) : (viewerRole === "pending" || viewerRole === "attending") && canLeave ? (
         <AlertDialog onOpenChange={setConfirmingLeave} open={confirmingLeave}>
           <AlertDialogTrigger asChild>
             <Button className="w-full" disabled={pending} type="button" variant="outline">

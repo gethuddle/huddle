@@ -1,9 +1,14 @@
+import { formatIsraelDateValue } from "./time";
+
 export const FIXTURE_STALE_AFTER_MS = 12 * 60 * 60 * 1000;
 
 export type FixtureFreshness = Readonly<{
   status: "fresh" | "stale" | "unknown";
-  lastSucceededAt: string | null;
-  message: string;
+  coverageStatus: "available" | "short" | "unknown";
+  updatedAt: string | null;
+  coverageThrough: string | null;
+  updatedLabel: string;
+  coverageLabel: string;
 }>;
 
 function relativeUpdate(ageMs: number): string {
@@ -18,51 +23,70 @@ function relativeUpdate(ageMs: number): string {
   return `${days} day${days === 1 ? "" : "s"} ago`;
 }
 
-export function fixtureSyncAgeSeconds(
-  lastSucceededAt: string | null,
-  now = new Date(),
-): number | null {
-  if (lastSucceededAt === null) return null;
-  const timestamp = Date.parse(lastSucceededAt);
-  if (!Number.isFinite(timestamp)) return null;
-  return Math.max(0, Math.floor((now.getTime() - timestamp) / 1000));
+function validTimestamp(value: string | null): value is string {
+  return value !== null && Number.isFinite(Date.parse(value));
+}
+
+function formatCoverageDate(value: string): string {
+  return new Intl.DateTimeFormat("en-IL", {
+    timeZone: "Asia/Jerusalem",
+    day: "numeric",
+    month: "short",
+  }).format(new Date(value));
+}
+
+function seasonEndMonth(now: Date): Readonly<{ month: number; year: number }> {
+  const year = now.getUTCFullYear();
+  return now.getUTCMonth() <= 4 ? { month: 5, year } : { month: 5, year: year + 1 };
+}
+
+function coverageReachesSeasonEndMonth(value: string, now: Date): boolean {
+  const [year, month] = formatIsraelDateValue(new Date(value)).split("-").map(Number);
+  const target = seasonEndMonth(now);
+  return year > target.year || (year === target.year && month >= target.month);
+}
+
+export function fixtureSyncAgeSeconds(updatedAt: string | null, now = new Date()): number | null {
+  if (!validTimestamp(updatedAt)) return null;
+  return Math.max(0, Math.floor((now.getTime() - Date.parse(updatedAt)) / 1000));
+}
+
+export function fixtureCoverageIncludesDate(
+  coverageThrough: string | null,
+  israelDate: string,
+): boolean | null {
+  if (!validTimestamp(coverageThrough) || !/^\d{4}-\d{2}-\d{2}$/.test(israelDate)) return null;
+  return israelDate <= formatIsraelDateValue(new Date(coverageThrough));
 }
 
 export function deriveFixtureFreshness(
-  lastSucceededAt: string | null,
+  updatedAt: string | null,
+  coverageThrough: string | null,
   now = new Date(),
 ): FixtureFreshness {
-  if (lastSucceededAt === null) {
-    return {
-      status: "unknown",
-      lastSucceededAt: null,
-      message: "Fixture freshness is not available yet.",
-    };
-  }
-
-  const ageSeconds = fixtureSyncAgeSeconds(lastSucceededAt, now);
-  if (ageSeconds === null) {
-    return {
-      status: "unknown",
-      lastSucceededAt: null,
-      message: "Fixture freshness is not available yet.",
-    };
-  }
-
-  const ageMs = ageSeconds * 1000;
-  const relative = relativeUpdate(ageMs);
-
-  if (ageMs > FIXTURE_STALE_AFTER_MS) {
-    return {
-      status: "stale",
-      lastSucceededAt,
-      message: `Fixture data may be stale. Last successful update was ${relative}.`,
-    };
-  }
+  const ageSeconds = fixtureSyncAgeSeconds(updatedAt, now);
+  const validUpdatedAt = ageSeconds === null ? null : updatedAt;
+  const validCoverageThrough = validTimestamp(coverageThrough) ? coverageThrough : null;
 
   return {
-    status: "fresh",
-    lastSucceededAt,
-    message: `Fixture data was updated ${relative}.`,
+    status:
+      ageSeconds === null
+        ? "unknown"
+        : ageSeconds * 1000 > FIXTURE_STALE_AFTER_MS
+          ? "stale"
+          : "fresh",
+    coverageStatus:
+      validCoverageThrough === null
+        ? "unknown"
+        : coverageReachesSeasonEndMonth(validCoverageThrough, now)
+          ? "available"
+          : "short",
+    updatedAt: validUpdatedAt,
+    coverageThrough: validCoverageThrough,
+    updatedLabel: ageSeconds === null ? "Not available yet" : relativeUpdate(ageSeconds * 1000),
+    coverageLabel:
+      validCoverageThrough === null
+        ? "Not available yet"
+        : formatCoverageDate(validCoverageThrough),
   };
 }

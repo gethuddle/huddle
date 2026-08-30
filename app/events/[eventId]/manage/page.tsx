@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -11,10 +11,13 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { EventManagementControls } from "@/features/attendance/components/event-management-controls";
+import type { EventInvitationCandidate } from "@/features/attendance/components/event-invitation-picker";
 import { listEventAttendance, listEventInvitations } from "@/features/attendance/queries";
-import { eventPageSchema } from "@/features/attendance/schemas";
 import { getEventSummary } from "@/features/events/queries";
 import { eventRouteIdSchema } from "@/features/events/schemas";
+import { listPeopleHub } from "@/features/people/search";
+import { DomainError } from "@/lib/errors";
+import { collectionPageCount, collectionPageInput } from "@/lib/pagination";
 
 export const metadata: Metadata = { title: "Manage event — Huddle" };
 
@@ -30,13 +33,34 @@ export default async function ManageEventPage({ params, searchParams }: Props) {
   if (event === null || !event.canManage) notFound();
 
   const rawPage = (await searchParams).page;
-  const page = eventPageSchema.parse(Array.isArray(rawPage) ? rawPage[0] : rawPage);
-  const [invitations, attendance] = await Promise.all([
-    listEventInvitations(event.id, page),
-    listEventAttendance(event.id, page),
+  const pageInput = collectionPageInput(Array.isArray(rawPage) ? rawPage[0] : rawPage);
+  if (pageInput.wasAboveWindow) {
+    redirect(`/events/${event.id}/manage?page=${pageInput.page}#event-management-queue`);
+  }
+  const page = pageInput.page;
+  const openDoor = event.attendanceMode === "open_door";
+  const [invitations, attendance, people] = await Promise.all([
+    openDoor ? Promise.resolve([]) : listEventInvitations(event.id, page),
+    openDoor ? Promise.resolve([]) : listEventAttendance(event.id, page),
+    openDoor ? Promise.resolve([]) : readInvitationPeople(),
   ]);
   const total = Math.max(invitations.at(0)?.total_count ?? 0, attendance.at(0)?.total_count ?? 0);
-  const pageCount = Math.max(1, Math.ceil(total / 20));
+  const pageCount = collectionPageCount(total);
+  if (!openDoor && page > 1 && invitations.length === 0 && attendance.length === 0) {
+    const [firstInvitations, firstAttendance] = await Promise.all([
+      listEventInvitations(event.id, 1),
+      listEventAttendance(event.id, 1),
+    ]);
+    const firstTotal = Math.max(
+      firstInvitations.at(0)?.total_count ?? 0,
+      firstAttendance.at(0)?.total_count ?? 0,
+    );
+    const finalPage = collectionPageCount(firstTotal);
+    if (page > finalPage) {
+      redirect(`/events/${event.id}/manage?page=${finalPage}#event-management-queue`);
+    }
+  }
+  const candidates = invitationCandidates(people, invitations, attendance);
 
   return (
     <section className="py-12 sm:py-16">
@@ -50,16 +74,20 @@ export default async function ManageEventPage({ params, searchParams }: Props) {
         {event.title}
       </h1>
       <p className="mt-4 max-w-3xl text-muted-dark">
-        Invite registered supporters, review factual request context, manage approved attendees, and
-        retain every participation state.
+        {openDoor
+          ? "This fixture is public and walk-in. There is no digital guest list to manage."
+          : "Invite registered supporters, review factual request context, and manage approved attendees."}
       </p>
 
-      <div className="mt-10">
+      <div className="mt-10" id="event-management-queue">
         <EventManagementControls
           attendance={attendance}
+          attendanceMode={event.attendanceMode}
+          candidates={candidates}
           eventId={event.id}
           eventStatus={event.status}
           invitations={invitations}
+          remainingCapacity={event.remainingCapacity ?? undefined}
         />
       </div>
 
@@ -69,7 +97,7 @@ export default async function ManageEventPage({ params, searchParams }: Props) {
             <PaginationItem>
               <PaginationPrevious
                 aria-disabled={page === 1}
-                href={page === 1 ? undefined : `?page=${page - 1}`}
+                href={page === 1 ? undefined : `?page=${page - 1}#event-management-queue`}
               />
             </PaginationItem>
             <PaginationItem>
@@ -80,7 +108,7 @@ export default async function ManageEventPage({ params, searchParams }: Props) {
             <PaginationItem>
               <PaginationNext
                 aria-disabled={page >= pageCount}
-                href={page >= pageCount ? undefined : `?page=${page + 1}`}
+                href={page >= pageCount ? undefined : `?page=${page + 1}#event-management-queue`}
               />
             </PaginationItem>
           </PaginationContent>
@@ -88,4 +116,67 @@ export default async function ManageEventPage({ params, searchParams }: Props) {
       ) : null}
     </section>
   );
+}
+
+async function readInvitationPeople() {
+  try {
+    const [accepted, suggested] = await Promise.all([
+      listPeopleHub("accepted"),
+      listPeopleHub("suggested"),
+    ]);
+    return [...accepted.items, ...suggested.items];
+  } catch (error) {
+    if (error instanceof DomainError && error.code !== "INTERNAL_ERROR") return [];
+    throw error;
+  }
+}
+
+function invitationCandidates(
+  people: Awaited<ReturnType<typeof readInvitationPeople>>,
+  invitations: Awaited<ReturnType<typeof listEventInvitations>>,
+  attendance: Awaited<ReturnType<typeof listEventAttendance>>,
+): EventInvitationCandidate[] {
+  const candidates = new Map<string, EventInvitationCandidate>();
+  for (const person of people) {
+    candidates.set(person.id, {
+      id: person.id,
+      handle: person.handle,
+      displayName: person.displayName,
+      context:
+        person.friendship?.status === "accepted" ? "Friend" : (person.reason ?? "Suggested person"),
+      eligible: true,
+      ineligibilityReason: null,
+    });
+  }
+  for (const invitation of invitations) {
+    candidates.set(invitation.invitee_id, {
+      id: invitation.invitee_id,
+      handle: invitation.invitee_handle,
+      displayName: invitation.invitee_display_name,
+      context: "Recent authorized person",
+      eligible: invitation.status === "revoked" || invitation.status === "declined",
+      ineligibilityReason:
+        invitation.status === "pending"
+          ? "Already invited"
+          : invitation.status === "accepted"
+            ? "Already attending"
+            : null,
+    });
+  }
+  for (const row of attendance) {
+    candidates.set(row.user_id, {
+      id: row.user_id,
+      handle: row.requester_handle,
+      displayName: row.requester_display_name,
+      context: "Recent authorized person",
+      eligible: false,
+      ineligibilityReason:
+        row.status === "requested"
+          ? "Attendance request already pending"
+          : row.status === "approved"
+            ? "Already attending"
+            : "Current attendance state is not eligible",
+    });
+  }
+  return [...candidates.values()];
 }

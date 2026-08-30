@@ -14,7 +14,7 @@ export function ErrorState({ title, description, onRetry, reference }: ErrorStat
   return (
     <Card
       aria-labelledby="error-state-title"
-      className="mx-auto my-16 w-full max-w-2xl rounded-[2rem] border-sand/30 p-8 text-center sm:p-12"
+      className="mx-auto my-16 w-full max-w-2xl rounded-[1.375rem] border-sand/30 p-8 text-center sm:p-12"
       role="alert"
     >
       <CardHeader>

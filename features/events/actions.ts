@@ -1,17 +1,39 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { requireActor } from "@/features/auth/actor";
-import { privateEventFormSchema, venueEventFormSchema } from "@/features/events/schemas";
+import {
+  discardEventDraft,
+  finalizeEventDraft,
+  getEventDraft,
+  saveEventDraft,
+} from "@/features/events/drafts";
+import {
+  eventDraftIdInputSchema,
+  eventDraftSaveInputSchema,
+  privateEventFormSchema,
+  venueEventFormSchema,
+} from "@/features/events/schemas";
 import type {
+  EventDraftActionData,
+  EventDraftActionState,
+  EventDraftDiscardActionState,
+  EventDraftFinalizeActionState,
   PrivateEventFormValues,
   PrivateEventMutationState,
   VenueEventFormValues,
   VenueEventMutationState,
 } from "@/features/events/state";
-import { DomainError, domainErrorFromDatabase, toActionError } from "@/lib/errors";
+import {
+  actionFailure,
+  actionSuccess,
+  DomainError,
+  domainErrorFromDatabase,
+  toActionError,
+} from "@/lib/errors";
 import { getRequestId } from "@/lib/request-id/server";
 
 const mutationRowSchema = z
@@ -27,6 +49,77 @@ const managedVenueIdentitySchema = z.object({
   verification_status: z.enum(["unverified", "verified", "suspended"]),
   suspended_at: z.string().nullable(),
 });
+
+function toSafeDraftActionData(
+  record: Awaited<ReturnType<typeof getEventDraft>>,
+): EventDraftActionData {
+  return {
+    draft: record.draft,
+    organizingGroupId: record.organizingGroupId,
+    protectedLocation: record.protectedLocation,
+  };
+}
+
+export async function saveEventDraftStepAction(rawInput: unknown): Promise<EventDraftActionState> {
+  const parsed = eventDraftSaveInputSchema.safeParse(rawInput);
+  if (!parsed.success) return actionFailure(parsed.error);
+
+  try {
+    const { supabase } = await requireActor("fan");
+    return actionSuccess(toSafeDraftActionData(await saveEventDraft(supabase, parsed.data)));
+  } catch (error) {
+    return actionFailure(error);
+  }
+}
+
+export async function loadEventDraftAction(rawInput: unknown): Promise<EventDraftActionState> {
+  const parsed = eventDraftIdInputSchema.safeParse(rawInput);
+  if (!parsed.success) return actionFailure(parsed.error);
+
+  try {
+    const { supabase } = await requireActor("authenticated");
+    return actionSuccess(toSafeDraftActionData(await getEventDraft(supabase, parsed.data.draftId)));
+  } catch (error) {
+    return actionFailure(error);
+  }
+}
+
+export async function discardEventDraftAction(
+  rawInput: unknown,
+): Promise<EventDraftDiscardActionState> {
+  const parsed = eventDraftIdInputSchema.safeParse(rawInput);
+  if (!parsed.success) return actionFailure(parsed.error);
+
+  try {
+    const { supabase } = await requireActor("authenticated");
+    await discardEventDraft(supabase, parsed.data.draftId);
+    return actionSuccess({ message: "Draft discarded." });
+  } catch (error) {
+    return actionFailure(error);
+  }
+}
+
+export async function finalizeEventDraftAction(
+  rawInput: unknown,
+): Promise<EventDraftFinalizeActionState> {
+  const parsed = eventDraftIdInputSchema.safeParse(rawInput);
+  if (!parsed.success) return actionFailure(parsed.error);
+
+  let event;
+  try {
+    const [{ supabase }, requestId] = await Promise.all([requireActor("fan"), getRequestId()]);
+    event = await finalizeEventDraft(supabase, parsed.data.draftId, requestId);
+  } catch (error) {
+    return actionFailure(error);
+  }
+
+  revalidatePath("/");
+  revalidatePath("/dashboard");
+  revalidatePath("/events");
+  revalidatePath(`/events/${event.id}`);
+  revalidatePath("/discover");
+  redirect(`/events/${event.id}?created=1`);
+}
 
 function formString(value: FormDataEntryValue | null): string {
   return typeof value === "string" ? value : "";
@@ -93,12 +186,15 @@ export async function savePrivateEventAction(
   const values = submittedValues(formData);
   const parsed = privateEventFormSchema.safeParse(parsedInput(formData));
   if (!parsed.success) return failure(parsed.error, values, previousState);
+  if (
+    parsed.data.eventId !== null &&
+    (parsed.data.organizingGroupId !== null || parsed.data.audience === "group")
+  ) {
+    return failure(new DomainError("NOT_ALLOWED"), values, previousState);
+  }
 
   try {
-    const [{ supabase }, requestId] = await Promise.all([
-      requireActor("community"),
-      getRequestId(),
-    ]);
+    const [{ supabase }, requestId] = await Promise.all([requireActor("fan"), getRequestId()]);
     const matchResult = await supabase
       .from("public_future_matches")
       .select("starts_at")
@@ -142,23 +238,23 @@ export async function savePrivateEventAction(
       audit_request_id: requestId,
     };
 
-    if (parsed.data.organizingGroupId !== null && parsed.data.eventId !== null) {
-      throw new DomainError("NOT_ALLOWED");
-    }
+    const effectiveOrganizingGroupId =
+      parsed.data.organizingGroupId ??
+      (parsed.data.audience === "group" ? parsed.data.audienceGroupId : null);
 
     const { data, error } =
-      parsed.data.organizingGroupId === null
+      effectiveOrganizingGroupId === null
         ? await supabase.rpc("create_or_update_event", {
             input_event_id: parsed.data.eventId as string,
             input_host_venue_id: null as unknown as string,
-            input_organizing_group_id: parsed.data.audienceGroupId as string,
+            input_organizing_group_id: null as unknown as string,
             input_venue_id: null as unknown as string,
             input_audience_team_id: null as unknown as string,
             input_requires_approval: true,
             ...commonEventInput,
           })
         : await supabase.rpc("create_group_event", {
-            input_organizing_group_id: parsed.data.organizingGroupId,
+            input_organizing_group_id: effectiveOrganizingGroupId,
             ...commonEventInput,
           });
     if (error !== null) throw domainErrorFromDatabase(error);
@@ -166,7 +262,7 @@ export async function savePrivateEventAction(
     const event = mutationRowSchema.parse(data.at(0));
     revalidatePath("/events/" + event.event_id);
     revalidatePath("/matches/" + parsed.data.matchId);
-    if (parsed.data.organizingGroupId !== null || parsed.data.audienceGroupId !== null) {
+    if (effectiveOrganizingGroupId !== null || parsed.data.audienceGroupId !== null) {
       revalidatePath("/groups/[slug]", "page");
       revalidatePath("/groups/[slug]/manage", "page");
     }
@@ -232,7 +328,7 @@ export async function saveVenueEventAction(
 
   try {
     const [{ supabase }, requestId] = await Promise.all([
-      requireActor("community"),
+      requireActor({ venueId: parsed.data.venueId }),
       getRequestId(),
     ]);
     const [venueResult, matchResult] = await Promise.all([

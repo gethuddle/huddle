@@ -18,38 +18,45 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   cancelEventAction,
-  createEventInvitationAction,
   removeAttendeeAction,
   reviewAttendanceAction,
   revokeEventInvitationAction,
 } from "@/features/attendance/actions";
 import { AttendanceActionFeedback } from "@/features/attendance/components/action-feedback";
+import {
+  EventInvitationPicker,
+  type EventInvitationCandidate,
+} from "@/features/attendance/components/event-invitation-picker";
 import type { EventAttendance, EventInvitation } from "@/features/attendance/queries";
 import type { AttendanceActionState } from "@/features/attendance/state";
 
-type MutationIntent = "invite" | "revoke" | "review" | "remove" | "cancel";
+type MutationIntent = "revoke" | "review" | "remove" | "cancel";
 
 function EventManagementControlsInner({
   attendance,
+  attendanceMode,
+  candidates,
   eventId,
   eventStatus,
   invitations,
+  remainingCapacity,
 }: Readonly<{
   attendance: EventAttendance[];
+  attendanceMode: "open_door" | "reservations";
+  candidates: readonly EventInvitationCandidate[];
   eventId: string;
   eventStatus: string;
   invitations: EventInvitation[];
+  remainingCapacity: number;
 }>) {
   const router = useRouter();
   const mutation = useMutation<AttendanceActionState, Error, FormData>({
     mutationFn: async (formData) => {
       const intent = formData.get("mutationIntent") as MutationIntent;
-      if (intent === "invite") return createEventInvitationAction(formData);
       if (intent === "revoke") return revokeEventInvitationAction(formData);
       if (intent === "review") return reviewAttendanceAction(formData);
       if (intent === "remove") return removeAttendeeAction(formData);
@@ -66,50 +73,50 @@ function EventManagementControlsInner({
     mutation.mutate(formData);
   }
 
+  if (attendanceMode === "open_door") {
+    return (
+      <div className="space-y-8">
+        <AttendanceActionFeedback state={mutation.data} />
+        <Card>
+          <CardHeader>
+            <h2 className="text-2xl font-semibold text-linen">Open-door event</h2>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm leading-6 text-muted-dark">
+              Fans simply come to the venue. Huddle does not collect invitations, requests,
+              approvals, a guest list, or a capacity count for this event.
+            </p>
+          </CardContent>
+        </Card>
+        {eventStatus === "published" ? (
+          <CancelEventControl disabled={mutation.isPending} submit={submit} />
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <AttendanceActionFeedback state={mutation.data} />
 
       <Card>
         <CardHeader>
-          <h2 className="text-2xl font-semibold text-linen">Invite one registered supporter</h2>
+          <h2 className="text-2xl font-semibold text-linen">Invite people</h2>
           <p className="mt-2 text-sm leading-6 text-muted-dark">
-            Invitations never add guests or plus-ones. Acceptance reserves exactly one place and
-            still rechecks capacity, blocks, account eligibility, and the event audience.
+            Search eligible registered supporters here. Invitations never add guests or plus-ones,
+            and acceptance rechecks capacity and current safety eligibility.
           </p>
         </CardHeader>
         <CardContent>
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border-dark bg-surface-deep p-4">
-            <p className="text-sm text-muted-dark">
-              Don&apos;t know their exact handle? Find their profile first.
-            </p>
-            <Button asChild size="sm" variant="outline">
-              <Link href="/people">Find people</Link>
-            </Button>
-          </div>
-          <form
-            className="flex flex-col gap-3 sm:flex-row sm:items-end"
-            onSubmit={(event) => {
-              event.preventDefault();
-              submit("invite", new FormData(event.currentTarget));
-              event.currentTarget.reset();
-            }}
-          >
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="inviteeHandle">Huddle handle</Label>
-              <Input
-                autoComplete="off"
-                disabled={mutation.isPending || eventStatus !== "published"}
-                id="inviteeHandle"
-                name="inviteeHandle"
-                placeholder="supporter_handle"
-                required
-              />
-            </div>
-            <Button disabled={mutation.isPending || eventStatus !== "published"} type="submit">
-              {mutation.isPending ? "Saving…" : "Send invitation"}
-            </Button>
-          </form>
+          {eventStatus === "published" ? (
+            <EventInvitationPicker
+              candidates={candidates}
+              eventId={eventId}
+              remainingCapacity={remainingCapacity}
+            />
+          ) : (
+            <p className="text-sm text-muted-dark">Publish the event before inviting people.</p>
+          )}
         </CardContent>
       </Card>
 
@@ -199,17 +206,24 @@ function EventManagementControlsInner({
                   <Fact label="Follows home team" value={yesNo(row.follows_home_team)} />
                   <Fact label="Follows away team" value={yesNo(row.follows_away_team)} />
                 </dl>
+                {row.status === "requested" && row.review_reason !== null ? (
+                  <p className="mt-4 rounded-xl border border-sand/30 bg-sand/10 p-3 text-sm leading-6 text-sand">
+                    {row.review_reason}
+                  </p>
+                ) : null}
                 <div className="mt-5 flex flex-wrap gap-2">
                   {row.status === "requested" ? (
                     <>
-                      <DecisionButton
-                        attendanceId={row.attendance_id}
-                        decision="approve"
-                        disabled={mutation.isPending}
-                        submit={submit}
-                      >
-                        Approve
-                      </DecisionButton>
+                      {row.can_approve ? (
+                        <DecisionButton
+                          attendanceId={row.attendance_id}
+                          decision="approve"
+                          disabled={mutation.isPending}
+                          submit={submit}
+                        >
+                          Approve
+                        </DecisionButton>
+                      ) : null}
                       <DecisionButton
                         attendanceId={row.attendance_id}
                         decision="decline"
@@ -272,6 +286,7 @@ function DecisionButton({
 }>) {
   return (
     <Button
+      className="min-h-11"
       disabled={disabled}
       onClick={() => {
         const data = new FormData();
@@ -394,15 +409,23 @@ function CancelEventControl({
 export function EventManagementControls(
   props: Readonly<{
     attendance: EventAttendance[];
+    attendanceMode?: "open_door" | "reservations";
+    candidates?: readonly EventInvitationCandidate[];
     eventId: string;
     eventStatus: string;
     invitations: EventInvitation[];
+    remainingCapacity?: number;
   }>,
 ) {
   const [queryClient] = useState(() => new QueryClient());
   return (
     <QueryClientProvider client={queryClient}>
-      <EventManagementControlsInner {...props} />
+      <EventManagementControlsInner
+        {...props}
+        attendanceMode={props.attendanceMode ?? "reservations"}
+        candidates={props.candidates ?? []}
+        remainingCapacity={props.remainingCapacity ?? 0}
+      />
     </QueryClientProvider>
   );
 }

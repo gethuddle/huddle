@@ -10,7 +10,7 @@ type MatchesErrorProps = Readonly<{
 export default function MatchesError({ error, reset }: MatchesErrorProps) {
   return (
     <ErrorState
-      description="The local fixture catalog could not be read. No external provider call was attempted from this page."
+      description="Fixtures could not be loaded right now. Try again in a moment."
       onRetry={reset}
       reference={error.digest}
       title="We couldn’t load the fixtures."

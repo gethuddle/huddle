@@ -38,7 +38,7 @@ export async function setSubscriptionPreferenceAction(
   if (!parsed.success) return actionFailure(parsed.error);
 
   try {
-    const { supabase, user } = await requireActor("community");
+    const { supabase, user } = await requireActor("fan");
     const column = targetColumn(parsed.data.kind);
 
     if (parsed.data.intent === "follow") {

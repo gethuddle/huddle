@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { EmptyState } from "@/components/states/empty-state";
 import { Badge } from "@/components/ui/badge";
@@ -14,11 +15,11 @@ import {
 } from "@/components/ui/pagination";
 import { EventParticipationControls } from "@/features/attendance/components/event-participation-controls";
 import { listMyEventParticipation } from "@/features/attendance/queries";
-import { eventPageSchema } from "@/features/attendance/schemas";
 import { requireActor } from "@/features/auth/actor";
 import { ProfileAccessState } from "@/features/profiles/components/profile-access-state";
 import { formatIsraelKickoff } from "@/features/sports/time";
 import { DomainError } from "@/lib/errors";
+import { collectionPageCount, collectionPageInput } from "@/lib/pagination";
 
 export const metadata: Metadata = { title: "Attendance — Huddle" };
 
@@ -28,10 +29,14 @@ type Props = Readonly<{
 
 export default async function EventsDashboardPage({ searchParams }: Props) {
   const rawPage = (await searchParams).page;
-  const page = eventPageSchema.parse(Array.isArray(rawPage) ? rawPage[0] : rawPage);
+  const pageInput = collectionPageInput(Array.isArray(rawPage) ? rawPage[0] : rawPage);
+  if (pageInput.wasAboveWindow) {
+    redirect(`/events?page=${pageInput.page}#attendance-inbox`);
+  }
+  const page = pageInput.page;
 
   try {
-    await requireActor("community");
+    await requireActor("fan");
   } catch (error) {
     if (error instanceof DomainError && error.code === "AUTH_REQUIRED") {
       return (
@@ -61,10 +66,15 @@ export default async function EventsDashboardPage({ searchParams }: Props) {
 
   const items = await listMyEventParticipation(page);
   const total = items.at(0)?.total_count ?? 0;
-  const pageCount = Math.max(1, Math.ceil(total / 20));
+  const pageCount = collectionPageCount(total);
+  if (page > 1 && items.length === 0) {
+    const firstItems = await listMyEventParticipation(1);
+    const finalPage = collectionPageCount(firstItems.at(0)?.total_count ?? 0);
+    if (page > finalPage) redirect(`/events?page=${finalPage}#attendance-inbox`);
+  }
 
   return (
-    <section className="py-12 sm:py-16">
+    <section className="py-12 sm:py-16" id="attendance-inbox">
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-court">
@@ -137,7 +147,10 @@ export default async function EventsDashboardPage({ searchParams }: Props) {
         <Pagination className="mt-10">
           <PaginationContent>
             <PaginationItem>
-              <PaginationPrevious href={page > 1 ? `?page=${page - 1}` : undefined} />
+              <PaginationPrevious
+                aria-disabled={page === 1}
+                href={page > 1 ? `?page=${page - 1}#attendance-inbox` : undefined}
+              />
             </PaginationItem>
             <PaginationItem>
               <span className="px-4 text-sm text-muted-dark">
@@ -145,7 +158,10 @@ export default async function EventsDashboardPage({ searchParams }: Props) {
               </span>
             </PaginationItem>
             <PaginationItem>
-              <PaginationNext href={page < pageCount ? `?page=${page + 1}` : undefined} />
+              <PaginationNext
+                aria-disabled={page >= pageCount}
+                href={page < pageCount ? `?page=${page + 1}#attendance-inbox` : undefined}
+              />
             </PaginationItem>
           </PaginationContent>
         </Pagination>

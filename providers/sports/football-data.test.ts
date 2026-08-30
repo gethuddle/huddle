@@ -70,15 +70,15 @@ describe("FootballDataProvider", () => {
       fetch: fetchImplementation,
     });
 
-    const fixtures = await provider.listFixtures({ from: "2026-08-24", to: "2026-10-08" }, [
+    const fixtures = await provider.listFixtures({ from: "2026-08-24", to: "2027-05-31" }, [
       "2021",
     ]);
 
     expect(fetchImplementation).toHaveBeenCalledWith(
-      "https://api.football-data.org/v4/competitions/2021/matches?dateFrom=2026-08-24&dateTo=2026-10-09",
+      "https://api.football-data.org/v4/competitions/2021/matches?dateFrom=2026-08-24&dateTo=2027-06-01",
       expect.any(Object),
     );
-    expect(fixtures).toHaveLength(2);
+    expect(fixtures).toHaveLength(4);
     expect(fixtures[0]).toMatchObject({
       provider: "football-data",
       providerExternalId: "5001",
@@ -93,6 +93,14 @@ describe("FootballDataProvider", () => {
       providerExternalId: "5002",
       startsAt: "2026-09-05T12:00:00.000Z",
       status: "postponed",
+    });
+    expect(fixtures[2]).toMatchObject({
+      providerExternalId: "5003",
+      startsAt: "2026-10-12T18:00:00.000Z",
+    });
+    expect(fixtures[3]).toMatchObject({
+      providerExternalId: "5004",
+      startsAt: "2027-05-24T18:00:00.000Z",
     });
     expect(JSON.stringify(fixtures)).not.toContain("crest");
     expect(JSON.stringify(fixtures)).not.toContain("score");

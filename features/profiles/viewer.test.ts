@@ -11,8 +11,10 @@ const completeFacts: ActorFacts = {
   adultAttested: true,
   rulesCurrent: true,
   profileComplete: true,
+  fanEnabled: true,
   suspended: false,
   restricted: false,
+  venueAuthorized: false,
 };
 
 describe("resolvePublicProfileViewerState", () => {
@@ -25,6 +27,7 @@ describe("resolvePublicProfileViewerState", () => {
   it.each([
     { facts: { ...completeFacts, emailVerified: false }, label: "unverified" },
     { facts: { ...completeFacts, profileComplete: false }, label: "incomplete" },
+    { facts: { ...completeFacts, fanEnabled: false }, label: "Fan-disabled" },
     { facts: { ...completeFacts, adultAttested: false }, label: "not adult-attested" },
     { facts: { ...completeFacts, rulesCurrent: false }, label: "stale-rules" },
   ])("requires profile completion for a $label viewer", ({ facts }) => {

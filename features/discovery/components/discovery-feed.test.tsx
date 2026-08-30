@@ -7,6 +7,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DiscoveryFilters } from "@/features/discovery/schemas";
 import type { DiscoveryPage } from "@/features/discovery/types";
 
+vi.mock("./discovery-map", () => ({
+  DiscoveryMap: () => <div aria-label="Nearby places showing games">Map</div>,
+}));
+
 import { DiscoveryFeed } from "./discovery-feed";
 
 const filters: DiscoveryFilters = {
@@ -45,14 +49,15 @@ const initialPage: DiscoveryPage = {
       cityName: "Haifa",
       placeKind: "venue",
       locationSummary: "1–5 km away",
+      mapPoint: { placeName: "The Corner", latitude: 32.812, longitude: 34.998 },
       audience: "public",
       audienceGroupName: null,
       audienceTeamName: null,
+      attendanceMode: "reservations",
       capacity: 40,
       approvedAttendeeCount: 12,
       remainingCapacity: 28,
       requiresApproval: false,
-      viewerAttendanceStatus: null,
       matchesFollows: true,
     },
   ],
@@ -78,7 +83,9 @@ describe("DiscoveryFeed", () => {
     const user = userEvent.setup();
 
     render(<DiscoveryFeed filters={filters} initialPage={initialPage} />);
-    await user.click(screen.getByRole("button", { name: "Use my location once" }));
+    const browserLocationButton = screen.getByRole("button", { name: "Use my location once" });
+    expect(browserLocationButton).toHaveClass("min-h-11");
+    await user.click(browserLocationButton);
 
     expect(getCurrentPosition).toHaveBeenCalledOnce();
     expect(await screen.findByRole("status")).toHaveTextContent(
@@ -111,5 +118,79 @@ describe("DiscoveryFeed", () => {
     expect(requestUrl).toContain("lng=34.989");
     expect(window.location.search).not.toContain("lat=");
     expect(screen.getByText("Using this browser location")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Use city instead" })).toHaveClass("min-h-11");
+  });
+
+  it("keeps retry at least 44px tall after a discovery failure", async () => {
+    Object.defineProperty(navigator, "geolocation", {
+      configurable: true,
+      value: {
+        getCurrentPosition: (success: PositionCallback) =>
+          success({ coords: { latitude: 32.794, longitude: 34.989 } } as GeolocationPosition),
+      },
+    });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false }));
+    const user = userEvent.setup();
+
+    render(<DiscoveryFeed filters={filters} initialPage={initialPage} />);
+    await user.click(screen.getByRole("button", { name: "Use my location once" }));
+
+    expect(await screen.findByRole("button", { name: "Retry" }, { timeout: 4_000 })).toHaveClass(
+      "min-h-11",
+    );
+  });
+
+  it("keeps load more at least 44px tall when another acquisition page exists", () => {
+    render(
+      <DiscoveryFeed
+        filters={filters}
+        initialPage={{ ...initialPage, nextCursor: "signed-next-page" }}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Load more events" })).toHaveClass("min-h-11");
+  });
+
+  it("renders each acquisition with one truthful status and one primary action", () => {
+    const pageWithApprovalModes: DiscoveryPage = {
+      ...initialPage,
+      items: [
+        initialPage.items[0]!,
+        {
+          ...initialPage.items[0]!,
+          id: "52000000-0000-4000-8000-000000000404",
+          title: "Friends living-room watch",
+          host: {
+            kind: "person",
+            displayName: "Maya",
+            venueSlug: null,
+            verificationStatus: null,
+          },
+          audience: "friends",
+          requiresApproval: true,
+        },
+      ],
+    };
+
+    render(<DiscoveryFeed filters={filters} initialPage={pageWithApprovalModes} />);
+
+    expect(screen.getByText("Join instantly")).toBeVisible();
+    expect(screen.getByText("Request to join")).toBeVisible();
+    expect(screen.getAllByRole("link", { name: "Open event" })).toHaveLength(2);
+    expect(screen.queryByText(/Your attendance:/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Matches your follows/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Israel time/i)).not.toBeInTheDocument();
+  });
+
+  it("offers a first-class map on desktop and a clear mobile map action", async () => {
+    const user = userEvent.setup();
+    render(<DiscoveryFeed filters={filters} initialPage={initialPage} />);
+
+    expect(screen.getByRole("button", { name: "Show map" })).toBeVisible();
+    expect(screen.getByLabelText("Desktop discovery map")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Show map" }));
+    expect(screen.getByRole("dialog", { name: "Map of nearby places" })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Close map" }));
+    expect(screen.queryByRole("dialog", { name: "Map of nearby places" })).not.toBeInTheDocument();
   });
 });

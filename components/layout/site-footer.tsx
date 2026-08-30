@@ -5,7 +5,7 @@ import { BrandMark } from "@/components/brand/brand-mark";
 export function SiteFooter() {
   return (
     <footer className="border-t border-border-dark">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-6 py-6 text-sm text-muted-dark sm:flex-row sm:items-center sm:justify-between sm:px-10 lg:px-14">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-5 py-6 text-sm text-muted-dark sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-10">
         <p className="flex items-center gap-2">
           <BrandMark decorative size={18} tone="linen" />
           <span>Huddle · Israel pilot · One account, one attendee.</span>

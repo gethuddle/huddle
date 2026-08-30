@@ -10,6 +10,8 @@
 
 **Planning baseline:** 23 August 2026
 
+**Approved post-B12 revision:** 30 August 2026. The workspace contract below deliberately supersedes the B01–B12 assumption that every completed personal profile may create a venue, that every group-organized event must wait for a separate owner/admin review, and that every venue listing must operate a capacity-backed guest list. Historical milestone evidence remains evidence of what was merged before this redesign; it is not the current permission contract.
+
 The keywords **MUST**, **MUST NOT**, **SHOULD**, and **MAY** express implementation priority. A MUST is part of acceptance for the submitted MVP unless this specification is deliberately revised.
 
 ---
@@ -21,29 +23,30 @@ The keywords **MUST**, **MUST NOT**, **SHOULD**, and **MAY** express implementat
 Huddle MUST let a person:
 
 1. create and verify an adult account;
-2. attest that they are 18+, accept the community rules, complete a profile, and follow football interests;
+2. attest that they are 18+, accept the community rules, and activate an optional Fan identity or a self-serve Venue workspace;
 3. discover safe, relevant future watch events near a city in Israel or an optional browser location;
 4. form trust through accepted friendships or moderated supporter groups;
 5. request or accept attendance without exposing a home address prematurely;
 6. host and manage a private, group, public-place, or venue event;
 7. export an authorized event to a standards-based calendar file.
 
-The system MUST also let an unverified venue demonstrate the commercial listing loop and let a platform moderator process reports.
+The system MUST also let a venue-only operator activate an Unverified venue workspace without first publishing a Fan identity, demonstrate the commercial listing loop, and let a platform moderator process reports.
 
 ### 1.2 Submitted MVP
 
 - English UI targeting an Israel pilot.
-- Email/password authentication, verified email, 18+ attestation, accepted community rules, and completed profile.
+- Email/password authentication with common safety eligibility (verified email, 18+ attestation, current community-rules acceptance, and a non-suspended account), optional Fan activation, and self-serve Venue activation.
 - Anonymous browsing of safe public business-venue event, group, match, and venue information.
 - Football-first catalog using synchronized provider data.
 - Follows for sports, competitions, teams, and venues.
 - Mutual friendships; no friends-of-friends access.
 - Discoverable and unlisted supporter groups.
-- Group applications, `owner`/`admin`/`member` roles, bans, invite links, and event approval.
+- Group applications, `owner`/`admin`/`member` roles, bans, invite links, atomic owner/admin-authored event publication, and review of ordinary-member event submissions by a different current owner/admin.
 - Private-person events restricted to `group`, `friends`, or `invite_only`.
 - Business-venue events using `public` or `team_followers`.
 - Location discovery using a seeded list of cities in Israel, optional browser geolocation, and PostGIS.
-- Attendance request, accept/approve, decline, host removal, and leave flows with atomic capacity enforcement and no unregistered guests.
+- Venue `public` events may be `open_door`, with no Huddle RSVP, invitation, queue, guest list, or capacity claim, or `reservations`, using the registered-account attendance flows below.
+- Reservation attendance request, accept/approve, decline, host removal, and leave flows with atomic capacity enforcement and no unregistered guests.
 - RFC 5545 `.ics` event download.
 - Basic reporting, moderation, audit records, tests, CI, Vercel deployment, and Supabase hosting.
 
@@ -73,8 +76,10 @@ Deferred behavior MUST NOT be represented by fake controls, placeholder entitlem
 - The submitted MVP is 18+. Onboarding MUST record `adult_attested_at`; it MUST NOT collect a full date of birth merely to implement this attestation.
 - Anonymous visitors MAY read explicitly public projections.
 - Authentication is required for any mutation.
-- A verified email, adult attestation, accepted current community rules, and completed profile are required to follow, befriend, apply, join, host, create a group, or create a venue.
-- A profile is complete when it has a unique handle, display name, pilot city, `adult_attested_at`, and `rules_accepted_at` for the current rules version.
+- Common safety eligibility requires a verified email, `adult_attested_at`, `rules_accepted_at` for the current rules version, and a non-suspended account.
+- Fan activation is optional. A Fan is active only after the human explicitly enables the Fan workspace and supplies a unique handle, display name, and pilot city in addition to common safety eligibility.
+- Fan activation is required to follow, befriend, apply to or join a group, attend, host a private event, or create a group. Venue-only onboarding MAY leave Fan identity fields incomplete and non-public.
+- Venue activation requires common safety eligibility, venue information, and a truthful business-representation attestation. It MUST NOT require Fan activation.
 - One account represents one attendee. The MVP MUST NOT support anonymous guests or plus-ones.
 - A block MUST be immediate, private from the blocked person, and independent of reporting. It removes any friendship, prevents new friend requests/invitations, hides future private events hosted by either person from the other, and revokes attendance/address access when the two users are host and attendee of the same future home event.
 - A numeric trust score MUST NOT be calculated. Request-review UI SHOULD show only factual context: verified account, account age, mutual accepted friends, shared active groups, and relevant team follows.
@@ -102,7 +107,7 @@ Deferred behavior MUST NOT be represented by fake controls, placeholder entitlem
   - at least one approved, published, non-cancelled future group event.
 - Unlisted groups MAY operate immediately and do not need the discovery gate.
 - Creation SHOULD show groups with the same team/city and similarly normalized names. Similarity warns; it does not block creation.
-- A member MAY submit a group event. Only an owner/admin may publish or reject it.
+- An active ordinary member MAY submit a group event for owner/admin review. An event authored by a current group owner/admin MUST publish atomically; an ordinary-member submission MUST remain pending until a current owner/admin whose user ID differs from `created_by` publishes or rejects it. Promotion after submission MUST NOT let an author review their own pending event.
 - Platform moderators do not routinely approve group creation. They handle reports and suspensions.
 - A group ban prevents content access, invitation use, and reapplication until removed by an authorized group admin or platform action.
 
@@ -113,13 +118,13 @@ Deferred behavior MUST NOT be represented by fake controls, placeholder entitlem
 | Private person | `group` | Active, non-banned members of `audience_group_id` | Same membership rule, always subject to host approval unless directly invited |
 | Private person | `friends` | Host and host's accepted direct friends | Same accepted-friend rule, always subject to host approval unless directly invited |
 | Private person | `invite_only` | Host and current invitees | A current invitee only |
-| Business venue | `public` | Anyone, including anonymous visitors | Any verified, complete, unblocked adult user |
+| Business venue | `public` | Anyone, including anonymous visitors | `open_door`: no Huddle attendance state; `reservations`: any eligible active Fan |
 | Business venue | `team_followers` | Anyone, including anonymous visitors | User follows `audience_team_id`, unless directly invited |
 
 - Host type, not place type, controls the allowed audience. A private person using a public place remains limited to `group`, `friends`, or `invite_only`.
 - A private person MUST NOT create a `public` or `team_followers` event.
 - A business venue MUST NOT use `group`, `friends`, or `invite_only` in the submitted MVP.
-- Direct invitation is an explicit exception to team-follow requirement for venue events, but not to adult/completion, block, suspension, cancellation, one-account-per-seat, or capacity rules.
+- Direct invitation is an explicit exception to the team-follow requirement for reservation-mode venue events, but not to Fan activation, adult/completion, block, suspension, cancellation, one-account-per-seat, or capacity rules. Open-door events have no invitation mutation at all.
 - An `organizing_group_id` identifies a group whose admins review the listing. It is distinct from `audience_group_id`; for a group-only event they will normally be equal.
 - Only venue events may be publicly visible. Private-person event existence follows its relationship audience and never becomes anonymously discoverable.
 
@@ -139,22 +144,26 @@ Deferred behavior MUST NOT be represented by fake controls, placeholder entitlem
 - Leaving, host removal, blocking, event cancellation, account suspension, or loss of the required group eligibility MUST revoke future private-location reads. The product MUST disclose that it cannot make a previously viewed address unknown.
 - After the first approval, an event's host type, audience, place kind, and private address are immutable. A material change requires cancellation and a new event so attendees consent again.
 - Business-venue addresses and coordinates MAY be public. A private person's public-place address is visible only through that event's group/friends/invite-only audience, even though it is not treated as a secret home address.
+- A public business-venue event MAY use `open_door`. In that mode capacity is null and the listing must not imply that Huddle reserves, counts, approves, or guarantees physical admission. `team_followers` and every private-person event remain reservation-mode.
 - Dates MUST be stored as `timestamptz` in UTC and rendered as Israel time by default. The implementation MUST use the canonical IANA identifier `Asia/Jerusalem` for daylight-saving correctness without presenting that identifier as user-facing location copy.
 
 ### 2.6 Attendance and capacity
 
+- `attendance_mode` is either `reservations` or `open_door`. Existing events and all private/team-follower events use `reservations`; only a public business-venue event may use `open_door`.
+- An `open_door` event is a discoverable fixture listing, not a Huddle guest list. It MUST reject request/join, invitation, approval, decline, removal, and attendee-list mutations; capacity MUST be null and `requires_approval` MUST be false.
+- Open-door product copy MUST say that fans can come along without a reservation and MUST NOT claim a place, attendance count, or admission guarantee.
 - Attendance states are `requested`, `approved`, `declined`, `left`, and `removed`.
 - Each event/user pair has at most one attendance row; transitions update it rather than inserting duplicates.
 - One attendance row reserves one place. No guest-count field exists.
 - Pending requests do not consume capacity.
-- Business-venue events default to immediate approval but MAY require host approval.
+- Reservation-mode business-venue events default to immediate approval but MAY require host approval.
 - All private-person events require host approval unless the attendee accepted a direct invitation.
 - Approval MUST run in one database transaction that locks the event, checks event status/time, validates the reviewer, validates attendee eligibility, counts approved rows, checks capacity, and changes the state.
 - When no place remains, the operation returns `EVENT_FULL` and changes nothing.
 - Leaving an event retains the row as `left`.
 - An event host may remove an attendee with the row retained as `removed`; removal immediately revokes future private-location access.
 - Cancelling an event retains invitations and attendance history and blocks new attendance changes except harmless leave/history reads.
-- Capacity is a positive integer. `approved_count` is derived; it MUST NOT be a mutable counter column.
+- Reservation-mode capacity is a positive integer. Open-door capacity is null. `approved_count` is derived; it MUST NOT be a mutable counter column.
 
 ### 2.7 Community safety and moderation
 
@@ -174,8 +183,11 @@ Deferred behavior MUST NOT be represented by fake controls, placeholder entitlem
 ### 2.8 Commercial boundary
 
 - Fan features, friendships, groups, and private hosting are free.
-- In the course MVP, a completed user may create an `unverified` venue without payment.
+- In the course MVP, a commonly eligible venue operator may self-serve venue activation without payment or Fan activation. Activation MUST create the immediately usable `unverified` venue, one active owner membership, and its Venue workspace atomically.
+- Venue activation MUST record a truthful business-representation attestation and MUST NOT imply platform verification.
 - `unverified` MUST be visible wherever a venue is represented.
+- A generic Fan profile MUST NOT create or manage a venue. Every commercial venue mutation requires an active `owner` or `admin` Venue membership.
+- A venue is never an attendee and never consumes capacity. The same human MAY attend only through a separately activated Fan identity, where the one-account-per-attendee rule applies normally.
 - Production commercial publishing will later require a venue subscription entitlement.
 - The MVP MUST NOT create Stripe customers, checkout sessions, subscription tables, webhooks, or fake paid states.
 - Future promotion must be labelled and may reorder only already eligible results.
@@ -187,12 +199,13 @@ Deferred behavior MUST NOT be represented by fake controls, placeholder entitlem
 | Actor | Main permissions |
 |---|---|
 | Anonymous visitor | Read published public/team-follower business-venue event summaries, future matches, discoverable active groups, and non-suspended public venue summaries |
-| Authenticated but incomplete user | Read public data, manage own session/profile/adult attestation/rules acceptance only |
-| Verified complete adult user | Follow, request friends, apply to groups, respond to invitations, create allowed events/groups/venues, block and report |
-| Event host | Edit eligible fields before lock, review/remove attendees, invite users, cancel event, read its private location |
-| Venue owner | Edit own venue and manage its events; no platform-verification power |
+| Authenticated but not commonly eligible user | Read public data; manage own session, email verification, adult attestation, current-rules acceptance, and suspension-safe account actions only |
+| Commonly eligible account without Fan activation | Activate/manage an authorized Venue workspace; complete Fan activation later; block and report through safe account actions |
+| Active Fan | Follow, request friends, apply to groups, respond to invitations, attend, create allowed private events/groups, block and report |
+| Event host | Edit eligible fields before lock and cancel; reservation-mode hosts may invite/review/remove attendees; private hosts may read their event's protected location |
+| Active Venue owner/admin | Edit the authorized venue and manage its commercial events; no platform-verification power and no venue attendance identity |
 | Group member | Read group content, submit group event, leave group |
-| Group admin | Review applications and group event submissions, create/revoke invites, manage members and bans, edit group content |
+| Group admin | Review ordinary-member group event submissions only when their user ID differs from `created_by`, atomically publish events they author, review applications, create/revoke invites, manage members and bans, edit group content |
 | Group owner | All group-admin powers, admin promotion/demotion, group suspension/ownership rules; cannot remove the sole owner invariant |
 | Platform moderator | Review reports and suspend content/accounts according to moderation flow; no routine private-address access |
 | Sync service | Upsert sports catalog and sync-run records only; no normal social mutation |
@@ -207,46 +220,46 @@ Authorization MUST be enforced twice for sensitive transitions: application logi
 
 | Route | Access | Purpose |
 |---|---|---|
-| `/` | Public with personal signed-in view | Value proposition for visitors; direct My Huddle continuation for complete members |
+| `/` | Public with workspace-aware signed-in view | Value proposition for visitors; direct continuation into the last valid Fan or Venue workspace |
 | `/discover` | Public with richer signed-in view | Event discovery filters, cursor feed, location consent |
 | `/matches` | Public | Future football fixtures by date/competition/team |
 | `/matches/[matchId]` | Public | Match summary and eligible linked events |
-| `/events` | Complete user | Personal invitation and attendance dashboard |
+| `/events` | Active Fan | Personal invitation and attendance dashboard |
 | `/events/[eventId]` | Audience policy | Event summary, attendance state/action, permitted attendee context, calendar link |
-| `/events/new` | Complete user | Event creation wizard |
+| `/events/new` | Active Fan or active Venue member | Workspace-authorized event creation flow |
 | `/events/[eventId]/manage` | Host/group reviewer | Edit, invite, review attendance, submit/approve/cancel |
 | `/groups` | Public with personal signed-in view | Search active discoverable groups; show the viewer own forming and unlisted groups separately |
-| `/groups/new` | Complete user | Similar-group check then group creation |
+| `/groups/new` | Active Fan | Similar-group check then group creation |
 | `/groups/[slug]` | Group visibility rules | Public summary or member content, application state, approved events |
 | `/groups/[slug]/manage` | Owner/admin | Applications, members, roles, bans, rules, invites, submitted events |
-| `/join/group/[token]` | Signed-in complete user | Validate unlisted invite and submit membership application |
+| `/join/group/[token]` | Active Fan | Validate unlisted invite and submit membership application |
 | `/venues/[slug]` | Public | Venue summary, unverified badge, follow action, future event listings |
-| `/venues/new` | Complete user | Create an unverified venue |
-| `/venues/[slug]/manage` | Owner | Edit venue and manage venue event links |
+| `/venues/new` | Commonly eligible account | Self-serve an Unverified venue, active owner membership, and Venue workspace with business-representation attestation |
+| `/venues/[slug]/manage` | Active Venue owner/admin | Edit the authorized venue and manage venue event links |
 | `/people/[handle]` | Public/signed-in safe projection | Safe profile, friendship/block state; never email/private attendance |
-| `/people` | Complete user | Bounded safe search by display name or handle, excluding self, suspended profiles, and blocked pairs |
-| `/settings/profile` | Signed-in | Complete/edit profile and city |
-| `/settings/interests` | Complete user | Manage sport/competition/team follows |
-| `/settings/friends` | Complete user | Incoming/outgoing/accepted friendships |
-| `/dashboard` | Complete user | Hosted, submitted, invited, requested, and attending events plus the viewer own group relationships |
+| `/people` | Active Fan | Bounded safe search by display name or handle, excluding self, suspended profiles, and blocked pairs |
+| `/settings/profile` | Signed-in | Activate/edit optional Fan identity and common account settings |
+| `/settings/interests` | Active Fan | Manage sport/competition/team follows |
+| `/settings/friends` | Active Fan | Incoming/outgoing/accepted friendships |
+| `/dashboard` | Active Fan or active Venue member | Workspace-specific current tasks and owned/authorized objects |
 | `/moderation` | Platform moderator | Report queue and moderation actions |
 | `/auth/sign-up` | Anonymous | Email/password signup |
 | `/auth/sign-in` | Anonymous | Sign in |
 | `/auth/verify` | Public callback/instruction | Verification result and next action |
 
-Unauthorized access MUST render a clear `not found`, `sign in`, `complete profile`, or `not permitted` outcome as appropriate; it MUST NOT reveal that a private event exists through different error detail.
+Unauthorized access MUST render a clear `not found`, `sign in`, `finish safety setup`, `activate Fan`, `switch workspace`, or `not permitted` outcome as appropriate; it MUST NOT reveal that a private event exists through different error detail.
 
 ### 4.2 Main user journeys
 
-**Onboarding:** sign up → verify email → attest 18+ → choose handle/display name/city → accept the current community rules → follow at least one football interest (recommended, not required) → open discovery.
+**Onboarding:** sign up → verify email → attest 18+ → accept the current community rules → choose Fan or Venue setup. Fan setup adds handle/display name/city and optional interests; Venue setup adds venue information and a truthful business-representation attestation without publishing a Fan identity.
 
-**Discover and attend:** choose city or allow location → filter by date/interest → open event → sign in/complete profile if needed → request or join → see stable result → download calendar when authorized.
+**Discover and attend:** choose city or allow location → filter by date/interest → open event → sign in/activate Fan if needed → request or join → see stable result → download calendar when authorized.
 
 **Private home event:** choose fixture → home → choose group/friends/invite-only → enter protected address → set capacity up to 12 → publish/submit → invite or review registered users → approved attendee receives exact details. No plus-ones are available.
 
-**Group:** search → apply (or open invite) → admin reviews → member sees group content → member submits event → admin approves → event becomes published and may satisfy the discovery gate.
+**Group:** search → apply (or open invite) → admin reviews → member sees group content → ordinary member submits event → a different current owner/admin approves → event becomes published and may satisfy the discovery gate. An event authored by a current owner/admin publishes atomically without self-review; later promotion never lets the creator approve or reject their own pending submission.
 
-**Venue:** create unverified profile → add public location/details → create fixture event → follower discovers venue listing → attends or requests according to venue choice.
+**Venue:** complete common safety eligibility → attest truthful business representation → atomically create an Unverified venue, active owner membership, and Venue workspace → choose synchronized fixtures whose dates and kickoff times are inherited → assign viewing areas → publish as open-door or reservation events. Fans either read “come along; no reservation” or attend/request through an active Fan identity. The venue itself is never an attendee.
 
 ### 4.3 UI component boundaries
 
@@ -448,18 +461,19 @@ Seed a reviewed Israel city list. Index `slug`; add a GiST index on `center`.
 | Column | Contract |
 |---|---|
 | `id` | UUID PK/FK to `auth.users(id)` |
-| `handle` | unique, normalized, 3–30 allowed characters |
-| `display_name` | 2–60 characters |
-| `city_id` | FK `cities`, required for completed profile |
+| `handle` | nullable until Fan activation; unique, normalized, 3–30 allowed characters when active |
+| `display_name` | nullable until Fan activation; 2–60 characters when active |
+| `city_id` | nullable FK `cities`; required for Fan activation |
 | `bio` | optional, max 500 plain-text characters |
-| `adult_attested_at` | required for completion; assertion of 18+, not identity verification |
-| `rules_version`, `rules_accepted_at` | current accepted rules version and time, required for completion |
-| `profile_completed_at` | derived/set only when required fields valid |
+| `adult_attested_at` | required for common safety eligibility; assertion of 18+, not identity verification |
+| `rules_version`, `rules_accepted_at` | current accepted rules version and time, required for common safety eligibility |
+| `profile_completed_at` | retained B01–B12 completion evidence; existing completed profiles are backfilled as enabled Fans |
+| `fan_enabled_at` | explicit optional Fan-workspace activation; set only when common eligibility and required Fan identity fields are valid |
 | `suspended_at` | nullable platform action |
 
-Email is read from Auth only where needed and MUST NOT be part of public profile queries. Public DTOs expose handle, display name, city name, short bio, and factual trust context only.
+Email is read from Auth only where needed and MUST NOT be part of public profile queries. Public Fan DTOs exist only for activated Fans and expose handle, display name, city name, short bio, and factual trust context only. Venue-only operators have no public Fan projection.
 
-Indexes: unique `lower(handle)`, `city_id`, `profile_completed_at`, `suspended_at`.
+Indexes: partial unique `lower(handle)` where non-null, `city_id`, `fan_enabled_at`, `profile_completed_at`, `suspended_at`.
 
 #### `platform_roles`
 
@@ -589,9 +603,21 @@ PK `(group_id, user_id)`, plus `banned_by`, `reason` (bounded plain text), `crea
 | `screen_count` | nullable positive integer |
 | `stated_capacity` | nullable positive integer |
 | `verification_status` | defaults `unverified` |
+| `business_representation_attested_at` | required self-serve activation attestation; not platform verification |
 | `suspended_at` | nullable |
 
-Indexes: unique `lower(slug)`, GiST `location`, `(city_id, verification_status)`, `owner_id`. A user can own multiple venues in the schema; UI MAY initially guide toward one. Only platform moderators change verification/suspension status.
+Indexes: unique `lower(slug)`, GiST `location`, `(city_id, verification_status)`, `owner_id`. `owner_id` remains the canonical primary owner during the redesign migration, but it is not sufficient workspace authorization. Only platform moderators change verification/suspension status.
+
+#### `venue_memberships`
+
+| Column | Contract |
+|---|---|
+| `venue_id`, `user_id` | composite unique membership identity |
+| `role` | `owner` or `admin` |
+| `activated_at` | required active-state timestamp |
+| `revoked_at`, `revoked_by` | nullable audited revocation evidence |
+
+Indexes: `(venue_id, revoked_at, role)` and `(user_id, revoked_at)`. Every existing `venues.owner_id` is backfilled as one active owner membership. Controlled activation creates the venue, truthful-representation attestation, active owner membership, and workspace atomically. Database constraints/functions preserve exactly one active owner. Every commercial mutation rechecks active membership; a remembered workspace cookie and `owner_id` alone never authorize it.
 
 #### `venue_follows`
 
@@ -617,24 +643,26 @@ PK `(user_id, venue_id)`, with reverse `(venue_id, created_at)` index. User cont
 | `audience` | event audience enum |
 | `audience_team_id` | required only for team-followers |
 | `audience_group_id` | required only for group audience |
-| `capacity` | positive integer |
-| `requires_approval` | forced true for every private-person event; configurable only for business-venue events |
+| `attendance_mode` | `reservations` or `open_door`; open door is valid only for public business-venue events |
+| `capacity` | positive integer for reservations; null for open door |
+| `requires_approval` | false for open door; forced true for private-person reservations; configurable for business-venue reservations |
 | `status` | event lifecycle |
 | `published_at`, `cancelled_at`, `cancel_reason` | transition evidence |
 
 Checks enforce:
 
 - exactly one host;
-- host venue equals/owns the selected venue where appropriate;
+- a business host uses the selected venue and the acting user has an active Venue owner/admin membership at every commercial mutation;
 - a private-person host (`host_user_id`) uses only group/friends/invite-only, may use home or public place, and always requires approval unless attendance comes from a direct invitation;
 - a business-venue host (`host_venue_id`) uses only public/team-followers and uses a venue place;
+- open door requires a business-venue host, public audience, null capacity, and no approval; team-followers always uses reservations;
 - home has no public address/location/venue and has capacity from 1 through 12;
 - venue place has a venue and no private/public-place fields;
 - public place has name/address/location and no venue/private-location conflict and cannot make a private-person event publicly visible;
 - audience target columns match exactly the chosen audience;
 - `audience_group_id` refers to an active membership relationship at creation;
 - team audience has one team;
-- `ends_at > starts_at` and capacity > 0.
+- `ends_at > starts_at`; reservation capacity is positive and open-door capacity is null.
 
 After the first approved attendance row exists, controlled update functions reject changes to host identity/type, audience/target, place kind, or the private address/location with `MATERIAL_CHANGE_REQUIRES_NEW_EVENT`. The host must cancel and recreate instead.
 
@@ -652,7 +680,7 @@ Indexes: `(status, starts_at, id)`, `(match_id, status)`, `(city_id, status, sta
 
 #### `event_attendance`
 
-`id`, `event_id`, `user_id`, `status`, `source`, `requested_at`, `reviewed_by`, `reviewed_at`, `left_at`, `removed_by`, `removed_at`, optional bounded `removal_reason`, timestamps. Unique `(event_id, user_id)`. No guest-count column exists. Indexes `(event_id, status, created_at)` and `(user_id, status, event_id)`. Only an event manager may set `removed`; only the attendee may set `left`; both retain history and immediately end private-location eligibility.
+`id`, `event_id`, `user_id`, `status`, `source`, `requested_at`, `reviewed_by`, `reviewed_at`, `left_at`, `removed_by`, `removed_at`, optional bounded `removal_reason`, timestamps. Unique `(event_id, user_id)`. No guest-count column exists. Indexes `(event_id, status, created_at)` and `(user_id, status, event_id)`. Attendance creation requires the human's active Fan identity; no venue or Venue workspace can occupy `user_id` or consume a seat. Only an event manager may set `removed`; only the attendee may set `left`; both retain history and immediately end private-location eligibility.
 
 ### 6.9 Safety and audit domain
 
@@ -690,14 +718,15 @@ Views MUST use invoker semantics where supported so RLS is not bypassed. Where a
 | Resource | Read | Insert/update/delete |
 |---|---|---|
 | Catalog/cities | Public active rows | Sync service/platform migration only |
-| Profile | Safe projection public; full own row; limited factual context through functions | Own bounded fields through onboarding/profile functions; adult/rules completion fields cannot be forged by direct row update; suspension/roles platform only |
-| Subscription/follow | Own rows; aggregate counts only if deliberately exposed | Own rows only, complete user required |
+| Profile | Safe projection only for active Fans; full own human trust row; limited factual context through functions | Own bounded fields through common-safety/Fan-activation functions; adult/rules/Fan activation fields cannot be forged by direct row update; suspension/roles platform only |
+| Subscription/follow | Own rows; aggregate counts only if deliberately exposed | Own rows only, active Fan required |
 | Friendship | Pair participants | Controlled pair functions only |
 | Group | Active discoverable summary public; unlisted/member content for eligible users; banned denied | Creator/admin functions according to role |
 | Membership/application | Applicant sees own; admins see their group's; active members see safe roster | Controlled application/review/role functions |
 | Group invite | Admin metadata; token validation function returns minimal result | Admin functions only |
-| Venue | Non-suspended public summary | Owner content fields; moderator status fields |
-| Event | Public/team business-venue summaries public; private-person audiences only per relationship; manager access | Controlled event functions; group publication admin only |
+| Venue | Non-suspended public summary | Self-serve activation function; active Venue member content fields; moderator status fields |
+| Venue membership | Own active workspace memberships; authorized venue members see bounded coworker rows | Controlled owner/admin role and revocation functions; exactly one active owner |
+| Event | Public/team business-venue summaries public; private-person audiences only per relationship; manager access | Controlled event functions; current group owner/admin authors publish atomically, ordinary-member submissions require a different current owner/admin reviewer (`reviewer_id <> created_by`) |
 | Private event location | No direct client read | Controlled host write; audited authorized read function only |
 | Invitation | Invitee and event manager | Invite/respond/revoke functions only |
 | Attendance | User's own, event manager, and safe approved-attendee list permitted by event | Atomic request/approve/decline/leave/remove functions only |
@@ -796,12 +825,12 @@ Mutation groups:
 - follows: follow/unfollow sport, competition, team, venue;
 - friends: request, accept, decline, remove, block/unblock;
 - groups: create, apply, review, change role, leave, ban/unban, create/revoke invite, save rules;
-- venues: create, update, follow/unfollow;
-- events: create draft, update, submit for group review, approve/reject group event, publish, cancel, invite;
+- venues: activate venue plus owner membership atomically, update through active membership, manage membership, follow/unfollow as an active Fan;
+- events: create draft, update, atomically publish current-owner/admin-authored group event, submit ordinary-member event for review by a different current owner/admin, approve/reject that pending event, publish, cancel, invite;
 - attendance: request/join, accept invitation, approve/decline request, leave, remove attendee;
 - safety: block/unblock, report, assign, resolve, dismiss, restrict/suspend/reverse, appeal/review.
 
-Every community action follows: parse → authenticate → require complete/not suspended → authorize relationship → execute constrained database operation → map error → revalidate only affected paths/tags. Auth/session and onboarding actions apply only the gates that can logically precede them: signup and sign-in may begin anonymously, while profile completion requires a verified, non-suspended signed-in user but intentionally allows an incomplete profile.
+Every community action follows: parse → authenticate → require common safety eligibility → authorize the active workspace and relationship → execute constrained database operation → map error → revalidate only affected paths/tags. Fan attendance/private-social mutations additionally require Fan activation; every commercial venue mutation additionally requires active Venue membership. Auth/session and onboarding actions apply only the gates that can logically precede them: signup and sign-in may begin anonymously, Fan activation may complete Fan identity fields, and venue-only onboarding intentionally allows those Fan fields to remain incomplete and non-public.
 
 ### 7.4 Required database functions
 
@@ -814,10 +843,11 @@ Every community action follows: parse → authenticate → require complete/not 
 | `review_group_membership(group_id, user_id, decision)` | Admin-only, ban-aware transition with audit |
 | `consume_group_invite(token, message)` | Hash/compare, check expiry/revocation/use limit/ban, create pending application, increment use atomically |
 | `evaluate_group_discoverability(group_id)` | Return gate facts and activate only when all thresholds pass |
-| `create_or_update_event(input)` | Enforce private-versus-business audience, 12-person home cap, no guest count, group permissions, and private location; reject material changes after approval |
-| `publish_group_event(event_id, decision)` | Active group admin only; approve/reject pending event with audit |
+| `activate_venue(input)` | Require common safety eligibility and truthful-representation attestation; create an Unverified venue, active owner membership, and workspace atomically without requiring Fan activation |
+| `create_or_update_event(input)` | Enforce active Fan or Venue-membership authority, private-versus-business audience, open-door versus reservation invariants, venue-as-non-attendee, 12-person home cap, no guest count, group author role/publication behavior, and private location; reject material changes after approval |
+| `publish_group_event(event_id, decision)` | Current owner/admin authors publish atomically in the creation transaction; an ordinary-member pending event may be approved/rejected only by a current owner/admin whose user ID differs from `created_by`, with the identity check and decision audited |
 | `discover_events(filters, cursor, limit)` | Apply visibility, status, location, time, interest, block, and keyset pagination rules |
-| `request_or_join_event(event_id)` | Eligibility and approval-mode decision; immediate path capacity-safe |
+| `request_or_join_event(event_id)` | Reservation-only eligibility and approval decision; immediate path capacity-safe; reject open-door events |
 | `respond_to_event_invitation(invitation_id, decision)` | Invitee-only; accepting reserves capacity atomically |
 | `review_attendance(attendance_id, decision)` | Event-manager only; locks event and enforces capacity |
 | `remove_attendee(attendance_id, reason)` | Event-manager only; retain `removed` state and revoke future private-location access atomically |
@@ -835,13 +865,14 @@ Functions return stable domain error codes for expected failures.
 | Profile | Auth trigger + owner onboarding | Safe public/own | Owner bounded fields | Account-erasure flow later; moderator suspension now |
 | Follow | User | User/safe counts | N/A | User unfollow |
 | Friendship | Requester | Pair | Recipient responds | Either removes |
-| Group | Complete user | Visibility/RLS | Owner/admin | Archive/suspend, not routine hard delete |
+| Group | Active Fan | Visibility/RLS | Owner/admin | Archive/suspend, not routine hard delete |
 | Membership | Applicant/invite function | Applicant/admin/safe roster | Admin decision/role | Leave or ban |
-| Venue | Complete user | Public | Owner | Suspend/archive; no hard delete when referenced |
+| Venue | Commonly eligible operator through atomic activation | Public | Active Venue owner/admin | Suspend/archive; no hard delete when referenced |
+| Venue membership | Atomic activation creates owner | Self/authorized venue members | Active owner/admin through controlled functions | Audited revoke; exactly one active owner retained |
 | Event | Eligible host/member | Audience/RLS | Host or group reviewer | Cancel, retain history |
 | Invitation | Event manager | Invitee/manager | Invitee response | Manager revoke pending invite |
 | Attendance | Eligible registered attendee/action | Self/manager/safe approved list | Controlled transitions | `left` by attendee or `removed` by host; retain history |
-| Report | Complete user | Reporter/moderator | Moderator status | Resolve/dismiss, retain |
+| Report | Authenticated account through safe reporting flow | Reporter/moderator | Moderator status | Resolve/dismiss, retain |
 | Sports catalog | Sync service | Public | Sync service | Mark inactive; do not delete referenced records |
 
 ---
@@ -967,7 +998,7 @@ This design follows the [OWASP Authorization Cheat Sheet](https://cheatsheetseri
 - Use `@supabase/ssr` cookie sessions and the current Supabase SSR guidance.
 - Cookies must use secure production attributes (`HttpOnly` where controlled by the Auth flow, `Secure`, appropriate `SameSite`, narrow lifetime/scope).
 - Middleware refreshes sessions but application/server/database checks authorize resources.
-- Email verification, `adult_attested_at`, current `rules_version`, and `profile_completed_at` gates are checked server-side.
+- Email verification, `adult_attested_at`, current `rules_version`, suspension, Fan activation, and active Venue membership gates are checked server-side according to the requested action.
 - Sign-out clears the session and private query cache.
 
 ### 11.2 Authorization
@@ -1119,7 +1150,7 @@ MUST test:
 - 12-person home cap, absence of any guest-count path, and denial of direct private-location select;
 - authorized/unauthorized audited private-location function before approval and after leave, removal, block, ban, cancellation, or suspension;
 - material audience/place/address change rejection after first approval;
-- event host/group-review permissions;
+- event host/group-review permissions, including pgTAP proof that `reviewer_id <> created_by` and that promoting an ordinary-member author to admin still cannot authorize their own pending decision;
 - invitation expiry/revocation/use limits;
 - capacity with concurrent approval attempts;
 - host removal/attendee leave/cancellation history retention;
@@ -1171,10 +1202,10 @@ Seed deterministic users, relationships, groups, venues, matches, and events. Re
 4. Host/audience boundary: a private user cannot create public/team-followers even by crafted request; a venue cannot create group/friends/invite-only.
 5. Discoverable group creation progressing from `forming` to searchable only after every threshold.
 6. Group application/approval, group ban/reapplication denial, and unlisted invite application.
-7. Member event submission and group-admin approval before publication.
+7. Owner/admin-authored group event publishes atomically; an ordinary-member submission remains hidden until a different current owner/admin approves it. In a two-account E2E, promoting the creator to admin still denies their self-approval/self-rejection, while a different current owner/admin can decide it.
 8. Home-event request: city/coarse context visible, exact address absent; address appears only after approval; material address/audience change then requires cancellation/new event.
 9. Home event rejects capacity above 12 and offers no plus-one; each approved account consumes exactly one seat.
-10. Unverified venue creation/follow, public fixture listing, team-followers eligibility denial, and direct-invitation override.
+10. Venue-only onboarding creates an Unverified venue plus active owner membership without Fan activation; commercial mutations deny inactive/non-members; fixture planning inherits kickoff data; a public open-door event has no capacity, invitations, RSVP, queue, or residue; a reservation/team-followers event retains atomic seat and invitation behavior; the venue itself never attends.
 11. Capacity race: simultaneous approvals result in only available seats and stable rejected/conflict response.
 12. Host removes an approved attendee: history remains, event/address/calendar access is immediately denied.
 13. User blocks a future home-event host/attendee: friendship/direct interaction and attendance/address access are atomically removed without revealing the blocker.
@@ -1351,7 +1382,7 @@ The MVP is done only when:
 | Blocking | Immediate private control with relationship/attendance/address revocation | User protection does not wait for moderation |
 | Moderation | Confidential reports, proportional enforcement, and appeals | Group admins and platform moderators have distinct authority |
 | Reputation | Factual context, no score | Avoid gameable cold-start metric |
-| Venue MVP | User-created and visibly unverified | Demonstrates loop without billing/verification claim |
+| Venue MVP | Self-serve activated by a commonly eligible operator, membership-authorized, venue-as-non-attendee, and visibly Unverified | Demonstrates loop without billing/verification claim or invented Fan identity |
 | Calendar | RFC 5545 download | Broad compatibility without OAuth |
 | Realtime | None | No Socket.IO/Redis dependency |
 | State | Server + URL + narrow TanStack Query + local React | No unnecessary global store |

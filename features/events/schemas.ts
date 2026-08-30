@@ -18,6 +18,87 @@ const optionalCoordinate = z.preprocess(
 
 export const eventRouteIdSchema = z.uuid();
 
+const eventDraftValueShape = {
+  matchId: z.uuid(),
+  title: z.string().trim().min(3).max(120),
+  description: z.string().trim().min(10).max(2000),
+  expectedActivity: z.string().trim().min(3).max(500),
+  costDescription: z.string().trim().min(2).max(300),
+  eventRules: z.string().trim().min(3).max(1000),
+  commercialAffiliation: z.string().trim().min(2).max(300),
+  hostPresenceConfirmed: z.boolean(),
+  cityId: z.uuid(),
+  placeKind: z.enum(["home", "public_place"]),
+  publicPlaceName: z.string().trim().min(1).max(120),
+  publicAddressText: z.string().trim().min(1).max(300),
+  publicLongitude: z.number().min(34).max(36),
+  publicLatitude: z.number().min(29).max(34),
+  audience: z.enum(["group", "friends", "invite_only"]),
+  audienceGroupId: z.uuid(),
+  capacity: z.number().int().min(1).max(1000),
+};
+
+export const eventDraftValuesSchema = z.object(eventDraftValueShape).partial().strict();
+
+export const eventDraftPatchSchema = z
+  .object({
+    matchId: eventDraftValueShape.matchId.nullable().optional(),
+    title: eventDraftValueShape.title.nullable().optional(),
+    description: eventDraftValueShape.description.nullable().optional(),
+    expectedActivity: eventDraftValueShape.expectedActivity.nullable().optional(),
+    costDescription: eventDraftValueShape.costDescription.nullable().optional(),
+    eventRules: eventDraftValueShape.eventRules.nullable().optional(),
+    commercialAffiliation: eventDraftValueShape.commercialAffiliation.nullable().optional(),
+    hostPresenceConfirmed: eventDraftValueShape.hostPresenceConfirmed.nullable().optional(),
+    cityId: eventDraftValueShape.cityId.nullable().optional(),
+    placeKind: eventDraftValueShape.placeKind.nullable().optional(),
+    publicPlaceName: eventDraftValueShape.publicPlaceName.nullable().optional(),
+    publicAddressText: eventDraftValueShape.publicAddressText.nullable().optional(),
+    publicLongitude: eventDraftValueShape.publicLongitude.nullable().optional(),
+    publicLatitude: eventDraftValueShape.publicLatitude.nullable().optional(),
+    audience: eventDraftValueShape.audience.nullable().optional(),
+    audienceGroupId: eventDraftValueShape.audienceGroupId.nullable().optional(),
+    capacity: eventDraftValueShape.capacity.nullable().optional(),
+  })
+  .strict();
+
+export const eventDraftProtectedLocationSchema = z
+  .object({
+    addressText: z.string().trim().min(5).max(300),
+    directionsText: z.string().trim().min(1).max(500).nullable(),
+    longitude: z.number().min(34).max(36),
+    latitude: z.number().min(29).max(34),
+  })
+  .strict();
+
+const eventDraftPrivateMutationSchema = z.discriminatedUnion("mode", [
+  z.object({ mode: z.literal("preserve") }).strict(),
+  z.object({ mode: z.literal("clear") }).strict(),
+  z
+    .object({
+      mode: z.literal("replace"),
+      value: eventDraftProtectedLocationSchema,
+    })
+    .strict(),
+]);
+
+export const eventDraftSaveInputSchema = z
+  .object({
+    id: z.uuid().nullable(),
+    step: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+    values: eventDraftPatchSchema,
+    organizingGroupId: z.uuid().nullable(),
+    privateLocation: eventDraftPrivateMutationSchema,
+  })
+  .strict();
+
+export const eventDraftIdInputSchema = z.object({ draftId: z.uuid() }).strict();
+
+export type EventDraftValues = z.infer<typeof eventDraftValuesSchema>;
+export type EventDraftPatch = z.infer<typeof eventDraftPatchSchema>;
+export type EventDraftProtectedLocation = z.infer<typeof eventDraftProtectedLocationSchema>;
+export type EventDraftSaveInput = z.infer<typeof eventDraftSaveInputSchema>;
+
 export const venueEventFormSchema = z
   .object({
     eventId: optionalUuid,

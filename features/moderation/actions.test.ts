@@ -114,7 +114,7 @@ describe("moderation actions", () => {
 
     const result = await applyModerationAction(null, form);
 
-    expect(mocks.requireActor).toHaveBeenCalledWith("community");
+    expect(mocks.requireActor).toHaveBeenCalledWith("common");
     expect(rpc).toHaveBeenCalledWith("apply_moderation_action", {
       input_report_id: targetId,
       input_action: "temporary_suspension",
@@ -147,7 +147,7 @@ describe("moderation actions", () => {
 
     const result = await reverseModerationAction(null, form);
 
-    expect(mocks.requireActor).toHaveBeenCalledWith("community");
+    expect(mocks.requireActor).toHaveBeenCalledWith("common");
     expect(rpc).toHaveBeenCalledWith("reverse_moderation_action", {
       input_action_id: targetId,
       input_reason: "The review deadline has passed and access should be restored.",

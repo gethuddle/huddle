@@ -18,14 +18,15 @@ export type DiscoveryEvent = Readonly<{
   cityName: string;
   placeKind: "home" | "venue" | "public_place";
   locationSummary: string;
-  audience: "public" | "team_followers" | "group" | "friends" | "invite_only";
+  mapPoint: Readonly<{ placeName: string; latitude: number; longitude: number }> | null;
+  audience: "public" | "team_followers" | "group" | "friends";
   audienceGroupName: string | null;
   audienceTeamName: string | null;
-  capacity: number;
+  attendanceMode: "open_door" | "reservations";
+  capacity: number | null;
   approvedAttendeeCount: number;
-  remainingCapacity: number;
+  remainingCapacity: number | null;
   requiresApproval: boolean;
-  viewerAttendanceStatus: "requested" | "approved" | "declined" | "left" | "removed" | null;
   matchesFollows: boolean;
 }>;
 

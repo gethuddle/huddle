@@ -6,6 +6,7 @@ import { useActionState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { signOutAction } from "@/features/auth/actions";
 import { INITIAL_AUTH_ACTION_STATE } from "@/features/auth/state";
+import { clearOnboardingSessionDrafts } from "@/features/onboarding/session-form-draft";
 import { cn } from "@/lib/utils";
 
 export function SignOutButton({ className }: Readonly<{ className?: string }>) {
@@ -13,7 +14,8 @@ export function SignOutButton({ className }: Readonly<{ className?: string }>) {
 
   useEffect(() => {
     if (state?.ok === true && state.data.redirectTo !== null) {
-      // Replacing the document clears private client caches as well as UI state.
+      clearOnboardingSessionDrafts();
+      // Replacing the document clears in-memory private caches as well as UI state.
       window.location.replace(state.data.redirectTo);
     }
   }, [state]);

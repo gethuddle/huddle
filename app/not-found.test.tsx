@@ -1,16 +1,55 @@
 // @vitest-environment jsdom
 
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import NotFound from "./not-found";
 
-describe("not-found state", () => {
-  it("uses non-enumerating copy and a route back to safety", () => {
-    render(<NotFound />);
+const mocks = vi.hoisted(() => ({ getAppShellState: vi.fn() }));
+vi.mock("@/features/workspaces/queries", () => ({
+  getAppShellState: mocks.getAppShellState,
+}));
 
-    expect(screen.getByRole("heading", { name: "Page not found" })).toBeVisible();
+describe("not-found state", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("uses non-enumerating copy and signed-out recovery", async () => {
+    mocks.getAppShellState.mockResolvedValue({
+      isSignedIn: false,
+      workspace: { active: null, available: [], isModerator: false },
+    });
+    render(await NotFound());
+
+    expect(screen.getByRole("heading", { name: "This page isn’t available." })).toBeVisible();
     expect(screen.getByText(/may not be visible to you/i)).toBeVisible();
-    expect(screen.getByRole("link", { name: "Return home" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/auth/sign-in");
+    expect(screen.getByRole("link", { name: "Browse events" })).toHaveAttribute(
+      "href",
+      "/discover",
+    );
+  });
+
+  it("offers only known local Fan recovery without revealing the missing object", async () => {
+    mocks.getAppShellState.mockResolvedValue({
+      isSignedIn: true,
+      workspace: {
+        active: {
+          kind: "fan",
+          id: "e4000000-0000-4000-8000-000000000101",
+          slug: "fan_one",
+          label: "Fan One",
+          role: "fan",
+        },
+        available: [],
+        isModerator: false,
+      },
+    });
+    render(await NotFound());
+
+    expect(screen.getByRole("link", { name: "Open My Huddle" })).toHaveAttribute(
+      "href",
+      "/dashboard",
+    );
+    expect(screen.queryByText(/(event|group|venue) was deleted/i)).not.toBeInTheDocument();
   });
 });

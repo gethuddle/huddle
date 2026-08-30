@@ -41,7 +41,7 @@ export default async function ModerationPage({ searchParams }: Props) {
 
   let moderatorId: string;
   try {
-    const actor = await requireActor("community");
+    const actor = await requireActor("common");
     if (!(await viewerIsPlatformModerator())) notFound();
     moderatorId = actor.profile.id;
   } catch (error) {

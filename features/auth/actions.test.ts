@@ -3,15 +3,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { signInAction, signOutAction, signUpAction } from "./actions";
 
 const mocks = vi.hoisted(() => ({
+  cookieGet: vi.fn(),
+  cookieSet: vi.fn(),
+  cookies: vi.fn(),
   createClient: vi.fn(),
-  profileMaybeSingle: vi.fn(),
   revalidatePath: vi.fn(),
+  rpc: vi.fn(),
   signInWithPassword: vi.fn(),
   signOut: vi.fn(),
   signUp: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
+vi.mock("next/headers", () => ({ cookies: mocks.cookies }));
 
 vi.mock("@/lib/env/public", () => ({
   getPublicEnvironment: () => ({
@@ -34,21 +38,16 @@ function formData(values: Readonly<Record<string, string>>) {
 describe("auth Server Actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.profileMaybeSingle.mockResolvedValue({
-      data: { profile_completed_at: null },
-      error: null,
-    });
+    mocks.cookies.mockResolvedValue({ get: mocks.cookieGet, set: mocks.cookieSet });
+    mocks.cookieGet.mockReturnValue(undefined);
+    mocks.rpc.mockResolvedValue({ data: [], error: null });
     mocks.createClient.mockResolvedValue({
       auth: {
         signInWithPassword: mocks.signInWithPassword,
         signOut: mocks.signOut,
         signUp: mocks.signUp,
       },
-      from: () => ({
-        select: () => ({
-          eq: () => ({ maybeSingle: mocks.profileMaybeSingle }),
-        }),
-      }),
+      rpc: mocks.rpc,
     });
   });
 
@@ -156,7 +155,7 @@ describe("auth Server Actions", () => {
     expect(JSON.stringify(result)).not.toContain("socket details");
   });
 
-  it("sends a verified incomplete account directly to profile setup", async () => {
+  it("sends a verified account with no workspace to setup", async () => {
     mocks.signInWithPassword.mockResolvedValue({
       data: { session: {}, user: { id: "incomplete-user-id" } },
       error: null,
@@ -170,20 +169,27 @@ describe("auth Server Actions", () => {
     expect(result).toEqual({
       ok: true,
       data: {
-        message: "Signed in. Let’s finish setting up your account…",
-        redirectTo: "/settings/profile",
+        message: "Signed in. Choose how you’ll use Huddle…",
+        redirectTo: "/onboarding",
       },
     });
-    expect(mocks.profileMaybeSingle).toHaveBeenCalledOnce();
   });
 
-  it("returns a complete account to Huddle", async () => {
+  it("returns a Fan account to Fan Home", async () => {
     mocks.signInWithPassword.mockResolvedValue({
       data: { session: {}, user: { id: "complete-user-id" } },
       error: null,
     });
-    mocks.profileMaybeSingle.mockResolvedValue({
-      data: { profile_completed_at: "2026-08-25T00:00:00Z" },
+    mocks.rpc.mockResolvedValue({
+      data: [
+        {
+          workspace_kind: "fan",
+          workspace_id: "e4000000-0000-4000-8000-000000000101",
+          slug: "complete_fan",
+          name: "Complete Fan",
+          role: "fan",
+        },
+      ],
       error: null,
     });
 
@@ -193,7 +199,41 @@ describe("auth Server Actions", () => {
     );
 
     expect(result).toMatchObject({ ok: true, data: { redirectTo: "/" } });
+    expect(mocks.cookieSet).toHaveBeenCalledWith(
+      "huddle-workspace",
+      "fan:e4000000-0000-4000-8000-000000000101",
+      expect.objectContaining({ httpOnly: true, sameSite: "lax" }),
+    );
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/", "layout");
+  });
+
+  it("returns a Venue-only account to its authorized Today page", async () => {
+    mocks.signInWithPassword.mockResolvedValue({
+      data: { session: {}, user: { id: "venue-user-id" } },
+      error: null,
+    });
+    mocks.rpc.mockResolvedValue({
+      data: [
+        {
+          workspace_kind: "venue",
+          workspace_id: "e4000000-0000-4000-8000-000000000102",
+          slug: "match-corner",
+          name: "Match Corner",
+          role: "owner",
+        },
+      ],
+      error: null,
+    });
+
+    const result = await signInAction(
+      null,
+      formData({ email: "venue@example.com", password: "matchday-strong" }),
+    );
+
+    expect(result).toMatchObject({
+      ok: true,
+      data: { redirectTo: "/venues/match-corner/workspace" },
+    });
   });
 
   it("clears only the current browser session before returning a hard-navigation target", async () => {
@@ -202,6 +242,11 @@ describe("auth Server Actions", () => {
     const result = await signOutAction(null, new FormData());
 
     expect(mocks.signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(mocks.cookieSet).toHaveBeenCalledWith(
+      "huddle-workspace",
+      "",
+      expect.objectContaining({ maxAge: 0 }),
+    );
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/", "layout");
     expect(result).toMatchObject({ ok: true, data: { redirectTo: "/" } });
   });

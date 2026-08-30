@@ -4,6 +4,7 @@ import {
   attendanceReviewSchema,
   attendeeRemovalSchema,
   eventCancellationSchema,
+  eventPageSchema,
   invitationCreationSchema,
 } from "./schemas";
 
@@ -32,5 +33,13 @@ describe("attendance input schemas", () => {
     expect(
       eventCancellationSchema.safeParse({ eventId, reason: "Host is unavailable." }).success,
     ).toBe(true);
+  });
+
+  it("uses the shared 501-page collection window for event management", () => {
+    expect(eventPageSchema.parse("501")).toBe(501);
+    expect(eventPageSchema.parse("502")).toBe(501);
+    expect(eventPageSchema.parse("999999999999999999999999999999")).toBe(501);
+    expect(eventPageSchema.parse("-4")).toBe(1);
+    expect(eventPageSchema.parse("1.5")).toBe(1);
   });
 });

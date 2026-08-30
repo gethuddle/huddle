@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { ShareLinkButton } from "@/components/share/share-link-button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,10 +16,22 @@ import {
 import { EventCard } from "@/features/events/components/event-card";
 import { listGroupEvents } from "@/features/events/queries";
 import { GroupApplicationForm } from "@/features/groups/components/group-application-form";
+import { GroupDiscoveryProgress } from "@/features/groups/components/group-discovery-progress";
+import {
+  ApplicationReviewControl,
+  EventReviewControl,
+} from "@/features/groups/components/group-management-controls";
 import { GroupMembershipControl } from "@/features/groups/components/group-membership-control";
+import {
+  GroupShareDialog,
+  type GroupShareCandidate,
+} from "@/features/groups/components/group-share-dialog";
 import { ReportControl } from "@/features/moderation/components/report-control";
 import { getGroupDetail } from "@/features/groups/detail";
+import { getGroupDiscoveryProgress } from "@/features/groups/discovery";
+import { getGroupOverviewAttention } from "@/features/groups/management";
 import { groupMemberListQuerySchema, groupRouteSlugSchema } from "@/features/groups/schemas";
+import { listPeopleHub } from "@/features/people/search";
 
 export const metadata: Metadata = {
   title: "Supporter group — Huddle",
@@ -46,14 +57,24 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
 
   const group = await getGroupDetail(parsedSlug.data, query.membersPage);
   if (group === null) notFound();
-  const events = await listGroupEvents(group.id);
+  const canManage = group.viewerRole === "owner" || group.viewerRole === "admin";
+  const [events, progress, attention, shareCandidates] = await Promise.all([
+    listGroupEvents(group.id),
+    canManage ? getGroupDiscoveryProgress(group.id) : Promise.resolve(null),
+    getGroupOverviewAttention(group),
+    canManage && group.visibility === "unlisted"
+      ? loadShareCandidates()
+      : Promise.resolve<GroupShareCandidate[]>([]),
+  ]);
 
   return (
     <section className="py-12 sm:py-16">
       {rawQuery.created === "1" ? (
         <Alert className="mb-6 border-court/30 bg-court/10" role="status">
           <AlertDescription className="text-court-hover">
-            Your group is ready. It now lives in My Huddle, and you can start inviting people.
+            {group.visibility === "discoverable"
+              ? "Your group is ready. It now lives in My Huddle; share the application link and review requests here."
+              : "Your group is ready. It now lives in My Huddle; create controlled invitation links for the people you choose."}
           </AlertDescription>
         </Alert>
       ) : null}
@@ -63,7 +84,6 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <Badge>{group.visibility}</Badge>
-              <Badge variant="outline">{group.lifecycle}</Badge>
               {group.viewerRole === null ? null : (
                 <Badge variant="secondary">Your role: {group.viewerRole}</Badge>
               )}
@@ -132,15 +152,22 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
                       <Link href={`/groups/${group.slug}/manage`}>Manage group</Link>
                     </Button>
                     <Button asChild className="w-full" variant="outline">
-                      <Link href={`/groups/${group.slug}/manage?section=invites`}>
-                        Invite people
-                      </Link>
+                      <Link href={`/events/new?group=${group.id}`}>Create group event</Link>
                     </Button>
                   </div>
                 ) : null}
-                <div className="mt-3">
-                  <ShareLinkButton label="Share group" title={group.name} />
-                </div>
+                {group.visibility === "discoverable" || canManage ? (
+                  <div className="mt-3">
+                    <GroupShareDialog
+                      candidates={shareCandidates}
+                      canManage={canManage}
+                      groupId={group.id}
+                      groupName={group.name}
+                      groupSlug={group.slug}
+                      visibility={group.visibility}
+                    />
+                  </div>
+                ) : null}
                 {group.viewerRole === "member" || group.viewerRole === "admin" ? (
                   <div className="mt-5">
                     <GroupMembershipControl groupId={group.id} groupSlug={group.slug} />
@@ -154,6 +181,79 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
           </aside>
         </div>
       </div>
+
+      {progress === null ? null : (
+        <GroupDiscoveryProgress
+          description={group.description}
+          groupId={group.id}
+          groupSlug={group.slug}
+          progress={progress}
+          visibility={group.visibility}
+        />
+      )}
+
+      {attention.applications.length === 0 ? null : (
+        <section aria-labelledby="group-applications-heading" className="mt-10">
+          <h2 className="text-2xl font-semibold text-linen" id="group-applications-heading">
+            Applications to review
+          </h2>
+          <div className="mt-5 space-y-3">
+            {attention.applications.map((application) => (
+              <div
+                className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-border p-4"
+                key={application.userId}
+              >
+                <div>
+                  <Link className="font-semibold text-linen" href={`/people/${application.handle}`}>
+                    {application.displayName}
+                  </Link>
+                  <p className="mt-1 text-sm text-muted-dark">
+                    @{application.handle} ·{" "}
+                    {application.source === "invite" ? "Invitation" : "Group page"}
+                  </p>
+                </div>
+                <ApplicationReviewControl
+                  groupId={group.id}
+                  groupSlug={group.slug}
+                  userId={application.userId}
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {attention.events.length === 0 ? null : (
+        <section aria-labelledby="group-event-submissions-heading" className="mt-10">
+          <h2 className="text-2xl font-semibold text-linen" id="group-event-submissions-heading">
+            Event submissions to review
+          </h2>
+          <div className="mt-5 space-y-3">
+            {attention.events.map((event) => (
+              <div
+                className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-border p-4"
+                key={event.id}
+              >
+                <div>
+                  <Link className="font-semibold text-linen" href={`/events/${event.id}`}>
+                    {event.title}
+                  </Link>
+                  <p className="mt-1 text-sm text-muted-dark">
+                    {event.match.homeTeamName} vs {event.match.awayTeamName} · submitted by @
+                    {event.submitterHandle}
+                  </p>
+                </div>
+                <EventReviewControl
+                  eventId={event.id}
+                  eventTitle={event.title}
+                  groupId={group.id}
+                  groupSlug={group.slug}
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {group.canApply ? (
         <section aria-labelledby="group-application-heading" className="mt-10">
@@ -291,16 +391,36 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
 }
 
 function statusTitle(visibility: "discoverable" | "unlisted", lifecycle: string): string {
-  if (visibility === "unlisted") return "Unlisted and member-only";
-  return lifecycle === "forming" ? "Forming and accepting applications" : "Public group summary";
+  if (visibility === "unlisted") return "Shared by invitation";
+  return lifecycle === "forming" ? "Setting up for group search" : "Open for applications";
 }
 
 function statusDescription(visibility: "discoverable" | "unlisted", lifecycle: string): string {
   if (visibility === "unlisted") {
-    return "This group stays out of search. Only active members can open this summary and roster.";
+    return "This group stays out of search. Owners and admins share controlled invitation links.";
   }
   if (lifecycle === "forming") {
-    return "Eligible signed-in supporters with this direct link may read the safe summary and apply. It remains absent from public discovery until every activation threshold is met.";
+    return "Eligible signed-in supporters with this link can read the summary and apply. The setup list shows what remains before it appears in search.";
   }
-  return "Anyone may read this safe summary. Member-only content remains protected.";
+  return "Supporters can find this page and apply. Member-only content stays protected.";
+}
+
+async function loadShareCandidates(): Promise<GroupShareCandidate[]> {
+  const [accepted, suggested] = await Promise.all([
+    listPeopleHub("accepted", "", 1),
+    listPeopleHub("suggested", "", 1),
+  ]);
+  const candidates = new Map<string, GroupShareCandidate>();
+  for (const person of [...accepted.items, ...suggested.items]) {
+    candidates.set(person.id, {
+      id: person.id,
+      handle: person.handle,
+      displayName: person.displayName,
+      context:
+        person.friendship?.status === "accepted"
+          ? `Friend · ${person.cityName}`
+          : `${person.reason ?? "Suggested supporter"} · ${person.cityName}`,
+    });
+  }
+  return [...candidates.values()];
 }

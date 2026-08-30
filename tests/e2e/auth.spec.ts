@@ -1,7 +1,7 @@
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { execFileSync } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import path from "node:path";
 
 import type { Database } from "@/types/database.generated";
@@ -67,6 +67,39 @@ function sqlLiteral(value: string) {
   return `'${value.replaceAll("'", "''")}'`;
 }
 
+function publicAddressCacheDigest(query: string, city: string) {
+  const normalize = (value: string) => value.trim().replaceAll(/\s+/g, " ").toLowerCase();
+  return createHash("sha256")
+    .update(`${normalize(query)}\u001f${normalize(city)}\u001fil`)
+    .digest("hex");
+}
+
+function seedPublicAddressCache(
+  query: string,
+  city: string,
+  suggestion: Readonly<{
+    id: string;
+    label: string;
+    city: string;
+    latitude: number;
+    longitude: number;
+  }>,
+) {
+  const digest = publicAddressCacheDigest(query, city);
+  localDatabaseQuery(`
+    insert into private.public_address_cache (query_digest, result_payload, expires_at)
+    values (
+      ${sqlLiteral(digest)},
+      ${sqlLiteral(JSON.stringify([suggestion]))}::jsonb,
+      statement_timestamp() + interval '1 hour'
+    )
+    on conflict (query_digest) do update
+    set result_payload = excluded.result_payload,
+        expires_at = excluded.expires_at;
+  `);
+  return digest;
+}
+
 function localDatabaseQuery(sql: string) {
   const executable = path.join(
     process.cwd(),
@@ -118,18 +151,16 @@ async function seedCompletedUser(
   });
   if (createError !== null) throw createError;
 
-  const completedAt = new Date().toISOString();
-  localDatabaseQuery(`
-    update public.profiles
-    set adult_attested_at = ${sqlLiteral(completedAt)}::timestamptz,
-        city_id = '00000000-0000-4000-8000-000000000003'::uuid,
-        display_name = ${sqlLiteral(displayName)},
-        handle = ${sqlLiteral(handle)},
-        profile_completed_at = ${sqlLiteral(completedAt)}::timestamptz,
-        rules_accepted_at = ${sqlLiteral(completedAt)}::timestamptz,
-        rules_version = 1
-    where id = ${sqlLiteral(created.user.id)}::uuid;
-  `);
+  const client = await localUserClient(email, password);
+  const activated = await client.rpc("activate_fan_workspace", {
+    input_adult_attested: true,
+    input_bio: "",
+    input_city_slug: "haifa",
+    input_display_name: displayName,
+    input_handle: handle,
+    input_rules_version: 1,
+  });
+  if (activated.error !== null) throw activated.error;
 
   return created.user.id;
 }
@@ -288,6 +319,101 @@ async function seedCachedFixtureCatalogAfterFailure() {
   };
 }
 
+async function seedFixtureSearchHorizon() {
+  const fixture = await seedCachedFixtureCatalogAfterFailure();
+  const suffix = uniqueSuffix();
+  const provider = `e2e-horizon-${suffix}`;
+  const targetMatchId = randomUUID();
+  const lateHomeTeamId = randomUUID();
+  const lateAwayTeamId = randomUUID();
+  const catalog = localDatabaseRows<{ competition_id: string; sport_id: string }>(`
+    select match.competition_id, competition.sport_id
+    from public.matches as match
+    join public.competitions as competition on competition.id = match.competition_id
+    where match.id = ${sqlLiteral(fixture.matchId)}::uuid;
+  `).at(0);
+  if (catalog === undefined || fixture.homeTeamId === null || fixture.awayTeamId === null) {
+    throw new Error("The local fixture horizon prerequisites are unavailable.");
+  }
+
+  localDatabaseQuery(`
+    insert into public.teams (
+      id, sport_id, provider, provider_external_id, name, short_name, tla,
+      country_name, last_synced_at
+    ) values
+      (
+        ${sqlLiteral(lateHomeTeamId)}::uuid,
+        ${sqlLiteral(catalog.sport_id)}::uuid,
+        ${sqlLiteral(provider)}, 'late-home',
+        ${sqlLiteral(`Late Horizon ${suffix} FC`)},
+        ${sqlLiteral(`Late Horizon ${suffix}`)}, 'LHF', 'England', statement_timestamp()
+      ),
+      (
+        ${sqlLiteral(lateAwayTeamId)}::uuid,
+        ${sqlLiteral(catalog.sport_id)}::uuid,
+        ${sqlLiteral(provider)}, 'late-away',
+        ${sqlLiteral(`Final Round ${suffix} FC`)},
+        ${sqlLiteral(`Final Round ${suffix}`)}, 'FRF', 'England', statement_timestamp()
+      );
+  `);
+  localDatabaseQuery(`
+    insert into public.matches (
+      provider, provider_external_id, competition_id, home_team_id, away_team_id,
+      starts_at, status, matchday, stage, season_label, last_synced_at
+    )
+    select
+      ${sqlLiteral(provider)},
+      'early-' || series::text,
+      ${sqlLiteral(catalog.competition_id)}::uuid,
+      ${sqlLiteral(fixture.homeTeamId)}::uuid,
+      ${sqlLiteral(fixture.awayTeamId)}::uuid,
+      statement_timestamp() + interval '4 days' + series * interval '10 minutes',
+      'timed', ((series - 1) % 38) + 1, 'REGULAR_SEASON', '2026', statement_timestamp()
+    from generate_series(1, 260) as series;
+  `);
+  localDatabaseQuery(`
+    insert into public.matches (
+      id, provider, provider_external_id, competition_id, home_team_id, away_team_id,
+      starts_at, status, matchday, stage, season_label, last_synced_at
+    ) values (
+      ${sqlLiteral(targetMatchId)}::uuid,
+      ${sqlLiteral(provider)}, 'late-target',
+      ${sqlLiteral(catalog.competition_id)}::uuid,
+      ${sqlLiteral(lateHomeTeamId)}::uuid,
+      ${sqlLiteral(lateAwayTeamId)}::uuid,
+      statement_timestamp() + interval '370 days',
+      'timed', 38, 'REGULAR_SEASON', '2027', statement_timestamp()
+    );
+  `);
+
+  const position = localDatabaseRows<{ ordinal: number }>(`
+    select count(*)::integer as ordinal
+    from public.public_future_matches
+    where starts_at <= (
+      select starts_at from public.matches where id = ${sqlLiteral(targetMatchId)}::uuid
+    );
+  `).at(0)?.ordinal;
+  const teamResultCount = localDatabaseRows<{ count: number }>(`
+    select count(*)::integer as count
+    from public.public_future_matches
+    where home_team_id = ${sqlLiteral(fixture.homeTeamId)}::uuid
+       or away_team_id = ${sqlLiteral(fixture.homeTeamId)}::uuid;
+  `).at(0)?.count;
+  if (position === undefined || teamResultCount === undefined) {
+    throw new Error("The local fixture horizon could not be measured.");
+  }
+
+  return {
+    fixture,
+    suffix,
+    targetMatchId,
+    targetLabel: `Late Horizon ${suffix} FC vs Final Round ${suffix} FC — Premier League`,
+    position,
+    teamId: fixture.homeTeamId,
+    teamResultCount,
+  };
+}
+
 function seedAcceptedFriendship(firstUserId: string, secondUserId: string) {
   const [userLowId, userHighId] = [firstUserId, secondUserId].sort();
   const respondedAt = new Date().toISOString();
@@ -371,16 +497,22 @@ async function createVenueEvent(
   overrides: Partial<Database["public"]["Functions"]["create_or_update_event"]["Args"]> = {},
 ) {
   const client = await localUserClient(email, password);
-  const venueResult = await client.rpc("create_venue", {
+  const venueResult = await client.rpc("create_venue_workspace", {
     input_address_text: "12 Hanassi Boulevard, Haifa",
+    input_adult_attested: true,
     input_city_id: haifaCityId,
+    input_default_requires_approval: false,
     input_description: "A deterministic acceptance venue with accessible seating.",
+    input_facilities: ["wheelchair_accessible"],
+    input_house_information: "Use the main entrance.",
     input_latitude: 32.81303,
     input_longitude: 34.99928,
+    input_main_space_capacity: 80,
+    input_main_space_name: "Main screen",
     input_name: `Acceptance Venue ${suffix}`,
-    input_screen_count: 4,
+    input_representation_attested: true,
+    input_rules_version: 1,
     input_slug: `acceptance-venue-${suffix}`,
-    input_stated_capacity: 80,
   });
   if (venueResult.error !== null) throw venueResult.error;
   const venueId = venueResult.data.at(0)?.venue_id;
@@ -518,7 +650,7 @@ async function signUpAndVerify(
   const confirmationResponse = await fetch(confirmationUrl, { redirect: "manual" });
   expect(confirmationResponse.status).toBe(303);
   const confirmationLocation = confirmationResponse.headers.get("location");
-  expect(confirmationLocation).toBe("http://localhost:3000/auth/verify?status=success");
+  expect(confirmationLocation).toBe("http://localhost:3000/onboarding");
   expect(confirmationLocation).not.toContain("token_hash");
 
   const sessionCookies = cookiesFrom(confirmationResponse.headers, confirmationUrl.origin);
@@ -526,23 +658,32 @@ async function signUpAndVerify(
   await context.addCookies(sessionCookies);
   await page.goto(confirmationLocation!);
 
-  await expect(page.getByRole("heading", { name: "You’re in." })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Finish setup", exact: true })).toHaveAttribute(
+  await expect(page.getByRole("heading", { name: "How will you use Huddle?" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Set up Fan", exact: true })).toHaveAttribute(
     "href",
-    "/settings/profile",
+    "/onboarding/fan",
   );
 }
 
 async function expectProfileNavigation(page: Page) {
-  const accountTrigger = page.getByRole("button", { name: "Open account navigation" });
-  await expect(accountTrigger).toBeVisible();
-  await accountTrigger.click();
-  await expect(page.getByRole("menuitem", { name: "Profile", exact: true })).toHaveAttribute(
+  const fanNavigation = page.getByRole("navigation", { name: "Fan navigation" });
+  await expect(fanNavigation.getByRole("link", { name: "Home", exact: true })).toBeVisible();
+  await expect(fanNavigation.getByRole("link", { name: "Explore", exact: true })).toBeVisible();
+  await expect(fanNavigation.getByRole("link", { name: "My Huddle", exact: true })).toBeVisible();
+  await expect(fanNavigation.getByRole("link", { name: "People", exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Switch workspace" }).click();
+  await expect(page.getByRole("menuitem", { name: "Account settings" })).toHaveAttribute(
     "href",
-    "/settings/profile",
+    "/account",
   );
   await page.keyboard.press("Escape");
-  await expect(accountTrigger).toBeFocused();
+}
+
+async function signOut(page: Page) {
+  await page.goto(new URL("/account", page.url()).toString());
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page.getByRole("banner").getByRole("link", { name: "Sign in" })).toBeVisible();
 }
 
 async function completeProfile(
@@ -551,22 +692,59 @@ async function completeProfile(
   displayName: string,
   proveRequiredConfirmations = false,
 ) {
-  await page.goto(new URL("/settings/profile", page.url()).toString());
+  await page.goto(new URL("/onboarding/fan", page.url()).toString());
   await page.getByRole("textbox", { name: "Display name" }).fill(displayName);
   await page.getByRole("textbox", { name: "Handle" }).fill(handle);
   await page.getByRole("combobox", { name: "City" }).selectOption("haifa");
 
   if (proveRequiredConfirmations) {
-    await page.getByRole("button", { name: "Complete profile" }).click();
+    await page.getByRole("button", { name: "Start using Huddle" }).click();
     await expect(page.getByText("This confirmation is required.")).toHaveCount(2);
   }
 
-  await page.getByRole("checkbox", { name: /18 or older/i }).click();
-  await page.getByRole("checkbox", { name: /accept the current/i }).click();
-  await page.getByRole("button", { name: "Complete profile" }).click();
+  for (const checkbox of [
+    page.getByRole("checkbox", { name: /18 or older/i }),
+    page.getByRole("checkbox", { name: /accept the current/i }),
+  ]) {
+    if ((await checkbox.getAttribute("aria-checked")) !== "true") await checkbox.click();
+    await expect(checkbox).toBeChecked();
+  }
+  await page.getByRole("button", { name: "Start using Huddle" }).click();
 
-  await expect(page).toHaveURL(new RegExp(`/people/${handle}$`));
+  await expect(page).toHaveURL(/^http:\/\/(?:localhost|127\.0\.0\.1):3000\/$/);
+  await page.goto(new URL(`/people/${handle}`, page.url()).toString());
   await expect(page.getByRole("heading", { name: displayName })).toBeVisible();
+}
+
+async function selectFirstFixture(page: Page) {
+  const picker = page.getByRole("region", { name: "Fixture picker" });
+  const fixture = picker.getByRole("button").filter({ hasText: / vs / }).first();
+  await expect(fixture).toBeVisible();
+  await fixture.click();
+}
+
+async function openFanEventDetailsStep(page: Page) {
+  await selectFirstFixture(page);
+  await page.getByRole("button", { name: "Next: place and audience" }).click();
+  await expect(page.getByRole("heading", { name: "Place and audience" })).toBeVisible();
+}
+
+async function selectPrivateHomeLocation(page: Page, address: string) {
+  await page.getByRole("textbox", { name: "Private address" }).fill(address);
+  const map = page.getByRole("region", { name: "Map for choosing a private location" });
+  await map.focus();
+  await map.press("ArrowRight");
+  await expect(page.getByRole("status").filter({ hasText: "Private pin selected" })).toBeVisible();
+}
+
+async function planSingleVenueEvent(page: Page, title: string, description: string) {
+  await selectFirstFixture(page);
+  await expect(page.getByRole("combobox", { name: /Viewing area for/ })).toHaveCount(0);
+  await page.getByRole("button", { name: "Review events" }).click();
+  await page.getByRole("textbox", { name: "Custom title (optional)" }).fill(title);
+  await page.getByRole("textbox", { name: "Custom description (optional)" }).fill(description);
+  await page.getByRole("button", { name: "Publish batch" }).click();
+  await expect(page.getByRole("status")).toContainText("Batch saved");
 }
 
 async function addReviewedGroupMembers(
@@ -597,14 +775,11 @@ async function addReviewedGroupMembers(
       await memberPage.getByRole("button", { name: "Apply to join" }).click();
       await expect(memberPage.getByText("Application: pending")).toBeVisible();
 
-      await ownerPage.goto(
-        new URL(`/groups/${groupSlug}/manage?section=applications`, ownerPage.url()).toString(),
-      );
-      await expect(ownerPage.getByText(applicationNote)).toBeVisible();
-      await ownerPage.getByRole("button", { name: "Approve" }).click();
-      await expect(
-        ownerPage.getByRole("heading", { name: "No pending applications." }),
-      ).toBeVisible();
+      await ownerPage.goto(new URL(`/groups/${groupSlug}`, ownerPage.url()).toString());
+      const review = ownerPage.getByRole("region", { name: "Applications to review" });
+      await expect(review.getByRole("link", { name: `Gate Member ${index}` })).toBeVisible();
+      await review.getByRole("button", { name: "Approve" }).click();
+      await expect(review).toHaveCount(0);
     } finally {
       await memberContext.close();
     }
@@ -624,10 +799,6 @@ test("01 signup, verification, required onboarding, and a team follow", async ({
   const handle = `fan_${suffix}`;
 
   await signUpAndVerify(page, context, email, password);
-  await expect(page.getByRole("link", { name: "Complete your profile" })).toHaveAttribute(
-    "href",
-    "/settings/profile",
-  );
   await completeProfile(page, handle, "Local Fan", true);
 
   await expect(page.getByText("This is your public profile.")).toBeVisible();
@@ -637,10 +808,9 @@ test("01 signup, verification, required onboarding, and a team follow", async ({
 
   await page.goto(new URL("/settings/interests", page.url()).toString());
   await page.getByRole("button", { name: "Follow Arsenal" }).click();
-  await expect(page.getByRole("status")).toHaveText("Follow added.");
+  await expect(page.getByRole("button", { name: "Unfollow Arsenal" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Sign out" }).click();
-  await expect(page.getByRole("banner").getByRole("link", { name: "Sign in" })).toBeVisible();
+  await signOut(page);
 
   await page.goto("/auth/sign-in");
   await page.getByRole("textbox", { name: "Email address" }).fill(email);
@@ -650,7 +820,7 @@ test("01 signup, verification, required onboarding, and a team follow", async ({
   await expect(page).toHaveURL(/^http:\/\/(?:localhost|127\.0\.0\.1):3000\/$/);
   await expectProfileNavigation(page);
 
-  await page.getByRole("button", { name: "Sign out" }).click();
+  await signOut(page);
   await expect(page.getByRole("link", { name: "Sign up" })).toBeVisible();
 });
 
@@ -681,8 +851,10 @@ test("a block is private, directional, auditable, and reversible", async ({
     await page.goto(
       new URL(`/people?q=${encodeURIComponent(`@${secondHandle}`)}`, page.url()).toString(),
     );
-    await expect(page.getByRole("heading", { name: "Find people." })).toBeVisible();
-    const targetResult = page.getByRole("link", { name: "Target Fan", exact: true });
+    await expect(page.getByRole("heading", { name: "People" })).toBeVisible();
+    const targetResult = page
+      .getByRole("region", { name: "Search results" })
+      .getByRole("link", { name: "Target Fan", exact: true });
     await expect(targetResult).toHaveAttribute("href", `/people/${secondHandle}`);
     if (captureUxEvidence) {
       await page.getByRole("textbox", { name: "Name or Huddle handle" }).evaluate((element) => {
@@ -772,30 +944,32 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
   await page.goto(new URL("/groups/new", page.url()).toString());
 
   await page.getByRole("textbox", { name: "Group name" }).fill(`Haifa Huddle ${suffix}`);
-  await page.getByRole("textbox", { name: "Group URL" }).fill(slug);
   await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
   await page
-    .getByRole("textbox", { name: /Description/ })
+    .getByRole("textbox", { name: "Short description" })
     .fill("A local group for respectful match-day gatherings.");
   await page.getByRole("button", { name: "Review group" }).click();
 
-  await expect(page.getByRole("status")).toContainText(
-    /No similar discoverable groups found|Review these discoverable groups/,
-  );
+  await expect(
+    page.getByText(/No similar public group was found|Similar discoverable groups/),
+  ).toBeVisible();
   await expect(page.getByRole("button", { name: "Create group" })).toBeVisible();
   await page.getByRole("button", { name: "Create group" }).click();
 
   await expect(page).toHaveURL(new RegExp(`/groups/${slug}[?]created=1$`));
   await expect(page.getByText(/Your group is ready/i)).toBeVisible();
+  await expect(page.getByText(/share the application link and review requests/i)).toBeVisible();
   await expect(page.getByRole("heading", { name: `Haifa Huddle ${suffix}` })).toBeVisible();
   await expect(page.getByText("Your role: owner")).toBeVisible();
-  await expect(page.getByText("Forming and accepting applications")).toBeVisible();
+  await expect(page.getByText("Setting up for group search")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Active members" })).toBeVisible();
-  await expect(page.getByText("Group Owner")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Group Owner", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Share group" })).toBeVisible();
 
   await page.goto(new URL("/dashboard", page.url()).toString());
-  await expect(page.getByRole("heading", { name: "Everything you're part of." })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Your events, groups and saved places." }),
+  ).toBeVisible();
   await expect(page.getByText(`Haifa Huddle ${suffix}`, { exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Open group" }).click();
 
@@ -818,7 +992,7 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
     await signUpAndVerify(applicantPage, applicantContext, applicantEmail, password);
     await completeProfile(applicantPage, applicantHandle, "Group Applicant");
     await applicantPage.goto(new URL(`/groups/${slug}`, applicantPage.url()).toString());
-    await expect(applicantPage.getByText("Forming and accepting applications")).toBeVisible();
+    await expect(applicantPage.getByText("Setting up for group search")).toBeVisible();
     await expect(applicantPage.getByText("Respect every supporter.")).toBeVisible();
     await applicantPage
       .getByRole("textbox", { name: /Note to the administrators/ })
@@ -827,10 +1001,11 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
     await expect(applicantPage.getByText("Application: pending")).toBeVisible();
     await expect(applicantPage.getByText(/application is waiting for an owner/i)).toBeVisible();
 
-    await page.goto(new URL(`/groups/${slug}/manage?section=applications`, page.url()).toString());
-    await expect(page.getByText("I would like to help this group grow.")).toBeVisible();
-    await page.getByRole("button", { name: "Approve" }).click();
-    await expect(page.getByRole("heading", { name: "No pending applications." })).toBeVisible();
+    await page.goto(new URL(`/groups/${slug}`, page.url()).toString());
+    const applicationReview = page.getByRole("region", { name: "Applications to review" });
+    await expect(applicationReview.getByRole("link", { name: "Group Applicant" })).toBeVisible();
+    await applicationReview.getByRole("button", { name: "Approve" }).click();
+    await expect(applicationReview).toHaveCount(0);
 
     await applicantPage.goto(new URL(`/groups/${slug}`, applicantPage.url()).toString());
     await expect(applicantPage.getByText("Your role: member")).toBeVisible();
@@ -839,47 +1014,46 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
     const exactGroupEventAddress = `88 Protected Group Home ${suffix}, Haifa`;
     const groupEventTitle = `Member match night ${suffix}`;
     await applicantPage.goto(new URL("/events/new", applicantPage.url()).toString());
-    await applicantPage
-      .getByRole("combobox", { name: "Future fixture" })
-      .selectOption({ index: 1 });
+    await openFanEventDetailsStep(applicantPage);
     await applicantPage.getByRole("textbox", { name: "Event title" }).fill(groupEventTitle);
     await applicantPage.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
     await applicantPage
       .getByRole("textbox", { name: "Description" })
       .fill("A protected group watch party submitted by an active member for review.");
-    await applicantPage
-      .getByRole("textbox", { name: "Exact home address" })
-      .fill(exactGroupEventAddress);
-    await applicantPage.getByRole("spinbutton", { name: "Longitude" }).fill("34.99800");
-    await applicantPage.getByRole("spinbutton", { name: "Latitude" }).fill("32.81200");
+    await selectPrivateHomeLocation(applicantPage, exactGroupEventAddress);
     await applicantPage.getByRole("radio", { name: /Supporter group/ }).click();
     await applicantPage
       .getByRole("combobox", { name: "Audience group" })
-      .selectOption({ label: `Haifa Huddle ${suffix} (forming)` });
+      .selectOption({ label: `Haifa Huddle ${suffix}` });
     await applicantPage
       .getByRole("combobox", { name: "Organizing group \(optional\)" })
-      .selectOption({ label: `Haifa Huddle ${suffix} (forming)` });
-    await applicantPage.getByRole("checkbox", { name: /I confirm that I am the host/i }).click();
-    await applicantPage.getByRole("button", { name: "Submit for group review" }).click();
+      .selectOption({ label: `Haifa Huddle ${suffix}` });
+    await applicantPage.getByRole("checkbox", { name: /I will be present/i }).click();
+    await applicantPage.getByRole("button", { name: "Next: review and publish" }).click();
+    await applicantPage.getByRole("button", { name: "Submit event" }).click();
     await expect(applicantPage).toHaveURL(/\/events\/[0-9a-f-]{36}\?created=1$/);
     await expect(applicantPage.getByText(/Your event is saved/i)).toBeVisible();
     await expect(applicantPage.getByText(exactGroupEventAddress)).toHaveCount(0);
 
-    await page.goto(new URL(`/groups/${slug}/manage?section=events`, page.url()).toString());
-    await expect(page.getByRole("link", { name: groupEventTitle })).toBeVisible();
-    await expect(page.getByText("pending group review")).toBeVisible();
+    await page.goto(new URL(`/groups/${slug}`, page.url()).toString());
+    const eventReview = page.getByRole("region", { name: "Event submissions to review" });
+    await expect(eventReview.getByRole("link", { name: groupEventTitle })).toBeVisible();
     if (captureB08Evidence) {
       await page.screenshot({
         fullPage: true,
         path: "docs/evidence/b08/group-event-review-desktop.png",
       });
     }
-    await page.getByRole("button", { name: "Approve and publish" }).click();
-    await expect(page.getByText("published", { exact: true })).toBeVisible();
+    await eventReview.getByRole("button", { name: "Approve and publish" }).click();
+    await expect(eventReview).toHaveCount(0);
+    await expect(
+      page
+        .getByRole("region", { name: "Approved future events" })
+        .getByRole("link", { name: groupEventTitle }),
+    ).toBeVisible();
 
     await applicantPage.reload();
     await expect(applicantPage.getByRole("heading", { name: groupEventTitle })).toBeVisible();
-    await expect(applicantPage.getByText("published", { exact: true })).toBeVisible();
     await expect(applicantPage.getByText(new RegExp(exactGroupEventAddress))).toBeVisible();
     await applicantPage.goto(new URL(`/groups/${slug}`, applicantPage.url()).toString());
     await expect(applicantPage.getByRole("link", { name: groupEventTitle })).toBeVisible();
@@ -897,16 +1071,15 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
       publicGroupResults.getByText(`Haifa Huddle ${suffix}`, { exact: true }),
     ).toHaveCount(0);
 
-    await page.goto(new URL(`/groups/${slug}/manage?section=members`, page.url()).toString());
-    await expect(page.getByText("Still forming", { exact: true })).toBeVisible();
+    await page.goto(new URL(`/groups/${slug}/manage#members`, page.url()).toString());
     await page.getByRole("combobox", { name: "Member role" }).selectOption("admin");
     await page.getByRole("button", { name: "Save role" }).click();
     await expect(page.getByRole("status")).toHaveText("Member promoted to admin.");
 
     await addReviewedGroupMembers(browser, page, slug, suffix, password, 3);
-    await page.reload();
-    await expect(page.getByText("Visible in group search", { exact: true })).toBeVisible();
-    await expect(page.getByText("5 of 5 eligible active members", { exact: true })).toBeVisible();
+    await page.goto(new URL(`/groups/${slug}`, page.url()).toString());
+    await expect(page.getByText("Ready for search", { exact: true })).toBeVisible();
+    await expect(page.getByText("5 of 5 active members are here.", { exact: true })).toBeVisible();
     if (captureB09Evidence) {
       await page.screenshot({
         fullPage: true,
@@ -931,7 +1104,10 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
     ).toBeVisible();
 
     await applicantPage.goto(new URL("/discover?city=haifa", applicantPage.url()).toString());
-    await expect(applicantPage.getByText(groupEventTitle, { exact: true })).toBeVisible();
+    await expect(applicantPage.getByText(groupEventTitle, { exact: true })).toHaveCount(0);
+    await expect(
+      applicantPage.getByRole("button", { name: "Change Explore search" }),
+    ).toBeVisible();
     await expect(applicantPage.getByText(exactGroupEventAddress)).toHaveCount(0);
     expect(await applicantPage.content()).not.toContain(exactGroupEventAddress);
     if (captureB09Evidence) {
@@ -941,22 +1117,20 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
       });
     }
 
-    const unlistedSlug = `haifa-private-${suffix}`;
+    const unlistedSlug = `haifa-private-circle-${suffix}`;
     await page.goto(new URL("/groups/new", page.url()).toString());
     await page.getByRole("textbox", { name: "Group name" }).fill(`Haifa Private Circle ${suffix}`);
-    await page.getByRole("textbox", { name: "Group URL" }).fill(unlistedSlug);
     await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
     await page.getByRole("combobox", { name: "Visibility" }).selectOption("unlisted");
     await page
-      .getByRole("textbox", { name: /Description/ })
+      .getByRole("textbox", { name: "Short description" })
       .fill("An unlisted circle with reviewed invitation applications.");
     await page.getByRole("button", { name: "Review group" }).click();
     await expect(page.getByRole("button", { name: "Create group" })).toBeVisible();
     await page.getByRole("button", { name: "Create group" }).click();
     await expect(page).toHaveURL(new RegExp(`/groups/${unlistedSlug}[?]created=1$`));
-    await page.getByRole("link", { name: "Manage group" }).click();
-    await page.getByRole("link", { name: "Invitations" }).click();
-    await page.getByRole("button", { name: "Create invitation" }).click();
+    await page.getByRole("button", { name: "Share group" }).click();
+    await page.getByRole("button", { name: "Create invitation link" }).click();
     await expect(page.getByRole("status")).toContainText("Copy it now");
     const inviteUrl = await page.getByRole("textbox", { name: "New invitation URL" }).inputValue();
     expect(inviteUrl).toMatch(/\/join\/group\/[A-Za-z0-9_-]{43}$/);
@@ -983,29 +1157,23 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
       ).toBeVisible();
       await inviteePage.goto(new URL("/dashboard", inviteePage.url()).toString());
       await expect(
-        inviteePage.getByRole("heading", { name: "Everything you're part of." }),
+        inviteePage.getByRole("heading", {
+          name: "Your events, groups and saved places.",
+        }),
       ).toBeVisible();
       await expect(
         inviteePage.getByText(`Haifa Private Circle ${suffix}`, { exact: true }),
       ).toHaveCount(0);
       await expect(inviteePage.locator(`a[href="/groups/${unlistedSlug}"]`)).toHaveCount(0);
 
-      await page.goto(
-        new URL(`/groups/${unlistedSlug}/manage?section=applications`, page.url()).toString(),
-      );
-      await expect(page.getByText("I received this invitation from the group.")).toBeVisible();
-      await page.getByRole("button", { name: "Approve" }).click();
-      await expect(page.getByRole("heading", { name: "No pending applications." })).toBeVisible();
+      await page.goto(new URL(`/groups/${unlistedSlug}`, page.url()).toString());
+      const inviteReview = page.getByRole("region", { name: "Applications to review" });
+      await expect(inviteReview.getByRole("link", { name: "Invited Applicant" })).toBeVisible();
+      await inviteReview.getByRole("button", { name: "Approve" }).click();
+      await expect(inviteReview).toHaveCount(0);
 
       await inviteePage.goto(new URL(`/groups/${unlistedSlug}`, inviteePage.url()).toString());
       await expect(inviteePage.getByText("Your role: member")).toBeVisible();
-
-      await page.goto(
-        new URL(`/groups/${unlistedSlug}/manage?section=invites`, page.url()).toString(),
-      );
-      await page.getByRole("button", { name: "Revoke" }).click();
-      await page.getByRole("alertdialog").getByRole("button", { name: "Revoke" }).click();
-      await expect(page.getByText("revoked", { exact: true })).toBeVisible();
 
       await inviteePage.reload();
       await expect(inviteePage.getByText("Your role: member")).toBeVisible();
@@ -1031,12 +1199,13 @@ test("17 a provider failure preserves cached fixtures and exposes stale state", 
 
   await page.goto("/matches");
   await expect(page.getByRole("heading", { name: /Find the fixture/i })).toBeVisible();
-  await expect(page.getByText("Arsenal", { exact: true })).toBeVisible();
-  await expect(page.getByText("Chelsea", { exact: true })).toBeVisible();
-  await expect(page.getByRole("status")).toContainText("Fixture data was updated");
+  await expect(page.getByText("Arsenal", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Chelsea", { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("status")).toContainText("Updated less than a minute ago");
+  await expect(page.getByRole("status")).toContainText("Fixtures available through");
   expect(providerRequests).toEqual([]);
 
-  await page.getByRole("link", { name: "View Arsenal FC versus Chelsea FC" }).click();
+  await page.getByRole("link", { name: "View Arsenal FC versus Chelsea FC" }).first().click();
   await expect(page.getByRole("heading", { name: "Arsenal vs Chelsea" })).toBeVisible();
   await expect(page.getByText("No Huddle watch events yet.")).toBeVisible();
   expect(providerRequests).toEqual([]);
@@ -1050,7 +1219,6 @@ test("17 a provider failure preserves cached fixtures and exposes stale state", 
 
   await page.goto(new URL("/settings/interests", page.url()).toString());
   await page.getByRole("button", { name: "Follow Arsenal" }).click();
-  await expect(page.getByRole("status")).toHaveText("Follow added.");
   await expect(page.getByRole("button", { name: "Unfollow Arsenal" })).toHaveAttribute(
     "aria-pressed",
     "true",
@@ -1060,13 +1228,119 @@ test("17 a provider failure preserves cached fixtures and exposes stale state", 
   await expect(page.getByRole("button", { name: "Unfollow Arsenal" })).toBeVisible();
 });
 
+test("review corrections persist Fan drafts and reach the full local fixture horizon", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  const horizon = await seedFixtureSearchHorizon();
+  expect(horizon.position).toBeGreaterThan(250);
+
+  const suffix = uniqueSuffix();
+  const email = `review-wave-${suffix}@example.com`;
+  const password = "matchday-local-test";
+  await seedCompletedUser(email, password, `review_${suffix}`, "Review Wave Fan");
+  await signIn(page, email, password);
+
+  const expectedLastPage = Math.ceil(horizon.teamResultCount / 12);
+  await page.goto(
+    new URL(`/matches?team=${horizon.teamId}&page=${expectedLastPage + 3}`, page.url()).toString(),
+  );
+  await expect(page).toHaveURL(
+    new RegExp(`/matches[?]team=${horizon.teamId}&page=${expectedLastPage}$`),
+  );
+  await expect(page.getByText("No fixtures on this page.")).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: /View Arsenal FC versus Chelsea FC/ }).first(),
+  ).toBeVisible();
+
+  const groupName = `Review Circle ${suffix}`;
+  const groupSlug = `review-circle-${suffix}`;
+  await page.goto(new URL("/groups/new", page.url()).toString());
+  await page.getByRole("textbox", { name: "Group name" }).fill(groupName);
+  await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
+  await page
+    .getByRole("textbox", { name: "Short description" })
+    .fill("A discoverable group with a truthful application-link handoff.");
+  await page.getByRole("button", { name: "Review group" }).click();
+  await page.getByRole("button", { name: "Create group" }).click();
+  await expect(page).toHaveURL(new RegExp(`/groups/${groupSlug}[?]created=1$`));
+  await expect(page.getByText(/share the application link and review requests/i)).toBeVisible();
+  await page.getByRole("button", { name: "Share group" }).click();
+  await expect(page.getByRole("button", { name: "Copy application link" })).toBeVisible();
+  await page.getByRole("button", { name: "Close" }).click();
+
+  await page.goto(new URL("/events/new", page.url()).toString());
+  const fixtureSearch = page.getByRole("searchbox", { name: "Search fixtures" });
+  await fixtureSearch.fill(`Late Horizon ${horizon.suffix}`);
+  await page.getByRole("button", { name: new RegExp(horizon.targetLabel) }).click();
+  await expect(page.getByRole("button", { name: new RegExp(horizon.targetLabel) })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await page.getByRole("button", { name: "Next: place and audience" }).click();
+
+  const draftTitle = `Persisted review draft ${suffix}`;
+  await page.getByRole("textbox", { name: "Event title" }).fill(draftTitle);
+  await page
+    .getByRole("textbox", { name: "Description" })
+    .fill("A persisted draft that safely survives the first-friend eligibility detour.");
+  await page.getByRole("button", { name: "Find your first friend" }).click();
+  await expect(page).toHaveURL(/\/people[?]returnTo=/);
+  const returnTo = new URL(page.url()).searchParams.get("returnTo");
+  expect(returnTo).toMatch(/^\/events\/new[?]draft=[0-9a-f-]{36}$/);
+  if (returnTo === null) throw new Error("The saved draft return path is absent.");
+  await page.goto(new URL(returnTo, page.url()).toString());
+  await expect(page.getByRole("heading", { name: "Place and audience" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Event title" })).toHaveValue(draftTitle);
+
+  await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
+  await selectPrivateHomeLocation(page, `First protected ${suffix}, Haifa`);
+  await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Tel Aviv-Yafo" });
+  await expect(page.getByRole("textbox", { name: "Private address" })).toHaveValue("");
+  await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
+  await selectPrivateHomeLocation(page, `Second protected ${suffix}, Haifa`);
+  await page.getByRole("radio", { name: /Public place/ }).click();
+  await page.getByRole("radio", { name: /My home/ }).click();
+  await expect(page.getByRole("textbox", { name: "Private address" })).toHaveValue("");
+  const finalAddress = `Final protected ${suffix}, Haifa`;
+  await selectPrivateHomeLocation(page, finalAddress);
+  await page.getByRole("checkbox", { name: /I will be present/i }).click();
+  await page.getByRole("button", { name: "Next: review and publish" }).click();
+  await expect(page.getByText("Protected home location in Haifa")).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Review and publish" })).toBeVisible();
+  await expect(page.getByText(horizon.targetLabel)).toBeVisible();
+  await expect(page.getByText("Protected home location in Haifa")).toBeVisible();
+  await page.getByRole("button", { name: "Publish event" }).click();
+  await expect(page).toHaveURL(/\/events\/[0-9a-f-]{36}[?]created=1$/);
+  await expect(page.getByText(new RegExp(finalAddress))).toBeVisible();
+
+  const venueEmail = `review-venue-${suffix}@example.com`;
+  await seedCompletedUser(venueEmail, password, `review_venue_${suffix}`, "Review Wave Venue");
+  const venueDraft = await createVenueEvent(venueEmail, password, horizon.fixture, suffix, {
+    input_intent: "draft",
+  });
+  await signOut(page);
+  await signIn(page, venueEmail, password);
+  await page.goto(new URL(`/events/${venueDraft.eventId}`, page.url()).toString());
+  await expect(page.getByRole("heading", { name: "Draft" })).toBeVisible();
+  const published = await venueDraft.client.rpc("create_or_update_event", {
+    ...venueDraft.input,
+    input_event_id: venueDraft.eventId,
+    input_intent: "publish",
+  });
+  expect(published.error).toBeNull();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Published" })).toBeVisible();
+});
+
 test("completed users create venue and private events with safe projections", async ({
   browser,
   context,
   page,
 }) => {
   await clearMailbox();
-  await seedCachedFixtureCatalogAfterFailure();
+  const fixture = await seedCachedFixtureCatalogAfterFailure();
 
   const suffix = uniqueSuffix();
   const email = `b07-host-${suffix}@example.com`;
@@ -1078,39 +1352,60 @@ test("completed users create venue and private events with safe projections", as
   await signUpAndVerify(page, context, email, password);
   await completeProfile(page, handle, "B07 Host");
 
+  await page.route("**/api/locations/search", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      status: 200,
+      body: JSON.stringify({
+        suggestions: [
+          {
+            id: `e2e-address-${suffix}`,
+            label: "12 Hanassi Boulevard, Haifa, Israel",
+            city: "Haifa",
+            latitude: 32.81303,
+            longitude: 34.99928,
+          },
+        ],
+      }),
+    });
+  });
   await page.goto(new URL("/venues/new", page.url()).toString());
+  await expect(page).toHaveURL(/\/onboarding\/venue$/);
   await page.getByRole("textbox", { name: "Venue name" }).fill(`Match Corner ${suffix}`);
   await page.getByRole("textbox", { name: "Venue URL" }).fill(venueSlug);
   await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
-  await page.getByRole("textbox", { name: "Public address" }).fill("12 Hanassi Boulevard, Haifa");
-  await page.getByRole("spinbutton", { name: "Latitude" }).fill("32.81303");
-  await page.getByRole("spinbutton", { name: "Longitude" }).fill("34.99928");
+  await page.getByRole("textbox", { name: "Public address" }).fill("12 Hanassi Boulevard");
+  await page.getByRole("button", { name: "Search addresses" }).click();
+  await page.getByRole("option", { name: "12 Hanassi Boulevard, Haifa, Israel" }).click();
+  await page.getByRole("button", { name: "Confirm this address" }).click();
   await page
-    .getByRole("textbox", { name: "Description" })
+    .getByRole("textbox", { name: "Public description" })
     .fill("A local match-day venue with several screens and accessible seating.");
-  await page.getByRole("spinbutton", { name: /Screen count/ }).fill("4");
-  await page.getByRole("spinbutton", { name: /Stated capacity/ }).fill("80");
-  await page.getByRole("button", { name: "Create unverified venue" }).click();
+  await page.getByRole("spinbutton", { name: "Capacity" }).fill("80");
+  await page.getByRole("checkbox", { name: /authorized to manage its Huddle listing/i }).click();
+  await page.getByRole("button", { name: "Create venue account" }).click();
 
-  await expect(page.getByRole("heading", { name: "Your venue profile is live." })).toBeVisible();
-  await expect(page.getByText(/Unverified remains visible/i)).toBeVisible();
-  await page.getByRole("link", { name: "Open venue" }).click();
+  await expect(page).toHaveURL(new RegExp(`/venues/${venueSlug}/workspace$`));
+  await expect(page.getByRole("button", { name: "Switch workspace" })).toContainText(
+    `Match Corner ${suffix}`,
+  );
+  await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
+  await expect(page.getByLabel("Unverified venue")).toBeVisible();
+  await page.unroute("**/api/locations/search");
+  await page.getByRole("link", { name: "View public page" }).click();
   await expect(page).toHaveURL(new RegExp(`/venues/${venueSlug}$`));
   await expect(page.getByLabel("Unverified venue")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Manage venue" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open Venue workspace" })).toBeVisible();
 
   const venueEventTitle = `Arsenal at Match Corner ${suffix}`;
-  await page.getByRole("link", { name: "Create venue event" }).click();
-  await page.getByRole("combobox", { name: "Future fixture" }).selectOption({ index: 1 });
-  await page.getByRole("textbox", { name: "Event title" }).fill(venueEventTitle);
-  await page
-    .getByRole("textbox", { name: "Description" })
-    .fill("A public business-venue listing for registered supporters to watch the full match.");
-  await expect(page.getByRole("checkbox", { name: /Require staff approval/ })).not.toBeChecked();
-  await page.getByRole("checkbox", { name: /venue staff will host/i }).click();
-  await page.getByRole("button", { name: "Publish venue event" }).click();
-  await expect(page).toHaveURL(/\/events\/[0-9a-f-]{36}\?created=1$/);
-  await expect(page.getByText(/Your event is saved/i)).toBeVisible();
+  await page.getByRole("main").getByRole("link", { name: "Plan events" }).click();
+  await planSingleVenueEvent(
+    page,
+    venueEventTitle,
+    "A public business-venue listing for registered supporters to watch the full match.",
+  );
+  await page.getByRole("link", { name: "Open calendar" }).click();
+  await page.getByRole("link", { name: venueEventTitle }).click();
   await expect(page.getByRole("heading", { name: venueEventTitle })).toBeVisible();
   const venueEventHref = new URL(page.url()).pathname;
 
@@ -1121,7 +1416,11 @@ test("completed users create venue and private events with safe projections", as
     await expect(anonymousPage.getByRole("heading", { name: venueEventTitle })).toBeVisible();
     await expect(anonymousPage.getByLabel("Unverified venue").first()).toBeVisible();
     await expect(anonymousPage.getByText("Immediate join", { exact: true })).toBeVisible();
-    await expect(anonymousPage.getByText("No cover charge", { exact: true })).toBeVisible();
+    await expect(
+      anonymousPage.getByText("Ask venue staff about current food, drink, and entry costs.", {
+        exact: true,
+      }),
+    ).toBeVisible();
     if (captureB08Evidence) {
       await anonymousPage.screenshot({
         fullPage: true,
@@ -1143,26 +1442,28 @@ test("completed users create venue and private events with safe projections", as
     await anonymousContext.close();
   }
 
-  await page.getByRole("button", { name: "Sign out" }).click();
+  await signOut(page);
   const privateEmail = `b08-private-host-${suffix}@example.com`;
   const privateHandle = `private_${suffix}`;
   await signUpAndVerify(page, context, privateEmail, password);
   await completeProfile(page, privateHandle, "Private Event Host");
 
   await page.goto(new URL("/matches", page.url()).toString());
-  await page.getByRole("link", { name: "View Arsenal FC versus Chelsea FC" }).click();
+  const fixtureLink = page.locator(`a[href="/matches/${fixture.matchId}"]`);
+  await expect(fixtureLink).toHaveAccessibleName("View Arsenal FC versus Chelsea FC");
+  await fixtureLink.click();
   await page.getByRole("link", { name: "Host a private event" }).click();
   await expect(page).toHaveURL(/\/events\/new\?matchId=/);
 
+  await page.getByRole("button", { name: "Next: place and audience" }).click();
   await page.getByRole("textbox", { name: "Event title" }).fill(`Arsenal at home ${suffix}`);
   await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
   await page
     .getByRole("textbox", { name: "Description" })
     .fill("A calm home watch party for registered supporters during the full match.");
-  await page.getByRole("textbox", { name: "Exact home address" }).fill(exactHomeAddress);
-  await page.getByRole("spinbutton", { name: "Longitude" }).fill("34.99800");
-  await page.getByRole("spinbutton", { name: "Latitude" }).fill("32.81200");
-  await page.getByRole("checkbox", { name: /I confirm that I am the host/i }).click();
+  await selectPrivateHomeLocation(page, exactHomeAddress);
+  await page.getByRole("checkbox", { name: /I will be present/i }).click();
+  await page.getByRole("button", { name: "Next: review and publish" }).click();
   await page.getByRole("button", { name: "Publish event" }).click();
 
   await expect(page).toHaveURL(/\/events\/[0-9a-f-]{36}\?created=1$/);
@@ -1173,7 +1474,9 @@ test("completed users create venue and private events with safe projections", as
 
   const privateEventPath = new URL(page.url()).pathname;
   await page.goto(new URL("/dashboard", page.url()).toString());
-  await expect(page.getByRole("heading", { name: "Everything you're part of." })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Your events, groups and saved places." }),
+  ).toBeVisible();
   const dashboardEventTitle = page.getByText(`Arsenal at home ${suffix}`, { exact: true });
   await expect(dashboardEventTitle).toBeVisible();
   if (captureUxEvidence) {
@@ -1193,6 +1496,197 @@ test("completed users create venue and private events with safe projections", as
   }
   await page.goto(new URL(privateEventPath, page.url()).toString());
   await expect(page.getByText(new RegExp(exactHomeAddress))).toBeVisible();
+});
+
+test("a Venue-only operator completes the real onboarding boundary and publishes commercially", async ({
+  context,
+  page,
+}) => {
+  await clearMailbox();
+  await seedCachedFixtureCatalogAfterFailure();
+
+  const suffix = uniqueSuffix();
+  const email = `venue-only-${suffix}@example.com`;
+  const password = "matchday-local-test";
+  const venueSlug = `venue-only-${suffix}`;
+  const addressQuery = `12 Hanassi Boulevard ${suffix}`;
+  const suggestion = {
+    id: `e2e-venue-only-${suffix}`,
+    label: `${addressQuery}, Haifa, Israel`,
+    city: "Haifa",
+    latitude: 32.81303,
+    longitude: 34.99928,
+  };
+  const digest = seedPublicAddressCache(addressQuery, "Haifa", suggestion);
+  const addressRequests: unknown[] = [];
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname !== "/api/locations/search") return;
+    addressRequests.push(request.postDataJSON());
+  });
+
+  try {
+    await signUpAndVerify(page, context, email, password);
+    await page.getByRole("link", { name: "Set up Venue", exact: true }).click();
+    await expect(page).toHaveURL(/\/onboarding\/venue$/);
+    await expect(
+      page.getByRole("heading", { name: "Give your business its own workspace." }),
+    ).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "Public address" })).toHaveCount(0);
+
+    await page.getByRole("checkbox", { name: /18 or older/i }).click();
+    await page.getByRole("checkbox", { name: /accept the current/i }).click();
+    await page.getByRole("button", { name: "Continue to venue details" }).click();
+    await expect(page).toHaveURL(/\/onboarding\/venue$/);
+    await expect(page.getByRole("textbox", { name: "Venue name" })).toBeVisible();
+
+    const beforeActivation = localDatabaseRows<{
+      fan_enabled_at: string | null;
+      handle: string | null;
+      venue_count: number;
+    }>(`
+      select
+        profile.fan_enabled_at,
+        profile.handle,
+        (
+          select count(*)::integer
+          from public.venue_memberships as membership
+          where membership.user_id = profile.id
+            and membership.status = 'active'
+            and membership.revoked_at is null
+        ) as venue_count
+      from auth.users as account
+      join public.profiles as profile on profile.id = account.id
+      where account.email = ${sqlLiteral(email)};
+    `).at(0);
+    expect(beforeActivation).toEqual({ fan_enabled_at: null, handle: null, venue_count: 0 });
+
+    await page.getByRole("textbox", { name: "Venue name" }).fill(`Venue Only ${suffix}`);
+    await page.getByRole("textbox", { name: "Venue URL" }).fill(venueSlug);
+    await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
+    await expect(page.locator('input[name="longitude"], input[name="latitude"]')).toHaveCount(0);
+    await page.getByRole("textbox", { name: "Public address" }).fill(addressQuery);
+    await page.getByRole("button", { name: "Search addresses" }).click();
+    await page.getByRole("option", { name: suggestion.label }).click();
+    await page.getByRole("button", { name: "Confirm this address" }).click();
+    await page
+      .getByRole("textbox", { name: "Public description" })
+      .fill("A dedicated commercial Venue-only workspace for deterministic browser coverage.");
+    await page.getByRole("spinbutton", { name: "Capacity" }).fill("60");
+    await page.getByRole("checkbox", { name: /authorized to manage its Huddle listing/i }).click();
+    await page.getByRole("button", { name: "Create venue account" }).click();
+
+    await expect(page).toHaveURL(new RegExp(`/venues/${venueSlug}/workspace$`));
+    await expect(page.getByRole("button", { name: "Switch workspace" })).toContainText(
+      `Venue Only ${suffix}`,
+    );
+    await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
+    expect(addressRequests).toEqual([
+      { query: addressQuery, city: "Haifa", locationKind: "venue" },
+    ]);
+    const venueNavigation = page.getByRole("navigation", { name: "Venue navigation" });
+    await expect(venueNavigation.getByRole("link")).toHaveText([
+      "Today",
+      "Calendar",
+      "Events",
+      "Venue",
+      "Account",
+    ]);
+    await expect(page.getByRole("navigation", { name: "Fan navigation" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Huddle home" })).toHaveAttribute(
+      "href",
+      `/venues/${venueSlug}/workspace`,
+    );
+
+    await page.goto(new URL("/", page.url()).toString());
+    await expect(page).toHaveURL(new RegExp(`/venues/${venueSlug}/workspace$`));
+    await page.getByRole("link", { name: "View public page" }).click();
+    await expect(page).toHaveURL(new RegExp(`/venues/${venueSlug}$`));
+    await page.getByRole("main").getByRole("link", { name: "Plan events" }).click();
+
+    const eventTitle = `Venue-only commercial event ${suffix}`;
+    await planSingleVenueEvent(
+      page,
+      eventTitle,
+      "A public commercial venue listing created without activating a Fan identity.",
+    );
+    await page.getByRole("link", { name: "Open calendar" }).click();
+    await page.getByRole("link", { name: eventTitle }).click();
+    await expect(page.getByRole("heading", { name: eventTitle })).toBeVisible();
+
+    await page.goto(new URL(`/venues/${venueSlug}/workspace/calendar`, page.url()).toString());
+    await expect(page.getByRole("heading", { name: "Calendar" })).toBeVisible();
+    await expect(page.getByRole("link", { name: eventTitle })).toBeVisible();
+
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto(new URL("/", page.url()).toString());
+    await expect(page).toHaveURL(new RegExp(`/venues/${venueSlug}/workspace$`));
+    await expect(page.getByRole("navigation", { name: "Venue mobile navigation" })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Fan mobile navigation" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Huddle home" })).toHaveAttribute(
+      "href",
+      `/venues/${venueSlug}/workspace`,
+    );
+    await expect(page.getByRole("link", { name: "Choose setup" })).toHaveCount(0);
+
+    localDatabaseQuery(`
+      update public.profiles as profile
+      set rules_version = null,
+          rules_accepted_at = null
+      from auth.users as account
+      where account.id = profile.id
+        and account.email = ${sqlLiteral(email)};
+    `);
+
+    await page.goto(new URL("/", page.url()).toString());
+    await expect(page).toHaveURL(/\/onboarding$/);
+    await expect(
+      page.getByRole("heading", { name: "Update the rules, then continue." }),
+    ).toBeVisible();
+    await expect(page.getByRole("link", { name: "Set up Venue", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Set up another venue" })).toHaveCount(0);
+    await expect(page.getByRole("navigation", { name: "Fan navigation" })).toHaveCount(0);
+
+    await page.getByRole("checkbox", { name: /18 or older/i }).click();
+    await page.getByRole("checkbox", { name: /accept the current/i }).click();
+    await page.getByRole("button", { name: "Reaccept rules and continue" }).click();
+    await expect(page).toHaveURL(new RegExp(`/venues/${venueSlug}/workspace$`));
+    await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Venue mobile navigation" })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Fan mobile navigation" })).toHaveCount(0);
+
+    const afterRecovery = localDatabaseRows<{
+      fan_enabled_at: string | null;
+      handle: string | null;
+      rules_version: number | null;
+      venue_count: number;
+    }>(`
+      select
+        profile.fan_enabled_at,
+        profile.handle,
+        profile.rules_version,
+        (
+          select count(*)::integer
+          from public.venue_memberships as membership
+          where membership.user_id = profile.id
+            and membership.status = 'active'
+            and membership.revoked_at is null
+        ) as venue_count
+      from auth.users as account
+      join public.profiles as profile on profile.id = account.id
+      where account.email = ${sqlLiteral(email)};
+    `).at(0);
+    expect(afterRecovery).toEqual({
+      fan_enabled_at: null,
+      handle: null,
+      rules_version: 1,
+      venue_count: 1,
+    });
+  } finally {
+    localDatabaseQuery(`
+      delete from private.public_address_cache
+      where query_digest = ${sqlLiteral(digest)};
+    `);
+  }
 });
 
 test("08 and 12 approval reveals a home address and host removal revokes it", async ({
@@ -1250,26 +1744,27 @@ test("08 and 12 approval reveals a home address and host removal revokes it", as
     await expect(page.getByRole("status")).toHaveText("Friend request accepted.");
 
     await page.goto(new URL("/events/new", page.url()).toString());
-    await page.getByRole("combobox", { name: "Future fixture" }).selectOption({ index: 1 });
+    await openFanEventDetailsStep(page);
     await page.getByRole("textbox", { name: "Event title" }).fill(eventTitle);
     await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
     await page
       .getByRole("textbox", { name: "Description" })
       .fill("A protected home event proving direct invitations and attendance approval.");
-    await page.getByRole("textbox", { name: "Exact home address" }).fill(exactAddress);
-    await page.getByRole("spinbutton", { name: "Longitude" }).fill("34.99800");
-    await page.getByRole("spinbutton", { name: "Latitude" }).fill("32.81200");
+    await selectPrivateHomeLocation(page, exactAddress);
     await page.getByRole("radio", { name: /Friends/ }).click();
-    await page.getByRole("checkbox", { name: /I confirm that I am the host/i }).click();
+    await page.getByRole("checkbox", { name: /I will be present/i }).click();
+    await page.getByRole("button", { name: "Next: review and publish" }).click();
     await page.getByRole("button", { name: "Publish event" }).click();
     await expect(page).toHaveURL(/\/events\/[0-9a-f-]{36}\?created=1$/);
     await expect(page.getByText(new RegExp(exactAddress))).toBeVisible();
     const eventPath = new URL(page.url()).pathname;
 
-    await page.getByRole("link", { name: "Manage invitations and attendance" }).click();
-    await page.getByRole("textbox", { name: "Huddle handle" }).fill(inviteeHandle);
-    await page.getByRole("button", { name: "Send invitation" }).click();
-    await expect(page.getByRole("status")).toContainText(`@${inviteeHandle}`);
+    await page.getByRole("link", { name: "Manage event" }).click();
+    await page.getByRole("button", { name: "Invite people" }).click();
+    await page.getByRole("searchbox", { name: "Search eligible people" }).fill(inviteeHandle);
+    await page.getByRole("checkbox", { name: `B10 Invited Fan @${inviteeHandle}` }).click();
+    await page.getByRole("button", { name: "Invite 1 person" }).click();
+    await expect(page.getByRole("status")).toHaveText("1 invitation sent.");
 
     await inviteePage.goto(new URL("/events", inviteePage.url()).toString());
     await expect(inviteePage.getByRole("heading", { name: eventTitle })).toBeVisible();
@@ -1429,7 +1924,9 @@ test("16 a confidential report becomes an independently reviewed moderation appe
     await expect(targetPage.getByText(confidentialDetails)).toHaveCount(0);
 
     await targetPage.goto(new URL("/moderation", targetPage.url()).toString());
-    await expect(targetPage.getByRole("heading", { name: "Page not found" })).toBeVisible();
+    await expect(
+      targetPage.getByRole("heading", { name: "This page isn’t available." }),
+    ).toBeVisible();
     await targetPage.goto(new URL("/reports", targetPage.url()).toString());
     await expect(targetPage.getByText("No reports submitted.")).toBeVisible();
     await expect(targetPage.getByText(confidentialDetails)).toHaveCount(0);
@@ -1493,7 +1990,11 @@ test("16 a confidential report becomes an independently reviewed moderation appe
     ).toHaveCount(0);
 
     await signIn(secondModeratorPage, secondModeratorEmail, password);
-    await secondModeratorPage.goto(new URL("/moderation", secondModeratorPage.url()).toString());
+    await secondModeratorPage.goto(new URL("/account", secondModeratorPage.url()).toString());
+    await expect(
+      secondModeratorPage.getByRole("link", { name: "Open moderation" }),
+    ).toHaveAttribute("href", "/moderation");
+    await secondModeratorPage.getByRole("link", { name: "Open moderation" }).click();
     const independentAppeal = secondModeratorPage
       .locator('[data-slot="card"]')
       .filter({ hasText: appealReason });
@@ -1507,16 +2008,16 @@ test("16 a confidential report becomes an independently reviewed moderation appe
     }
 
     await secondModeratorPage.setViewportSize({ width: 390, height: 844 });
-    const mobileMenuTrigger = secondModeratorPage.getByRole("button", {
-      name: "Menu",
-      exact: true,
+    const fanMobileNavigation = secondModeratorPage.getByRole("navigation", {
+      name: "Fan mobile navigation",
     });
-    await mobileMenuTrigger.click();
-    await expect(secondModeratorPage.getByRole("menu", { name: "Menu" })).toBeVisible();
-    await expect(secondModeratorPage.getByRole("menuitem", { name: "Safety" })).toBeVisible();
-    await expect(secondModeratorPage.getByRole("menuitem", { name: "Moderation" })).toBeVisible();
-    await secondModeratorPage.keyboard.press("Escape");
-    await expect(mobileMenuTrigger).toBeFocused();
+    await expect(fanMobileNavigation).toBeVisible();
+    await expect(fanMobileNavigation.getByRole("link")).toHaveCount(5);
+    await expect(fanMobileNavigation.getByRole("link", { name: "Account" })).toHaveAttribute(
+      "href",
+      "/account",
+    );
+    await expect(secondModeratorPage.getByRole("button", { name: "Menu" })).toHaveCount(0);
     expect(
       await secondModeratorPage.evaluate(
         () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
@@ -1530,7 +2031,10 @@ test("16 a confidential report becomes an independently reviewed moderation appe
     }
 
     await secondModeratorPage.setViewportSize({ width: 1024, height: 768 });
-    await expect(mobileMenuTrigger).toBeVisible();
+    await expect(
+      secondModeratorPage.getByRole("navigation", { name: "Fan navigation" }),
+    ).toBeVisible();
+    await expect(fanMobileNavigation).toHaveCount(0);
     expect(
       await secondModeratorPage.evaluate(
         () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
@@ -1650,7 +2154,9 @@ test("03 accepted friends see a friends-only event while an unrelated user is de
 
     await signIn(strangerPage, strangerEmail, password);
     await strangerPage.goto(`/events/${event.eventId}`);
-    await expect(strangerPage.getByRole("heading", { name: "Page not found" })).toBeVisible();
+    await expect(
+      strangerPage.getByRole("heading", { name: "This page isn’t available." }),
+    ).toBeVisible();
     expect(await strangerPage.content()).not.toContain(address);
   } finally {
     await friendContext.close();
@@ -1698,11 +2204,13 @@ test("04 crafted host and audience boundary violations are rejected", async ({ p
 
   await signIn(page, hostEmail, password);
   await page.goto(new URL("/events/new", page.url()).toString());
-  await expect(page.getByRole("radio", { name: /Public/ })).toHaveCount(0);
-  await expect(page.getByRole("radio", { name: /Team followers/ })).toHaveCount(0);
+  const privateAudience = page.getByRole("group", { name: "Choose who may see it" });
+  await expect(privateAudience.getByRole("radio", { name: /^Public(?:\s|$)/ })).toHaveCount(0);
+  await expect(privateAudience.getByRole("radio", { name: /Team followers/ })).toHaveCount(0);
   await page.goto(new URL(`/events/new?venue=${venueEvent.venueSlug}`, page.url()).toString());
-  await expect(page.getByRole("radio", { name: /Friends/ })).toHaveCount(0);
-  await expect(page.getByRole("radio", { name: /Invite only/ })).toHaveCount(0);
+  const venueAudience = page.getByRole("group", { name: "Audience" });
+  await expect(venueAudience.getByRole("radio", { name: /Friends/ })).toHaveCount(0);
+  await expect(venueAudience.getByRole("radio", { name: /Invite only/ })).toHaveCount(0);
 });
 
 test("06 a group ban removes membership and denies a fresh application", async ({
@@ -1743,13 +2251,14 @@ test("06 a group ban removes membership and denies a fresh application", async (
     await applicantPage.getByRole("button", { name: "Apply to join" }).click();
     await expect(applicantPage.getByText("Application: pending")).toBeVisible();
 
-    await page.goto(`/groups/${groupSlug}/manage?section=applications`);
-    await page.getByRole("button", { name: "Approve" }).click();
-    await expect(page.getByRole("heading", { name: "No pending applications." })).toBeVisible();
-    await page.goto(`/groups/${groupSlug}/manage?section=members`);
+    await page.goto(`/groups/${groupSlug}`);
+    const applicationReview = page.getByRole("region", { name: "Applications to review" });
+    await applicationReview.getByRole("button", { name: "Approve" }).click();
+    await expect(applicationReview).toHaveCount(0);
+    await page.goto(`/groups/${groupSlug}/manage#members`);
     const applicantCard = page
       .getByRole("link", { name: "B12 Banned Applicant" })
-      .locator("xpath=ancestor::*[@data-slot='card'][1]");
+      .locator("xpath=ancestor::div[.//button[normalize-space()='Ban']][1]");
     await applicantCard.getByRole("button", { name: "Ban" }).click();
     await page.getByRole("textbox", { name: "Internal reason" }).fill("Safety boundary test");
     await page.getByRole("alertdialog").getByRole("button", { name: "Confirm ban" }).click();
@@ -1810,11 +2319,12 @@ test("09 home capacity, no-plus-one, and one-account-one-seat rules hold", async
 
   await signIn(page, hostEmail, password);
   await page.goto(new URL("/events/new", page.url()).toString());
+  await openFanEventDetailsStep(page);
   await expect(page.getByRole("spinbutton", { name: "Maximum people" })).toHaveAttribute(
     "max",
     "12",
   );
-  await expect(page.getByText(/Everyone needs their own Huddle account\./)).toBeVisible();
+  await expect(page.getByText(/each attendee will use their own Huddle account/i)).toBeVisible();
   await expect(page.locator('input[name*="guest" i], input[name*="plus" i]')).toHaveCount(0);
 });
 
@@ -1971,7 +2481,7 @@ test("13 blocking a future home-event participant revokes friendship attendance 
   await page.getByRole("button", { name: "Confirm block" }).click();
   await expect(page.getByRole("status")).toHaveText("Safety preference updated.");
   await page.goto(new URL(`/events/${event.eventId}`, page.url()).toString());
-  await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "This page isn’t available." })).toBeVisible();
   expect(await page.content()).not.toContain(address);
 
   const [userLowId, userHighId] = [hostId, attendeeId].sort();

@@ -24,10 +24,7 @@ export async function updateFriendshipAction(
   if (!parsed.success) return actionFailure(parsed.error);
 
   try {
-    const [{ supabase }, requestId] = await Promise.all([
-      requireActor("community"),
-      getRequestId(),
-    ]);
+    const [{ supabase }, requestId] = await Promise.all([requireActor("fan"), getRequestId()]);
 
     if (parsed.data.intent === "request") {
       const { data, error } = await supabase.rpc("request_friendship_by_handle", {
@@ -85,6 +82,7 @@ export async function updateFriendshipAction(
 }
 
 function revalidateFriendshipViews(targetHandle: string) {
+  revalidatePath("/people");
   revalidatePath("/settings/friends");
   revalidatePath(`/people/${targetHandle}`);
 }

@@ -25,7 +25,8 @@ function GateFact({
   complete,
   label,
   detail,
-}: Readonly<{ complete: boolean; label: string; detail: string }>) {
+  blocked = false,
+}: Readonly<{ complete: boolean; label: string; detail: string; blocked?: boolean }>) {
   const Icon = complete ? CircleCheck : CircleDashed;
   return (
     <li className="flex gap-3 rounded-xl border border-border-dark bg-surface-deep p-4">
@@ -36,7 +37,12 @@ function GateFact({
         }
       />
       <div>
-        <p className="font-semibold text-linen">{label}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="font-semibold text-linen">{label}</p>
+          <Badge variant={complete ? "default" : "secondary"}>
+            {complete ? "Completed" : blocked ? "Cannot start yet" : "Incomplete"}
+          </Badge>
+        </div>
         <p className="mt-1 text-sm leading-6 text-muted-dark">{detail}</p>
       </div>
     </li>
@@ -57,61 +63,71 @@ export function GroupDiscoveryProgress({
 
   const statusLabel =
     visibility === "unlisted"
-      ? "Unlisted by choice"
+      ? "Sharing by invitation"
       : progress.gateSatisfied
-        ? "Visible in group search"
-        : "Still forming";
+        ? "Ready for search"
+        : "Keep setting up";
 
   return (
     <Card className="mt-10 border-court/25 bg-court/5">
       <CardHeader className="gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-court">
-            Discovery readiness
+            Appear in search after
           </p>
-          <CardTitle className="mt-2 text-2xl text-linen">
-            What makes this group searchable
-          </CardTitle>
+          <CardTitle className="mt-2 text-2xl text-linen">A short setup list</CardTitle>
         </div>
         <Badge variant={progress.gateSatisfied ? "default" : "secondary"}>{statusLabel}</Badge>
       </CardHeader>
       <CardContent>
         {visibility === "unlisted" ? (
           <p className="mb-5 max-w-3xl text-sm leading-6 text-muted-dark">
-            Unlisted groups never appear in search. The facts below are still useful if the group is
-            changed to discoverable later.
+            This group will not appear in search. These setup tasks still make it ready for invited
+            supporters.
           </p>
         ) : null}
         <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           <GateFact
             complete={progress.activeMemberCount >= 5}
-            detail={`${progress.activeMemberCount} of 5 eligible active members`}
-            label="Five active members"
+            detail={`${progress.activeMemberCount} of 5 active members are here.`}
+            label={
+              progress.activeMemberCount >= 5
+                ? "Member goal reached"
+                : `Invite ${5 - progress.activeMemberCount} more member${5 - progress.activeMemberCount === 1 ? "" : "s"}`
+            }
           />
           <GateFact
             complete={progress.activeModeratorCount >= 2 && progress.ownerIsActive}
-            detail={`${progress.activeModeratorCount} of 2 active owner/admin roles; owner ${progress.ownerIsActive ? "active" : "not active"}`}
-            label="Two moderators, including owner"
+            detail={
+              progress.ownerIsActive
+                ? `${progress.activeModeratorCount} of 2 owner/admin roles are active.`
+                : "The owner must be active before the group can appear in search."
+            }
+            label={
+              !progress.ownerIsActive
+                ? "Restore the owner"
+                : progress.activeModeratorCount >= 2
+                  ? "Admin goal reached"
+                  : `Add ${2 - progress.activeModeratorCount} more admin${2 - progress.activeModeratorCount === 1 ? "" : "s"}`
+            }
           />
           <GateFact
             complete={progress.hasDescription}
-            detail="A plain-text description helps supporters understand the group."
-            label="Group description"
+            detail="Tell supporters who the group is for."
+            label={progress.hasDescription ? "Description added" : "Add a short description"}
           />
           <GateFact
             complete={progress.hasPublishedRule}
-            detail="At least one rule must be published in the Rules section."
-            label="Published rule"
+            detail="One visible rule sets a clear expectation."
+            label={progress.hasPublishedRule ? "Rule added" : "Add one rule"}
           />
           <GateFact
             complete={progress.hasFutureEvent}
-            detail="At least one reviewed, published future group event is required."
-            label="Approved future event"
-          />
-          <GateFact
-            complete={progress.lifecycle === "active"}
-            detail={`Current lifecycle: ${progress.lifecycle}`}
-            label="Lifecycle synchronized"
+            blocked={!progress.hasPublishedRule}
+            detail="An owner/admin event publishes directly; a member submission needs another reviewer."
+            label={
+              progress.hasFutureEvent ? "Upcoming event published" : "Publish one upcoming event"
+            }
           />
         </ul>
 

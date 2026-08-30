@@ -88,7 +88,8 @@ set
   adult_attested_at = statement_timestamp(),
   rules_version = 1,
   rules_accepted_at = statement_timestamp(),
-  profile_completed_at = statement_timestamp()
+  profile_completed_at = statement_timestamp(),
+  fan_enabled_at = statement_timestamp()
 where id::text like 'b1100000-%';
 
 insert into public.platform_roles (profile_id, role)

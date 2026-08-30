@@ -44,7 +44,9 @@ Keep implementation slices tied to this loop and the official course deliverable
 ## Locked product and safety rules
 
 - Authentication uses Supabase Auth. Huddle never stores password hashes.
-- Community mutations require verified email, an 18+ attestation, acceptance of the current community-rules version, a completed profile, and a non-suspended account.
+- Common safety eligibility requires verified email, an 18+ attestation, acceptance of the current community-rules version, and a non-suspended account.
+- Attendance and private social mutations additionally require an activated Fan workspace with a completed Fan identity. Venue-only onboarding may satisfy common safety eligibility without publishing a Fan identity.
+- Self-serve Venue activation additionally requires venue information and a truthful business-representation attestation; every commercial mutation requires an active Venue owner/admin membership.
 - One registered account represents one attendee. There are no anonymous guests or plus-ones.
 - Friendships require request and acceptance. Friends-of-friends never grant visibility.
 - Private people may create only `group`, `friends`, or `invite_only` events, even at a café or other public place.

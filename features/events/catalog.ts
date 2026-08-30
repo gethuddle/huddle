@@ -8,8 +8,12 @@ import { createClient } from "@/lib/supabase/server";
 const matchRowSchema = z
   .object({
     id: z.uuid(),
+    sport_slug: z.string(),
+    competition_id: z.uuid(),
     competition_name: z.string(),
+    home_team_id: z.uuid(),
     home_team_name: z.string(),
+    away_team_id: z.uuid(),
     away_team_name: z.string(),
     starts_at: z.string(),
   })
@@ -27,6 +31,8 @@ const groupRowSchema = z
 const venueMatchRowSchema = z
   .object({
     id: z.uuid(),
+    sport_slug: z.string(),
+    competition_id: z.uuid(),
     competition_name: z.string(),
     home_team_id: z.uuid(),
     home_team_name: z.string(),
@@ -37,12 +43,17 @@ const venueMatchRowSchema = z
   .strict();
 
 export type PrivateEventCatalog = Readonly<{
-  cities: readonly Readonly<{ id: string; name: string }>[];
+  cities: readonly Readonly<{ id: string; name: string; slug: string }>[];
   matches: readonly Readonly<{
     id: string;
     label: string;
     startsAt: string;
+    followed: boolean;
+    sportSlug?: string;
+    sportName?: string;
+    competitionName?: string;
   }>[];
+  matchesHasMore?: boolean;
   groups: readonly Readonly<{
     id: string;
     slug: string;
@@ -57,26 +68,56 @@ export type VenueEventCatalog = Readonly<{
     id: string;
     label: string;
     startsAt: string;
+    sportSlug?: string;
+    sportName?: string;
+    competitionName?: string;
   }>[];
+  matchesHasMore?: boolean;
   teams: readonly Readonly<{
     id: string;
     name: string;
   }>[];
 }>;
 
-export async function getPrivateEventCatalog(): Promise<PrivateEventCatalog> {
+export async function getPrivateEventCatalog(
+  selectedMatchId?: string,
+): Promise<PrivateEventCatalog> {
   const supabase = await createClient();
   const authResult = await supabase.auth.getUser();
   const user = authResult.data.user;
   if (user === null) throw new DomainError("AUTH_REQUIRED");
 
-  const [citiesResult, matchesResult, membershipResult, friendshipResult] = await Promise.all([
-    supabase.from("cities").select("id, name_en").eq("active", true).order("name_en").limit(100),
+  const [
+    citiesResult,
+    matchesResult,
+    selectedMatchResult,
+    membershipResult,
+    friendshipResult,
+    subscriptionResult,
+  ] = await Promise.all([
+    supabase
+      .from("cities")
+      .select("id, name_en, slug")
+      .eq("active", true)
+      .order("name_en")
+      .limit(100),
     supabase
       .from("public_future_matches")
-      .select("id, competition_name, home_team_name, away_team_name, starts_at")
+      .select(
+        "id, sport_slug, competition_id, competition_name, home_team_id, home_team_name, away_team_id, away_team_name, starts_at",
+      )
       .order("starts_at")
-      .limit(250),
+      .order("id")
+      .limit(51),
+    selectedMatchId === undefined
+      ? Promise.resolve({ data: null, error: null })
+      : supabase
+          .from("public_future_matches")
+          .select(
+            "id, sport_slug, competition_id, competition_name, home_team_id, home_team_name, away_team_id, away_team_name, starts_at",
+          )
+          .eq("id", selectedMatchId)
+          .maybeSingle(),
     supabase
       .from("group_memberships")
       .select("group_id")
@@ -87,10 +128,20 @@ export async function getPrivateEventCatalog(): Promise<PrivateEventCatalog> {
       .from("friendships")
       .select("user_low_id", { count: "exact", head: true })
       .eq("status", "accepted"),
+    supabase
+      .from("subscriptions")
+      .select("competition_id, team_id")
+      .eq("user_id", user.id)
+      .limit(500),
   ]);
 
   const firstError =
-    citiesResult.error ?? matchesResult.error ?? membershipResult.error ?? friendshipResult.error;
+    citiesResult.error ??
+    matchesResult.error ??
+    selectedMatchResult.error ??
+    membershipResult.error ??
+    friendshipResult.error ??
+    subscriptionResult.error;
   if (firstError !== null) throw new DomainError("INTERNAL_ERROR", { cause: firstError });
 
   const groupIds = (membershipResult.data ?? []).map((membership) => membership.group_id);
@@ -108,34 +159,79 @@ export async function getPrivateEventCatalog(): Promise<PrivateEventCatalog> {
     rawGroups = groupResult.data;
   }
 
-  const matches = z.array(matchRowSchema).parse(matchesResult.data);
+  const initialMatches = z.array(matchRowSchema).parse(matchesResult.data);
+  const selectedMatch =
+    selectedMatchResult.data === null ? null : matchRowSchema.parse(selectedMatchResult.data);
+  const matches = initialMatches.slice(0, 50);
+  if (selectedMatch !== null && !matches.some((match) => match.id === selectedMatch.id)) {
+    matches.push(selectedMatch);
+  }
   const groups = z.array(groupRowSchema).parse(rawGroups);
+  const followedIds = new Set(
+    (subscriptionResult.data ?? []).flatMap((subscription) =>
+      [subscription.competition_id, subscription.team_id].filter(
+        (value): value is string => value !== null,
+      ),
+    ),
+  );
   return {
-    cities: (citiesResult.data ?? []).map((city) => ({ id: city.id, name: city.name_en })),
+    cities: (citiesResult.data ?? []).map((city) => ({
+      id: city.id,
+      name: city.name_en,
+      slug: city.slug,
+    })),
     matches: matches.map((match) => ({
       id: match.id,
       label: match.home_team_name + " vs " + match.away_team_name + " — " + match.competition_name,
       startsAt: match.starts_at,
+      sportSlug: match.sport_slug,
+      sportName: match.sport_slug
+        .replaceAll("-", " ")
+        .replace(/^./u, (letter) => letter.toUpperCase()),
+      competitionName: match.competition_name,
+      followed:
+        followedIds.has(match.competition_id) ||
+        followedIds.has(match.home_team_id) ||
+        followedIds.has(match.away_team_id),
     })),
+    matchesHasMore: initialMatches.length > 50,
     groups,
     acceptedFriendCount: friendshipResult.count ?? 0,
   };
 }
 
-export async function getVenueEventCatalog(): Promise<VenueEventCatalog> {
+export async function getVenueEventCatalog(selectedMatchId?: string): Promise<VenueEventCatalog> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("public_future_matches")
-    .select(
-      "id, competition_name, home_team_id, home_team_name, away_team_id, away_team_name, starts_at",
-    )
-    .order("starts_at")
-    .limit(250);
-  if (error !== null) throw new DomainError("INTERNAL_ERROR", { cause: error });
+  const [matchResult, selectedMatchResult] = await Promise.all([
+    supabase
+      .from("public_future_matches")
+      .select(
+        "id, sport_slug, competition_id, competition_name, home_team_id, home_team_name, away_team_id, away_team_name, starts_at",
+      )
+      .order("starts_at")
+      .order("id")
+      .limit(51),
+    selectedMatchId === undefined
+      ? Promise.resolve({ data: null, error: null })
+      : supabase
+          .from("public_future_matches")
+          .select(
+            "id, sport_slug, competition_id, competition_name, home_team_id, home_team_name, away_team_id, away_team_name, starts_at",
+          )
+          .eq("id", selectedMatchId)
+          .maybeSingle(),
+  ]);
+  const firstError = matchResult.error ?? selectedMatchResult.error;
+  if (firstError !== null) throw new DomainError("INTERNAL_ERROR", { cause: firstError });
 
   let matches: z.infer<typeof venueMatchRowSchema>[];
   try {
-    matches = z.array(venueMatchRowSchema).parse(data);
+    const initialMatches = z.array(venueMatchRowSchema).parse(matchResult.data);
+    matches = initialMatches.slice(0, 50);
+    if (selectedMatchResult.data !== null) {
+      const selectedMatch = venueMatchRowSchema.parse(selectedMatchResult.data);
+      if (!matches.some((match) => match.id === selectedMatch.id)) matches.push(selectedMatch);
+    }
   } catch (cause) {
     throw new DomainError("INTERNAL_ERROR", { cause });
   }
@@ -151,7 +247,13 @@ export async function getVenueEventCatalog(): Promise<VenueEventCatalog> {
       id: match.id,
       label: match.home_team_name + " vs " + match.away_team_name + " — " + match.competition_name,
       startsAt: match.starts_at,
+      sportSlug: match.sport_slug,
+      sportName: match.sport_slug
+        .replaceAll("-", " ")
+        .replace(/^./u, (letter) => letter.toUpperCase()),
+      competitionName: match.competition_name,
     })),
+    matchesHasMore: (matchResult.data?.length ?? 0) > 50,
     teams: [...teams.entries()]
       .map(([id, name]) => ({ id, name }))
       .sort((first, second) => first.name.localeCompare(second.name)),

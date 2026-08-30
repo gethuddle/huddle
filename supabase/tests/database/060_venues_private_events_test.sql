@@ -86,7 +86,7 @@ select ok(has_table_privilege('authenticated', 'public.venue_follows', 'insert')
 select ok(not has_table_privilege('authenticated', 'public.event_invitations', 'insert'), 'invitations cannot be forged directly');
 select ok(not has_table_privilege('authenticated', 'public.event_attendance', 'insert'), 'attendance cannot be forged directly');
 
-select ok(has_function_privilege('authenticated', 'public.create_venue(text,text,uuid,text,double precision,double precision,text,integer,integer,uuid)', 'execute'), 'eligible users invoke controlled venue creation');
+select ok(not has_function_privilege('authenticated', 'public.create_venue(text,text,uuid,text,double precision,double precision,text,integer,integer,uuid)', 'execute'), 'the legacy venue creation RPC cannot bypass workspace activation attestations');
 select ok(not has_function_privilege('anon', 'public.create_venue(text,text,uuid,text,double precision,double precision,text,integer,integer,uuid)', 'execute'), 'anonymous callers cannot create venues');
 select ok(has_function_privilege('anon', 'public.get_venue_by_slug(text)', 'execute'), 'public venue details use a safe projection');
 select ok(has_function_privilege('authenticated', 'public.create_or_update_event(uuid,uuid,uuid,uuid,text,text,text,text,text,text,boolean,timestamptz,timestamptz,uuid,text,uuid,text,text,double precision,double precision,text,uuid,uuid,integer,boolean,text,text,double precision,double precision,text,uuid)', 'execute'), 'eligible hosts use one controlled event transaction');
@@ -148,7 +148,8 @@ set
   adult_attested_at = statement_timestamp(),
   rules_version = 1,
   rules_accepted_at = statement_timestamp(),
-  profile_completed_at = statement_timestamp()
+  profile_completed_at = statement_timestamp(),
+  fan_enabled_at = statement_timestamp()
 where id between
   '61000000-0000-4000-8000-000000000101' and
   '61000000-0000-4000-8000-000000000105';
@@ -511,14 +512,15 @@ select throws_ok($$update public.event_attendance set user_id = '61000000-0000-4
 set local role authenticated;
 set local "request.jwt.claim.sub" = '61000000-0000-4000-8000-000000000101';
 
-select lives_ok(
+select throws_ok(
   $$select * from public.create_venue('B07 New Venue','b07-new-venue',(select id from public.cities where slug='haifa'),'30 Public Street, Haifa',35.01,32.82,'A safely created unverified venue.',3,60,null)$$,
-  'a complete user creates a venue through the controlled function'
+  '42501', 'permission denied for function create_venue',
+  'legacy venue creation is denied in favor of attested workspace activation'
 );
 select is(
-  (select verification_status from public.get_venue_by_slug('b07-new-venue')),
-  'unverified',
-  'every user-created venue is visibly unverified'
+  (select count(*) from public.get_venue_by_slug('b07-new-venue')),
+  0::bigint,
+  'the denied legacy call creates no Venue'
 );
 select throws_ok(
   $$select public.set_venue_verification_status('61000000-0000-4000-8000-000000000301','verified',null)$$,

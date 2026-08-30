@@ -17,13 +17,13 @@ export function FixtureFilters({ filters, competitions, teams }: FixtureFiltersP
   return (
     <form
       action="/matches"
-      className="grid gap-4 rounded-2xl border border-border-dark bg-surface-raised p-5 sm:grid-cols-2 lg:grid-cols-[0.8fr_1fr_1fr_auto] lg:items-end"
+      className="grid gap-4 rounded-[1.375rem] border border-border-dark bg-surface-raised p-5 sm:grid-cols-2 lg:grid-cols-[0.8fr_1fr_1fr_auto] lg:items-end"
       method="get"
     >
       <div>
         <Label htmlFor="fixture-date">Israel date</Label>
         <Input
-          className="mt-2"
+          className="mt-2 rounded-full"
           defaultValue={filters.date}
           id="fixture-date"
           name="date"
@@ -33,7 +33,7 @@ export function FixtureFilters({ filters, competitions, teams }: FixtureFiltersP
       <div>
         <Label htmlFor="fixture-competition">Competition</Label>
         <NativeSelect
-          className="mt-2"
+          className="mt-2 [&_select]:rounded-full"
           defaultValue={filters.competitionId ?? ""}
           id="fixture-competition"
           name="competition"
@@ -50,7 +50,7 @@ export function FixtureFilters({ filters, competitions, teams }: FixtureFiltersP
       <div>
         <Label htmlFor="fixture-team">Team</Label>
         <NativeSelect
-          className="mt-2"
+          className="mt-2 [&_select]:rounded-full"
           defaultValue={filters.teamId ?? ""}
           id="fixture-team"
           name="team"
@@ -65,10 +65,10 @@ export function FixtureFilters({ filters, competitions, teams }: FixtureFiltersP
         </NativeSelect>
       </div>
       <div className="flex gap-2 sm:col-span-2 lg:col-span-1">
-        <Button className="flex-1 lg:flex-none" type="submit">
+        <Button className="flex-1 rounded-full lg:flex-none" type="submit">
           Apply filters
         </Button>
-        <Button asChild variant="ghost">
+        <Button asChild className="rounded-full" variant="ghost">
           <Link href="/matches">Clear</Link>
         </Button>
       </div>

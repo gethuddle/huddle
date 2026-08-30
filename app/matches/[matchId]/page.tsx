@@ -180,24 +180,11 @@ export default async function MatchDetailPage({ params }: MatchDetailPageProps) 
               </Button>
             </div>
           }
-          description="Eligible private people may create group, friends, or invite-only events. Venue owners create public or team-follower listings from their venue profile; nearby discovery arrives in B09."
+          description="Eligible Fans may create group, friends, or invite-only events. Venue operators create public or team-follower events from their Venue workspace."
           headingLevel="h2"
           title="No Huddle watch events yet."
         />
       </div>
-
-      <p className="mx-auto mt-8 max-w-4xl text-sm text-muted-dark">
-        Football data supplied by{" "}
-        <a
-          className="text-linen underline underline-offset-4"
-          href="https://www.football-data.org/"
-          rel="noreferrer"
-          target="_blank"
-        >
-          football-data.org
-        </a>
-        . Provider crests and raw payloads are not stored in this interface.
-      </p>
     </section>
   );
 }

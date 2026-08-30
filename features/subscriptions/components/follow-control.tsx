@@ -53,7 +53,7 @@ export function FollowControl({
         <Button
           aria-label={`${isFollowing ? "Unfollow" : "Follow"} ${targetName}`}
           aria-pressed={isFollowing}
-          className="w-full sm:w-auto"
+          className="min-h-11 w-full rounded-full sm:w-auto"
           disabled={pending}
           type="submit"
           variant={isFollowing ? "outline" : "default"}

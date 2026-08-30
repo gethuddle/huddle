@@ -37,6 +37,7 @@ export type GroupCreationActionData =
   | Readonly<{
       phase: "created";
       message: string;
+      visibility: "discoverable" | "unlisted";
       group: Readonly<{ id: string; slug: string; lifecycle: "forming" | "active" }>;
     }>;
 

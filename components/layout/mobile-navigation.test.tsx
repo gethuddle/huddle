@@ -1,61 +1,75 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { render, screen, within } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+
+import type { WorkspaceShellContext } from "@/features/workspaces/types";
 
 import { MobileNavigation } from "./mobile-navigation";
 
+const mocks = vi.hoisted(() => ({ pathname: "/" }));
+vi.mock("next/navigation", () => ({ usePathname: () => mocks.pathname }));
+
 describe("MobileNavigation", () => {
-  it("exposes safety and moderation to a signed-in moderator", async () => {
-    const user = userEvent.setup();
-    render(<MobileNavigation isModerator isProfileComplete isSignedIn />);
+  it("exposes exactly the five approved Fan destinations", () => {
+    mocks.pathname = "/people";
+    const fanContext: WorkspaceShellContext = {
+      active: {
+        kind: "fan",
+        id: "e4000000-0000-4000-8000-000000000101",
+        slug: "fan_one",
+        label: "Fan One",
+        role: "fan",
+      },
+      available: [],
+      isModerator: false,
+    };
 
-    const trigger = screen.getByRole("button", { name: "Menu" });
-    await user.click(trigger);
+    render(<MobileNavigation context={fanContext} />);
 
-    expect(screen.getByRole("menu", { name: "Menu" })).toBeVisible();
-    expect(screen.getByRole("menuitem", { name: "Safety" })).toHaveAttribute("href", "/reports");
-    expect(screen.getByRole("menuitem", { name: "Moderation" })).toHaveAttribute(
-      "href",
-      "/moderation",
+    const navigation = screen.getByRole("navigation", { name: "Fan mobile navigation" });
+    expect(
+      within(navigation)
+        .getAllByRole("link")
+        .map((link) => link.textContent),
+    ).toEqual(["Home", "Explore", "My Huddle", "People", "Account"]);
+    expect(within(navigation).getByRole("link", { name: "People" })).toHaveAttribute(
+      "aria-current",
+      "page",
     );
-
-    await user.keyboard("{Escape}");
-    expect(screen.queryByRole("menu", { name: "Menu" })).not.toBeInTheDocument();
-    expect(trigger).toHaveFocus();
   });
 
-  it("does not expose private navigation to an anonymous visitor", async () => {
-    const user = userEvent.setup();
-    render(<MobileNavigation isModerator={false} isProfileComplete={false} isSignedIn={false} />);
+  it("exposes exactly the five approved Venue destinations", () => {
+    mocks.pathname = "/venues/match-corner/workspace/settings";
+    const venueContext: WorkspaceShellContext = {
+      active: {
+        kind: "venue",
+        id: "e4000000-0000-4000-8000-000000000102",
+        slug: "match-corner",
+        label: "Match Corner",
+        role: "admin",
+      },
+      available: [],
+      isModerator: false,
+    };
 
-    await user.click(screen.getByRole("button", { name: "Menu" }));
+    render(<MobileNavigation context={venueContext} />);
 
-    expect(screen.getByRole("menuitem", { name: "Fixtures" })).toBeVisible();
-    expect(screen.getByRole("menuitem", { name: "Sign in" })).toHaveAttribute(
-      "href",
-      "/auth/sign-in",
+    const navigation = screen.getByRole("navigation", { name: "Venue mobile navigation" });
+    expect(
+      within(navigation)
+        .getAllByRole("link")
+        .map((link) => link.textContent),
+    ).toEqual(["Today", "Calendar", "Events", "Venue", "Account"]);
+    expect(within(navigation).getByRole("link", { name: "Venue" })).toHaveAttribute(
+      "aria-current",
+      "page",
     );
-    expect(screen.getByRole("menuitem", { name: "Sign up" })).toHaveAttribute(
-      "href",
-      "/auth/sign-up",
-    );
-    expect(screen.queryByRole("menuitem", { name: "Safety" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("menuitem", { name: "Moderation" })).not.toBeInTheDocument();
   });
 
-  it("directs an incomplete signed-in account only to setup", async () => {
-    const user = userEvent.setup();
-    render(<MobileNavigation isModerator={false} isProfileComplete={false} isSignedIn />);
+  it("does not invent private navigation without an active workspace", () => {
+    render(<MobileNavigation context={{ active: null, available: [], isModerator: false }} />);
 
-    await user.click(screen.getByRole("button", { name: "Menu" }));
-
-    expect(screen.getByRole("menuitem", { name: "Finish setup" })).toHaveAttribute(
-      "href",
-      "/settings/profile",
-    );
-    expect(screen.queryByRole("menuitem", { name: "My Huddle" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("menuitem", { name: "Host event" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
   });
 });

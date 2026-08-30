@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+export const venueFacilitySchema = z.enum([
+  "wheelchair_accessible",
+  "step_free_access",
+  "accessible_toilet",
+  "hearing_loop",
+  "parking",
+  "food",
+  "drinks",
+]);
+
 const nullablePositiveInteger = (maximum: number) =>
   z.preprocess(
     (value) => (value === "" || value === null ? null : value),

@@ -6,6 +6,8 @@ Huddle is a social web application for finding safe, relevant places and communi
 
 This is a two-person final project for the **Full-Stack & AI** course. The submitted application is an English-language pilot for Israel.
 
+The approved post-B12 redesign gives one Supabase login two separately authorized, optional workspaces: **Fan** for attendance and private social activity, and **Venue** for commercial operations. This deliberately supersedes the older assumptions that every completed personal profile may create a venue, that every group-organized event must wait for a separate owner/admin review, and that every venue event needs a capacity-backed guest list. The project-status history below remains evidence of what was merged before the redesign, not the current permission contract.
+
 ## The problem
 
 Sports are better with other people, but it can be difficult to find nearby fans of the same team or a venue showing a particular match. The problem is especially noticeable for people who are new to a city, support a foreign team, or follow a less popular competition.
@@ -16,11 +18,11 @@ Huddle answers:
 
 ## The core experience
 
-1. Create and verify an account, complete a profile, and accept the community rules.
-2. Follow sports, competitions, teams, and venues, and join supporter groups.
+1. Create and verify an account, attest that you are 18+, accept the current community rules, and choose Fan or Venue setup.
+2. Optionally activate Fan to follow interests, attend, use friendships and groups, and host private events.
 3. Browse synchronized upcoming fixtures and discover eligible watch events nearby.
-4. Join a public venue event, or request access to an eligible private event.
-5. Host and manage a gathering, its capacity, invitations, and attendance.
+4. See that a venue is open for a fixture, reserve a place when that venue uses reservations, or request access to an eligible private event.
+5. Host and manage a private gathering as a Fan, or operate commercial events through an active Venue membership.
 6. Return to My Huddle to find every hosted/submitted event, invitation, attendance state, and active owned/joined group.
 7. Find another member by name or handle, send a direct friend request, and share eligible event or group links.
 8. Download an approved event as an `.ics` calendar file.
@@ -51,7 +53,7 @@ Groups provide the community layer between a private friendship and a public ven
 - rules, bans, and group-event approval;
 - duplicate-group suggestions based on team and city.
 
-Members may propose group events, but an owner or admin approves publication. A new discoverable group must meet a minimum safety and activity threshold before appearing in search.
+An event authored by a current group owner or admin publishes atomically without self-review. An ordinary member may propose an event, but it remains pending until a different current owner or admin publishes or rejects it. Promotion after submission never lets the creator decide their own pending event. A new discoverable group must meet a minimum safety and activity threshold before appearing in search.
 
 ### Businesses and venues
 
@@ -60,7 +62,16 @@ Venue profiles represent sports bars, cafés, and similar businesses. Venue-host
 - `public` — visible and joinable by eligible Huddle members;
 - `team_followers` — publicly visible, but attendance normally requires following the selected team.
 
-The course MVP allows an eligible user to create a visibly **unverified** venue profile without payment. Paid venue subscriptions, promotions, menus, analytics, and commercial entitlements are later business features.
+For a `public` fixture, the venue chooses one plain attendance mode:
+
+- **Open door** — fans just come along. Huddle shows no capacity, RSVP, invitation, approval queue, guest list, or claim that admission is reserved.
+- **Reservations** — one active Fan account reserves one place, optionally after venue approval, with atomic capacity enforcement.
+
+The Venue planner begins with bounded, searchable fixture cards. Selecting one carries its synchronized date and kickoff automatically; venue details, address, house information, viewing areas, and the usual attendance mode are reused instead of being entered again for every fixture.
+
+The course MVP lets a commonly eligible venue operator self-serve activation without payment or Fan activation. Verified email, 18+ attestation, current community-rules acceptance, venue information, a truthful business-representation attestation, and a non-suspended account atomically create an immediately usable, visibly **Unverified** venue, one active owner membership, and its Venue workspace. Every commercial mutation requires an active owner/admin Venue membership; a generic Fan profile cannot create or manage a venue.
+
+A venue is never an attendee and never consumes capacity. A human who also activates Fan may attend through that Fan identity, where one registered account still represents one attendee.
 
 ## Sports data: synchronized, normalized, and stored locally
 
@@ -103,16 +114,16 @@ The submitted implementation remains **football-first**: [football-data.org](htt
 
 ## Submitted MVP
 
-- Email/password authentication with verified email, 18+ attestation, current community-rules acceptance, and profile completion.
+- Email/password authentication with common safety eligibility, optional Fan activation, and self-serve Unverified Venue activation.
 - Football catalog and upcoming fixtures synchronized from an external provider.
 - Follows for sports, competitions, teams, and venues.
 - Mutual friendships with no friends-of-friends visibility.
 - Safe signed-in people search by display name or handle.
-- Discoverable and unlisted supporter groups with applications, roles, invitations, bans, and event review.
+- Discoverable and unlisted supporter groups with applications, roles, invitations, bans, atomic owner/admin-authored event publication, and different-owner/admin review of ordinary-member submissions.
 - Private-person events limited to group, friends, or invite-only audiences.
-- Business-venue events with public or team-follower audiences.
+- Business-venue events with public or team-follower audiences, fixture-first batch planning, public open-door listings or optional registered reservations, authorized by active Venue membership and never attended by the venue itself.
 - City-based discovery across the Israel pilot, optional browser geolocation, and PostGIS distance queries.
-- Attendance request, approval, decline, removal, and leave flows with atomic capacity enforcement.
+- Reservation attendance request, approval, decline, removal, and leave flows with atomic capacity enforcement; open-door venue listings deliberately have no attendance state.
 - Protected home locations, blocking, reporting, moderation, and audit records.
 - RFC 5545 `.ics` calendar download.
 - A personal My Huddle home for actively owned/joined groups plus hosted, submitted, invited, requested, and attending events.

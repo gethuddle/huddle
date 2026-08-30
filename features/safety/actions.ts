@@ -22,10 +22,7 @@ export async function setBlockPreferenceAction(
   }
 
   try {
-    const [{ supabase }, requestId] = await Promise.all([
-      requireActor("community"),
-      getRequestId(),
-    ]);
+    const [{ supabase }, requestId] = await Promise.all([requireActor("common"), getRequestId()]);
     const functionName = parsed.data.intent === "block" ? "block_user" : "unblock_user";
     const { error } = await supabase.rpc(functionName, {
       target_handle: parsed.data.targetHandle,
@@ -37,6 +34,7 @@ export async function setBlockPreferenceAction(
     }
 
     revalidatePath(`/people/${parsed.data.targetHandle}`);
+    revalidatePath("/people");
     revalidatePath("/settings/friends");
 
     return actionSuccess({

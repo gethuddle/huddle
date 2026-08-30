@@ -13,15 +13,9 @@ async function signIn(page: Page, email: string, password: string) {
   await page.getByRole("textbox", { name: "Email address" }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/$/);
-  const accountNavigation = page.getByRole("button", { name: "Open account navigation" });
-  await expect(accountNavigation).toBeVisible();
-  await accountNavigation.click();
-  await expect(page.getByRole("menuitem", { name: "Profile", exact: true })).toHaveAttribute(
-    "href",
-    "/settings/profile",
-  );
-  await page.keyboard.press("Escape");
+  await expect(page).not.toHaveURL(/\/auth\/sign-in$/);
+  await page.goto("/account");
+  await expect(page.getByRole("heading", { name: "Your Huddle, in one place." })).toBeVisible();
 }
 
 test("@session-smoke anonymous production pages and provider attribution are public", async ({
@@ -58,9 +52,10 @@ test("@session-smoke anonymous production pages and provider attribution are pub
   expect(providerRequestCount).toBe(0);
 });
 
-test("@session-smoke two dedicated production accounts can establish separate sessions", async ({
+test("@session-smoke two dedicated production accounts can read every redesigned workspace surface", async ({
   browser,
 }) => {
+  const venueSlug = requiredEnvironment("HUDDLE_SMOKE_VENUE_SLUG");
   const attendee = await browser.newPage();
   const host = await browser.newPage();
   try {
@@ -74,10 +69,38 @@ test("@session-smoke two dedicated production accounts can establish separate se
       requiredEnvironment("HUDDLE_SMOKE_HOST_EMAIL"),
       requiredEnvironment("HUDDLE_SMOKE_HOST_PASSWORD"),
     );
-    await attendee.goto("/settings/profile");
-    await host.goto("/events");
-    await expect(attendee.getByRole("heading", { name: /profile/i })).toBeVisible();
-    await expect(host.getByRole("heading", { name: /event/i })).toBeVisible();
+
+    await attendee.goto("/");
+    await expect(
+      attendee.getByRole("heading", { name: "Ready for your next match day?" }),
+    ).toBeVisible();
+
+    await attendee.goto("/discover");
+    await expect(
+      attendee.getByRole("heading", { name: "Find the room where the match comes alive." }),
+    ).toBeVisible();
+
+    await attendee.goto("/dashboard");
+    await expect(
+      attendee.getByRole("heading", { name: "Your events, groups and saved places." }),
+    ).toBeVisible();
+
+    await attendee.goto("/people");
+    await expect(attendee.getByRole("heading", { name: "People", exact: true })).toBeVisible();
+
+    await attendee.goto("/matches");
+    await expect(
+      attendee.getByRole("heading", { name: "Find the fixture. Then find your huddle." }),
+    ).toBeVisible();
+
+    await host.goto(`/venues/${encodeURIComponent(venueSlug)}/workspace`);
+    const venueNavigation = host.getByRole("navigation", { name: "Venue navigation" });
+    await expect(venueNavigation).toBeVisible();
+    await expect(venueNavigation.getByRole("link", { name: "Today" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await expect(host.getByRole("link", { name: "Open public venue" })).toBeVisible();
   } finally {
     await attendee.close();
     await host.close();

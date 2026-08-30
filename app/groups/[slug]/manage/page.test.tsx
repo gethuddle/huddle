@@ -4,20 +4,15 @@ import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  getGroupDiscoveryProgress: vi.fn(),
-  getGroupManagement: vi.fn(),
+  getGroupSettings: vi.fn(),
   notFound: vi.fn(() => {
     throw new Error("NEXT_NOT_FOUND");
   }),
 }));
 
-vi.mock("@/features/groups/discovery", () => ({
-  getGroupDiscoveryProgress: mocks.getGroupDiscoveryProgress,
-}));
-
 vi.mock("@/features/groups/management", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/features/groups/management")>();
-  return { ...actual, getGroupManagement: mocks.getGroupManagement };
+  return { ...actual, getGroupSettings: mocks.getGroupSettings };
 });
 vi.mock("next/navigation", () => ({ notFound: mocks.notFound }));
 
@@ -71,67 +66,55 @@ const members = [
 function props() {
   return {
     params: Promise.resolve({ slug: group.slug }),
-    searchParams: Promise.resolve({ section: "members" }),
+    searchParams: Promise.resolve({}),
   };
 }
 
 describe("GroupManagementPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.getGroupDiscoveryProgress.mockResolvedValue({
-      activeMemberCount: 5,
-      activeModeratorCount: 2,
-      ownerIsActive: true,
-      hasDescription: true,
-      hasPublishedRule: true,
-      hasFutureEvent: true,
-      gateSatisfied: true,
-      lifecycle: "active",
-    });
   });
 
   it("does not expose the management route to a non-admin viewer", async () => {
-    mocks.getGroupManagement.mockResolvedValue(null);
+    mocks.getGroupSettings.mockResolvedValue(null);
 
     await expect(GroupManagementPage(props())).rejects.toThrow("NEXT_NOT_FOUND");
   });
 
   it("lets the owner manage non-owner roles and bans", async () => {
-    mocks.getGroupManagement.mockResolvedValue({
+    mocks.getGroupSettings.mockResolvedValue({
       group,
-      section: "members",
-      page: 1,
-      pageCount: 1,
-      totalCount: 3,
-      items: members,
+      members: { page: 1, pageCount: 1, totalCount: 3, items: members },
+      rules: [],
+      bans: { page: 1, pageCount: 1, totalCount: 0, items: [] },
     });
 
     render(await GroupManagementPage(props()));
 
-    expect(screen.getByText("Visible in group search")).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Members" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Rules" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Visibility" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Members" })).toHaveAttribute("href", "#members");
+    expect(
+      screen.queryByRole("navigation", { name: "Group administration sections" }),
+    ).not.toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Save role" })).toHaveLength(2);
     expect(screen.getAllByRole("button", { name: "Ban" })).toHaveLength(2);
-    expect(screen.getByText("Owner").closest("[data-slot='card-content']")).not.toHaveTextContent(
-      "Save role",
-    );
+    expect(screen.getByText("Owner").closest(".rounded-xl")).not.toHaveTextContent("Save role");
   });
 
   it("limits an admin to banning ordinary members without role controls", async () => {
-    mocks.getGroupManagement.mockResolvedValue({
+    mocks.getGroupSettings.mockResolvedValue({
       group: { ...group, viewerRole: "admin" },
-      section: "members",
-      page: 1,
-      pageCount: 1,
-      totalCount: 3,
-      items: members,
+      members: { page: 1, pageCount: 1, totalCount: 3, items: members },
+      rules: [],
+      bans: { page: 1, pageCount: 1, totalCount: 0, items: [] },
     });
 
     render(await GroupManagementPage(props()));
 
     expect(screen.queryByRole("button", { name: "Save role" })).not.toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Ban" })).toHaveLength(1);
-    expect(screen.getByText("Admin").closest("[data-slot='card-content']")).not.toHaveTextContent(
-      "Ban",
-    );
+    expect(screen.getByText("Admin").closest(".rounded-xl")).not.toHaveTextContent("Ban");
   });
 });

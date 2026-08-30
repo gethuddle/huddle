@@ -14,8 +14,8 @@ export default function DataSourcesPage() {
         Where fixture data comes from.
       </h1>
       <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-dark">
-        Huddle separates external sports imports from normal page requests so a provider outage does
-        not erase the last good local catalog.
+        Fixture information is refreshed regularly. If an update is delayed, Huddle keeps the most
+        recent available fixture list.
       </p>
 
       <div className="mt-10 grid gap-5 md:grid-cols-2">
@@ -39,8 +39,8 @@ export default function DataSourcesPage() {
               .
             </p>
             <p>
-              Huddle stores provider-neutral identities and normalized fixture fields, not raw
-              provider responses or provider crests.
+              Huddle shows the competition, teams, kickoff, and status details needed to browse and
+              plan a gathering.
             </p>
           </CardContent>
         </Card>
@@ -52,12 +52,12 @@ export default function DataSourcesPage() {
           </CardHeader>
           <CardContent className="space-y-4 leading-7 text-muted-dark">
             <p>
-              A protected server-only import is designed to run about every six hours. Browse pages
-              query Supabase only and never call the provider.
+              Fixture pages show when information was updated and how far the available schedule
+              currently reaches.
             </p>
             <p>
-              After two missed import windows, Huddle labels the catalog stale while keeping future
-              fixtures from the last successful import available.
+              Delayed updates and a short schedule are explained separately, so a recent update is
+              never presented as proof that later fixtures are already available.
             </p>
           </CardContent>
         </Card>

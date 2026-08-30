@@ -16,7 +16,7 @@ import { moderationPageSchema } from "@/features/moderation/schemas";
 import { ProfileAccessState } from "@/features/profiles/components/profile-access-state";
 import { DomainError } from "@/lib/errors";
 
-export const metadata: Metadata = { title: "Safety and reports — Huddle" };
+export const metadata: Metadata = { title: "Safety center — Huddle" };
 
 type Props = Readonly<{
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -68,7 +68,7 @@ export default async function ReportsPage({ searchParams }: Props) {
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-court">
             Safety center
           </p>
-          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-linen sm:text-6xl">
+          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-linen sm:text-5xl">
             Reports and appeals.
           </h1>
           <p className="mt-5 max-w-3xl text-lg leading-8 text-muted-dark">

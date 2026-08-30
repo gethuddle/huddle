@@ -111,6 +111,7 @@ describe("createGroupAction", () => {
 
     const result = await createGroupAction(reviewState, groupForm("create"));
 
+    expect(mocks.requireActor).toHaveBeenCalledWith("fan");
     expect(rpc).toHaveBeenCalledWith("create_group", {
       input_name: "Haifa Arsenal Supporters",
       input_slug: "haifa-arsenal-supporters",
