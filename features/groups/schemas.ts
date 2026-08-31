@@ -63,6 +63,8 @@ export const groupLeaveSchema = z.object({
   groupSlug: groupRouteSlugSchema,
 });
 
+export const groupArchiveSchema = groupLeaveSchema;
+
 export const groupInviteTokenSchema = z
   .string()
   .regex(/^[A-Za-z0-9_-]{43}$/, "That invitation is not available.");

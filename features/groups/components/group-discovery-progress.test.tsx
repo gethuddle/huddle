@@ -12,7 +12,7 @@ vi.mock("@/features/groups/membership-actions", () => ({
 import { GroupDiscoveryProgress } from "./group-discovery-progress";
 
 describe("GroupDiscoveryProgress", () => {
-  it("turns forming facts into ordered user actions without database jargon", () => {
+  it("shows only the genuinely required search setup without artificial activity gates", () => {
     render(
       <GroupDiscoveryProgress
         description={null}
@@ -32,11 +32,13 @@ describe("GroupDiscoveryProgress", () => {
       />,
     );
 
-    expect(screen.getByText("Invite 1 more member")).toBeVisible();
-    expect(screen.getByText("Add 1 more admin")).toBeVisible();
-    expect(screen.getByText("Add one rule")).toBeVisible();
-    expect(screen.getByText("Publish one upcoming event")).toBeVisible();
-    expect(screen.getAllByText("Incomplete").length).toBeGreaterThan(0);
+    expect(screen.getByText("Add a short description")).toBeVisible();
+    expect(screen.queryByText(/Invite 1 more member/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Add 1 more admin/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Add one rule/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Publish one upcoming event/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Members, rules, and events are optional/i)).toBeVisible();
+    expect(screen.getByText("Description needed")).toBeVisible();
     expect(document.body).not.toHaveTextContent(/lifecycle|synchronized|published rule/i);
     expect(screen.getByRole("textbox", { name: "Group description" })).toHaveValue("");
     expect(screen.getByRole("button", { name: "Save description" })).toBeVisible();
@@ -62,7 +64,7 @@ describe("GroupDiscoveryProgress", () => {
       />,
     );
 
-    expect(screen.getByText("Sharing by invitation")).toBeVisible();
+    expect(screen.getByText("Invitation only")).toBeVisible();
     expect(screen.getByText(/will not appear in search/i)).toBeVisible();
   });
 });

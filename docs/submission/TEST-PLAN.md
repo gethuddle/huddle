@@ -24,9 +24,10 @@ The 2026-08-29 B12 run passed 90 Vitest files / 403 tests (78.7% statements,
 and all 17 Playwright journeys. The PR/main CI run and second-computer reproduction
 remain separate evidence.
 
-The current UX-redesign inventory contains 146 Vitest files / 717 tests,
-28 ordered migrations, 34 pgTAP files / 1559 assertions, and 22 Playwright scenarios.
-The final local acceptance run passed all of those gates. The B12 numbers above are
+The current UX-redesign inventory contains 147 Vitest files / 724 tests,
+29 ordered migrations, 35 pgTAP files / 1585 assertions, and 22 Playwright scenarios.
+The current Vitest and full pgTAP runs pass this inventory; the complete acceptance command
+records the final combined gate. The B12 numbers above are
 retained as historical accepted evidence rather than presented as the current repository
 inventory. Hosted migration and production acceptance remain separately evidenced operations.
 
@@ -43,7 +44,7 @@ depend on execution order, wall-clock equality, a provider network, or hosted da
 | 02 | Use browser location once without persisting coordinates | discovery route/query and no-store response |
 | 03 | Friend sees friends-only event; stranger receives no event or address | audience function and safe event projection |
 | 04 | Crafted private-public and venue-private host/audience requests fail | event transaction constraints and authorization |
-| 05 | Discoverable group remains gated until every readiness threshold | group lifecycle/readiness functions |
+| 05 | A described owner-backed group becomes searchable without activity quotas; application and event review stay enforced | group lifecycle/readiness and review functions |
 | 06 | Group ban ends membership and blocks reapplication | group-ban transaction and `GROUP_BANNED` denial |
 | 07 | Member proposal requires a different group administrator's approval | group event review transaction |
 | 08 | Home address is absent before approval and present only after approval | protected location table and audited reader |
@@ -69,12 +70,13 @@ accounts and a fresh event.
 
 ## Database coverage
 
-The 34 pgTAP files under `supabase/tests/database/` cover all exposed-table RLS
+The 35 pgTAP files under `supabase/tests/database/` cover all exposed-table RLS
 inventory, CHECK/unique/FK invariants, minimum grants, safe reads, denied reads and
 mutations, lifecycle transitions, cooldowns, exact-address authorization, capacity,
 moderation, workspace membership, protected drafts, current-state projections,
-public-address caching, fixture coverage, open-door venue events, and the public map
-projection. Dedicated two-connection regressions cover friendship/block,
+public-address caching, fixture coverage, open-door venue events, the public map
+projection, managed-Venue discovery continuity, fixture/event consistency, and audited group
+archive. Dedicated two-connection regressions cover friendship/block,
 application/block, group invite, event creation, group review/block, attendance,
 onboarding/workspace activation, protected drafts, and suspension/mutation races.
 

@@ -1,4 +1,4 @@
-import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
+import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
@@ -747,45 +747,6 @@ async function planSingleVenueEvent(page: Page, title: string, description: stri
   await expect(page.getByRole("status")).toContainText("Batch saved");
 }
 
-async function addReviewedGroupMembers(
-  browser: Browser,
-  ownerPage: Page,
-  groupSlug: string,
-  suffix: string,
-  password: string,
-  count: number,
-) {
-  for (let index = 1; index <= count; index += 1) {
-    const memberContext = await browser.newContext({ baseURL: "http://127.0.0.1:3000" });
-    const memberPage = await memberContext.newPage();
-    const applicationNote = `Discovery gate application ${index}.`;
-
-    try {
-      await signUpAndVerify(
-        memberPage,
-        memberContext,
-        `gate-member-${suffix}-${index}@example.com`,
-        password,
-      );
-      await completeProfile(memberPage, `gate_${suffix}_${index}`, `Gate Member ${index}`);
-      await memberPage.goto(new URL(`/groups/${groupSlug}`, memberPage.url()).toString());
-      await memberPage
-        .getByRole("textbox", { name: /Note to the administrators/ })
-        .fill(applicationNote);
-      await memberPage.getByRole("button", { name: "Apply to join" }).click();
-      await expect(memberPage.getByText("Application: pending")).toBeVisible();
-
-      await ownerPage.goto(new URL(`/groups/${groupSlug}`, ownerPage.url()).toString());
-      const review = ownerPage.getByRole("region", { name: "Applications to review" });
-      await expect(review.getByRole("link", { name: `Gate Member ${index}` })).toBeVisible();
-      await review.getByRole("button", { name: "Approve" }).click();
-      await expect(review).toHaveCount(0);
-    } finally {
-      await memberContext.close();
-    }
-  }
-}
-
 test("01 signup, verification, required onboarding, and a team follow", async ({
   context,
   page,
@@ -927,7 +888,7 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
   context,
   page,
 }) => {
-  // This integrated G06/E05/E07 journey deliberately provisions six verified accounts.
+  // This integrated G06/E05/E07 journey proves the current two-account group contract.
   test.setTimeout(90_000);
 
   await clearMailbox();
@@ -961,7 +922,8 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
   await expect(page.getByText(/share the application link and review requests/i)).toBeVisible();
   await expect(page.getByRole("heading", { name: `Haifa Huddle ${suffix}` })).toBeVisible();
   await expect(page.getByText("Your role: owner")).toBeVisible();
-  await expect(page.getByText("Setting up for group search")).toBeVisible();
+  await expect(page.getByText("Open for applications")).toBeVisible();
+  await expect(page.getByText("Visible in search")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Active members" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Group Owner", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Share group" })).toBeVisible();
@@ -992,7 +954,7 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
     await signUpAndVerify(applicantPage, applicantContext, applicantEmail, password);
     await completeProfile(applicantPage, applicantHandle, "Group Applicant");
     await applicantPage.goto(new URL(`/groups/${slug}`, applicantPage.url()).toString());
-    await expect(applicantPage.getByText("Setting up for group search")).toBeVisible();
+    await expect(applicantPage.getByText("Open for applications")).toBeVisible();
     await expect(applicantPage.getByText("Respect every supporter.")).toBeVisible();
     await applicantPage
       .getByRole("textbox", { name: /Note to the administrators/ })
@@ -1069,17 +1031,11 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
     });
     await expect(
       publicGroupResults.getByText(`Haifa Huddle ${suffix}`, { exact: true }),
-    ).toHaveCount(0);
+    ).toBeVisible();
 
-    await page.goto(new URL(`/groups/${slug}/manage#members`, page.url()).toString());
-    await page.getByRole("combobox", { name: "Member role" }).selectOption("admin");
-    await page.getByRole("button", { name: "Save role" }).click();
-    await expect(page.getByRole("status")).toHaveText("Member promoted to admin.");
-
-    await addReviewedGroupMembers(browser, page, slug, suffix, password, 3);
     await page.goto(new URL(`/groups/${slug}`, page.url()).toString());
-    await expect(page.getByText("Ready for search", { exact: true })).toBeVisible();
-    await expect(page.getByText("5 of 5 active members are here.", { exact: true })).toBeVisible();
+    await expect(page.getByText("Visible in search", { exact: true })).toBeVisible();
+    await expect(page.getByText(/Members, rules, and events are optional/i)).toBeVisible();
     if (captureB09Evidence) {
       await page.screenshot({
         fullPage: true,
@@ -1088,8 +1044,9 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
     }
 
     await applicantPage.goto(new URL(`/groups/${slug}`, applicantPage.url()).toString());
-    await expect(applicantPage.getByText("Your role: admin")).toBeVisible();
-    await expect(applicantPage.getByRole("link", { name: "Manage group" })).toBeVisible();
+    await expect(applicantPage.getByText("Your role: member")).toBeVisible();
+    await expect(applicantPage.getByRole("link", { name: "Manage group" })).toHaveCount(0);
+    await expect(applicantPage.getByRole("button", { name: "Leave group" })).toBeVisible();
 
     await applicantPage.goto(
       new URL(
@@ -1207,7 +1164,6 @@ test("17 a provider failure preserves cached fixtures and exposes stale state", 
 
   await page.getByRole("link", { name: "View Arsenal FC versus Chelsea FC" }).first().click();
   await expect(page.getByRole("heading", { name: "Arsenal vs Chelsea" })).toBeVisible();
-  await expect(page.getByText("No Huddle watch events yet.")).toBeVisible();
   expect(providerRequests).toEqual([]);
 
   const suffix = uniqueSuffix();
@@ -1452,7 +1408,8 @@ test("completed users create venue and private events with safe projections", as
   const fixtureLink = page.locator(`a[href="/matches/${fixture.matchId}"]`);
   await expect(fixtureLink).toHaveAccessibleName("View Arsenal FC versus Chelsea FC");
   await fixtureLink.click();
-  await page.getByRole("link", { name: "Host a private event" }).click();
+  await expect(page.getByRole("link", { name: venueEventTitle })).toBeVisible();
+  await page.getByRole("link", { name: "Plan a private huddle" }).click();
   await expect(page).toHaveURL(/\/events\/new\?matchId=/);
 
   await page.getByRole("button", { name: "Next: place and audience" }).click();

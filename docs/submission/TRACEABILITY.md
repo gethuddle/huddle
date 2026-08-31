@@ -5,13 +5,13 @@
 | Problem, users, customer, business goal | Architecture §§1–3; root README | 90-second presentation opening | Ready |
 | Product capabilities/processes | App routes and feature modules; implementation spec §§1–4 | Playwright 01–17; core demo | 17/17 local journeys pass |
 | Components and data flow | Next.js app, server actions, narrow route handlers, Supabase functions | build, route tests, one traced join/approval | Ready locally |
-| Database/entities | 28 ordered migrations and generated `Database` type | reset, 34 pgTAP files / 1559 assertions, type-drift gate | Ready locally |
+| Database/entities | 29 ordered migrations and generated `Database` type | reset, 35 pgTAP files / 1585 assertions, type-drift gate | Ready locally |
 | Permissions and users | forced RLS, security-definer functions, separate private locations | denial pgTAP; Playwright 03/04/08/10/12–16 | Ready locally |
 | External services/rationale | Supabase Auth/Postgres, Vercel, football-data adapter | fixture-only CI; protected sync tests | B13 hosted proof pending |
 | CRUD/business logic | domain actions plus transactional RPCs | component/action tests and Playwright 05–16 | Ready locally |
 | State/error/UX | Server Components, local form/dialog state, bounded TanStack Query, safe domain errors | RTL, keyboard dialogs, empty/error states | Ready locally; B13 VoiceOver smoke pending |
 | Next.js and TypeScript | App Router, strict `tsconfig`, pinned lockfile | typecheck and production build | Ready locally |
-| Test specification/code | submission test plan and repository suites | 717 Vitest tests; 1559 pgTAP assertions; 22 Playwright scenarios; `npm run test:acceptance` | Ready locally; redesign branch not published |
+| Test specification/code | submission test plan and repository suites | 724 Vitest tests; 1585 pgTAP assertions; 22 Playwright scenarios; `npm run test:acceptance` | Ready locally; reciprocal review remains required before merge |
 | Basic scale | submission scalability plan, indexes, cursors, cache | query/concurrency tests; quota snapshot | B13 dashboard usage pending |
 | Basic security | security summary, B11 inventory/runbooks | secret audit, RLS/denial/race tests | B13 production inspection pending |
 | Local reproduction | root README and safe environment examples | second-computer fresh clone | B13 partner rehearsal pending |

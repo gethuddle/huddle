@@ -20,6 +20,7 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Textarea } from "@/components/ui/textarea";
 import { GroupActionFeedback } from "@/features/groups/components/action-feedback";
 import {
+  archiveGroupAction,
   banGroupMemberAction,
   changeGroupRoleAction,
   createGroupInviteAction,
@@ -41,6 +42,49 @@ function GroupFields({ groupId, groupSlug }: GroupIdentity) {
       <input name="groupId" type="hidden" value={groupId} />
       <input name="groupSlug" type="hidden" value={groupSlug} />
     </>
+  );
+}
+
+export function ArchiveGroupControl({
+  groupId,
+  groupName,
+  groupSlug,
+}: GroupIdentity & Readonly<{ groupName: string }>) {
+  const [state, formAction, pending] = useActionState(
+    archiveGroupAction,
+    INITIAL_GROUP_MEMBERSHIP_ACTION_STATE,
+  );
+
+  return (
+    <div className="space-y-3">
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button disabled={pending} type="button" variant="destructive">
+            Delete group
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {groupName}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The group will disappear from Huddle. Upcoming group events will be cancelled and
+              active invitation links will stop working. Membership and attendance history stays
+              retained for safety and audit purposes. This cannot be undone in the app.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <form action={formAction}>
+            <GroupFields groupId={groupId} groupSlug={groupSlug} />
+            <AlertDialogFooter>
+              <AlertDialogCancel type="button">Keep group</AlertDialogCancel>
+              <Button disabled={pending} type="submit" variant="destructive">
+                {pending ? "Deleting…" : "Delete group"}
+              </Button>
+            </AlertDialogFooter>
+          </form>
+        </AlertDialogContent>
+      </AlertDialog>
+      <GroupActionFeedback state={state} />
+    </div>
   );
 }
 

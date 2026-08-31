@@ -2019,6 +2019,10 @@ export type Database = {
           status: string
         }[]
       }
+      archive_group: {
+        Args: { audit_request_id?: string; input_group_id: string }
+        Returns: boolean
+      }
       assign_report: {
         Args: { audit_request_id?: string; input_report_id: string }
         Returns: boolean
@@ -2382,6 +2386,51 @@ export type Database = {
         }[]
       }
       discover_open_door_events: {
+        Args: {
+          input_after_distance_band?: number
+          input_after_event_id?: string
+          input_after_interest_score?: number
+          input_after_starts_at?: string
+          input_city_id: string
+          input_competition_id?: string
+          input_from: string
+          input_lat: number
+          input_limit?: number
+          input_lng: number
+          input_match_id?: string
+          input_radius_km: number
+          input_team_id?: string
+          input_to: string
+        }
+        Returns: {
+          approved_attendee_count: number
+          audience: string
+          audience_group_name: string
+          audience_team_name: string
+          away_team_name: string
+          capacity: number
+          city_name: string
+          competition_name: string
+          cursor_distance_band: number
+          ends_at: string
+          event_id: string
+          has_more: boolean
+          home_team_name: string
+          host_display_name: string
+          host_kind: string
+          host_venue_slug: string
+          interest_score: number
+          location_summary: string
+          match_id: string
+          place_kind: string
+          remaining_capacity: number
+          requires_approval: boolean
+          starts_at: string
+          title: string
+          venue_verification_status: string
+        }[]
+      }
+      discover_owned_venue_events: {
         Args: {
           input_after_distance_band?: number
           input_after_event_id?: string
@@ -2914,6 +2963,22 @@ export type Database = {
           requires_approval: boolean
           starts_at: string
           status: string
+          title: string
+        }[]
+      }
+      list_match_events: {
+        Args: { input_limit?: number; input_match_id: string }
+        Returns: {
+          approved_attendee_count: number
+          audience: string
+          audience_team_name: string
+          away_team_name: string
+          capacity: number
+          competition_name: string
+          event_id: string
+          home_team_name: string
+          requires_approval: boolean
+          starts_at: string
           title: string
         }[]
       }

@@ -60,8 +60,8 @@ describe("GroupPage", () => {
       hasDescription: true,
       hasPublishedRule: false,
       hasFutureEvent: false,
-      gateSatisfied: false,
-      lifecycle: "forming",
+      gateSatisfied: true,
+      lifecycle: "active",
     });
     mocks.listPeopleHub.mockResolvedValue({ items: [] });
   });
@@ -80,7 +80,6 @@ describe("GroupPage", () => {
   it("shows the protected safe roster to an active owner", async () => {
     mocks.getGroupDetail.mockResolvedValue({
       ...publicGroup,
-      lifecycle: "forming",
       viewerRole: "owner",
       canViewMemberContent: true,
       activeMemberCount: 1,
@@ -116,7 +115,7 @@ describe("GroupPage", () => {
       `/events/new?group=${publicGroup.id}`,
     );
     expect(screen.getByRole("button", { name: "Share group" })).toBeVisible();
-    expect(screen.getByText("Add one rule")).toBeVisible();
+    expect(screen.getByText(/Members, rules, and events are optional/i)).toBeVisible();
     expect(screen.queryByRole("link", { name: "Invite people" })).not.toBeInTheDocument();
     expect(screen.getByText("Respect every supporter.")).toBeVisible();
   });
@@ -150,18 +149,34 @@ describe("GroupPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("offers a reviewed application to an eligible direct-link viewer", async () => {
+  it("explains why an owner-only forming group is not searchable yet", async () => {
     mocks.getGroupDetail.mockResolvedValue({
       ...publicGroup,
       lifecycle: "forming",
-      canApply: true,
+      description: null,
+      viewerRole: "owner",
+      viewerMembershipStatus: "active",
+      canViewMemberContent: true,
+      canApply: false,
+    });
+    mocks.getGroupDiscoveryProgress.mockResolvedValue({
+      activeMemberCount: 1,
+      activeModeratorCount: 1,
+      ownerIsActive: true,
+      hasDescription: false,
+      hasPublishedRule: false,
+      hasFutureEvent: false,
+      gateSatisfied: false,
+      lifecycle: "forming",
     });
 
     render(await GroupPage({ params: Promise.resolve({ slug: publicGroup.slug }) }));
 
-    expect(screen.getByRole("heading", { name: "Apply to join" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Apply to join" })).toBeVisible();
-    expect(screen.getByText("Setting up for group search")).toBeVisible();
+    expect(screen.getByText("Not listed yet")).toBeVisible();
+    expect(
+      screen.getByText(/Add a clear description to make this group searchable/i),
+    ).toBeVisible();
+    expect(screen.getByRole("textbox", { name: "Group description" })).toBeVisible();
   });
 
   it("lets an active admin both manage and leave the group", async () => {

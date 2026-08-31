@@ -262,3 +262,13 @@ export async function listGroupEvents(groupId: string): Promise<EventListItem[]>
   if (error !== null) throw domainErrorFromDatabase(error);
   return parseEventList(publicEventListRowSchema, data).map(eventListItem);
 }
+
+export async function listMatchEvents(matchId: string): Promise<EventListItem[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("list_match_events", {
+    input_match_id: matchId,
+    input_limit: 20,
+  });
+  if (error !== null) throw domainErrorFromDatabase(error);
+  return parseEventList(venueEventListRowSchema, data).map(eventListItem);
+}

@@ -76,6 +76,7 @@ describe("MyHuddleOverview", () => {
       saved.href,
     );
     expect(screen.getAllByRole("link", { name: "Manage" })).toHaveLength(2);
+    expect(screen.getByRole("link", { name: "Find groups" })).toHaveAttribute("href", "/groups");
   });
 
   it("uses labeled filters rather than route-like tabs and keeps History off by default", () => {
@@ -98,7 +99,7 @@ describe("MyHuddleOverview", () => {
     expect(screen.getByRole("link", { name: "Plan a huddle" })).toHaveClass("min-h-11");
     expect(screen.getByRole("link", { name: "Explore events" })).toHaveClass("min-h-11");
     expect(screen.getByRole("link", { name: "Create a group" })).toHaveClass("min-h-11");
-    expect(screen.getByRole("link", { name: "Browse groups" })).toHaveClass("min-h-11");
+    expect(screen.getByRole("link", { name: "Find groups" })).toHaveClass("min-h-11");
     expect(screen.getByRole("link", { name: "Choose interests" })).toHaveClass("min-h-11");
   });
 

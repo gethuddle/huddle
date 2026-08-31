@@ -3,11 +3,13 @@
 import { createHash, randomBytes } from "node:crypto";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { requireActor } from "@/features/auth/actor";
 import {
   groupApplicationReviewSchema,
   groupApplicationSchema,
+  groupArchiveSchema,
   groupBanSchema,
   groupInviteConsumptionSchema,
   groupInviteCreationSchema,
@@ -35,7 +37,10 @@ function groupInput(formData: FormData) {
 function refreshGroup(slug: string) {
   revalidatePath("/");
   revalidatePath("/dashboard");
+  revalidatePath("/discover");
+  revalidatePath("/events");
   revalidatePath("/groups");
+  revalidatePath("/matches");
   revalidatePath(`/groups/${slug}`);
   revalidatePath(`/groups/${slug}/manage`);
 }
@@ -179,6 +184,28 @@ export async function leaveGroupAction(
   } catch (error) {
     return actionFailure(error);
   }
+}
+
+export async function archiveGroupAction(
+  _previousState: GroupMembershipActionState,
+  formData: FormData,
+): Promise<GroupMembershipActionState> {
+  const parsed = groupArchiveSchema.safeParse(groupInput(formData));
+  if (!parsed.success) return actionFailure(parsed.error);
+
+  try {
+    const [{ supabase }, requestId] = await Promise.all([requireActor("fan"), getRequestId()]);
+    const { error } = await supabase.rpc("archive_group", {
+      input_group_id: parsed.data.groupId,
+      audit_request_id: requestId,
+    });
+    if (error !== null) throw domainErrorFromDatabase(error);
+  } catch (error) {
+    return actionFailure(error);
+  }
+
+  refreshGroup(parsed.data.groupSlug);
+  redirect("/dashboard?groupBucket=owner");
 }
 
 export async function createGroupInviteAction(

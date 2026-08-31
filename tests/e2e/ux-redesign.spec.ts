@@ -1059,7 +1059,7 @@ test("complete deterministic Fan and Venue workspace journey", async ({
     await expectFanNavigation(page, project.width, "Home");
     await page.goto(journeyUrl(page, focusedDiscoveryPath));
     for (const title of identity.publishedVenueTitles) {
-      await expect(page.getByText(title, { exact: true })).toHaveCount(0);
+      await expect(page.getByText(title, { exact: true })).toBeVisible();
     }
 
     await page.goto(journeyUrl(page, "/account"));

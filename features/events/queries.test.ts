@@ -4,7 +4,7 @@ const mocks = vi.hoisted(() => ({ createClient: vi.fn() }));
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 
-import { getEventSummary, listVenueEvents } from "./queries";
+import { getEventSummary, listMatchEvents, listVenueEvents } from "./queries";
 
 const eventId = "60000000-0000-4000-8000-000000000101";
 const matchId = "60000000-0000-4000-8000-000000000102";
@@ -141,6 +141,40 @@ describe("event safe projections", () => {
     expect(rpc).toHaveBeenCalledWith("list_venue_events", {
       lookup_slug: "match-corner",
       input_limit: 12,
+    });
+  });
+
+  it("maps the visible watch events attached to one fixture", async () => {
+    rpc.mockResolvedValue({
+      data: [
+        {
+          event_id: eventId,
+          title: "Arsenal at Match Corner",
+          home_team_name: "Arsenal FC",
+          away_team_name: "Chelsea FC",
+          competition_name: "Premier League",
+          starts_at: "2026-09-01T17:00:00Z",
+          audience: "public",
+          audience_team_name: null,
+          capacity: null,
+          approved_attendee_count: 0,
+          requires_approval: false,
+        },
+      ],
+      error: null,
+    });
+
+    await expect(listMatchEvents(matchId)).resolves.toMatchObject([
+      {
+        id: eventId,
+        attendanceMode: "open_door",
+        audience: "public",
+        status: "published",
+      },
+    ]);
+    expect(rpc).toHaveBeenCalledWith("list_match_events", {
+      input_match_id: matchId,
+      input_limit: 20,
     });
   });
 });

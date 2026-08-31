@@ -12,6 +12,8 @@
 
 **Approved post-B12 revision:** 30 August 2026. Huddle now has separately authorized Fan and Venue workspaces behind one Supabase login. This deliberately supersedes the B01–B12 assumptions that every completed personal profile may create a venue, that every group-organized event must wait for a separate owner/admin review, and that every venue listing needs a capacity-backed guest list. Historical milestone evidence remains a record of the merged baseline, not the current permission contract.
 
+**Approved discovery consistency revision:** 31 August 2026. Searchable groups need an active owner and a useful description, not manufactured membership/activity quotas. Eligible signed-in Fans can discover public-place events from those groups and then apply before attending; home events stay member-only. Fan Explore includes public listings from Venues the same person manages, fixture pages list every event visible to the current viewer, and owner-facing group deletion is an audited archive that retains safety history.
+
 The source of truth for the course deliverables is the [official project brief](<../course-roadmap/project instructions.pdf>). The [course roadmap](../course-roadmap/ROADMAP.md) is a wider technology menu, not a requirement to use every tool mentioned in the lectures.
 
 ---
@@ -185,9 +187,9 @@ Groups are stronger community boundaries than friendships. A group may be:
 - **discoverable** — eventually appears in search, but joining always needs an application and admin review;
 - **unlisted** — does not appear in global search and is reached using a revocable invite link; the link still does not bypass admin approval.
 
-A new discoverable group begins in `forming`. It enters search after it has five approved members, two moderators including its owner, published rules and description, and one approved future event. During creation, Huddle shows similar team/location groups to discourage duplicates without giving the platform a routine approval bottleneck.
+A new discoverable group begins in `forming`. It enters search as soon as its owner remains active and it has a clear description. Members, additional admins, rules, and events enrich the community but do not gate search. During creation, Huddle shows similar team/location groups to discourage duplicates without giving the platform a routine approval bottleneck.
 
-Roles are `owner`, `admin`, and `member`. An event authored by a current owner/admin publishes atomically without self-review. An ordinary member may submit an event, but it remains pending until a current owner/admin whose user ID differs from the creator publishes or rejects it. Promoting the author after submission never permits self-approval or self-rejection. Admins may reject applications or ban a member. Platform staff step in for reports and suspensions rather than operating every group.
+Roles are `owner`, `admin`, and `member`. An event authored by a current owner/admin publishes atomically without self-review. An ordinary member may submit an event, but it remains pending until a current owner/admin whose user ID differs from the creator publishes or rejects it. Promoting the author after submission never permits self-approval or self-rejection. Admins may reject applications or ban a member. The owner may delete the live group through an audited archival transition that cancels future live group events and revokes usable invites without erasing membership or attendance history. Platform staff step in for reports and suspensions rather than operating every group.
 
 ### 5.6 Venue workspaces and profiles
 
@@ -201,13 +203,13 @@ An event attaches to a real fixture when possible; fixture kickoff is inherited 
 
 | Host type | Allowed audiences | Meaning |
 |---|---|---|
-| Private person | `group` | Only active, non-banned members of the selected group may see and request |
+| Private person | `group` | Active, non-banned members may request; eligible signed-in Fans may preview a public-place event from an active discoverable group and apply before attending |
 | Private person | `friends` | Only the host's accepted direct friends may see and request |
 | Private person | `invite_only` | Only explicitly invited Huddle members may see and accept |
 | Business venue | `public` | Everyone may see; open-door listings have no Huddle attendance state, while reservations accept eligible active Fans |
 | Business venue | `team_followers` | Everyone may see; attendance requires an active Fan who follows the selected team unless directly invited |
 
-This is a host rule, not a location rule. A private person using a café or other public place is still limited to group, friends, or invite-only. A private host can never publish to all strangers or all followers of a team. Conversely, a business venue does not use private friendship/group audiences in the submitted MVP.
+This is a host rule, not a location rule. A private person using a café or other public place is still limited to group, friends, or invite-only. A discoverable group's public-place event can introduce an eligible signed-in Fan to that group, but it never becomes anonymous/public attendance and the Fan must join before requesting a place. A private host can never publish to all strangers or all followers of a team. Conversely, a business venue does not use private friendship/group audiences in the submitted MVP.
 
 A public venue chooses `open_door` or `reservations` per event, with a reusable venue default. Open door means the venue is advertising that it will show the fixture: fans simply come along, Huddle does not reserve admission, and the product shows no capacity, RSVP, invitation, approval queue, or attendee history. Reservations keep the existing one-account-per-place model. Team-follower and all private events remain reservations.
 
@@ -233,7 +235,7 @@ Open-door venue listings deliberately do not use that RSVP state machine. Databa
 
 Onboarding asks for a city in the Israel pilot. The user may optionally share current browser location for a more precise nearby search; declining geolocation never blocks the app. PostGIS performs distance filtering and sorting for public business-venue events and privately evaluates eligible private-person events without returning a home coordinate.
 
-The feed combines location, future time, followed interests, audience eligibility, match, and event status. Results use cursor pagination so a larger catalog does not require loading or re-counting every earlier row.
+The feed combines location, future time, followed interests, audience eligibility, match, and event status. It also merges and deduplicates public listings from Venues managed by the current Fan account, so switching workspaces does not make the person's own published event disappear. Fixture details use the same visibility boundary to list the watch events attached to that match. Results use cursor pagination so a larger catalog does not require loading or re-counting every earlier row.
 
 ### 5.11 Calendar export
 

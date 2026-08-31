@@ -461,8 +461,8 @@ select lives_ok(
 );
 select is(
   (select lifecycle::text from public.groups where slug = 'haifa-arsenal-supporters'),
-  'forming',
-  'a discoverable group starts forming'
+  'active',
+  'a described discoverable group with its active owner starts searchable'
 );
 select is(
   (
@@ -514,7 +514,7 @@ select is(
   1::bigint,
   'similar suggestions include the discoverable same-team/city group but not the unlisted group'
 );
-select is((select count(*) from public.groups), 0::bigint, 'a nonmember cannot directly enumerate forming or unlisted groups');
+select is((select count(*) from public.groups), 1::bigint, 'a nonmember sees the active discoverable group but cannot enumerate the unlisted group');
 select is((select count(*) from public.get_group_by_slug('haifa-arsenal-circle')), 0::bigint, 'an unlisted group is non-enumerating to a nonmember');
 select throws_ok(
   $$select * from public.list_safe_group_members((select id from public.groups where slug = 'haifa-arsenal-circle'), 0, 20)$$,
@@ -524,7 +524,7 @@ select throws_ok(
 );
 
 set local "request.jwt.claim.sub" = '50000000-0000-4000-8000-000000000101';
-select is((select count(*) from public.groups), 2::bigint, 'the owner reads both owned forming and unlisted groups');
+select is((select count(*) from public.groups), 2::bigint, 'the owner reads both owned discoverable and unlisted groups');
 select is((select count(*) from public.get_group_by_slug('haifa-arsenal-circle')), 1::bigint, 'an active owner may read their unlisted group');
 select is(
   (select can_view_member_content from public.get_group_by_slug('haifa-arsenal-circle')),
@@ -616,7 +616,7 @@ set local "request.jwt.claim.sub" = '50000000-0000-4000-8000-000000000102';
 select is(
   (select can_view_member_content from public.get_group_by_slug('haifa-arsenal-supporters')),
   null::boolean,
-  'a ban recalculates the incomplete legacy fixture to forming and exposes no summary to the banned member'
+  'a ban removes the otherwise public group summary from the banned member'
 );
 select throws_ok(
   $$select * from public.list_safe_group_members((select id from public.groups where slug = 'haifa-arsenal-supporters'), 0, 20)$$,

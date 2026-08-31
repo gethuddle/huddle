@@ -107,7 +107,7 @@ describe("event discovery query", () => {
   it("adds an exact point only through the bounded public map projection", async () => {
     const result = await getDiscoveryPage(filters);
 
-    expect(mocks.rpc).toHaveBeenCalledTimes(3);
+    expect(mocks.rpc).toHaveBeenCalledTimes(4);
     expect(mocks.rpc).toHaveBeenCalledWith(
       "discover_events",
       expect.objectContaining({
@@ -118,6 +118,10 @@ describe("event discovery query", () => {
     );
     expect(mocks.rpc).toHaveBeenCalledWith(
       "discover_open_door_events",
+      expect.objectContaining({ input_limit: 20 }),
+    );
+    expect(mocks.rpc).toHaveBeenCalledWith(
+      "discover_owned_venue_events",
       expect.objectContaining({ input_limit: 20 }),
     );
     expect(mocks.rpc).toHaveBeenCalledWith("get_public_event_map_points", {
@@ -180,6 +184,32 @@ describe("event discovery query", () => {
     });
   });
 
+  it("merges a managed Venue event into Fan discovery without duplicating another source", async () => {
+    const owned = {
+      ...safeRow(),
+      event_id: "52000000-0000-4000-8000-000000000498",
+      title: "My Venue public screening",
+      has_more: false,
+    };
+    mocks.rpc.mockImplementation(async (name: string) => ({
+      data:
+        name === "discover_events"
+          ? [safeRow()]
+          : name === "discover_owned_venue_events"
+            ? [owned, safeRow()]
+            : [],
+      error: null,
+    }));
+
+    const result = await getDiscoveryPage(filters);
+
+    expect(result.items.map((item) => item.title)).toEqual([
+      "North stand watch",
+      "My Venue public screening",
+    ]);
+    expect(result.items.filter((item) => item.id === safeRow().event_id)).toHaveLength(1);
+  });
+
   it("rejects the legacy viewer attendance field instead of leaking relationship history", async () => {
     mocks.rpc.mockResolvedValue({
       data: [{ ...safeRow(), viewer_attendance_status: "approved" }],
@@ -207,6 +237,16 @@ describe("event discovery query", () => {
     const result = await getDiscoveryPage(filters);
 
     expect(result.requiresPrivateCache).toBe(true);
-    expect(mocks.rpc).toHaveBeenCalledTimes(3);
+    expect(mocks.rpc).not.toHaveBeenCalledWith("discover_owned_venue_events", expect.anything());
+  });
+
+  it("does not call the authenticated managed-Venue projection for an anonymous visitor", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: null }, error: null });
+
+    const result = await getDiscoveryPage(filters);
+
+    expect(result.requiresPrivateCache).toBe(false);
+    expect(mocks.rpc).not.toHaveBeenCalledWith("discover_owned_venue_events", expect.anything());
+    expect(result.items).toHaveLength(1);
   });
 });

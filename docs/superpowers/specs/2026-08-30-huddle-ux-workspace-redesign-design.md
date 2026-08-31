@@ -529,3 +529,44 @@ omit capacity when it is used only for open-door listings.
 The same correction pass also closes the reproduced onboarding draft loss, My Huddle's misleading
 Hosting default, People attention deep-link failure, and detached Account workspace menu. These are
 Important journey regressions and must have failing tests before implementation.
+
+## 16. Production consistency and group-lifecycle correction — 2026-08-31
+
+The deployed redesign exposed four connected information-architecture defects. Fan discovery uses
+the account's complete ownership graph instead of the selected Fan perspective; fixture detail never
+loads its linked events; group search is reachable only through a conditional empty state; and the
+original group-discovery gate prevents ordinary new groups from ever entering that search. Group
+owners also have no supported way to close a group.
+
+### Fan discovery and fixture consistency
+
+- A signed-in Fan MAY see a public or team-follower listing from a Venue they also manage. The card
+  is a Fan-side view of a public opportunity, not Venue management data. Personally hosted private
+  events, invitations, and existing attendance remain outside acquisition discovery.
+- A fixture page lists every future published event whose safe summary is visible to the current
+  viewer. It uses one bounded database projection and never infers visibility in React.
+- A discoverable active group's published `public_place` event may expose a safe acquisition summary
+  to an active Fan who is not yet a member. Home events remain relationship-private. Attendance still
+  requires active group membership; a non-member is directed to the group application flow.
+
+### Group finding and activation
+
+- Explore provides two stable destinations: watch events and supporter groups. My Huddle always
+  exposes **Find groups**, even when the viewer already owns or belongs to a group.
+- A discoverable group enters search when its owner remains active and it has a non-empty description.
+  Member count, moderator count, a published rule, and a future event are useful group-health facts,
+  not search prerequisites. Joining still requires an owner/admin-reviewed application.
+- Rules remain group expectations and may be shown on the group/application page, but publishing a
+  rule is no longer a discovery requirement.
+
+### Owner group deletion
+
+- **Delete group** is an owner-only, explicitly confirmed product action backed by an audited
+  transaction. It sets lifecycle to `archived`, revokes unused invitation links, and cancels future
+  draft, pending, or published group events while retaining membership, attendance, invitation, and
+  audit rows.
+- Archived groups disappear from search, My Huddle, direct group reads, discovery, and future fixture
+  listings. Administrators and members cannot delete a group, and repeated or unauthorized calls fail
+  without revealing private group state.
+- The UI describes the retained-history behavior before confirmation and returns the owner to My
+  Huddle after success. No hard deletion is introduced.

@@ -31,6 +31,16 @@ export default async function GroupsPage({ searchParams }: GroupsPageProps) {
 
   return (
     <section className="py-12 sm:py-16">
+      <nav aria-label="Explore" className="mb-8 flex flex-wrap justify-center gap-2">
+        <Button asChild size="sm" variant="outline">
+          <Link href="/discover">Watch events</Link>
+        </Button>
+        <Button asChild size="sm">
+          <Link aria-current="page" href="/groups">
+            Supporter groups
+          </Link>
+        </Button>
+      </nav>
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-court">
@@ -40,8 +50,8 @@ export default async function GroupsPage({ searchParams }: GroupsPageProps) {
             Support together, beyond match day.
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-dark">
-            Search supporter groups by city or team. Unlisted groups and groups still being set up
-            stay out of these results.
+            Search supporter groups by name, city, or team. Unlisted groups stay out of these
+            results.
           </p>
         </div>
         <Button asChild>
@@ -117,7 +127,7 @@ export default async function GroupsPage({ searchParams }: GroupsPageProps) {
                 <Link href="/groups">Clear filters</Link>
               </Button>
             }
-            description="Try another city, team, or group name. A discoverable group appears after its setup tasks are complete."
+            description="Try another city, team, or group name. A discoverable group appears after its owner adds a clear description."
             headingLevel="h2"
             title="No active groups match these filters."
           />

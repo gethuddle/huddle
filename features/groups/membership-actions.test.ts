@@ -6,13 +6,18 @@ const mocks = vi.hoisted(() => ({
   getRequestId: vi.fn(),
   requireActor: vi.fn(),
   revalidatePath: vi.fn(),
+  redirect: vi.fn(() => {
+    throw new Error("NEXT_REDIRECT");
+  }),
 }));
 
 vi.mock("@/features/auth/actor", () => ({ requireActor: mocks.requireActor }));
 vi.mock("@/lib/request-id/server", () => ({ getRequestId: mocks.getRequestId }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
+vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 
 import {
+  archiveGroupAction,
   banGroupMemberAction,
   consumeGroupInviteAction,
   createGroupInviteAction,
@@ -217,5 +222,17 @@ describe("B06 group membership actions", () => {
       ok: true,
       data: { message: expect.stringContaining("discovery status") },
     });
+  });
+
+  it("archives an owned group through the audited RPC and returns to My Huddle", async () => {
+    await expect(archiveGroupAction(null, groupForm())).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(mocks.requireActor).toHaveBeenCalledWith("fan");
+    expect(rpc).toHaveBeenCalledWith("archive_group", {
+      input_group_id: groupId,
+      audit_request_id: requestId,
+    });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/groups");
+    expect(mocks.redirect).toHaveBeenCalledWith("/dashboard?groupBucket=owner");
   });
 });
