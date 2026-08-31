@@ -10,6 +10,7 @@ const actionLabels: Record<AttentionKind, string> = {
   attendance_request: "Review attendance request",
   friend_request: "Review friend request",
   group_application: "Review group application",
+  group_invitation: "Review group invitation",
   group_event_submission: "Review group event",
   workspace_setup: "Choose interests",
 };

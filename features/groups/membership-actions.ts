@@ -11,10 +11,14 @@ import {
   groupApplicationSchema,
   groupArchiveSchema,
   groupBanSchema,
+  groupDirectInvitationCreationSchema,
+  groupDirectInvitationRevocationSchema,
   groupInviteConsumptionSchema,
   groupInviteCreationSchema,
   groupInviteRevocationSchema,
+  groupInvitationResponseSchema,
   groupLeaveSchema,
+  groupMemberRemovalSchema,
   groupRoleChangeSchema,
   groupRuleCreationSchema,
   groupRuleReorderSchema,
@@ -319,6 +323,119 @@ export async function revokeGroupInviteAction(
 
     refreshGroup(parsed.data.groupSlug);
     return actionSuccess({ message: "Invitation revoked. Its history was retained." });
+  } catch (error) {
+    return actionFailure(error);
+  }
+}
+
+export async function createDirectGroupInvitationAction(
+  _previousState: GroupMembershipActionState,
+  formData: FormData,
+): Promise<GroupMembershipActionState> {
+  const parsed = groupDirectInvitationCreationSchema.safeParse({
+    ...groupInput(formData),
+    userId: formData.get("userId"),
+  });
+  if (!parsed.success) return actionFailure(parsed.error);
+
+  try {
+    const [{ supabase }, requestId] = await Promise.all([requireActor("fan"), getRequestId()]);
+    const { error } = await supabase.rpc("create_group_invitation", {
+      input_group_id: parsed.data.groupId,
+      input_invitee_id: parsed.data.userId,
+      audit_request_id: requestId,
+    });
+    if (error !== null) throw domainErrorFromDatabase(error);
+
+    refreshGroup(parsed.data.groupSlug);
+    return actionSuccess({
+      message: "Invitation sent. They’ll see it in Home and My Huddle.",
+    });
+  } catch (error) {
+    return actionFailure(error);
+  }
+}
+
+export async function respondGroupInvitationAction(
+  _previousState: GroupMembershipActionState,
+  formData: FormData,
+): Promise<GroupMembershipActionState> {
+  const parsed = groupInvitationResponseSchema.safeParse({
+    groupSlug: formData.get("groupSlug"),
+    invitationId: formData.get("invitationId"),
+    decision: formData.get("decision"),
+  });
+  if (!parsed.success) return actionFailure(parsed.error);
+
+  try {
+    const [{ supabase }, requestId] = await Promise.all([requireActor("fan"), getRequestId()]);
+    const { error } = await supabase.rpc("respond_group_invitation", {
+      input_invitation_id: parsed.data.invitationId,
+      input_decision: parsed.data.decision,
+      audit_request_id: requestId,
+    });
+    if (error !== null) throw domainErrorFromDatabase(error);
+
+    refreshGroup(parsed.data.groupSlug);
+    return actionSuccess({
+      message:
+        parsed.data.decision === "accept"
+          ? "You joined the group."
+          : "Invitation declined and removed from your active list.",
+    });
+  } catch (error) {
+    return actionFailure(error);
+  }
+}
+
+export async function revokeGroupInvitationAction(
+  _previousState: GroupMembershipActionState,
+  formData: FormData,
+): Promise<GroupMembershipActionState> {
+  const parsed = groupDirectInvitationRevocationSchema.safeParse({
+    ...groupInput(formData),
+    invitationId: formData.get("invitationId"),
+  });
+  if (!parsed.success) return actionFailure(parsed.error);
+
+  try {
+    const [{ supabase }, requestId] = await Promise.all([requireActor("fan"), getRequestId()]);
+    const { error } = await supabase.rpc("revoke_group_invitation", {
+      input_invitation_id: parsed.data.invitationId,
+      audit_request_id: requestId,
+    });
+    if (error !== null) throw domainErrorFromDatabase(error);
+
+    refreshGroup(parsed.data.groupSlug);
+    return actionSuccess({ message: "Direct invitation revoked." });
+  } catch (error) {
+    return actionFailure(error);
+  }
+}
+
+export async function removeGroupMemberAction(
+  _previousState: GroupMembershipActionState,
+  formData: FormData,
+): Promise<GroupMembershipActionState> {
+  const parsed = groupMemberRemovalSchema.safeParse({
+    ...groupInput(formData),
+    userId: formData.get("userId"),
+  });
+  if (!parsed.success) return actionFailure(parsed.error);
+
+  try {
+    const [{ supabase }, requestId] = await Promise.all([requireActor("fan"), getRequestId()]);
+    const { error } = await supabase.rpc("remove_group_member", {
+      input_group_id: parsed.data.groupId,
+      input_user_id: parsed.data.userId,
+      audit_request_id: requestId,
+    });
+    if (error !== null) throw domainErrorFromDatabase(error);
+
+    refreshGroup(parsed.data.groupSlug);
+    return actionSuccess({
+      message: "Member removed. They can apply again unless you ban them.",
+    });
   } catch (error) {
     return actionFailure(error);
   }

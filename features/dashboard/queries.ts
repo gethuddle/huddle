@@ -16,7 +16,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 
 export const eventBuckets = ["upcoming", "hosting", "pending", "history"] as const;
-export const groupBuckets = ["owner", "admin", "member", "applying"] as const;
+export const groupBuckets = ["all", "owner", "admin", "member", "applying"] as const;
 export const savedBuckets = ["all", "sport", "competition", "team", "venue"] as const;
 
 export type EventBucket = (typeof eventBuckets)[number];
@@ -31,7 +31,7 @@ const myEventRowSchema = z
     away_team_name: z.string(),
     competition_name: z.string(),
     starts_at: z.iso.datetime({ offset: true }),
-    city_name: z.string(),
+    city_name: z.string().nullable(),
     place_kind: z.enum(["home", "venue", "public_place"]),
     audience: z.enum(["public", "team_followers", "group", "friends", "invite_only"]),
     status: z.enum(["draft", "pending_group_review", "published", "cancelled", "completed"]),
@@ -50,7 +50,7 @@ const myGroupRelationshipRowSchema = z
     description: z.string().nullable(),
     visibility: z.enum(["discoverable", "unlisted"]),
     lifecycle: z.enum(["forming", "active", "suspended", "archived"]),
-    city_name: z.string(),
+    city_name: z.string().nullable(),
     team_name: z.string().nullable(),
     member_role: z.enum(["owner", "admin", "member"]).nullable(),
     membership_status: z.enum(["pending", "active"]),
@@ -72,6 +72,17 @@ const savedItemRowSchema = z
   })
   .strict();
 
+const myGroupInvitationRowSchema = z
+  .object({
+    invitation_id: z.uuid(),
+    group_id: z.uuid(),
+    group_slug: z.string(),
+    group_name: z.string(),
+    inviter_handle: z.string(),
+    invited_at: z.iso.datetime({ offset: true }),
+  })
+  .strict();
+
 const compatibilityGroupRowSchema = z
   .object({
     group_id: z.uuid(),
@@ -80,7 +91,7 @@ const compatibilityGroupRowSchema = z
     description: z.string().nullable(),
     visibility: z.enum(["discoverable", "unlisted"]),
     lifecycle: z.enum(["forming", "active", "suspended", "archived"]),
-    city_name: z.string(),
+    city_name: z.string().nullable(),
     team_name: z.string().nullable(),
     member_role: z.enum(["owner", "admin", "member"]),
     membership_status: z.literal("active"),
@@ -97,7 +108,7 @@ export type MyEvent = Readonly<{
   awayTeamName: string;
   competitionName: string;
   startsAt: string;
-  cityName: string;
+  cityName: string | null;
   placeKind: "home" | "venue" | "public_place";
   audience: "public" | "team_followers" | "group" | "friends" | "invite_only";
   status: "draft" | "pending_group_review" | "published" | "cancelled" | "completed";
@@ -114,7 +125,7 @@ export type MyGroupRelationship = Readonly<{
   description: string | null;
   visibility: "discoverable" | "unlisted";
   lifecycle: "forming" | "active" | "suspended" | "archived";
-  cityName: string;
+  cityName: string | null;
   teamName: string | null;
   role: "owner" | "admin" | "member" | null;
   membershipStatus: "pending" | "active";
@@ -131,6 +142,15 @@ export type SavedItem = Readonly<{
   href: string;
   createdAt: string;
   totalCount: number;
+}>;
+
+export type MyGroupInvitation = Readonly<{
+  id: string;
+  groupId: string;
+  groupSlug: string;
+  groupName: string;
+  inviterHandle: string;
+  invitedAt: string;
 }>;
 
 export type MyGroup = z.infer<typeof compatibilityGroupRowSchema>;
@@ -192,6 +212,17 @@ function parseSaved(value: unknown): readonly SavedItem[] {
         : row.href,
     createdAt: row.created_at,
     totalCount: row.total_count,
+  }));
+}
+
+function parseGroupInvitations(value: unknown): readonly MyGroupInvitation[] {
+  return parseRows(myGroupInvitationRowSchema, value).map((row) => ({
+    id: row.invitation_id,
+    groupId: row.group_id,
+    groupSlug: row.group_slug,
+    groupName: row.group_name,
+    inviterHandle: row.inviter_handle,
+    invitedAt: row.invited_at,
   }));
 }
 
@@ -281,6 +312,7 @@ export async function getMyHuddleOverview(
 ): Promise<
   Readonly<{
     events: readonly MyEvent[];
+    groupInvitations: readonly MyGroupInvitation[];
     groups: readonly MyGroupRelationship[];
     saved: readonly SavedItem[];
     pages: Readonly<{ events: number; groups: number; saved: number }>;
@@ -291,7 +323,7 @@ export async function getMyHuddleOverview(
     .safeParse(options.eventBucket === undefined ? "upcoming" : options.eventBucket);
   const groupBucketResult = z
     .enum(groupBuckets)
-    .safeParse(options.groupBucket === undefined ? "owner" : options.groupBucket);
+    .safeParse(options.groupBucket === undefined ? "all" : options.groupBucket);
   const savedBucketResult = z
     .enum(savedBuckets)
     .safeParse(options.savedBucket === undefined ? "all" : options.savedBucket);
@@ -309,14 +341,17 @@ export async function getMyHuddleOverview(
   const eventBucket = eventBucketResult.data;
   const groupBucket = groupBucketResult.data;
   const savedBucket = savedBucketResult.data;
-  const [eventPage, groupPage, savedPage] = await Promise.all([
+  const [eventPage, groupPage, savedPage, invitationResult] = await Promise.all([
     loadEventPage(supabase, eventBucket, options.eventPage ?? 1),
     loadGroupPage(supabase, groupBucket, options.groupPage ?? 1),
     loadSavedPage(supabase, savedBucket, options.savedPage ?? 1),
+    supabase.rpc("list_my_group_invitations"),
   ]);
+  if (invitationResult.error !== null) throw domainErrorFromDatabase(invitationResult.error);
 
   return {
     events: eventPage.items,
+    groupInvitations: parseGroupInvitations(invitationResult.data),
     groups: groupPage.items,
     saved: savedPage.items,
     pages: { events: eventPage.page, groups: groupPage.page, saved: savedPage.page },
@@ -324,7 +359,7 @@ export async function getMyHuddleOverview(
 }
 
 const PUBLIC_MATCH_SELECT =
-  "id, sport_id, sport_slug, competition_id, competition_code, competition_name, home_team_id, home_team_name, home_team_short_name, home_team_tla, away_team_id, away_team_name, away_team_short_name, away_team_tla, starts_at, status, matchday, stage, season_label, last_synced_at";
+  "id, sport_id, sport_slug, competition_id, competition_code, competition_name, home_team_id, home_team_name, home_team_short_name, home_team_tla, away_team_id, away_team_name, away_team_short_name, away_team_tla, starts_at, status, matchday, stage, season_label, last_synced_at, home_team_crest_url, away_team_crest_url";
 
 async function getHomeFixtureSuggestion(
   supabase: Awaited<ReturnType<typeof requireActor>>["supabase"],

@@ -19,6 +19,15 @@ function addUtcDays(dateValue: string, days: number): string {
   ].join("-");
 }
 
+function fixtureSeasonEnd(dateValue: string): string {
+  const [year, month] = dateValue.split("-").map(Number);
+  return `${month <= 5 ? year : year + 1}-05-31`;
+}
+
+function earlierDate(first: string, second: string): string {
+  return first < second ? first : second;
+}
+
 const optionalCoordinate = z.preprocess(
   firstSearchParam,
   z.union([z.literal(""), z.coerce.number().finite()]).optional(),
@@ -112,7 +121,10 @@ function parsedDiscoveryFilters(
 ): DiscoveryFilters {
   const today = formatIsraelDateValue(now);
   const from = raw.from === undefined || raw.from === "" ? today : raw.from;
-  const to = raw.to === undefined || raw.to === "" ? addUtcDays(from, 14) : raw.to;
+  const to =
+    raw.to === undefined || raw.to === ""
+      ? earlierDate(addUtcDays(from, 14), fixtureSeasonEnd(today))
+      : raw.to;
 
   return {
     citySlug: raw.city,
@@ -131,9 +143,7 @@ function parsedDiscoveryFilters(
 
 function discoveryDateIssues(filters: DiscoveryFilters, now: Date) {
   const today = formatIsraelDateValue(now);
-  const maximumFutureDate = addUtcDays(today, 45);
-  const maximumWindowDate = addUtcDays(filters.from, 44);
-  const maximumTo = maximumFutureDate < maximumWindowDate ? maximumFutureDate : maximumWindowDate;
+  const seasonEnd = fixtureSeasonEnd(today);
 
   if (filters.from < today) {
     return [
@@ -144,12 +154,12 @@ function discoveryDateIssues(filters: DiscoveryFilters, now: Date) {
       },
     ];
   }
-  if (filters.from > maximumFutureDate) {
+  if (filters.from > seasonEnd) {
     return [
       {
         code: "custom" as const,
         path: ["from"],
-        message: "Choose a date within the next 45 days.",
+        message: `Choose a date on or before ${seasonEnd}.`,
       },
     ];
   }
@@ -162,12 +172,12 @@ function discoveryDateIssues(filters: DiscoveryFilters, now: Date) {
       },
     ];
   }
-  if (filters.to > maximumTo) {
+  if (filters.to > seasonEnd) {
     return [
       {
         code: "custom" as const,
         path: ["to"],
-        message: "Choose a future date range of no more than 45 days.",
+        message: `Choose an end date on or before ${seasonEnd}.`,
       },
     ];
   }
@@ -205,7 +215,9 @@ function recoveryValues(input: unknown, now: Date): DiscoveryFilters {
     lng: null,
     radiusKm,
     from,
-    to: /^\d{4}-\d{2}-\d{2}$/.test(value("to")) ? value("to") : addUtcDays(from, 14),
+    to: /^\d{4}-\d{2}-\d{2}$/.test(value("to"))
+      ? value("to")
+      : earlierDate(addUtcDays(from, 14), fixtureSeasonEnd(today)),
     teamId: null,
     competitionId: null,
     matchId: null,
@@ -279,10 +291,6 @@ export function discoverySearchParams(
     to: filters.to,
     limit: String(filters.limit),
   });
-  if (filters.lat !== null && filters.lng !== null) {
-    search.set("lat", String(filters.lat));
-    search.set("lng", String(filters.lng));
-  }
   if (filters.teamId !== null) search.set("team", filters.teamId);
   if (filters.competitionId !== null) search.set("competition", filters.competitionId);
   if (filters.matchId !== null) search.set("match", filters.matchId);

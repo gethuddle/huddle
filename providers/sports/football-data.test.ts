@@ -89,6 +89,8 @@ describe("FootballDataProvider", () => {
       homeTeam: { providerExternalId: "57", tla: "ARS", countryName: "England" },
       awayTeam: { providerExternalId: "61", tla: "CHE", countryName: "England" },
     });
+    expect(fixtures[0]?.homeTeam.crestUrl).toBe("https://crests.football-data.org/57.png");
+    expect(fixtures[0]?.awayTeam.crestUrl).toBe("https://crests.football-data.org/61.png");
     expect(fixtures[1]).toMatchObject({
       providerExternalId: "5002",
       startsAt: "2026-09-05T12:00:00.000Z",
@@ -102,9 +104,23 @@ describe("FootballDataProvider", () => {
       providerExternalId: "5004",
       startsAt: "2027-05-24T18:00:00.000Z",
     });
-    expect(JSON.stringify(fixtures)).not.toContain("crest");
     expect(JSON.stringify(fixtures)).not.toContain("score");
   });
+
+  it.each(["http://crests.football-data.org/57.png", "https://example.com/57.png"])(
+    "rejects an unsafe team crest URL: %s",
+    async (crest) => {
+      const payload = structuredClone(matchesSuccess);
+      payload.matches[0]!.homeTeam.crest = crest;
+      const provider = new FootballDataProvider("test-provider-token", {
+        fetch: vi.fn(async () => jsonResponse(payload)),
+      });
+
+      await expect(
+        provider.listFixtures({ from: "2026-08-24", to: "2027-05-31" }, ["2021"]),
+      ).rejects.toSatisfy(expectProviderError("INVALID_RESPONSE"));
+    },
+  );
 
   it("accepts a valid empty fixture response", async () => {
     const provider = new FootballDataProvider("test-provider-token", {

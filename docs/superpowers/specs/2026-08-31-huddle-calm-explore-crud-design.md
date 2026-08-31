@@ -76,7 +76,7 @@ Huddle keeps its logo, Familjen Grotesk, and green identity, but changes surface
 
 ### 4.3 Team marks
 
-Provider crest URLs remain unlicensed and must not be stored or displayed. Huddle adds a repository-owned `TeamMark` component that renders a compact emblem from a team's TLA or derived initials. It appears beside teams in Explore results, fixture summaries, event details, selectors, and followed-team lists. It uses text plus shape, so meaning never depends on color alone.
+The scheduled football-data sync may store a nullable provider crest URL only from the allowlisted HTTPS crest host. `TeamMark` renders that cached provider image at fixed dimensions without a page-time sports API request and falls back after a load failure to a compact repository-owned emblem derived from the team's TLA or initials. The adjacent accessible team name carries meaning; neither color nor third-party artwork is the only label.
 
 ## 5. Unified Explore
 
@@ -218,3 +218,17 @@ Implementation uses test-first red/green cycles. Focused Vitest/pgTAP/Playwright
 8. only then commit, push, open the single pull request, and request reciprocal review from `ohadsho`.
 
 The writer never approves or merges this pull request. Deployment and hosted migrations remain out of scope for this branch handoff.
+
+## 11. Approved location, group, and sports extension
+
+The location selector is a reusable search-origin combobox, not a pilot-city gate. It accepts cities, neighborhoods, streets, and public addresses, offers keyboard-operable OpenStreetMap suggestions after three characters, and returns a validated coordinate through a replaceable server-side provider adapter. Huddle uses an already-granted browser coordinate by default, then a session-scoped last choice, then the Fan profile city. It never triggers a browser permission prompt without a user gesture, exposes a precise origin in a URL or log, or submits protected-home address text to a third-party geocoder.
+
+Explore ranks eligible public events and venues by distance across city borders. City remains display/fallback metadata for events and venues, not a boundary around the search. The accepted date range follows the locally synchronized season window through 31 May rather than an arbitrary 45-day ceiling.
+
+Groups are global communities. A group may retain an optional home-area city for descriptive context, but city is not required at creation, does not filter membership eligibility, and does not prevent discovery or application. Public group search is global; when a group has a nearby upcoming public event, that proximity may improve its ranking. My Huddle always exposes both `Create group` and `Find groups` regardless of existing ownership.
+
+Group sharing has two explicit modes. `Invite a person` creates a recipient-bound in-app invitation which that member can accept or decline. `Create share link` creates the existing reusable, expiring application link and never displays a person selector. Active members may be removed without being banned; removal ends membership, is audited, and permits a later fresh application unless another safety rule prevents it.
+
+The synchronized sports catalog may persist the football-data.org team `crest` URL as nullable `crest_url`. Only HTTPS URLs on the expected crest host are accepted. Product pages render the synchronized URL without making provider API requests and fall back to the repository-owned accessible `TeamMark` when the URL is absent or fails. Documentation identifies provider artwork accurately and does not claim it as a Huddle-owned asset.
+
+Workspace switching always navigates to the selected workspace home. Event creation reports exact field errors, focuses the first invalid field, and never renders a protected-home marker until the user explicitly selects a pin. Explore continues to omit the viewer's own/current events and provides a quiet route back to My Huddle for management.

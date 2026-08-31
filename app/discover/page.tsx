@@ -79,7 +79,13 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps) 
         filters={filters}
         key={`valid:${filters.from}:${filters.to}`}
       />
-      <DiscoveryFeed filters={filters} initialPage={initialPage} />
+      <DiscoveryFeed
+        filters={filters}
+        initialPage={initialPage}
+        originCityName={
+          catalog.cities.find((city) => city.slug === filters.citySlug)?.name ?? filters.citySlug
+        }
+      />
     </section>
   );
 }

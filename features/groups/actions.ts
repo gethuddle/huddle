@@ -19,7 +19,7 @@ const similarGroupRowSchema = z
     slug: z.string(),
     name: z.string(),
     lifecycle: z.enum(["forming", "active"]),
-    city_name: z.string(),
+    city_name: z.string().nullable(),
     team_name: z.string().nullable(),
     similarity_score: z.number(),
   })
@@ -111,7 +111,8 @@ export async function createGroupAction(
     if (parsed.data.intent === "check") {
       const { data, error } = await supabase.rpc("suggest_similar_groups", {
         input_name: parsed.data.name,
-        input_city_id: parsed.data.cityId,
+        // PostgREST permits SQL null even though generated RPC argument types cannot express it.
+        input_city_id: parsed.data.cityId as string,
         // The generated RPC type does not preserve nullable SQL arguments.
         input_team_id: parsed.data.teamId as string,
         input_limit: 5,
@@ -153,7 +154,8 @@ export async function createGroupAction(
     const { data, error } = await supabase.rpc("create_group", {
       input_name: parsed.data.name,
       input_slug: parsed.data.slug,
-      input_city_id: parsed.data.cityId,
+      // PostgREST permits SQL null even though generated RPC argument types cannot express it.
+      input_city_id: parsed.data.cityId as string,
       input_team_id: parsed.data.teamId as string,
       input_visibility: parsed.data.visibility,
       input_description: parsed.data.description,

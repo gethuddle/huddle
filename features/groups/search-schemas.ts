@@ -12,21 +12,7 @@ const optionalUuid = z.preprocess(firstSearchParam, z.union([z.literal(""), z.uu
 const groupSearchFiltersSchema = z
   .object({
     q: optionalString,
-    city: z.preprocess(
-      firstSearchParam,
-      z
-        .union([
-          z.literal(""),
-          z
-            .string()
-            .trim()
-            .toLowerCase()
-            .min(2)
-            .max(60)
-            .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-        ])
-        .optional(),
-    ),
+    city: z.preprocess(firstSearchParam, z.string().optional()),
     team: optionalUuid,
     cursor: z.preprocess(firstSearchParam, z.string().trim().min(1).max(1024).optional()),
     limit: z.preprocess(
@@ -58,7 +44,7 @@ export function parseGroupSearchFilters(input: unknown): GroupSearchFilters {
   const raw = groupSearchFiltersSchema.parse(input);
   return {
     query: raw.q === undefined || raw.q === "" ? null : raw.q,
-    citySlug: raw.city === undefined || raw.city === "" ? null : raw.city,
+    citySlug: null,
     teamId: raw.team === undefined || raw.team === "" ? null : raw.team,
     cursor: raw.cursor ?? null,
     limit: raw.limit,
@@ -68,7 +54,6 @@ export function parseGroupSearchFilters(input: unknown): GroupSearchFilters {
 export function groupSearchFilterIdentity(filters: GroupSearchFilters) {
   return {
     query: filters.query?.toLowerCase() ?? null,
-    city: filters.citySlug,
     team: filters.teamId,
   };
 }
@@ -79,7 +64,6 @@ export function groupSearchParams(
 ): URLSearchParams {
   const search = new URLSearchParams({ limit: String(filters.limit) });
   if (filters.query !== null) search.set("q", filters.query);
-  if (filters.citySlug !== null) search.set("city", filters.citySlug);
   if (filters.teamId !== null) search.set("team", filters.teamId);
   if (cursor !== null) search.set("cursor", cursor);
   return search;

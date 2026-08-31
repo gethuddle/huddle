@@ -69,6 +69,9 @@ const initialPage: DiscoveryPage = {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  window.sessionStorage.clear();
+  Reflect.deleteProperty(navigator, "permissions");
+  Reflect.deleteProperty(navigator, "geolocation");
 });
 
 describe("DiscoveryFeed", () => {
@@ -83,13 +86,13 @@ describe("DiscoveryFeed", () => {
     const user = userEvent.setup();
 
     render(<DiscoveryFeed filters={filters} initialPage={initialPage} />);
-    const browserLocationButton = screen.getByRole("button", { name: "Use my location once" });
+    const browserLocationButton = screen.getByRole("button", { name: "Use my location" });
     expect(browserLocationButton).toHaveClass("min-h-11");
     await user.click(browserLocationButton);
 
     expect(getCurrentPosition).toHaveBeenCalledOnce();
     expect(await screen.findByRole("status")).toHaveTextContent(
-      "Discovery is continuing from the selected city",
+      "Discovery is continuing from your profile area",
     );
     expect(screen.getByText("North stand watch")).toBeVisible();
   });
@@ -110,15 +113,71 @@ describe("DiscoveryFeed", () => {
     const user = userEvent.setup();
 
     render(<DiscoveryFeed filters={filters} initialPage={initialPage} />);
-    await user.click(screen.getByRole("button", { name: "Use my location once" }));
+    await user.click(screen.getByRole("button", { name: "Use my location" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
-    const requestUrl = String(fetchMock.mock.calls[0]?.[0]);
-    expect(requestUrl).toContain("lat=32.794");
-    expect(requestUrl).toContain("lng=34.989");
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/discovery");
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ method: "POST" });
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toMatchObject({
+      lat: 32.794,
+      lng: 34.989,
+    });
     expect(window.location.search).not.toContain("lat=");
     expect(screen.getByText("Using this browser location")).toBeVisible();
-    expect(screen.getByRole("button", { name: "Use city instead" })).toHaveClass("min-h-11");
+    expect(screen.getByRole("button", { name: "Use profile area" })).toHaveClass("min-h-11");
+  });
+
+  it("uses browser location automatically only when permission was already granted", async () => {
+    const getCurrentPosition = vi.fn((success: PositionCallback) =>
+      success({ coords: { latitude: 32.794, longitude: 34.989 } } as GeolocationPosition),
+    );
+    Object.defineProperty(navigator, "geolocation", {
+      configurable: true,
+      value: { getCurrentPosition },
+    });
+    Object.defineProperty(navigator, "permissions", {
+      configurable: true,
+      value: { query: vi.fn().mockResolvedValue({ state: "granted" }) },
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ ...initialPage, locationMode: "browser" }),
+      }),
+    );
+
+    render(<DiscoveryFeed filters={filters} initialPage={initialPage} />);
+
+    await waitFor(() => expect(getCurrentPosition).toHaveBeenCalledOnce());
+    expect(await screen.findByText("Using this browser location")).toBeVisible();
+  });
+
+  it("restores an address origin from session storage without putting coordinates in the URL", async () => {
+    window.sessionStorage.setItem(
+      "huddle:discovery-origin",
+      JSON.stringify({
+        lat: 32.794,
+        lng: 34.989,
+        label: "12 Hanassi Boulevard, Haifa, Israel",
+        kind: "address",
+      }),
+    );
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ...initialPage, locationMode: "address" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<DiscoveryFeed filters={filters} initialPage={initialPage} />);
+
+    expect(await screen.findByText("Near 12 Hanassi Boulevard, Haifa, Israel")).toBeVisible();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toMatchObject({
+      lat: 32.794,
+      lng: 34.989,
+    });
+    expect(window.location.search).not.toContain("lat=");
   });
 
   it("keeps retry at least 44px tall after a discovery failure", async () => {
@@ -133,7 +192,7 @@ describe("DiscoveryFeed", () => {
     const user = userEvent.setup();
 
     render(<DiscoveryFeed filters={filters} initialPage={initialPage} />);
-    await user.click(screen.getByRole("button", { name: "Use my location once" }));
+    await user.click(screen.getByRole("button", { name: "Use my location" }));
 
     expect(await screen.findByRole("button", { name: "Retry" }, { timeout: 4_000 })).toHaveClass(
       "min-h-11",

@@ -14,6 +14,8 @@
 
 **Approved discovery consistency revision:** 31 August 2026. A described discoverable group with an active owner is searchable without artificial member, moderator, rule, or event quotas. Eligible signed-in Fans may discover its published public-place events as acquisition previews, but must become active group members before attending; group home events remain private. Fan Explore also includes public listings from Venues the same human manages, fixture details list every event currently visible to that viewer, and an owner may delete a group through an audited archival transition that cancels live group events and revokes usable invites while retaining safety history.
 
+**Approved location and catalog revision:** 31 August 2026. Explore accepts a privacy-safe public search origin from browser location or an OpenStreetMap-backed address suggestion and ranks eligible results across city borders. Group city is optional descriptive context and never an eligibility gate. The scheduled football-data sync may store a tightly validated provider crest URL for display with an accessible Huddle initials fallback; normal page requests still never call the sports provider.
+
 The keywords **MUST**, **MUST NOT**, **SHOULD**, and **MAY** express implementation priority. A MUST is part of acceptance for the submitted MVP unless this specification is deliberately revised.
 
 ---
@@ -26,7 +28,7 @@ Huddle MUST let a person:
 
 1. create and verify an adult account;
 2. attest that they are 18+, accept the community rules, and activate an optional Fan identity or a self-serve Venue workspace;
-3. discover safe, relevant future watch events near a city in Israel or an optional browser location;
+3. discover safe, relevant future watch events near a chosen public origin in Israel, with profile city as a fallback;
 4. form trust through accepted friendships or moderated social/team-linked groups;
 5. request or accept attendance without exposing a home address prematurely;
 6. host and manage a private, group, public-place, or venue event;
@@ -46,7 +48,7 @@ The system MUST also let a venue-only operator activate an Unverified venue work
 - Group applications, `owner`/`admin`/`member` roles, bans, invite links, atomic owner/admin-authored event publication, and review of ordinary-member event submissions by a different current owner/admin.
 - Private-person events restricted to `group`, `friends`, or `invite_only`.
 - Business-venue events using `public` or `team_followers`.
-- Location discovery using a seeded list of cities in Israel, optional browser geolocation, and PostGIS.
+- Location discovery using a selected public origin from Photon/OpenStreetMap address suggestions, optional browser geolocation, profile-city fallback, and PostGIS distance ranking across city borders.
 - Venue `public` events may be `open_door`, with no Huddle RSVP, invitation, queue, guest list, or capacity claim, or `reservations`, using the registered-account attendance flows below.
 - Reservation attendance request, accept/approve, decline, host removal, and leave flows with atomic capacity enforcement and no unregistered guests.
 - RFC 5545 `.ics` event download.
@@ -60,7 +62,7 @@ The system MUST also let a venue-only operator activate an Unverified venue work
 - notifications or reminders;
 - Google Calendar OAuth;
 - NBA integration and live scores;
-- route planning and paid address autocomplete beyond the implemented OpenStreetMap/Nominatim search and public-event map;
+- route planning and paid address autocomplete beyond the implemented Photon/OpenStreetMap search and public-event map;
 - Stripe billing or subscription enforcement;
 - venue menus, offers, analytics, and promoted ranking;
 - ticket/payment handling;
@@ -105,10 +107,13 @@ Deferred behavior MUST NOT be represented by fake controls, placeholder entitlem
 - A discoverable group starts as `forming` and becomes `active`/searchable when it has an active owner and a non-empty description. Member count, additional admins, rules, and events are useful group content but MUST NOT be search prerequisites.
 - Unlisted groups MAY operate immediately and do not need the discovery gate.
 - A group's team association is optional. Product copy MUST say “Groups” when referring to the complete domain; “supporter group” is appropriate only when the group actually identifies with a team.
-- Creation SHOULD show groups with the same team/city and similarly normalized names. Similarity warns; it does not block creation.
+- A group's city association is optional display context. It MUST NOT gate discovery, application, invitation, or membership.
+- Creation SHOULD show groups with the same optional team/home area and similarly normalized names. Similarity warns; it does not block creation.
+- An owner/admin MAY invite one eligible registered Fan directly. Only that recipient may accept or decline; acceptance activates membership after rechecking current safety, block, ban, and membership state. This is separate from a reusable unlisted-group link, which starts an application and remains expiring, revocable, and usage-limited.
 - An active ordinary member MAY submit a group event for owner/admin review. An event authored by a current group owner/admin MUST publish atomically; an ordinary-member submission MUST remain pending until a current owner/admin whose user ID differs from `created_by` publishes or rejects it. Promotion after submission MUST NOT let an author review their own pending event.
 - Platform moderators do not routinely approve group creation. They handle reports and suspensions.
 - A group ban prevents content access, invitation use, and reapplication until removed by an authorized group admin or platform action.
+- An owner/admin MAY remove an active non-owner member without banning them. Removal records `left`, revokes current member-only access, and permits a later valid application or invitation; Ban is a separate durable safety action.
 - Only the active owner may delete a group. Product “delete” is an audited archive: the group disappears from live product reads, usable invite links are revoked, future live group events are cancelled, and membership/attendance/security history is retained.
 
 ### 2.4 Event audiences
@@ -511,9 +516,9 @@ Unique `(user_low_id, user_high_id)`. Mutations MUST call a database function th
 
 #### `teams`
 
-`id`, `sport_id`, `provider`, `provider_external_id`, `name`, `short_name`, `tla`, `country_name`, `active`, `last_synced_at`. Unique `(provider, provider_external_id)`; indexes on `sport_id`, `lower(name)`, and `tla`.
+`id`, `sport_id`, `provider`, `provider_external_id`, `name`, `short_name`, `tla`, `country_name`, nullable `crest_url`, `active`, `last_synced_at`. Unique `(provider, provider_external_id)`; indexes on `sport_id`, `lower(name)`, and `tla`.
 
-The MVP does not persist/display provider crest URLs. Product interfaces MAY render a repository-owned live-text team mark derived from `tla` or the team name; it is not a provider crest or licensed club artwork.
+The scheduled football-data adapter MAY persist a nullable crest URL only when it is HTTPS and belongs to the allowlisted `crests.football-data.org` host. Interfaces render it as provider-supplied artwork, never Huddle-owned artwork, and MUST preserve a repository-owned live-text `TeamMark` fallback derived from `tla` or the team name when it is absent or fails. Normal page requests never fetch the provider API.
 
 #### `competition_teams`
 
@@ -556,13 +561,13 @@ Never store tokens or full sensitive responses. Public freshness derives from th
 | `slug`, `name` | unique slug; name 3–80 chars |
 | `owner_id` | FK profile |
 | `team_id` | optional FK team |
-| `city_id` | FK city |
+| `city_id` | nullable FK city; descriptive home area only |
 | `visibility` | discoverable/unlisted |
 | `lifecycle` | forming/active/suspended/archived |
 | `description` | required before discovery, max 2,000 plain-text chars |
 | `activated_at`, `suspended_at` | nullable transition timestamps |
 
-Indexes: unique `lower(slug)`, `(visibility, lifecycle, city_id)`, `(team_id, city_id)`, `owner_id`, and a GIN `pg_trgm` index on normalized name. The creator transaction inserts an active owner membership.
+Indexes: unique `lower(slug)`, live visibility/lifecycle, optional team/city, `owner_id`, and a GIN `pg_trgm` index on normalized name. The creator transaction inserts an active owner membership.
 
 #### `group_rules`
 
@@ -584,6 +589,10 @@ Indexes: `(group_id, status, role)`, `(user_id, status)`, `(reviewed_by, reviewe
 #### `group_invite_tokens`
 
 `id`, `group_id`, `token_hash`, `created_by`, `expires_at`, `max_uses`, `use_count`, `revoked_at`, timestamps. Store only a SHA-256 digest of a cryptographically random high-entropy token; unique `token_hash`. High entropy prevents practical offline guessing, while the digest supports exact lookup. `use_count` increments atomically only when an invite successfully starts an application. Admins can list metadata but never recover a token after creation.
+
+#### `group_invitations`
+
+`id`, `group_id`, `invitee_id`, `invited_by`, `status`, `responded_at`, `revoked_at`, timestamps. One recipient sees and responds to their own pending invitation; current owners/admins may list or revoke pending invitations for their group. Controlled functions enforce eligibility, blocks, bans, role authority, and one live invitation per group/recipient. Direct table access remains denied.
 
 #### `group_bans`
 
@@ -763,23 +772,24 @@ interface SportsProvider {
 }
 ```
 
-Normalized competition/team/fixture objects MUST contain only fields Huddle owns semantically: provider identity, name/code, competition, home/away team, UTC start, and normalized status. Zod parses the provider response before normalization. Unknown optional fields are ignored; missing required identity/time/team fields fail that item/run visibly rather than entering malformed data.
+Normalized competition/team/fixture objects MUST contain only fields Huddle uses semantically: provider identity, name/code, optional allowlisted crest URL, competition, home/away team, UTC start, and normalized status. Zod parses the provider response before normalization. Unknown optional fields are ignored; missing required identity/time/team fields fail that item/run visibly rather than entering malformed data.
 
 An adapter error is categorized as `AUTH`, `RATE_LIMIT`, `UPSTREAM_4XX`, `UPSTREAM_5XX`, `TIMEOUT`, `INVALID_RESPONSE`, or `UNKNOWN` and must not include the token.
 
 ### 7.2 Route Handlers
 
-#### `GET /api/discovery`
+#### `GET` and `POST /api/discovery`
 
-Query:
+Public query filters:
 
 - `city`: city slug fallback;
-- optional `lat`, `lng`: browser coordinate validated to world ranges and used only for this request unless user explicitly saves a city;
 - `radiusKm`: allowlisted bounded options, default appropriate to city pilot;
-- `from`, `to`: bounded future date window;
+- `from`, `to`: future dates bounded by the locally synchronized football-season end;
 - optional `team`, `competition`, `match` IDs;
 - `cursor`: opaque signed/base64url cursor containing last sort keys, not raw SQL;
 - `limit`: default 20, maximum 50.
+
+`GET` rejects precise coordinates in the URL. `POST` accepts the same filters plus paired validated `lat`/`lng` in a bounded JSON body for one browser/address-origin request, returns `private, no-store`, and never logs or persists the precise origin. Public address text is resolved through the location-search route and is not sent to discovery or stored as an origin.
 
 Response `200`:
 
@@ -796,7 +806,7 @@ Sort is deterministic: eligible published future events by match/interest releva
 
 #### `GET /api/groups/search`
 
-Validates `q`, `city`, `team`, `cursor`, and `limit`. Returns only `active + discoverable` groups. Group-creation similarity MAY reuse a signed-in mode that includes the creator's own forming groups but never another unlisted group.
+Validates `q`, optional `team`, `cursor`, and `limit`. Returns only `active + discoverable` groups globally; optional city metadata is descriptive and does not exclude candidates. Group-creation similarity MAY reuse a signed-in mode that includes the creator's own forming groups but never another unlisted group.
 
 #### `POST /api/internal/sports-sync`
 
@@ -900,7 +910,7 @@ Rules:
 - Normal page requests never call the provider.
 - The configured competition allowlist must fit the active provider plan.
 - Provider attribution is visible in the footer and a `/data-sources` page.
-- Do not display provider crest assets unless licensing is separately confirmed; use initials/original artwork.
+- Accept only the adapter's allowlisted HTTPS crest host, attribute the provider, and retain initials/original artwork as the failure fallback. Do not claim provider artwork as Huddle-owned.
 
 ### 8.2 Schedule and window
 
@@ -1385,7 +1395,7 @@ The MVP is done only when:
 | Community eligibility | 18+ attestation and current rules acceptance | Avoid child-safety scope; do not claim identity/age verification |
 | Backend | Next.js only | One deployable modular monolith |
 | DB access | Supabase SQL/RPC, no Prisma | RLS/PostGIS/functions remain explicit |
-| Location | City fallback + optional browser coordinate, OpenStreetMap public-event map, and bounded Nominatim address search | No paid geocoder or route planning; protected homes never enter discovery maps |
+| Location | City fallback + optional browser coordinate, OpenStreetMap public-event map, and bounded Photon address search | No paid geocoder or route planning; protected homes never enter discovery maps |
 | Social | Direct mutual friends plus moderated groups | No friends-of-friends |
 | Group creation | Active-owner plus description discovery gate | Avoid platform bottlenecks and fake activity quotas while keeping empty groups out of search |
 | Audience boundary | Private people: group/friends/invite-only; business venues: public/team-followers; eligible signed-in Fans may preview public-place events of active discoverable groups | Anonymous visitors never discover private-person events, and group attendance/home privacy still require membership |

@@ -20,6 +20,7 @@ export type NormalizedTeam = Readonly<{
   shortName: string | null;
   tla: string | null;
   countryName: string | null;
+  crestUrl: string | null;
 }>;
 
 export type NormalizedFixture = Readonly<{

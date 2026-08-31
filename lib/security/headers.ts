@@ -4,7 +4,7 @@ const baseDirectives = [
   "object-src 'none'",
   "frame-ancestors 'none'",
   "form-action 'self'",
-  "img-src 'self' data: blob: https://*.supabase.co https://tile.openstreetmap.org",
+  "img-src 'self' data: blob: https://*.supabase.co https://tile.openstreetmap.org https://crests.football-data.org",
   "font-src 'self'",
   "style-src 'self' 'unsafe-inline'",
   "worker-src 'self' blob:",

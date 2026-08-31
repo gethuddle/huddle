@@ -32,7 +32,12 @@ type MatchDetailPageProps = Readonly<{
 function Team({ team, side }: Readonly<{ team: TeamSummary; side: string }>) {
   return (
     <div className="flex min-w-0 flex-1 flex-col items-center text-center">
-      <TeamMark className="size-16 text-sm" name={team.name} tla={team.tla} />
+      <TeamMark
+        className="size-16 text-sm"
+        crestUrl={team.crestUrl}
+        name={team.name}
+        tla={team.tla}
+      />
       <p className="mt-4 text-xl font-semibold text-foreground sm:text-2xl">
         {team.shortName ?? team.name}
       </p>

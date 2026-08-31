@@ -13,10 +13,12 @@ const row = {
   home_team_name: "Arsenal FC",
   home_team_short_name: "Arsenal",
   home_team_tla: "ARS",
+  home_team_crest_url: "https://crests.football-data.org/57.png",
   away_team_id: "10000000-0000-4000-8000-000000000005",
   away_team_name: "Chelsea FC",
   away_team_short_name: "Chelsea",
   away_team_tla: "CHE",
+  away_team_crest_url: "https://crests.football-data.org/61.png",
   starts_at: "2026-08-26T17:30:00Z",
   status: "timed",
   matchday: 2,
@@ -30,8 +32,18 @@ describe("public match DTO", () => {
     expect(toPublicMatchDto(row)).toMatchObject({
       id: row.id,
       competition: { id: row.competition_id, code: "PL", name: "Premier League" },
-      homeTeam: { id: row.home_team_id, name: "Arsenal FC", tla: "ARS" },
-      awayTeam: { id: row.away_team_id, name: "Chelsea FC", tla: "CHE" },
+      homeTeam: {
+        id: row.home_team_id,
+        name: "Arsenal FC",
+        tla: "ARS",
+        crestUrl: row.home_team_crest_url,
+      },
+      awayTeam: {
+        id: row.away_team_id,
+        name: "Chelsea FC",
+        tla: "CHE",
+        crestUrl: row.away_team_crest_url,
+      },
       status: "timed",
     });
   });

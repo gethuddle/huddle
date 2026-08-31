@@ -23,12 +23,16 @@ import {
   archiveGroupAction,
   banGroupMemberAction,
   changeGroupRoleAction,
+  createDirectGroupInvitationAction,
   createGroupInviteAction,
   createGroupRuleAction,
   reorderGroupRulesAction,
+  removeGroupMemberAction,
+  respondGroupInvitationAction,
   reviewGroupApplicationAction,
   reviewGroupEventAction,
   revokeGroupInviteAction,
+  revokeGroupInvitationAction,
   unbanGroupMemberAction,
   updateGroupRuleAction,
   withdrawGroupEventAction,
@@ -308,6 +312,129 @@ export function BanMemberControl({
       </AlertDialog>
       <GroupActionFeedback state={state} />
     </div>
+  );
+}
+
+export function RemoveMemberControl({
+  groupId,
+  groupSlug,
+  targetLabel,
+  userId,
+}: GroupIdentity & Readonly<{ targetLabel: string; userId: string }>) {
+  const [state, formAction, pending] = useActionState(
+    removeGroupMemberAction,
+    INITIAL_GROUP_MEMBERSHIP_ACTION_STATE,
+  );
+
+  return (
+    <div className="space-y-3">
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button disabled={pending} size="sm" type="button" variant="outline">
+            Remove
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove {targetLabel}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              They will lose member access now. This does not ban them, so they may apply again
+              later. Use Ban only for a safety boundary.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <form action={formAction}>
+            <GroupFields groupId={groupId} groupSlug={groupSlug} />
+            <input name="userId" type="hidden" value={userId} />
+            <AlertDialogFooter>
+              <AlertDialogCancel type="button">Keep member</AlertDialogCancel>
+              <Button disabled={pending} type="submit" variant="destructive">
+                {pending ? "Removing…" : "Remove member"}
+              </Button>
+            </AlertDialogFooter>
+          </form>
+        </AlertDialogContent>
+      </AlertDialog>
+      <GroupActionFeedback state={state} />
+    </div>
+  );
+}
+
+export function DirectGroupInvitationControl({
+  groupId,
+  groupSlug,
+  inviteeLabel,
+  userId,
+}: GroupIdentity & Readonly<{ inviteeLabel: string; userId: string }>) {
+  const [state, formAction, pending] = useActionState(
+    createDirectGroupInvitationAction,
+    INITIAL_GROUP_MEMBERSHIP_ACTION_STATE,
+  );
+
+  return (
+    <form action={formAction} className="space-y-3">
+      <GroupFields groupId={groupId} groupSlug={groupSlug} />
+      <input name="userId" type="hidden" value={userId} />
+      <p className="text-sm font-semibold text-foreground">Invitee: {inviteeLabel}</p>
+      <Button disabled={pending} type="submit">
+        {pending ? "Sending…" : "Send invitation"}
+      </Button>
+      <GroupActionFeedback state={state} />
+    </form>
+  );
+}
+
+export function GroupInvitationResponseControl({
+  groupSlug,
+  invitationId,
+}: Readonly<{ groupSlug: string; invitationId: string }>) {
+  const [state, formAction, pending] = useActionState(
+    respondGroupInvitationAction,
+    INITIAL_GROUP_MEMBERSHIP_ACTION_STATE,
+  );
+
+  return (
+    <div className="space-y-3">
+      <form action={formAction} className="flex flex-wrap gap-2">
+        <input name="groupSlug" type="hidden" value={groupSlug} />
+        <input name="invitationId" type="hidden" value={invitationId} />
+        <Button disabled={pending} name="decision" size="sm" type="submit" value="accept">
+          {pending ? "Updating…" : "Join group"}
+        </Button>
+        <Button
+          disabled={pending}
+          name="decision"
+          size="sm"
+          type="submit"
+          value="decline"
+          variant="outline"
+        >
+          Decline
+        </Button>
+      </form>
+      <GroupActionFeedback state={state} />
+    </div>
+  );
+}
+
+export function DirectInvitationRevocationControl({
+  groupId,
+  groupSlug,
+  invitationId,
+}: GroupIdentity & Readonly<{ invitationId: string }>) {
+  const [state, formAction, pending] = useActionState(
+    revokeGroupInvitationAction,
+    INITIAL_GROUP_MEMBERSHIP_ACTION_STATE,
+  );
+
+  return (
+    <form action={formAction} className="space-y-3">
+      <GroupFields groupId={groupId} groupSlug={groupSlug} />
+      <input name="invitationId" type="hidden" value={invitationId} />
+      <Button disabled={pending} size="sm" type="submit" variant="outline">
+        {pending ? "Revoking…" : "Revoke invitation"}
+      </Button>
+      <GroupActionFeedback state={state} />
+    </form>
   );
 }
 

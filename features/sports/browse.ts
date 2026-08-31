@@ -10,7 +10,7 @@ import { deriveFixtureFreshness, fixtureSyncAgeSeconds, type FixtureFreshness } 
 import { FIXTURES_PER_PAGE, fixtureQueryPlan } from "./query";
 
 const PUBLIC_MATCH_SELECT =
-  "id, sport_id, sport_slug, competition_id, competition_code, competition_name, home_team_id, home_team_name, home_team_short_name, home_team_tla, away_team_id, away_team_name, away_team_short_name, away_team_tla, starts_at, status, matchday, stage, season_label, last_synced_at";
+  "id, sport_id, sport_slug, competition_id, competition_code, competition_name, home_team_id, home_team_name, home_team_short_name, home_team_tla, away_team_id, away_team_name, away_team_short_name, away_team_tla, starts_at, status, matchday, stage, season_label, last_synced_at, home_team_crest_url, away_team_crest_url";
 
 export type CompetitionFilterOption = Readonly<{
   id: string;

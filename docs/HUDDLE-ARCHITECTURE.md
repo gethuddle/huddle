@@ -14,6 +14,8 @@
 
 **Approved discovery consistency revision:** 31 August 2026. Searchable groups need an active owner and a useful description, not manufactured membership/activity quotas. Eligible signed-in Fans can discover public-place events from those groups and then apply before attending; home events stay member-only. Fan Explore includes public listings from Venues the same person manages, fixture pages list every event visible to the current viewer, and owner-facing group deletion is an audited archive that retains safety history.
 
+**Approved location and catalog revision:** 31 August 2026. Public discovery starts from a browser coordinate or OpenStreetMap-backed address suggestion and ranks eligible results across city borders; profile city is only a fallback. Groups may keep an optional home area but are global communities. Scheduled football-data synchronization may retain a strictly allowlisted provider crest URL, while Huddle initials remain the resilient accessible fallback.
+
 The source of truth for the course deliverables is the [official project brief](<../course-roadmap/project instructions.pdf>). The [course roadmap](../course-roadmap/ROADMAP.md) is a wider technology menu, not a requirement to use every tool mentioned in the lectures.
 
 ---
@@ -81,7 +83,7 @@ Promotion must never bypass distance, audience, privacy, moderation, or match re
 - numeric reputation or endorsement scores;
 - friends-of-friends visibility;
 - live scores and NBA integration;
-- route planning and paid address autocomplete beyond the implemented OpenStreetMap/Nominatim search and public-event map;
+- route planning and paid address autocomplete beyond the implemented Photon/OpenStreetMap search and public-event map;
 - Google Calendar OAuth;
 - Stripe billing, menus, offers, or promoted ranking;
 - payments, ratings, AI recommendations, and AI moderation.
@@ -166,7 +168,7 @@ Huddle stores provider-independent records for sports, competitions, teams, and 
 
 Provider IDs are integration details, not Huddle's public identity. A future NBA adapter can produce the same normalized competition/team/fixture shapes without changing events or discovery.
 
-Required provider attribution appears in the footer and data-sources page. Team crests are not assumed licensed; the MVP uses text initials or original Huddle artwork.
+Required provider attribution appears in the footer and data-sources page. The scheduled adapter may retain the provider's HTTPS crest URL from its dedicated crest host. Product pages use that cached URL without a page-time provider API call, identify it as provider-supplied rather than Huddle-owned, and fall back to Huddle's text-initial mark whenever it is missing or cannot load.
 
 ### 5.3 Follows
 
@@ -187,9 +189,9 @@ Groups are stronger community boundaries than friendships. A group may optionall
 - **discoverable** — eventually appears in search, but joining always needs an application and admin review;
 - **unlisted** — does not appear in global search and is reached using a revocable invite link; the link still does not bypass admin approval.
 
-A new discoverable group begins in `forming`. It enters search as soon as its owner remains active and it has a clear description. Members, additional admins, rules, and events enrich the community but do not gate search. During creation, Huddle shows similar team/location groups to discourage duplicates without giving the platform a routine approval bottleneck.
+A new discoverable group begins in `forming`. It enters search as soon as its owner remains active and it has a clear description. Members, additional admins, rules, events, and a home-area city enrich the community but do not gate search or membership. During creation, Huddle shows similar optional team/home-area groups to discourage duplicates without giving the platform a routine approval bottleneck.
 
-Roles are `owner`, `admin`, and `member`. An event authored by a current owner/admin publishes atomically without self-review. An ordinary member may submit an event, but it remains pending until a current owner/admin whose user ID differs from the creator publishes or rejects it. Promoting the author after submission never permits self-approval or self-rejection. Admins may reject applications or ban a member. The owner may delete the live group through an audited archival transition that cancels future live group events and revokes usable invites without erasing membership or attendance history. Platform staff step in for reports and suspensions rather than operating every group.
+Roles are `owner`, `admin`, and `member`. An event authored by a current owner/admin publishes atomically without self-review. An ordinary member may submit an event, but it remains pending until a current owner/admin whose user ID differs from the creator publishes or rejects it. Promoting the author after submission never permits self-approval or self-rejection. Admins may remove a member without banning them, or use the separate durable Ban action for a safety boundary. They may also invite one registered Fan directly; only that recipient can accept or decline. A reusable unlisted-group link remains a separate expiring, revocable application route. The owner may delete the live group through an audited archival transition that cancels future live group events and revokes usable invites without erasing membership or attendance history. Platform staff step in for reports and suspensions rather than operating every group.
 
 ### 5.6 Venue workspaces and profiles
 
@@ -239,7 +241,7 @@ Open-door venue listings deliberately do not use that RSVP state machine. Databa
 
 ### 5.10 Location-aware discovery
 
-Onboarding asks for a city in the Israel pilot. The user may optionally share current browser location for a more precise nearby search; declining geolocation never blocks the app. PostGIS performs distance filtering and sorting for public business-venue events and privately evaluates eligible private-person events without returning a home coordinate.
+Fan onboarding keeps a profile city as useful fallback context, but Explore is not fenced to it. Huddle first reuses an already-granted browser coordinate when available, otherwise a session-scoped public origin or profile-city fallback; a permission prompt occurs only after “Use my location.” The user may search a city, neighborhood, street, or public address through an OpenStreetMap-backed suggestion service. Only the selected public coordinate reaches discovery, in a no-store request body rather than the URL. Protected-home text never enters that geocoder. PostGIS filters and ranks eligible events across city borders without returning a home coordinate.
 
 The feed combines location, future time, followed interests, audience eligibility, match, and event status. It also merges and deduplicates public listings from Venues managed by the current Fan account, so switching workspaces does not make the person's own published event disappear. Fixture details use the same visibility boundary to list the watch events attached to that match. Results use cursor pagination so a larger catalog does not require loading or re-counting every earlier row.
 

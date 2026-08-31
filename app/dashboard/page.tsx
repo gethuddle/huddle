@@ -27,7 +27,7 @@ type DashboardPageProps = Readonly<{
 }>;
 
 const eventBucketSchema = z.enum(eventBuckets).catch("upcoming");
-const groupBucketSchema = z.enum(groupBuckets).catch("owner");
+const groupBucketSchema = z.enum(groupBuckets).catch("all");
 const savedBucketSchema = z.enum(savedBuckets).catch("all");
 const noticeSchema = z.enum(["invitation-declined"]).nullable().catch(null);
 
@@ -155,6 +155,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           eventPage={canonicalPages.events}
           events={overview.events}
           groupBucket={groupBucket}
+          groupInvitations={overview.groupInvitations}
           groupPage={canonicalPages.groups}
           groups={overview.groups}
           saved={overview.saved}

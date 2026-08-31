@@ -12,7 +12,7 @@ import { TeamInitials } from "./team-initials";
 function TeamRow({ team, side }: Readonly<{ team: TeamSummary; side: "Home" | "Away" }>) {
   return (
     <div className="flex items-center gap-3">
-      <TeamInitials name={team.name} tla={team.tla} />
+      <TeamInitials crestUrl={team.crestUrl} name={team.name} tla={team.tla} />
       <div className="min-w-0">
         <p className="truncate font-semibold text-foreground">{team.shortName ?? team.name}</p>
         <p className="mt-0.5 text-sm text-muted-foreground">{side}</p>

@@ -416,6 +416,37 @@ describe("EventCreateFlow", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("explains every missing review field inline and focuses the first one", async () => {
+    const user = userEvent.setup();
+    render(
+      <EventCreateFlow
+        catalog={catalog}
+        initialDraft={{
+          id: draftId,
+          step: 2,
+          values: { matchId },
+          savedAt: "2026-08-30T10:00:00+00:00",
+        }}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Next: review and publish" }));
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("Fix 5 details before review");
+    expect(alert).toHaveTextContent("Use at least 3 characters for the event title.");
+    expect(alert).toHaveTextContent("Use at least 10 characters for the description.");
+    expect(alert).toHaveTextContent("Choose the event city.");
+    expect(alert).toHaveTextContent("Choose the private address and pin.");
+    expect(alert).toHaveTextContent("Confirm that you will be present.");
+    expect(screen.getByRole("textbox", { name: "Event title" })).toHaveFocus();
+    expect(screen.getByRole("textbox", { name: "Event title" })).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
+    expect(mocks.saveEventDraftStepAction).not.toHaveBeenCalled();
+  });
+
   it("finalizes the persisted draft from the review phase", async () => {
     mocks.finalizeEventDraftAction.mockResolvedValue({
       ok: false,

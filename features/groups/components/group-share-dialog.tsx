@@ -16,7 +16,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { InviteCreateControl } from "@/features/groups/components/group-management-controls";
+import {
+  DirectGroupInvitationControl,
+  InviteCreateControl,
+} from "@/features/groups/components/group-management-controls";
 
 export type GroupShareCandidate = Readonly<{
   id: string;
@@ -82,27 +85,23 @@ export function GroupShareDialog({
           <DialogTitle>Share {groupName}</DialogTitle>
           <DialogDescription>
             {visibility === "discoverable"
-              ? "Share the group page where people can read the summary and apply."
-              : "Create a controlled invitation link for a Huddle member without leaving this group."}
+              ? canManage
+                ? "Invite one person directly, or share the group page so others can apply."
+                : "Share the group page where people can read the summary and apply."
+              : "Invite one person in Huddle, or create a reusable private link when you need one."}
           </DialogDescription>
         </DialogHeader>
 
-        {visibility === "discoverable" ? (
-          <div className="space-y-4">
-            <Input aria-label="Application link" readOnly value={applicationPath} />
-            <div className="flex flex-wrap gap-3">
-              <Button onClick={copyApplicationLink} type="button">
-                {copied ? "Application link copied" : "Copy application link"}
-              </Button>
-              <Button asChild variant="outline">
-                <Link href={applicationPath}>Open application page</Link>
-              </Button>
-            </div>
-          </div>
-        ) : canManage ? (
+        {canManage ? (
           <div className="space-y-6">
             <div>
-              <Label htmlFor="group-share-person-search">Find a Huddle member</Label>
+              <h3 className="text-lg font-semibold text-foreground">Invite a person</h3>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                They’ll see the invitation in Home and My Huddle and can join or decline.
+              </p>
+              <Label className="mt-4" htmlFor="group-share-person-search">
+                Find a Huddle member
+              </Label>
               <Input
                 className="mt-2 rounded-full"
                 id="group-share-person-search"
@@ -113,8 +112,8 @@ export function GroupShareDialog({
               <div className="mt-3 max-h-48 space-y-2 overflow-y-auto">
                 {visibleCandidates.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    No eligible person matches this search. You can still create a link and share it
-                    privately.
+                    No eligible person matches this search. Try another name or use the sharing
+                    option below.
                   </p>
                 ) : (
                   visibleCandidates.map((candidate) => (
@@ -142,17 +141,63 @@ export function GroupShareDialog({
                 )}
               </div>
               {selectedCandidate === null ? null : (
-                <p className="mt-3 text-sm font-semibold text-foreground">
-                  Link recipient: @{selectedCandidate.handle}. Huddle creates the link here; you
-                  choose how to share it privately.
-                </p>
+                <div className="mt-4">
+                  <DirectGroupInvitationControl
+                    groupId={groupId}
+                    groupSlug={groupSlug}
+                    inviteeLabel={`@${selectedCandidate.handle}`}
+                    userId={selectedCandidate.id}
+                  />
+                </div>
               )}
             </div>
-            <InviteCreateControl
-              buttonLabel="Create invitation link"
-              groupId={groupId}
-              groupSlug={groupSlug}
-            />
+
+            {visibility === "discoverable" ? (
+              <div className="space-y-4 border-t border-border pt-5">
+                <h3 className="font-semibold text-foreground">Share the application page</h3>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  Anyone with this ordinary page link can read the group and apply for review.
+                </p>
+                <Input aria-label="Application link" readOnly value={applicationPath} />
+                <div className="flex flex-wrap gap-3">
+                  <Button onClick={copyApplicationLink} type="button">
+                    {copied ? "Application link copied" : "Copy application link"}
+                  </Button>
+                  <Button asChild variant="outline">
+                    <Link href={applicationPath}>Open application page</Link>
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <details className="rounded-xl border border-border bg-muted/45 p-4">
+                <summary className="cursor-pointer font-semibold text-foreground">
+                  Create a share link instead
+                </summary>
+                <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                  Anyone you privately send this link to can use it to apply until it expires or
+                  reaches its use limit.
+                </p>
+                <div className="mt-4 border-t border-border pt-4">
+                  <InviteCreateControl
+                    buttonLabel="Create share link"
+                    groupId={groupId}
+                    groupSlug={groupSlug}
+                  />
+                </div>
+              </details>
+            )}
+          </div>
+        ) : visibility === "discoverable" ? (
+          <div className="space-y-4">
+            <Input aria-label="Application link" readOnly value={applicationPath} />
+            <div className="flex flex-wrap gap-3">
+              <Button onClick={copyApplicationLink} type="button">
+                {copied ? "Application link copied" : "Copy application link"}
+              </Button>
+              <Button asChild variant="outline">
+                <Link href={applicationPath}>Open application page</Link>
+              </Button>
+            </div>
           </div>
         ) : (
           <p className="text-sm leading-6 text-muted-foreground">

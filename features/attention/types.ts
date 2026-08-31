@@ -3,6 +3,7 @@ export const attentionKinds = [
   "attendance_request",
   "friend_request",
   "group_application",
+  "group_invitation",
   "group_event_submission",
   "workspace_setup",
 ] as const;

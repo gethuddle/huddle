@@ -16,12 +16,11 @@ describe("group search filters", () => {
 
     expect(filters).toMatchObject({
       query: "Arsenal supporters",
-      citySlug: "haifa",
+      citySlug: null,
       limit: 20,
     });
     expect(groupSearchFilterIdentity(filters)).toEqual({
       query: "arsenal supporters",
-      city: "haifa",
       team: "70000000-0000-4000-8000-000000000001",
     });
   });
@@ -31,14 +30,13 @@ describe("group search filters", () => {
     const query = groupSearchParams(filters, "signed-cursor");
 
     expect(query.get("q")).toBe("supporters");
-    expect(query.get("city")).toBe("haifa");
+    expect(query.get("city")).toBeNull();
     expect(query.get("cursor")).toBe("signed-cursor");
   });
 
   it.each([
     { q: "x" },
     { q: "a".repeat(81) },
-    { city: "Not a slug" },
     { team: "not-a-uuid" },
     { limit: "51" },
     { extra: "not-allowed" },

@@ -35,7 +35,7 @@ describe("DashboardPage", () => {
     expect(mocks.getMyHuddleOverview).toHaveBeenCalledWith({
       eventBucket: "upcoming",
       eventPage: 1,
-      groupBucket: "owner",
+      groupBucket: "all",
       groupPage: 1,
       savedBucket: "all",
       savedPage: 1,

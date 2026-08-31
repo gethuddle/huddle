@@ -19,7 +19,7 @@ afterEach(() => {
 });
 
 describe("AddressSearch", () => {
-  it("searches only after deliberate submit, supports listbox selection, and confirms the pin", async () => {
+  it("opens suggestions while typing and confirms a keyboard selection", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ suggestions: [suggestion] }), {
         status: 200,
@@ -32,10 +32,9 @@ describe("AddressSearch", () => {
 
     render(<AddressSearch city="Haifa" locationKind="venue" onConfirm={onConfirm} />);
 
-    await user.type(screen.getByRole("textbox", { name: "Public address" }), "10 Herzl Street");
-    expect(fetchMock).not.toHaveBeenCalled();
-
-    await user.click(screen.getByRole("button", { name: "Search addresses" }));
+    const input = screen.getByRole("combobox", { name: "Public address" });
+    expect(input).toHaveAttribute("aria-expanded", "false");
+    await user.type(input, "10 Herzl Street");
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -47,12 +46,12 @@ describe("AddressSearch", () => {
       locationKind: "venue",
     });
 
-    const option = await screen.findByRole("option", { name: suggestion.label });
-    await user.click(option);
-    expect(screen.getByText("Pin ready to confirm in Haifa.")).toBeVisible();
-
-    await user.click(screen.getByRole("button", { name: "Confirm this address" }));
+    expect(await screen.findByRole("option", { name: suggestion.label })).toBeVisible();
+    expect(input).toHaveAttribute("aria-expanded", "true");
+    await user.keyboard("{ArrowDown}{Enter}");
     expect(onConfirm).toHaveBeenCalledWith(suggestion);
+    expect(input).toHaveValue(suggestion.label);
+    expect(input).toHaveAttribute("aria-expanded", "false");
   });
 
   it("shows a controlled unavailable state without echoing the submitted address", async () => {
@@ -68,15 +67,14 @@ describe("AddressSearch", () => {
     const submitted = "PUBLIC-ADDRESS-NOT-FOR-ERROR-COPY";
 
     render(<AddressSearch city="Haifa" locationKind="public_place" onConfirm={vi.fn()} />);
-    await user.type(screen.getByRole("textbox", { name: "Public address" }), submitted);
-    await user.click(screen.getByRole("button", { name: "Search addresses" }));
+    await user.type(screen.getByRole("combobox", { name: "Public address" }), submitted);
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("Address search is temporarily unavailable");
     expect(alert).not.toHaveTextContent(submitted);
   });
 
-  it("starts a deliberate search from the address field with Enter", async () => {
+  it("does not search until three trimmed characters are present", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ suggestions: [] }), {
         status: 200,
@@ -87,11 +85,12 @@ describe("AddressSearch", () => {
     const user = userEvent.setup();
 
     render(<AddressSearch city="Haifa" locationKind="venue" onConfirm={vi.fn()} />);
-    await user.type(
-      screen.getByRole("textbox", { name: "Public address" }),
-      "10 Herzl Street{Enter}",
-    );
+    const input = screen.getByRole("combobox", { name: "Public address" });
+    await user.type(input, "  a ");
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(fetchMock).not.toHaveBeenCalled();
 
+    await user.type(input, "bc");
     await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
   });
 
@@ -115,11 +114,9 @@ describe("AddressSearch", () => {
     const user = userEvent.setup();
     render(<AddressSearch city="Haifa" locationKind="venue" onConfirm={onConfirm} />);
 
-    const input = screen.getByRole("textbox", { name: "Public address" });
+    const input = screen.getByRole("combobox", { name: "Public address" });
     await user.type(input, "10 Herzl Street");
-    await user.click(screen.getByRole("button", { name: "Search addresses" }));
     await user.click(await screen.findByRole("option", { name: suggestion.label }));
-    await user.click(screen.getByRole("button", { name: "Confirm this address" }));
     expect(onConfirm).toHaveBeenLastCalledWith(suggestion);
 
     await user.type(input, " edited");
@@ -128,7 +125,6 @@ describe("AddressSearch", () => {
 
     await user.clear(input);
     await user.type(input, "10 Herzl Street");
-    await user.click(screen.getByRole("button", { name: "Search addresses" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     expect(onConfirm).toHaveBeenLastCalledWith(null);
   });
@@ -159,12 +155,12 @@ describe("AddressSearch", () => {
     const user = userEvent.setup();
     render(<AddressSearch city="Haifa" locationKind="venue" onConfirm={vi.fn()} />);
 
-    const input = screen.getByRole("textbox", { name: "Public address" });
+    const input = screen.getByRole("combobox", { name: "Public address" });
     await user.type(input, "10 Herzl Street");
-    await user.click(screen.getByRole("button", { name: "Search addresses" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     await user.clear(input);
-    await user.type(input, "20 Hanassi Boulevard{Enter}");
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await user.type(input, "20 Hanassi Boulevard");
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
 
     resolveSecond?.(
       new Response(JSON.stringify({ suggestions: [newerSuggestion] }), {

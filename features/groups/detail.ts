@@ -15,7 +15,7 @@ const groupDetailRowSchema = z
     description: z.string().nullable(),
     visibility: z.enum(["discoverable", "unlisted"]),
     lifecycle: z.enum(["forming", "active", "suspended", "archived"]),
-    city_name: z.string(),
+    city_name: z.string().nullable(),
     team_name: z.string().nullable(),
     owner_handle: z.string(),
     active_member_count: z.number().int().nonnegative(),
@@ -55,7 +55,7 @@ export type GroupDetail = Readonly<{
   description: string | null;
   visibility: "discoverable" | "unlisted";
   lifecycle: "forming" | "active" | "suspended" | "archived";
-  cityName: string;
+  cityName: string | null;
   teamName: string | null;
   ownerHandle: string;
   activeMemberCount: number;

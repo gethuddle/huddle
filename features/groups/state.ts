@@ -3,7 +3,7 @@ import type { ActionError, ActionResult } from "@/lib/errors";
 export type GroupCreationValues = Readonly<{
   name: string;
   slug: string;
-  cityId: string;
+  cityId: string | null;
   teamId: string | null;
   visibility: "discoverable" | "unlisted";
   description: string;
@@ -23,7 +23,7 @@ export type SimilarGroup = Readonly<{
   slug: string;
   name: string;
   lifecycle: "forming" | "active";
-  cityName: string;
+  cityName: string | null;
   teamName: string | null;
 }>;
 

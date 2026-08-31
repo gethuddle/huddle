@@ -82,28 +82,41 @@ export const createMapLibrePrivatePinMap: PrivatePinMapFactory = async (
     renderWorldCopies: false,
     attributionControl: false,
   });
-  const marker = new maplibre.Marker({ draggable: true })
-    .setLngLat([publicCityCenter.longitude, publicCityCenter.latitude])
-    .addTo(map);
-  let lastAcceptedPoint: PrivatePoint = publicCityCenter;
+  let marker: InstanceType<typeof maplibre.Marker> | null = null;
+  let lastAcceptedPoint: PrivatePoint | null = null;
+
+  function ensureMarker(point: PrivatePoint) {
+    if (marker !== null) {
+      marker.setLngLat([point.longitude, point.latitude]);
+      return marker;
+    }
+
+    marker = new maplibre.Marker({ draggable: true })
+      .setLngLat([point.longitude, point.latitude])
+      .addTo(map);
+    marker.on("dragend", () => {
+      if (marker === null) return;
+      const point = marker.getLngLat();
+      const selection = { latitude: point.lat, longitude: point.lng };
+      if (moveMarker(selection)) onPinMoved(selection);
+    });
+    return marker;
+  }
 
   function moveMarker(point: PrivatePoint) {
     if (!isPointWithinReviewedPilotCity(city, point)) {
-      marker.setLngLat([lastAcceptedPoint.longitude, lastAcceptedPoint.latitude]);
+      if (marker !== null && lastAcceptedPoint !== null) {
+        marker.setLngLat([lastAcceptedPoint.longitude, lastAcceptedPoint.latitude]);
+      }
       onPinRejected();
       return false;
     }
 
     lastAcceptedPoint = point;
-    marker.setLngLat([point.longitude, point.latitude]);
+    ensureMarker(point);
     return true;
   }
 
-  marker.on("dragend", () => {
-    const point = marker.getLngLat();
-    const selection = { latitude: point.lat, longitude: point.lng };
-    if (moveMarker(selection)) onPinMoved(selection);
-  });
   map.on("click", (event) => {
     const point = { latitude: event.lngLat.lat, longitude: event.lngLat.lng };
     if (moveMarker(point)) onPinMoved(point);
@@ -376,7 +389,7 @@ function CityScopedMapPinPicker({ city, onChange, mapFactory }: CityScopedMapPin
           ? `Choose the matching city or move within the fixed ${city.label} map.`
           : hasPin
             ? `Private pin selected in ${city.label}. Exact details stay protected.`
-            : `Click or drag the pin within the fixed ${city.label} map, use the arrow keys, or use your current location.`}
+            : `Click within the fixed ${city.label} map to place a pin, use the arrow keys, or use your current location.`}
       </p>
 
       <p className="text-xs text-muted-foreground">

@@ -63,7 +63,7 @@ The current provisional mark is the Aperture Huddle: six rounded capsules leanin
 
 Approved repository assets live under `public/brand/`. PNG exports and the standalone design showcase remain source material outside the repository until a specific delivery surface requires them.
 
-Provider team crests remain outside the licensed asset set. Product team recognition uses a repository-owned live-text `TeamMark` derived from the team's TLA or name; it must expose the full team name to assistive technology and never rely on color alone.
+Provider team crests remain outside Huddle's owned brand-asset set. Product interfaces may display the allowlisted HTTPS crest URL retained by the scheduled football-data sync, with visible provider attribution. Every crest must expose the full team name to assistive technology and fall back to the repository-owned live-text `TeamMark` derived from the team's TLA or name; recognition must never rely on color alone.
 
 ## Product hierarchy rules
 

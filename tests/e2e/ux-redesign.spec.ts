@@ -441,11 +441,11 @@ async function signUpAndVerify(
   await expect(page.getByRole("heading", { name: "How will you use Huddle?" })).toBeVisible();
 }
 
-async function completeFan(page: Page, handle: string, displayName: string) {
+async function completeFan(page: Page, handle: string, displayName: string, citySlug = "haifa") {
   await page.getByRole("link", { name: "Set up Fan", exact: true }).click();
   await page.getByRole("textbox", { name: "Display name" }).fill(displayName);
   await page.getByRole("textbox", { name: "Handle" }).fill(handle);
-  await page.getByRole("combobox", { name: "City" }).selectOption("haifa");
+  await page.getByRole("combobox", { name: "City" }).selectOption(citySlug);
   await page.getByRole("checkbox", { name: /18 or older/i }).click();
   await page.getByRole("checkbox", { name: /accept the current/i }).click();
   await page.getByRole("button", { name: "Start using Huddle" }).click();
@@ -670,7 +670,12 @@ test("complete deterministic Fan and Venue workspace journey", async ({
     await signUpAndVerify(page, context, identity.ownerEmail, password);
     await completeFan(page, identity.ownerHandle, identity.ownerName);
     await signUpAndVerify(participantPage, participantContext, identity.participantEmail, password);
-    await completeFan(participantPage, identity.participantHandle, identity.participantName);
+    await completeFan(
+      participantPage,
+      identity.participantHandle,
+      identity.participantName,
+      "ashdod",
+    );
 
     await page.goto(journeyUrl(page, "/"));
     await expect(
@@ -714,10 +719,9 @@ test("complete deterministic Fan and Venue workspace journey", async ({
 
     await page.goto(journeyUrl(page, "/groups/new"));
     await page.getByRole("textbox", { name: "Group name" }).fill(identity.groupName);
-    await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
     await page
       .getByRole("textbox", { name: "Short description" })
-      .fill("A deterministic supporter circle for the complete Task 14 journey.");
+      .fill("A global supporter circle for the complete Task 14 journey.");
     await page.getByRole("button", { name: "Review group" }).click();
     await page.getByRole("button", { name: "Create group" }).click();
     await expect(page).toHaveURL(/\/groups\/[a-z0-9-]+\?created=1$/);
@@ -725,14 +729,49 @@ test("complete deterministic Fan and Venue workspace journey", async ({
     await expect(page.getByRole("heading", { name: identity.groupName })).toBeVisible();
     const shareTrigger = page.getByRole("button", { name: "Share group" });
     await shareTrigger.click();
-    await expect(page.getByRole("dialog")).toContainText("Share the group page");
-    await page.keyboard.press("Escape");
+    const shareDialog = page.getByRole("dialog");
+    await expect(shareDialog).toContainText("Invite one person directly");
+    await shareDialog
+      .getByRole("searchbox", { name: "Find a Huddle member" })
+      .fill(identity.participantHandle);
+    await shareDialog.getByRole("radio", { name: new RegExp(identity.participantName) }).click();
+    await shareDialog.getByRole("button", { name: "Send invitation" }).click();
+    await expect(shareDialog.getByRole("status")).toContainText(
+      "Invitation sent. They’ll see it in Home and My Huddle.",
+    );
+    await shareDialog.getByRole("button", { name: "Close" }).click();
     await expect(shareTrigger).toBeFocused();
+
+    await participantPage.goto(journeyUrl(participantPage, "/dashboard"));
+    const groupInvitations = participantPage.getByRole("region", {
+      name: "Groups waiting for you",
+    });
+    await expect(groupInvitations.getByText(identity.groupName, { exact: true })).toBeVisible();
+    await groupInvitations.getByRole("button", { name: "Join group" }).click();
+    await expect(groupInvitations).toHaveCount(0);
+    await expect(
+      participantPage
+        .getByRole("region", { name: "Your groups" })
+        .getByRole("heading", { name: identity.groupName }),
+    ).toBeVisible();
+    await participantPage.goto(journeyUrl(participantPage, groupPath));
+    await expect(participantPage.getByText("Your role: member")).toBeVisible();
+
+    await page.goto(journeyUrl(page, `${groupPath}/manage`));
+    const memberRow = page
+      .getByRole("link", { name: identity.participantName })
+      .locator("xpath=ancestor::div[contains(@class,'rounded-xl')][1]");
+    await memberRow.getByRole("button", { name: "Remove" }).click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "Remove member" }).click();
+    await expect(memberRow).toHaveCount(0);
+    await expect(
+      page.getByRole("region", { name: "Direct invitations" }).getByText(/accepted/),
+    ).toBeVisible();
 
     await participantPage.goto(journeyUrl(participantPage, groupPath));
     await participantPage
       .getByRole("textbox", { name: /Note to the administrators/ })
-      .fill("I want to join this local supporter circle.");
+      .fill("I want to rejoin this global supporter circle from Ashdod.");
     await participantPage.getByRole("button", { name: "Apply to join" }).click();
     await expect(participantPage.getByText("Application: pending")).toBeVisible();
     await participantPage.goto(journeyUrl(participantPage, "/dashboard?groupBucket=applying"));
@@ -865,21 +904,17 @@ test("complete deterministic Fan and Venue workspace journey", async ({
     await page.getByRole("textbox", { name: "Venue URL" }).fill(identity.venueSlug);
     await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
     await expect(page.locator('input[name="longitude"], input[name="latitude"]')).toHaveCount(0);
-    await page.getByRole("textbox", { name: "Public address" }).fill(venueAddressQuery);
-    const addressSearch = page.getByRole("button", { name: "Search addresses" });
-    await addressSearch.click();
+    await page.getByRole("combobox", { name: "Public address" }).fill(venueAddressQuery);
     await expect(
       page.getByRole("alert").filter({ hasText: "Address search is temporarily unavailable." }),
-    ).toHaveText("Address search is temporarily unavailable. Wait a moment and try again.");
-    await addressSearch.click();
-    await expect(page.getByRole("button", { name: "Searching…" })).toBeDisabled();
+    ).toContainText("Address search is temporarily unavailable. Wait a moment and try again.");
+    await page.getByRole("button", { name: "Try again" }).click();
+    await expect.poll(() => addressAttempt).toBe(2);
     if (releaseAddressResponse === undefined) {
       throw new Error("The deterministic address response gate was not initialized.");
     }
     releaseAddressResponse();
     await page.getByRole("option", { name: venueAddress }).click();
-    await expect(page.getByRole("status")).toHaveText("Pin ready to confirm in Haifa.");
-    await page.getByRole("button", { name: "Confirm this address" }).click();
     await expect(
       page.getByRole("status").filter({ hasText: "Confirmed public address" }),
     ).toContainText(venueAddress);

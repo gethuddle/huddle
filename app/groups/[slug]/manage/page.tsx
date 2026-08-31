@@ -14,7 +14,9 @@ import {
 import {
   ArchiveGroupControl,
   BanMemberControl,
+  DirectInvitationRevocationControl,
   MemberRoleControl,
+  RemoveMemberControl,
   RuleCreateControl,
   RuleEditControl,
   RuleOrderButton,
@@ -74,6 +76,11 @@ export default async function GroupManagementPage({
         <Button asChild variant="outline">
           <Link href="#visibility">Visibility</Link>
         </Button>
+        {settings.directInvitations.length === 0 ? null : (
+          <Button asChild variant="outline">
+            <Link href="#invitations">Invitations</Link>
+          </Button>
+        )}
         {settings.group.viewerRole === "owner" ? (
           <Button asChild variant="outline">
             <Link href="#delete-group">Delete group</Link>
@@ -109,6 +116,37 @@ export default async function GroupManagementPage({
           visibility={settings.group.visibility}
         />
       </SettingsSection>
+
+      {settings.directInvitations.length === 0 ? null : (
+        <SettingsSection id="invitations" title="Direct invitations">
+          <div className="space-y-3">
+            {settings.directInvitations.map((invitation) => (
+              <div
+                className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-border p-4"
+                key={invitation.id}
+              >
+                <div>
+                  <p className="font-semibold text-foreground">
+                    {invitation.inviteeDisplayName} · @{invitation.inviteeHandle}
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {invitation.status === "pending"
+                      ? `Waiting for a response · sent by @${invitation.inviterHandle}`
+                      : `${invitation.status} · sent by @${invitation.inviterHandle}`}
+                  </p>
+                </div>
+                {invitation.status === "pending" ? (
+                  <DirectInvitationRevocationControl
+                    groupId={settings.group.id}
+                    groupSlug={settings.group.slug}
+                    invitationId={invitation.id}
+                  />
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </SettingsSection>
+      )}
 
       {settings.bans.items.length === 0 ? null : (
         <SettingsSection id="bans" title="Bans">
@@ -199,12 +237,20 @@ function MemberSettings({ settings }: Readonly<{ settings: GroupSettings }>) {
                   />
                 ) : null}
                 {canBan ? (
-                  <BanMemberControl
-                    groupId={settings.group.id}
-                    groupSlug={settings.group.slug}
-                    targetLabel={`@${member.handle}`}
-                    userId={member.userId}
-                  />
+                  <>
+                    <RemoveMemberControl
+                      groupId={settings.group.id}
+                      groupSlug={settings.group.slug}
+                      targetLabel={`@${member.handle}`}
+                      userId={member.userId}
+                    />
+                    <BanMemberControl
+                      groupId={settings.group.id}
+                      groupSlug={settings.group.slug}
+                      targetLabel={`@${member.handle}`}
+                      userId={member.userId}
+                    />
+                  </>
                 ) : null}
               </div>
             ) : null}

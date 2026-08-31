@@ -56,4 +56,43 @@ export const nominatimSearchResponseSchema = z
   )
   .max(50);
 
+const photonPropertiesSchema = z
+  .object({
+    osm_type: z.string().trim().min(1).max(20),
+    osm_id: z.union([z.number().int().nonnegative(), z.string().min(1).max(80)]),
+    name: z.string().trim().min(1).max(300).optional(),
+    street: z.string().trim().min(1).max(300).optional(),
+    housenumber: z.string().trim().min(1).max(40).optional(),
+    city: z.string().trim().min(1).max(120).optional(),
+    town: z.string().trim().min(1).max(120).optional(),
+    district: z.string().trim().min(1).max(120).optional(),
+    state: z.string().trim().min(1).max(120).optional(),
+    country: z.string().trim().min(1).max(120).optional(),
+    countrycode: z.string().trim().length(2).optional(),
+  })
+  .passthrough();
+
+export const photonSearchResponseSchema = z
+  .object({
+    type: z.literal("FeatureCollection"),
+    features: z
+      .array(
+        z
+          .object({
+            type: z.literal("Feature"),
+            geometry: z.object({
+              type: z.literal("Point"),
+              coordinates: z.tuple([
+                z.number().finite().min(34.2).max(35.9),
+                z.number().finite().min(29.3).max(33.5),
+              ]),
+            }),
+            properties: photonPropertiesSchema,
+          })
+          .passthrough(),
+      )
+      .max(50),
+  })
+  .passthrough();
+
 export type PublicAddressSearchRequest = z.infer<typeof publicAddressSearchRequestSchema>;

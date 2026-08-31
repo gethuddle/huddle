@@ -45,6 +45,7 @@ const arsenal: NormalizedTeam = {
   shortName: "Arsenal",
   tla: "ARS",
   countryName: "England",
+  crestUrl: "https://crests.football-data.org/57.png",
 };
 
 const chelsea: NormalizedTeam = {
@@ -54,6 +55,7 @@ const chelsea: NormalizedTeam = {
   shortName: "Chelsea",
   tla: "CHE",
   countryName: "England",
+  crestUrl: "https://crests.football-data.org/61.png",
 };
 
 const fixture: NormalizedFixture = {
@@ -199,6 +201,7 @@ describe("sports synchronization orchestration", () => {
             short_name: "Arsenal",
             tla: "ARS",
             country_name: "England",
+            crest_url: "https://crests.football-data.org/57.png",
           },
           {
             provider_external_id: "61",
@@ -206,6 +209,7 @@ describe("sports synchronization orchestration", () => {
             short_name: "Chelsea",
             tla: "CHE",
             country_name: "England",
+            crest_url: "https://crests.football-data.org/61.png",
           },
         ],
         input_matches: [

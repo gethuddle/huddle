@@ -16,8 +16,8 @@ vi.mock("@/features/auth/actor", () => ({ requireActor: mocks.requireActor }));
 vi.mock("@/lib/supabase/service-role", () => ({
   createServiceRoleClient: mocks.createServiceRoleClient,
 }));
-vi.mock("@/features/locations/nominatim", () => ({
-  createNominatimPublicGeocoder: () => ({ search: mocks.search }),
+vi.mock("@/features/locations/photon", () => ({
+  createPhotonPublicGeocoder: () => ({ search: mocks.search }),
 }));
 vi.mock("@/lib/observability/server", () => ({
   elapsedMilliseconds: () => 4,

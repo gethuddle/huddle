@@ -69,8 +69,8 @@ select has_index('public', 'friendships', 'friendships_user_low_status_updated_i
 select has_index('public', 'friendships', 'friendships_user_high_status_updated_idx', 'high-side friendship lists are indexed');
 select has_index('public', 'security_audit_events', 'security_audit_friendship_request_cooldown_idx', 'friendship request cooldowns use durable indexed audit evidence');
 select has_index('public', 'groups', 'groups_slug_lower_uidx', 'group slugs are case-insensitively unique');
-select has_index('public', 'groups', 'groups_visibility_lifecycle_city_idx', 'public group visibility queries are indexed');
-select has_index('public', 'groups', 'groups_team_city_idx', 'same-team/city suggestions are indexed');
+select has_index('public', 'groups', 'groups_visibility_lifecycle_idx', 'global public group visibility queries are indexed');
+select has_index('public', 'groups', 'groups_team_idx', 'optional team suggestions are indexed without imposing a city boundary');
 select has_index('public', 'groups', 'groups_owner_id_idx', 'group ownership is indexed');
 select has_index('public', 'groups', 'groups_name_trgm_idx', 'group names have a trigram suggestion index');
 select has_index('public', 'group_memberships', 'group_memberships_one_active_owner_uidx', 'only one active owner is possible');

@@ -794,6 +794,64 @@ export type Database = {
           },
         ]
       }
+      group_invitations: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          invited_by: string
+          invitee_id: string
+          responded_at: string | null
+          revoked_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          invited_by: string
+          invitee_id: string
+          responded_at?: string | null
+          revoked_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          invited_by?: string
+          invitee_id?: string
+          responded_at?: string | null
+          revoked_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_invitations_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_invitations_invitee_id_fkey"
+            columns: ["invitee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_invite_tokens: {
         Row: {
           created_at: string
@@ -957,7 +1015,7 @@ export type Database = {
       groups: {
         Row: {
           activated_at: string | null
-          city_id: string
+          city_id: string | null
           created_at: string
           description: string | null
           id: string
@@ -972,7 +1030,7 @@ export type Database = {
         }
         Insert: {
           activated_at?: string | null
-          city_id: string
+          city_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -987,7 +1045,7 @@ export type Database = {
         }
         Update: {
           activated_at?: string | null
-          city_id?: string
+          city_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -1719,6 +1777,7 @@ export type Database = {
           active: boolean
           country_name: string | null
           created_at: string
+          crest_url: string | null
           id: string
           last_synced_at: string
           name: string
@@ -1733,6 +1792,7 @@ export type Database = {
           active?: boolean
           country_name?: string | null
           created_at?: string
+          crest_url?: string | null
           id?: string
           last_synced_at: string
           name: string
@@ -1747,6 +1807,7 @@ export type Database = {
           active?: boolean
           country_name?: string | null
           created_at?: string
+          crest_url?: string | null
           id?: string
           last_synced_at?: string
           name?: string
@@ -2034,6 +2095,7 @@ export type Database = {
     Views: {
       public_future_matches: {
         Row: {
+          away_team_crest_url: string | null
           away_team_id: string | null
           away_team_name: string | null
           away_team_short_name: string | null
@@ -2041,6 +2103,7 @@ export type Database = {
           competition_code: string | null
           competition_id: string | null
           competition_name: string | null
+          home_team_crest_url: string | null
           home_team_id: string | null
           home_team_name: string | null
           home_team_short_name: string | null
@@ -2303,6 +2366,19 @@ export type Database = {
         }
         Returns: {
           event_id: string
+          status: string
+        }[]
+      }
+      create_group_invitation: {
+        Args: {
+          audit_request_id?: string
+          input_group_id: string
+          input_invitee_id: string
+        }
+        Returns: {
+          group_id: string
+          invitation_id: string
+          invitee_id: string
           status: string
         }[]
       }
@@ -3003,6 +3079,25 @@ export type Database = {
           user_id: string
         }[]
       }
+      list_group_direct_invitations: {
+        Args: {
+          input_group_id: string
+          input_limit?: number
+          input_offset?: number
+        }
+        Returns: {
+          created_at: string
+          invitation_id: string
+          invitation_status: string
+          invitee_display_name: string
+          invitee_handle: string
+          invitee_id: string
+          inviter_handle: string
+          responded_at: string
+          revoked_at: string
+          total_count: number
+        }[]
+      }
       list_group_event_submissions: {
         Args: {
           input_group_id: string
@@ -3206,6 +3301,17 @@ export type Database = {
           status: string
           title: string
           total_count: number
+        }[]
+      }
+      list_my_group_invitations: {
+        Args: never
+        Returns: {
+          group_id: string
+          group_name: string
+          group_slug: string
+          invitation_id: string
+          invited_at: string
+          inviter_handle: string
         }[]
       }
       list_my_group_relationships: {
@@ -3467,6 +3573,18 @@ export type Database = {
         Args: { audit_request_id?: string; input_friendship_id: string }
         Returns: boolean
       }
+      remove_group_member: {
+        Args: {
+          audit_request_id?: string
+          input_group_id: string
+          input_user_id: string
+        }
+        Returns: {
+          group_id: string
+          status: string
+          user_id: string
+        }[]
+      }
       reorder_group_rules: {
         Args: {
           audit_request_id?: string
@@ -3512,6 +3630,19 @@ export type Database = {
         Returns: {
           handle: string
           profile_id: string
+        }[]
+      }
+      respond_group_invitation: {
+        Args: {
+          audit_request_id?: string
+          input_decision: string
+          input_invitation_id: string
+        }
+        Returns: {
+          group_id: string
+          group_slug: string
+          invitation_id: string
+          status: string
         }[]
       }
       respond_to_event_invitation: {
@@ -3583,6 +3714,14 @@ export type Database = {
       revoke_event_invite_token: {
         Args: { audit_request_id?: string; input_invite_token_id: string }
         Returns: boolean
+      }
+      revoke_group_invitation: {
+        Args: { audit_request_id?: string; input_invitation_id: string }
+        Returns: {
+          group_id: string
+          invitation_id: string
+          status: string
+        }[]
       }
       revoke_group_invite: {
         Args: { audit_request_id?: string; input_invite_id: string }

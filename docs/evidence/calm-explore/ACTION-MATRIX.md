@@ -28,9 +28,10 @@ This is the verified coverage ledger for every user-visible product action. “E
 | --- | --- | --- | --- | --- | --- |
 | EXP-OPEN | Any | Primary Explore | Opens event search; navigation is current | `app/discover/page.test.tsx`, `components/layout/app-shell.test.tsx` | verified |
 | EXP-GROUPS | Any | Explore → Groups | Opens discoverable groups while global Explore remains current | `app/groups/page.test.tsx`, `components/layout/app-shell.test.tsx` | verified |
-| EXP-DATE | Any | From/To | Rejects inverted/out-of-horizon dates beside fields; reset works | `features/discovery/schemas.test.ts`, `app/discover/page.test.tsx` | verified |
-| EXP-AREA | Any | City/distance/location | Applies one-shot coordinates without persistence; fallback remains usable | `features/discovery/components/discovery-feed.test.tsx`, pgTAP `200` | verified |
-| EXP-TEAM | Any | Team filter | Narrows fixtures/listings and shows TeamMark | `app/discover/page.test.tsx`, `tests/e2e/calm-crud.spec.ts` | verified |
+| EXP-DATE | Any | From/To | Rejects inverted or outside-current-season dates beside fields; reset works | `features/discovery/schemas.test.ts`, `app/discover/page.test.tsx` | verified |
+| EXP-AREA | Any | Browser location | Uses an already granted location automatically for the session; coordinates stay in a POST body and out of URLs/logs | `features/discovery/components/discovery-feed.test.tsx`, `app/api/discovery/route.test.ts`, pgTAP `200` | verified |
+| EXP-ADDRESS | Any | City or address autocomplete | Debounces an Israel-only OpenStreetMap search, supports keyboard selection, and ranks by the chosen origin without exposing it in the URL | `address-search.test.tsx`, `photon.test.ts`, `app/api/locations/search/route.test.ts` | verified |
+| EXP-TEAM | Any | Team filter | Narrows fixtures/listings and shows the cached provider crest with an accessible TeamMark fallback | `app/discover/page.test.tsx`, `team-initials.test.tsx`, `tests/e2e/calm-crud.spec.ts` | verified |
 | EXP-FIXTURE | Any | Specific fixture search | Shows all eligible listings for that fixture and no duplicate fixture destination | `app/discover/page.test.tsx`, `tests/e2e/calm-crud.spec.ts` | verified |
 | EXP-MAP | Any | List/Map | Keeps selection synchronized; maps only public coordinates | `features/discovery/components/discovery-map.test.tsx`, pgTAP `200` | verified |
 | EXP-EVENT-OPEN | Any eligible viewer | Open event | Opens event with preserved Explore return query | `app/events/[eventId]/page.test.tsx`, `tests/e2e/calm-crud.spec.ts` | verified |
@@ -69,19 +70,21 @@ This is the verified coverage ledger for every user-visible product action. “E
 
 | ID | Actor | Entry/control | Expected outcome and recovery | Automated evidence | Status |
 | --- | --- | --- | --- | --- | --- |
-| GRP-SEARCH | Any | Explore → Groups filters | Finds discoverable general/team groups; unlisted stay absent | `features/groups/search.test.ts`, `app/groups/page.test.tsx` | verified |
-| GRP-CREATE | Fan | Create group | Optional team; discoverable or unlisted; redirects saved group | `features/groups/actions.test.ts`, `group-create-form.test.tsx` | verified |
+| GRP-SEARCH | Any | Explore → Groups filters | Finds discoverable general/team groups globally by name/team; an optional home area never gates eligibility; unlisted groups stay absent | `features/groups/search.test.ts`, `group-search-filters.test.tsx`, pgTAP `230` | verified |
+| GRP-CREATE | Fan | Create group | Always reachable; optional team and home area; discoverable or unlisted; redirects to saved group | `features/groups/actions.test.ts`, `group-create-form.test.tsx`, pgTAP `230` | verified |
 | GRP-READ | Authorized viewer | Open group | Shows overview, upcoming events, and one role-aware action | `app/groups/[slug]/page.test.tsx` | verified |
 | GRP-UPDATE | Owner/admin | Group settings | Saves description/visibility/rules with explicit confirmation | group action/component tests | verified |
 | GRP-DELETE | Owner | Delete group | Audited archive; cancels future events/revokes invite links/retains history | pgTAP `205`, `group-management-controls.test.tsx` | verified |
 | GRP-APPLY | Fan | Apply | Creates pending application once | `group-membership-control.test.tsx`, pgTAP group tests | verified |
 | GRP-APPLICATION-APPROVE | Different owner/admin | Approve | Activates membership and removes task | `membership-actions.test.ts`, `tests/e2e/calm-crud.spec.ts` | verified |
 | GRP-APPLICATION-REJECT | Different owner/admin | Reject | Closes application and removes task | `membership-actions.test.ts`, `tests/e2e/calm-crud.spec.ts` | verified |
+| GRP-INVITE-PERSON | Owner/admin | Invite a person | Searches by name/handle, sends a recipient-bound task to Home/My Huddle, and supports accept/decline/revoke | `group-share-dialog.test.tsx`, `membership-actions.test.ts`, pgTAP `250` | verified |
 | GRP-INVITE-LINK-CREATE | Owner/admin | Create group invite link | Shows plaintext once; metadata remains; expiry/use limit enforced | `membership-actions.test.ts`, pgTAP group tests | verified |
 | GRP-INVITE-LINK-REDEEM | Fan | Group invite link | Starts application; never bypasses review | `app/join/group/[token]/page.test.tsx`, pgTAP group tests | verified |
 | GRP-INVITE-LINK-REVOKE | Owner/admin | Revoke | Stops new use; retains prior applications | `membership-actions.test.ts`, pgTAP group tests | verified |
 | GRP-LEAVE | Member/admin | Leave group | Removes active membership; owner cannot leave without ownership resolution | `membership-actions.test.ts`, pgTAP group tests | verified |
 | GRP-ROLE | Owner | Change role | Changes admin/member role without violating owner invariant | `membership-actions.test.ts`, pgTAP group tests | verified |
+| GRP-MEMBER-REMOVE | Owner/admin | Remove member | Ends current membership without a ban; the former member may apply again and retained history stays internal | `membership-actions.test.ts`, `group-management-controls.test.tsx`, pgTAP `250` | verified |
 | GRP-BAN | Owner/admin | Ban | Removes content/event eligibility and blocks reapplication | `membership-actions.test.ts`, `tests/e2e/auth.spec.ts` | verified |
 | GRP-UNBAN | Owner/admin | Revoke ban | Allows fresh application; does not restore membership | `membership-actions.test.ts`, pgTAP group tests | verified |
 | GRP-EVENT-SUBMIT | Member | Submit event | Creates pending review task for a different admin | `features/events/actions.test.ts`, `tests/e2e/auth.spec.ts` | verified |
@@ -130,7 +133,7 @@ This is the verified coverage ledger for every user-visible product action. “E
 
 ## Final exit requirements
 
-- All 86 rows are `verified` against the current complete acceptance output and bounded final journey/audit.
+- All 89 rows are `verified` against the current complete acceptance output and bounded final journey/audit.
 - Every control is reachable, truthful, role-aware, keyboard-operable, and at least 44px in the product convention.
 - No ordinary workflow requires memorizing an `@handle`, copying raw coordinates, understanding internal lifecycle language, or guessing where an invitation went.
 - No action loses its originating Explore context, repeats invalid input into a global error, or leaves a dead enabled button.

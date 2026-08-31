@@ -86,6 +86,7 @@ describe("GroupManagementPage", () => {
       group,
       members: { page: 1, pageCount: 1, totalCount: 3, items: members },
       rules: [],
+      directInvitations: [],
       bans: { page: 1, pageCount: 1, totalCount: 0, items: [] },
     });
 
@@ -110,6 +111,7 @@ describe("GroupManagementPage", () => {
       group: { ...group, viewerRole: "admin" },
       members: { page: 1, pageCount: 1, totalCount: 3, items: members },
       rules: [],
+      directInvitations: [],
       bans: { page: 1, pageCount: 1, totalCount: 0, items: [] },
     });
 
