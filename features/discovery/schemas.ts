@@ -95,24 +95,24 @@ export type DiscoveryFilters = Readonly<{
   limit: number;
 }>;
 
-export function parseDiscoveryFilters(input: unknown, now = new Date()): DiscoveryFilters {
-  const raw = rawDiscoveryFiltersSchema.parse(input);
+export type DiscoveryFilterFieldErrors = Readonly<Record<string, string>>;
+
+export type DiscoveryFiltersResult =
+  | Readonly<{ ok: true; filters: DiscoveryFilters }>
+  | Readonly<{
+      ok: false;
+      values: DiscoveryFilters;
+      fieldErrors: DiscoveryFilterFieldErrors;
+      error: z.ZodError;
+    }>;
+
+function parsedDiscoveryFilters(
+  raw: z.infer<typeof rawDiscoveryFiltersSchema>,
+  now: Date,
+): DiscoveryFilters {
   const today = formatIsraelDateValue(now);
   const from = raw.from === undefined || raw.from === "" ? today : raw.from;
   const to = raw.to === undefined || raw.to === "" ? addUtcDays(from, 14) : raw.to;
-  const maximumFutureDate = addUtcDays(today, 45);
-  const maximumWindowDate = addUtcDays(from, 44);
-  const maximumTo = maximumFutureDate < maximumWindowDate ? maximumFutureDate : maximumWindowDate;
-
-  if (from < today || from > maximumTo || to < from || to > maximumTo) {
-    throw new z.ZodError([
-      {
-        code: "custom",
-        path: ["to"],
-        message: "Choose a future date range of no more than 45 days.",
-      },
-    ]);
-  }
 
   return {
     citySlug: raw.city,
@@ -127,6 +127,121 @@ export function parseDiscoveryFilters(input: unknown, now = new Date()): Discove
     cursor: raw.cursor ?? null,
     limit: raw.limit,
   };
+}
+
+function discoveryDateIssues(filters: DiscoveryFilters, now: Date) {
+  const today = formatIsraelDateValue(now);
+  const maximumFutureDate = addUtcDays(today, 45);
+  const maximumWindowDate = addUtcDays(filters.from, 44);
+  const maximumTo = maximumFutureDate < maximumWindowDate ? maximumFutureDate : maximumWindowDate;
+
+  if (filters.from < today) {
+    return [
+      {
+        code: "custom" as const,
+        path: ["from"],
+        message: "Choose today or a future date.",
+      },
+    ];
+  }
+  if (filters.from > maximumFutureDate) {
+    return [
+      {
+        code: "custom" as const,
+        path: ["from"],
+        message: "Choose a date within the next 45 days.",
+      },
+    ];
+  }
+  if (filters.to < filters.from) {
+    return [
+      {
+        code: "custom" as const,
+        path: ["to"],
+        message: "Choose an end date on or after the start date.",
+      },
+    ];
+  }
+  if (filters.to > maximumTo) {
+    return [
+      {
+        code: "custom" as const,
+        path: ["to"],
+        message: "Choose a future date range of no more than 45 days.",
+      },
+    ];
+  }
+  return [];
+}
+
+function firstFieldErrors(error: z.ZodError): DiscoveryFilterFieldErrors {
+  return Object.fromEntries(
+    Object.entries(error.flatten().fieldErrors).flatMap(([field, messages]) => {
+      const message = Array.isArray(messages) ? messages.at(0) : undefined;
+      return message === undefined ? [] : [[field, message]];
+    }),
+  );
+}
+
+function recoveryValues(input: unknown, now: Date): DiscoveryFilters {
+  const record =
+    typeof input === "object" && input !== null ? (input as Record<string, unknown>) : {};
+  const value = (key: string) => {
+    const candidate = firstSearchParam(record[key]);
+    return typeof candidate === "string" ? candidate : "";
+  };
+  const today = formatIsraelDateValue(now);
+  const from = /^\d{4}-\d{2}-\d{2}$/.test(value("from")) ? value("from") : today;
+  const radius = Number(value("radiusKm"));
+  const radiusKm = DISCOVERY_RADIUS_OPTIONS.includes(
+    radius as (typeof DISCOVERY_RADIUS_OPTIONS)[number],
+  )
+    ? (radius as (typeof DISCOVERY_RADIUS_OPTIONS)[number])
+    : 15;
+
+  return {
+    citySlug: value("city").trim().toLowerCase(),
+    lat: null,
+    lng: null,
+    radiusKm,
+    from,
+    to: /^\d{4}-\d{2}-\d{2}$/.test(value("to")) ? value("to") : addUtcDays(from, 14),
+    teamId: null,
+    competitionId: null,
+    matchId: null,
+    cursor: null,
+    limit: DISCOVERY_PAGE_SIZE,
+  };
+}
+
+export function parseDiscoveryFiltersResult(
+  input: unknown,
+  now = new Date(),
+): DiscoveryFiltersResult {
+  const rawResult = rawDiscoveryFiltersSchema.safeParse(input);
+  if (!rawResult.success) {
+    return {
+      ok: false,
+      values: recoveryValues(input, now),
+      fieldErrors: firstFieldErrors(rawResult.error),
+      error: rawResult.error,
+    };
+  }
+
+  const filters = parsedDiscoveryFilters(rawResult.data, now);
+  const dateIssues = discoveryDateIssues(filters, now);
+  if (dateIssues.length > 0) {
+    const error = new z.ZodError(dateIssues);
+    return { ok: false, values: filters, fieldErrors: firstFieldErrors(error), error };
+  }
+
+  return { ok: true, filters };
+}
+
+export function parseDiscoveryFilters(input: unknown, now = new Date()): DiscoveryFilters {
+  const result = parseDiscoveryFiltersResult(input, now);
+  if (!result.ok) throw result.error;
+  return result.filters;
 }
 
 export function discoveryUtcRange(filters: DiscoveryFilters): Readonly<{

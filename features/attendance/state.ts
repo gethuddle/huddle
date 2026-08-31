@@ -9,3 +9,11 @@ export type EventInvitationBatchActionState = ActionResult<
     rejectedIds: readonly string[];
   }>
 >;
+
+export type EventInviteLinkActionState = ActionResult<
+  Readonly<{
+    message: string;
+    invitePath?: string;
+    eventId?: string;
+  }>
+> | null;

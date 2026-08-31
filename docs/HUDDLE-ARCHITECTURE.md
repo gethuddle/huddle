@@ -37,7 +37,7 @@ Huddle answers: **“Who near me is watching this match, and where may I join th
 | Venue owner | Reach the exact supporters likely to attend | A reusable venue profile, fixture-first batch planner, open-door listings, optional reservations, and followers |
 | Platform moderator | Handle serious abuse without running every community | Reports, suspensions, and an audit trail |
 
-The users are fans, hosts, group members/admins, and venue operators. A human may activate either or both workspaces, but each workspace is independently authorized. The future paying customer is the commercial venue. Ordinary fans, friendships, supporter groups, and private hosting remain free.
+The users are fans, hosts, group members/admins, and venue operators. A human may activate either or both workspaces, but each workspace is independently authorized. The future paying customer is the commercial venue. Ordinary fans, friendships, social/team-linked groups, and private hosting remain free.
 
 ### Business model boundary
 
@@ -64,7 +64,7 @@ Promotion must never bypass distance, audience, privacy, moderation, or match re
 - A football catalog and synchronized future fixtures.
 - Follows for sports, competitions, teams, and venues.
 - Mutual friendships, with no friends-of-friends access.
-- Discoverable and unlisted supporter groups.
+- Discoverable and unlisted groups, with optional team association.
 - Group applications, roles, bans, invite links, atomic owner/admin-authored event publication, and review of ordinary-member submissions by a different current owner/admin.
 - Fan-hosted events restricted to group, friend, or invite-only audiences.
 - Venue-hosted events using public or team-follower audiences; public listings may be open-door with no Huddle reservation or guest list.
@@ -81,7 +81,7 @@ Promotion must never bypass distance, audience, privacy, moderation, or match re
 - numeric reputation or endorsement scores;
 - friends-of-friends visibility;
 - live scores and NBA integration;
-- maps and paid address autocomplete;
+- route planning and paid address autocomplete beyond the implemented OpenStreetMap/Nominatim search and public-event map;
 - Google Calendar OAuth;
 - Stripe billing, menus, offers, or promoted ranking;
 - payments, ratings, AI recommendations, and AI moderation.
@@ -180,9 +180,9 @@ Friendship is mutual. One user requests; the other accepts or declines. Only an 
 
 Blocking is immediate and does not require a report or moderator. It removes any friendship, prevents new friend requests and direct invitations, and hides future private events hosted by either person from the other. If the blocked relationship includes attendance at a future home event hosted by either person, attendance and future address access are revoked. A shared supporter-group membership is not automatically deleted; the affected user can also report the behavior or ask group admins to act. Huddle does not tell the blocked user who blocked them.
 
-### 5.5 Supporter groups
+### 5.5 Groups
 
-Groups are stronger community boundaries than friendships. A group may be:
+Groups are stronger community boundaries than friendships. A group may optionally identify with one team, but it may also represent a general/private social circle. Product-wide navigation therefore calls the complete domain **Groups**. A group may be:
 
 - **discoverable** — eventually appears in search, but joining always needs an application and admin review;
 - **unlisted** — does not appear in global search and is reached using a revocable invite link; the link still does not bypass admin approval.
@@ -195,6 +195,8 @@ Roles are `owner`, `admin`, and `member`. An event authored by a current owner/a
 
 A commonly eligible venue operator can self-serve activation with venue information and a truthful business-representation attestation. Activation atomically creates an immediately usable Unverified venue, one active owner membership, and its Venue workspace; it does not activate or publish a Fan identity. Every commercial read or mutation is authorized through an active `owner` or `admin` Venue membership, not merely a remembered workspace or legacy `owner_id`. Venue follows allow active Fans to track future listings.
 
+The active owner may close the live venue through an audited archive transition. Closing removes the venue and workspace from live product reads, cancels future live venue events, revokes usable invitations, and prevents new commercial mutations without erasing membership, attendance, moderation, or security history. Archival is distinct from platform suspension and never rewrites verification status.
+
 The **Unverified** label is always visible in the course MVP. It must not imply that Huddle has checked ownership, licensing, safety, or accessibility. Paid verification and commercial entitlements belong to the later subscription module.
 
 ### 5.7 Events and audiences
@@ -205,13 +207,17 @@ An event attaches to a real fixture when possible; fixture kickoff is inherited 
 |---|---|---|
 | Private person | `group` | Active, non-banned members may request; eligible signed-in Fans may preview a public-place event from an active discoverable group and apply before attending |
 | Private person | `friends` | Only the host's accepted direct friends may see and request |
-| Private person | `invite_only` | Only explicitly invited Huddle members may see and accept |
+| Private person | `invite_only` | Only explicitly invited Huddle members may see and accept; a secure event-invite token may create that targeted invitation after an eligible account redeems it |
 | Business venue | `public` | Everyone may see; open-door listings have no Huddle attendance state, while reservations accept eligible active Fans |
 | Business venue | `team_followers` | Everyone may see; attendance requires an active Fan who follows the selected team unless directly invited |
 
 This is a host rule, not a location rule. A private person using a café or other public place is still limited to group, friends, or invite-only. A discoverable group's public-place event can introduce an eligible signed-in Fan to that group, but it never becomes anonymous/public attendance and the Fan must join before requesting a place. A private host can never publish to all strangers or all followers of a team. Conversely, a business venue does not use private friendship/group audiences in the submitted MVP.
 
 A public venue chooses `open_door` or `reservations` per event, with a reusable venue default. Open door means the venue is advertising that it will show the fixture: fans simply come along, Huddle does not reserve admission, and the product shows no capacity, RSVP, invitation, approval queue, or attendee history. Reservations keep the existing one-account-per-place model. Team-follower and all private events remain reservations.
+
+An invite-only event's ordinary URL is not an access capability. A host may select registered people directly or create a high-entropy, expiring, revocable, usage-limited invite link. The link requires sign-in and eligibility, then creates a pending targeted invitation; the recipient still chooses Accept or Decline, and only acceptance reserves capacity. Huddle stores only the token digest and never logs or re-displays the plaintext after creation.
+
+Fixtures are catalog data inside **Explore**, not a competing primary destination. Explore lets a visitor choose area, date/range, team, competition, or a specific fixture and then answers who is showing it nearby. Stable fixture object URLs remain for sharing and detail, while the `/matches` index redirects to Explore and preserves one navigation mental model.
 
 ### 5.8 Home-location safety
 
@@ -345,7 +351,7 @@ Each phase should finish with working tests and updated documentation before the
 
 **Exit:** seeded/synchronized football fixtures are browsable without a live provider request.
 
-### Phase 4 — Friendships and supporter groups
+### Phase 4 — Friendships and groups
 
 - Add mutual friendship transitions and transactional block effects.
 - Add groups, applications, invites, roles, bans, discovery threshold, similar-group suggestions, and event-review permission foundations.

@@ -180,6 +180,13 @@ describe("DiscoveryFeed", () => {
     expect(screen.queryByText(/Your attendance:/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Matches your follows/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Israel time/i)).not.toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { name: "Arsenal vs Liverpool" })).toHaveLength(1);
+    expect(screen.getByRole("region", { name: "Arsenal vs Liverpool" })).toBeVisible();
+    expect(screen.getByRole("img", { name: "Arsenal" })).toBeVisible();
+    expect(screen.getByRole("img", { name: "Liverpool" })).toBeVisible();
+    for (const link of screen.getAllByRole("link", { name: "Open event" })) {
+      expect(link.getAttribute("href")).toContain("returnTo=%2Fdiscover%3F");
+    }
   });
 
   it("offers a first-class map on desktop and a clear mobile map action", async () => {

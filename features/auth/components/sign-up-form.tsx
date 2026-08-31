@@ -16,7 +16,7 @@ export function SignUpForm() {
   return (
     <form action={formAction} className="space-y-5" noValidate>
       <div>
-        <Label className="text-linen" htmlFor="sign-up-email">
+        <Label className="text-foreground" htmlFor="sign-up-email">
           Email address
         </Label>
         <Input
@@ -35,7 +35,7 @@ export function SignUpForm() {
       </div>
 
       <div>
-        <Label className="text-linen" htmlFor="sign-up-password">
+        <Label className="text-foreground" htmlFor="sign-up-password">
           Password
         </Label>
         <Input
@@ -48,14 +48,14 @@ export function SignUpForm() {
           required
           type="password"
         />
-        <span className="mt-2 block text-xs text-muted-dark" id="sign-up-password-help">
+        <span className="mt-2 block text-xs text-muted-foreground" id="sign-up-password-help">
           Use 8–72 characters.
         </span>
         <FieldError id="sign-up-password-error" messages={fieldErrors?.password} />
       </div>
 
       <div>
-        <Label className="text-linen" htmlFor="sign-up-confirm-password">
+        <Label className="text-foreground" htmlFor="sign-up-confirm-password">
           Confirm password
         </Label>
         <Input

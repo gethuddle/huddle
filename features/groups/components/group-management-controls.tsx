@@ -31,6 +31,7 @@ import {
   revokeGroupInviteAction,
   unbanGroupMemberAction,
   updateGroupRuleAction,
+  withdrawGroupEventAction,
 } from "@/features/groups/membership-actions";
 import { INITIAL_GROUP_MEMBERSHIP_ACTION_STATE } from "@/features/groups/state";
 
@@ -89,16 +90,29 @@ export function ArchiveGroupControl({
 }
 
 export function EventReviewControl({
+  canReview = true,
+  canWithdraw = false,
   eventId,
   eventTitle,
   groupId,
   groupSlug,
-}: GroupIdentity & Readonly<{ eventId: string; eventTitle: string }>) {
+}: GroupIdentity &
+  Readonly<{
+    canReview?: boolean;
+    canWithdraw?: boolean;
+    eventId: string;
+    eventTitle: string;
+  }>) {
   const [state, formAction, pending] = useActionState(
     reviewGroupEventAction,
     INITIAL_GROUP_MEMBERSHIP_ACTION_STATE,
   );
+  const [withdrawalState, withdrawalAction, withdrawing] = useActionState(
+    withdrawGroupEventAction,
+    INITIAL_GROUP_MEMBERSHIP_ACTION_STATE,
+  );
   const [confirmingRejection, setConfirmingRejection] = useState(false);
+  const [confirmingWithdrawal, setConfirmingWithdrawal] = useState(false);
 
   function submitRejection(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -107,6 +121,49 @@ export function EventReviewControl({
       formAction(formData);
       setConfirmingRejection(false);
     });
+  }
+
+  if (canWithdraw) {
+    return (
+      <div className="space-y-3">
+        <p className="max-w-sm text-sm leading-6 text-muted-foreground">
+          Waiting for another owner or admin. You cannot review your own submission.
+        </p>
+        <AlertDialog onOpenChange={setConfirmingWithdrawal} open={confirmingWithdrawal}>
+          <AlertDialogTrigger asChild>
+            <Button disabled={withdrawing} size="sm" type="button" variant="outline">
+              Withdraw submission
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent size="sm">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Withdraw {eventTitle}?</AlertDialogTitle>
+              <AlertDialogDescription>
+                The submission will be cancelled and removed from the review queue. Its audit
+                history remains.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <form action={withdrawalAction}>
+              <GroupFields groupId={groupId} groupSlug={groupSlug} />
+              <input name="eventId" type="hidden" value={eventId} />
+              <AlertDialogFooter>
+                <Button disabled={withdrawing} type="submit" variant="destructive">
+                  {withdrawing ? "Withdrawing…" : "Withdraw event"}
+                </Button>
+                <AlertDialogCancel type="button">Keep pending</AlertDialogCancel>
+              </AlertDialogFooter>
+            </form>
+          </AlertDialogContent>
+        </AlertDialog>
+        <GroupActionFeedback state={withdrawalState} />
+      </div>
+    );
+  }
+
+  if (!canReview) {
+    return (
+      <p className="text-sm text-muted-foreground">This submission is no longer actionable.</p>
+    );
   }
 
   return (
@@ -324,7 +381,7 @@ export function InviteCreateControl({
           />
         </div>
       </div>
-      <p className="text-xs leading-5 text-muted-dark">
+      <p className="text-xs leading-5 text-muted-foreground">
         The secret link appears once. Huddle stores only its SHA-256 digest and non-secret usage
         metadata.
       </p>

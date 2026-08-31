@@ -20,6 +20,7 @@ import {
   groupRuleReorderSchema,
   groupRuleUpdateSchema,
   groupEventReviewSchema,
+  groupEventWithdrawalSchema,
   groupDescriptionUpdateSchema,
   groupUnbanSchema,
 } from "@/features/groups/schemas";
@@ -147,18 +148,46 @@ export async function reviewGroupEventAction(
       audit_request_id: requestId,
     });
     if (error !== null) throw domainErrorFromDatabase(error);
-
-    refreshGroup(parsed.data.groupSlug);
-    revalidatePath(`/events/${parsed.data.eventId}`);
-    return actionSuccess({
-      message:
-        parsed.data.decision === "approve"
-          ? "Group event approved and published."
-          : "Group event rejected and closed.",
-    });
   } catch (error) {
     return actionFailure(error);
   }
+
+  refreshGroup(parsed.data.groupSlug);
+  revalidatePath(`/events/${parsed.data.eventId}`);
+  redirect(
+    `/groups/${parsed.data.groupSlug}?notice=${
+      parsed.data.decision === "approve" ? "event-approved" : "event-rejected"
+    }`,
+  );
+}
+
+export async function withdrawGroupEventAction(
+  _previousState: GroupMembershipActionState,
+  formData: FormData,
+): Promise<GroupMembershipActionState> {
+  const parsed = groupEventWithdrawalSchema.safeParse({
+    ...groupInput(formData),
+    eventId: formData.get("eventId"),
+  });
+  if (!parsed.success) return actionFailure(parsed.error);
+
+  try {
+    const [{ supabase }, requestId] = await Promise.all([
+      requireActor("authenticated"),
+      getRequestId(),
+    ]);
+    const { error } = await supabase.rpc("withdraw_group_event_submission", {
+      input_event_id: parsed.data.eventId,
+      audit_request_id: requestId,
+    });
+    if (error !== null) throw domainErrorFromDatabase(error);
+  } catch (error) {
+    return actionFailure(error);
+  }
+
+  refreshGroup(parsed.data.groupSlug);
+  revalidatePath(`/events/${parsed.data.eventId}`);
+  redirect(`/groups/${parsed.data.groupSlug}?notice=event-withdrawn`);
 }
 
 export async function leaveGroupAction(

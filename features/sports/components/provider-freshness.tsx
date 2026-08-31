@@ -15,7 +15,7 @@ export function ProviderFreshness({ freshness }: Readonly<{ freshness: FixtureFr
       role="status"
     >
       {isCurrentAndSeasonSpanning ? (
-        <CircleCheck aria-hidden="true" className="text-court" />
+        <CircleCheck aria-hidden="true" className="text-forest" />
       ) : (
         <Clock3 aria-hidden="true" className="text-sand" />
       )}

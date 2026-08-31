@@ -3,7 +3,7 @@ export default function AuthLoading() {
     <section
       aria-label="Loading account page"
       aria-live="polite"
-      className="mx-auto my-20 w-full max-w-xl animate-pulse rounded-[2rem] border border-border-dark bg-surface-raised p-10"
+      className="mx-auto my-20 w-full max-w-xl animate-pulse rounded-[2rem] border border-border bg-card p-10"
       role="status"
     >
       <div className="h-3 w-28 rounded bg-court/30" />

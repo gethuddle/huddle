@@ -30,11 +30,9 @@ export default async function VenueTodayPage({ params }: VenueTodayPageProps) {
     <section className="py-10 sm:py-14">
       <div className="flex flex-wrap items-start justify-between gap-5">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sand">
-            Venue workspace
-          </p>
-          <h1 className="mt-2 text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Today</h1>
-          <p className="mt-3 text-lg text-muted-dark">
+          <p className="text-sm font-medium text-sand">Venue workspace</p>
+          <h1 className="mt-2 text-4xl font-semibold tracking-[-0.04em] sm:text-4xl">Today</h1>
+          <p className="mt-3 text-lg text-muted-foreground">
             {today} · {snapshot.todayEvents.length} event
             {snapshot.todayEvents.length === 1 ? "" : "s"} scheduled
           </p>

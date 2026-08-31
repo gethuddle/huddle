@@ -24,7 +24,7 @@ export default async function ProfileSettingsPage() {
       <ProfileAccessState
         actionHref="/auth/sign-in"
         actionLabel="Sign in"
-        description="Sign in with your verified Huddle account before completing a profile."
+        description="Sign in before completing your Fan profile."
         eyebrow="Sign in required"
         title="Your profile starts with your account."
       />
@@ -109,20 +109,18 @@ export default async function ProfileSettingsPage() {
   return (
     <section className="mx-auto my-12 w-full max-w-4xl sm:my-16">
       <div className="mb-8 max-w-2xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-court">
-          Profile and trust
-        </p>
-        <h1 className="mt-4 text-4xl font-semibold tracking-[-0.045em] text-linen sm:text-5xl">
+        <p className="text-sm font-medium text-forest">Profile and trust</p>
+        <h1 className="mt-4 text-4xl font-semibold tracking-[-0.045em] text-foreground sm:text-4xl">
           {initialValue.completed ? "Keep your profile current." : "Finish joining Huddle."}
         </h1>
-        <p className="mt-4 text-lg leading-8 text-muted-dark">
+        <p className="mt-4 text-lg leading-8 text-muted-foreground">
           {initialValue.completed
             ? "Update how people know you. Your saved eligibility stays compact unless the community rules change."
             : "Choose how people know you, set your city, and complete the eligibility steps that keep real gatherings safer."}
         </p>
       </div>
 
-      <div className="rounded-[1.375rem] border border-border-dark bg-surface-raised p-6 sm:p-10">
+      <div className="rounded-[1.375rem] border border-border bg-card p-6 sm:p-10">
         <ProfileForm cities={cities} initialValue={initialValue} />
       </div>
     </section>

@@ -35,7 +35,7 @@ export default async function NewEventPage({ searchParams }: NewEventPageProps) 
       <ProfileAccessState
         actionHref={`/auth/sign-in?next=${encodeURIComponent(resumePath)}`}
         actionLabel="Sign in"
-        description="Every event host and attendee is one verified Huddle account."
+        description="Every event host and attendee uses their own signed-in Huddle account."
         eyebrow="Sign in required"
         title="Sign in to host an event."
       />
@@ -95,20 +95,18 @@ export default async function NewEventPage({ searchParams }: NewEventPageProps) 
     <section className="py-12 sm:py-16">
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-court">
-            Host an event
-          </p>
-          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-linen sm:text-6xl">
+          <p className="text-sm font-medium text-forest">Host an event</p>
+          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-foreground sm:text-4xl">
             Host match day safely.
           </h1>
-          <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-dark">
+          <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
             Choose the match, say where you&apos;re watching, and choose who can join. Home
             addresses stay hidden until you approve attendance.
           </p>
         </div>
         <aside className="self-start rounded-2xl border border-sand/40 bg-sand/10 p-6">
           <p className="font-semibold text-sand">Everyone joins with their own account</p>
-          <p className="mt-3 text-sm leading-6 text-muted-dark">
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">
             You approve each attendee. Home events allow at most 12 people, and Huddle does not use
             anonymous guests or plus-ones.
           </p>

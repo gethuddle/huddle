@@ -254,14 +254,14 @@ export function FixtureCombobox({
 
   return (
     <section aria-label="Fixture picker" className="space-y-5">
-      <div className="rounded-[1.5rem] border border-border-dark bg-surface-raised p-4 sm:p-5">
+      <div className="rounded-[1.5rem] border border-border bg-card p-4 sm:p-5">
         <div className="grid gap-4 lg:grid-cols-[minmax(15rem,1.5fr)_minmax(10rem,0.8fr)_minmax(9rem,0.7fr)_minmax(11rem,0.9fr)]">
           <div>
             <Label htmlFor="fixture-search">Search fixtures</Label>
             <div className="relative mt-2">
               <Search
                 aria-hidden="true"
-                className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-dark"
+                className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
               />
               <Input
                 className="rounded-full pl-11"
@@ -278,7 +278,7 @@ export function FixtureCombobox({
             <div className="relative mt-2">
               <CalendarDays
                 aria-hidden="true"
-                className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-dark"
+                className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
               />
               <Input
                 className="rounded-full pl-11"
@@ -343,7 +343,7 @@ export function FixtureCombobox({
           ).map(([preset, label]) => (
             <button
               aria-pressed={fixtureDate === "" && datePreset === preset}
-              className="rounded-full border border-border-dark px-4 py-2 text-sm font-semibold text-muted-dark transition hover:border-border-strong hover:text-linen aria-pressed:border-linen aria-pressed:bg-linen aria-pressed:text-ink"
+              className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:border-input hover:text-foreground aria-pressed:border-linen aria-pressed:bg-linen aria-pressed:text-ink"
               key={preset}
               onClick={() => choosePreset(preset)}
               type="button"
@@ -351,7 +351,7 @@ export function FixtureCombobox({
               {label}
             </button>
           ))}
-          <p className="ml-auto text-sm text-muted-dark">
+          <p className="ml-auto text-sm text-muted-foreground">
             Kickoff is fixed by the fixture. These controls only filter the catalog.
           </p>
         </div>
@@ -367,13 +367,13 @@ export function FixtureCombobox({
                 className="inline-flex items-center gap-2 rounded-full border border-court/30 bg-court/10 px-3 py-2 text-sm"
                 key={matchId}
               >
-                <span className="font-semibold text-linen">{match.label}</span>
+                <span className="font-semibold text-foreground">{match.label}</span>
                 {selectionLabels[matchId] === undefined ? null : (
-                  <span className="text-muted-dark">· {selectionLabels[matchId]}</span>
+                  <span className="text-muted-foreground">· {selectionLabels[matchId]}</span>
                 )}
                 <button
                   aria-label={`Remove ${match.label}`}
-                  className="rounded-full p-0.5 text-muted-dark hover:bg-surface-deep hover:text-linen"
+                  className="rounded-full p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
                   onClick={() => onValueRemove(matchId)}
                   type="button"
                 >
@@ -387,7 +387,7 @@ export function FixtureCombobox({
 
       {grouped.length === 0 ? (
         <p
-          className="rounded-2xl border border-border-dark p-5 text-sm text-muted-dark"
+          className="rounded-2xl border border-border p-5 text-sm text-muted-foreground"
           role="status"
         >
           {loading ? "Searching the local fixture catalog…" : "No fixtures match these filters."}
@@ -397,31 +397,31 @@ export function FixtureCombobox({
           {grouped.map(([day, dayMatches]) => (
             <section aria-labelledby={`fixture-day-${day.replaceAll(" ", "-")}`} key={day}>
               <h3
-                className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-dark"
+                className="text-sm font-medium text-muted-foreground"
                 id={`fixture-day-${day.replaceAll(" ", "-")}`}
               >
                 {day}
               </h3>
-              <div className="mt-2 overflow-hidden rounded-2xl border border-border-dark">
+              <div className="mt-2 overflow-hidden rounded-2xl border border-border">
                 {dayMatches.map((match) => {
                   const isSelected = selected.has(match.id);
                   return (
                     <button
                       aria-pressed={isSelected}
-                      className="flex min-h-16 w-full items-center gap-4 border-b border-border-dark bg-surface-deep px-4 py-3 text-left transition last:border-b-0 hover:bg-surface-raised aria-pressed:bg-court/10"
+                      className="flex min-h-16 w-full items-center gap-4 border-b border-border bg-muted px-4 py-3 text-left transition last:border-b-0 hover:bg-card aria-pressed:bg-court/10"
                       key={match.id}
                       onClick={() => onValueChange(match)}
                       type="button"
                     >
                       <span
                         aria-hidden="true"
-                        className={`flex size-6 shrink-0 items-center justify-center rounded-lg border ${isSelected ? "border-court bg-court text-ink" : "border-border-strong"}`}
+                        className={`flex size-6 shrink-0 items-center justify-center rounded-lg border ${isSelected ? "border-court bg-court text-ink" : "border-input"}`}
                       >
                         {isSelected ? <Check className="size-4" /> : null}
                       </span>
                       <span className="min-w-0 flex-1 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-6">
-                        <span className="block font-semibold text-linen">{match.label}</span>
-                        <span className="mt-1 block text-sm text-muted-dark sm:mt-0">
+                        <span className="block font-semibold text-foreground">{match.label}</span>
+                        <span className="mt-1 block text-sm text-muted-foreground sm:mt-0">
                           {formatIsraelKickoff(match.startsAt)}
                           {match.followed ? " · Following" : ""}
                         </span>

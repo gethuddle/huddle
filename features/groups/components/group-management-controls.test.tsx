@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   reviewGroupEventAction: vi.fn(),
   unbanGroupMemberAction: vi.fn(),
   updateGroupRuleAction: vi.fn(),
+  withdrawGroupEventAction: vi.fn(),
 }));
 
 vi.mock("@/features/groups/membership-actions", () => mocks);
@@ -102,5 +103,28 @@ describe("destructive group management confirmations", () => {
     const formData = mocks.reviewGroupEventAction.mock.calls[0]?.[1] as FormData;
     expect(formData.get("eventId")).toBe("52000000-0000-4000-8000-000000000203");
     expect(formData.get("decision")).toBe("reject");
+  });
+
+  it("shows withdrawal instead of forbidden self-review to the submitter", async () => {
+    mocks.withdrawGroupEventAction.mockResolvedValue({
+      ok: true,
+      data: { message: "Event submission withdrawn." },
+    });
+    const user = userEvent.setup();
+    render(
+      <EventReviewControl
+        {...group}
+        canReview={false}
+        canWithdraw
+        eventId="52000000-0000-4000-8000-000000000203"
+        eventTitle="North London watch"
+      />,
+    );
+
+    expect(screen.getByText(/cannot review your own submission/i)).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Reject" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Withdraw submission" }));
+    await user.click(screen.getByRole("button", { name: "Withdraw event" }));
+    await waitFor(() => expect(mocks.withdrawGroupEventAction).toHaveBeenCalledOnce());
   });
 });

@@ -82,7 +82,7 @@ export const createMapLibreDiscoveryMap: DiscoveryMapFactory = async (
       `${location.placeName}, ${markerLabel(location)}. Show fixtures.`,
     );
     element.className =
-      "h-10 min-w-16 rounded-full border-2 border-white bg-ink px-3 text-sm font-bold text-linen shadow-lg transition hover:bg-court hover:text-ink";
+      "h-10 min-w-16 rounded-full border-2 border-white bg-background px-3 text-sm font-bold text-foreground [box-shadow:var(--shadow-search)] transition hover:bg-court hover:text-ink";
     element.addEventListener("click", () => onLocationSelect(location.id));
     markerElements.set(location.id, element);
     return new maplibre.Marker({ element, anchor: "bottom" })
@@ -130,8 +130,8 @@ export const createMapLibreDiscoveryMap: DiscoveryMapFactory = async (
         const selected = id === locationId;
         element.classList.toggle("bg-court", selected);
         element.classList.toggle("text-ink", selected);
-        element.classList.toggle("bg-ink", !selected);
-        element.classList.toggle("text-linen", !selected);
+        element.classList.toggle("bg-background", !selected);
+        element.classList.toggle("text-foreground", !selected);
         element.setAttribute("aria-pressed", String(selected));
       }
       const location = locations.find((candidate) => candidate.id === locationId);
@@ -226,11 +226,13 @@ export function DiscoveryMap({
 
   if (locations.length === 0) {
     return (
-      <div className="flex min-h-72 items-center justify-center rounded-[1.75rem] border border-border-dark bg-surface-raised p-8 text-center">
+      <div className="flex min-h-72 items-center justify-center rounded-[1.75rem] border border-border bg-card p-8 text-center">
         <div>
-          <MapPin aria-hidden="true" className="mx-auto size-6 text-muted-dark" />
-          <p className="mt-3 font-semibold text-linen">No public Venue or public-place pins yet.</p>
-          <p className="mt-1 max-w-sm text-sm leading-6 text-muted-dark">
+          <MapPin aria-hidden="true" className="mx-auto size-6 text-muted-foreground" />
+          <p className="mt-3 font-semibold text-foreground">
+            No public Venue or public-place pins yet.
+          </p>
+          <p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">
             Home events stay off the map. Try a wider search to find public places showing games.
           </p>
         </div>
@@ -241,7 +243,7 @@ export function DiscoveryMap({
   return (
     <section
       aria-label="Nearby places showing games"
-      className="relative min-h-[32rem] overflow-hidden rounded-[1.75rem] border border-border-dark bg-surface-raised"
+      className="relative min-h-[32rem] overflow-hidden rounded-[1.75rem] border border-border bg-card"
     >
       <div className="absolute inset-0">
         <div
@@ -253,29 +255,27 @@ export function DiscoveryMap({
       </div>
       {mapError ? (
         <div
-          className="absolute inset-0 grid place-items-center bg-surface-raised p-8 text-center"
+          className="absolute inset-0 grid place-items-center bg-card p-8 text-center"
           role="alert"
         >
           <div>
-            <p className="font-semibold text-linen">The map could not load.</p>
-            <p className="mt-2 text-sm text-muted-dark">
+            <p className="font-semibold text-foreground">The map could not load.</p>
+            <p className="mt-2 text-sm text-muted-foreground">
               The nearby event list still contains the same public places.
             </p>
           </div>
         </div>
       ) : null}
       {selectedLocation === null ? null : (
-        <div className="absolute inset-x-3 bottom-3 max-h-[46%] overflow-y-auto rounded-2xl border border-border-dark bg-ink/95 p-4 shadow-2xl backdrop-blur sm:inset-x-5 sm:bottom-5 sm:p-5">
+        <div className="absolute inset-x-3 bottom-3 max-h-[46%] overflow-y-auto rounded-2xl border border-border bg-background/95 p-4 [box-shadow:var(--shadow-floating)] backdrop-blur sm:inset-x-5 sm:bottom-5 sm:p-5">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-court">
-                Showing here
-              </p>
-              <h3 className="mt-1 text-xl font-semibold text-linen">
+              <p className="text-sm font-medium text-forest">Showing here</p>
+              <h3 className="mt-1 text-xl font-semibold text-foreground">
                 {selectedLocation.placeName}
               </h3>
             </div>
-            <span className="rounded-full border border-border-strong px-3 py-1 text-xs font-semibold text-muted-dark">
+            <span className="rounded-full border border-input px-3 py-1 text-xs font-semibold text-muted-foreground">
               {markerLabel(selectedLocation)}
             </span>
           </div>
@@ -283,12 +283,12 @@ export function DiscoveryMap({
             {selectedLocation.events.slice(0, 3).map((event) => (
               <li className="py-3" key={event.id}>
                 <Link
-                  className="block font-semibold text-linen outline-none hover:text-court focus-visible:text-court"
+                  className="block font-semibold text-foreground outline-none hover:text-forest focus-visible:text-forest"
                   href={`/events/${event.id}`}
                 >
                   {event.match.homeTeamName} vs {event.match.awayTeamName}
                 </Link>
-                <p className="mt-1 text-sm text-muted-dark">
+                <p className="mt-1 text-sm text-muted-foreground">
                   {formatIsraelKickoff(event.startsAt)} ·{" "}
                   {event.attendanceMode === "open_door" ? "Walk in" : "Reservations"}
                 </p>
@@ -296,7 +296,7 @@ export function DiscoveryMap({
             ))}
           </ul>
           {selectedLocation.events.length > 3 ? (
-            <p className="mt-2 text-sm text-muted-dark">
+            <p className="mt-2 text-sm text-muted-foreground">
               +{selectedLocation.events.length - 3} more games at this place
             </p>
           ) : null}

@@ -32,15 +32,21 @@ import { getGroupDiscoveryProgress } from "@/features/groups/discovery";
 import { getGroupOverviewAttention } from "@/features/groups/management";
 import { groupMemberListQuerySchema, groupRouteSlugSchema } from "@/features/groups/schemas";
 import { listPeopleHub } from "@/features/people/search";
+import { z } from "zod";
 
 export const metadata: Metadata = {
-  title: "Supporter group — Huddle",
+  title: "Group — Huddle",
 };
 
 type GroupPageProps = Readonly<{
   params: Promise<Readonly<{ slug: string }>>;
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }>;
+
+const groupNoticeSchema = z
+  .enum(["event-approved", "event-rejected", "event-withdrawn"])
+  .nullable()
+  .catch(null);
 
 export default async function GroupPage({ params, searchParams }: GroupPageProps) {
   const [routeParams, rawQuery] = await Promise.all([
@@ -49,6 +55,9 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
   ]);
   const parsedSlug = groupRouteSlugSchema.safeParse(routeParams.slug);
   if (!parsedSlug.success) notFound();
+  const notice = groupNoticeSchema.parse(
+    Array.isArray(rawQuery.notice) ? rawQuery.notice[0] : rawQuery.notice,
+  );
   const query = groupMemberListQuerySchema.parse({
     membersPage: Array.isArray(rawQuery.membersPage)
       ? rawQuery.membersPage[0]
@@ -69,60 +78,66 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
 
   return (
     <section className="py-12 sm:py-16">
+      {notice === null ? null : (
+        <Alert className="mb-6 border-court/30 bg-court/10" role="status">
+          <AlertDescription className="text-forest-hover">
+            {notice === "event-approved"
+              ? "Group event approved and published."
+              : notice === "event-rejected"
+                ? "Group event rejected and removed from the review queue."
+                : "Event submission withdrawn and removed from the review queue."}
+          </AlertDescription>
+        </Alert>
+      )}
       {rawQuery.created === "1" ? (
         <Alert className="mb-6 border-court/30 bg-court/10" role="status">
-          <AlertDescription className="text-court-hover">
+          <AlertDescription className="text-forest-hover">
             {group.visibility === "discoverable"
               ? "Your group is ready. It now lives in My Huddle; share the application link and review requests here."
               : "Your group is ready. It now lives in My Huddle; create controlled invitation links for the people you choose."}
           </AlertDescription>
         </Alert>
       ) : null}
-      <div className="overflow-hidden rounded-[2rem] border border-border-dark bg-surface-raised shadow-2xl shadow-black/20">
-        <div className="h-2 bg-court" />
+      <div className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-none">
         <div className="grid gap-10 p-7 sm:p-10 lg:grid-cols-[1fr_19rem]">
           <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge>{group.visibility}</Badge>
-              {group.viewerRole === null ? null : (
-                <Badge variant="secondary">Your role: {group.viewerRole}</Badge>
-              )}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+              <span>
+                {group.visibility === "unlisted" ? "Private group" : "Discoverable group"}
+              </span>
+              {group.viewerRole === null ? null : <span>Your role: {group.viewerRole}</span>}
               {group.viewerRole === null && group.viewerMembershipStatus !== null ? (
-                <Badge variant="secondary">Application: {group.viewerMembershipStatus}</Badge>
+                <span>Application: {group.viewerMembershipStatus}</span>
               ) : null}
             </div>
-            <h1 className="mt-5 text-4xl font-semibold tracking-[-0.05em] text-linen sm:text-6xl">
+            <h1 className="mt-5 text-4xl font-semibold tracking-[-0.05em] text-foreground sm:text-4xl">
               {group.name}
             </h1>
-            <p className="mt-5 max-w-2xl whitespace-pre-wrap text-lg leading-8 text-muted-dark">
+            <p className="mt-5 max-w-2xl whitespace-pre-wrap text-lg leading-8 text-muted-foreground">
               {group.description ?? "This group has not added a description yet."}
             </p>
 
-            <dl className="mt-8 grid gap-5 border-y border-border-dark py-6 sm:grid-cols-3">
+            <dl className="mt-8 grid gap-5 border-y border-border py-6 sm:grid-cols-3">
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-dark">
-                  City
-                </dt>
-                <dd className="mt-2 font-semibold text-linen">{group.cityName}</dd>
+                <dt className="text-sm font-medium text-muted-foreground">City</dt>
+                <dd className="mt-2 font-semibold text-foreground">{group.cityName}</dd>
               </div>
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-dark">
-                  Team
-                </dt>
-                <dd className="mt-2 font-semibold text-linen">{group.teamName ?? "Multi-team"}</dd>
+                <dt className="text-sm font-medium text-muted-foreground">Team</dt>
+                <dd className="mt-2 font-semibold text-foreground">
+                  {group.teamName ?? "Multi-team"}
+                </dd>
               </div>
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-dark">
-                  Active members
-                </dt>
-                <dd className="mt-2 font-semibold text-linen">{group.activeMemberCount}</dd>
+                <dt className="text-sm font-medium text-muted-foreground">Active members</dt>
+                <dd className="mt-2 font-semibold text-foreground">{group.activeMemberCount}</dd>
               </div>
             </dl>
 
-            <p className="mt-6 text-sm text-muted-dark">
+            <p className="mt-6 text-sm text-muted-foreground">
               Owned by{" "}
               <Link
-                className="font-semibold text-linen hover:text-court"
+                className="font-semibold text-foreground hover:text-forest"
                 href={`/people/${group.ownerHandle}`}
               >
                 @{group.ownerHandle}
@@ -131,18 +146,18 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
           </div>
 
           <aside aria-label="Group status" className="self-start">
-            <Card className="bg-surface-deep" size="sm">
+            <Card className="bg-muted" size="sm">
               <CardHeader>
-                <CardTitle className="text-linen">
+                <CardTitle className="text-foreground">
                   {statusTitle(group.visibility, group.lifecycle)}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm leading-6 text-muted-dark">
+                <p className="text-sm leading-6 text-muted-foreground">
                   {statusDescription(group.visibility, group.lifecycle)}
                 </p>
                 {group.viewerMembershipStatus === "pending" ? (
-                  <p className="mt-4 text-sm font-semibold leading-6 text-court-hover">
+                  <p className="mt-4 text-sm font-semibold leading-6 text-forest-hover">
                     Your application is waiting for an owner or administrator to review it.
                   </p>
                 ) : null}
@@ -194,7 +209,7 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
 
       {attention.applications.length === 0 ? null : (
         <section aria-labelledby="group-applications-heading" className="mt-10">
-          <h2 className="text-2xl font-semibold text-linen" id="group-applications-heading">
+          <h2 className="text-2xl font-semibold text-foreground" id="group-applications-heading">
             Applications to review
           </h2>
           <div className="mt-5 space-y-3">
@@ -204,10 +219,13 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
                 key={application.userId}
               >
                 <div>
-                  <Link className="font-semibold text-linen" href={`/people/${application.handle}`}>
+                  <Link
+                    className="font-semibold text-foreground"
+                    href={`/people/${application.handle}`}
+                  >
                     {application.displayName}
                   </Link>
-                  <p className="mt-1 text-sm text-muted-dark">
+                  <p className="mt-1 text-sm text-muted-foreground">
                     @{application.handle} ·{" "}
                     {application.source === "invite" ? "Invitation" : "Group page"}
                   </p>
@@ -225,31 +243,36 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
 
       {attention.events.length === 0 ? null : (
         <section aria-labelledby="group-event-submissions-heading" className="mt-10">
-          <h2 className="text-2xl font-semibold text-linen" id="group-event-submissions-heading">
+          <h2
+            className="text-2xl font-semibold text-foreground"
+            id="group-event-submissions-heading"
+          >
             Event submissions to review
           </h2>
           <div className="mt-5 space-y-3">
             {attention.events.map((event) => (
-              <div
+              <article
                 className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-border p-4"
                 key={event.id}
               >
                 <div>
-                  <Link className="font-semibold text-linen" href={`/events/${event.id}`}>
+                  <Link className="font-semibold text-foreground" href={`/events/${event.id}`}>
                     {event.title}
                   </Link>
-                  <p className="mt-1 text-sm text-muted-dark">
+                  <p className="mt-1 text-sm text-muted-foreground">
                     {event.match.homeTeamName} vs {event.match.awayTeamName} · submitted by @
                     {event.submitterHandle}
                   </p>
                 </div>
                 <EventReviewControl
+                  canReview={event.canReview}
+                  canWithdraw={event.canWithdraw}
                   eventId={event.id}
                   eventTitle={event.title}
                   groupId={group.id}
                   groupSlug={group.slug}
                 />
-              </div>
+              </article>
             ))}
           </div>
         </section>
@@ -259,15 +282,13 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
         <section aria-labelledby="group-application-heading" className="mt-10">
           <Card>
             <CardHeader>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-court">
-                Reviewed membership
-              </p>
-              <CardTitle className="mt-2 text-2xl text-linen">
+              <p className="text-sm font-medium text-forest">Reviewed membership</p>
+              <CardTitle className="mt-2 text-2xl text-foreground">
                 <h2 id="group-application-heading">Apply to join</h2>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="mb-6 max-w-3xl text-sm leading-6 text-muted-dark">
+              <p className="mb-6 max-w-3xl text-sm leading-6 text-muted-foreground">
                 Every discoverable-group application waits for an active owner or administrator.
                 Applying never creates an active membership automatically.
               </p>
@@ -279,10 +300,8 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
 
       {group.rules.some((rule) => rule.publishedAt !== null) ? (
         <section aria-labelledby="group-rules-heading" className="mt-10">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-court">
-            Shared expectations
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold text-linen" id="group-rules-heading">
+          <p className="text-sm font-medium text-forest">Shared expectations</p>
+          <h2 className="mt-2 text-2xl font-semibold text-foreground" id="group-rules-heading">
             Group rules
           </h2>
           <ol className="mt-5 space-y-3">
@@ -290,7 +309,7 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
               .filter((rule) => rule.publishedAt !== null)
               .map((rule) => (
                 <li
-                  className="rounded-xl border border-border bg-surface-raised px-5 py-4 leading-7 text-muted-dark"
+                  className="rounded-xl border border-border bg-card px-5 py-4 leading-7 text-muted-foreground"
                   key={rule.id}
                 >
                   {rule.text}
@@ -302,14 +321,12 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
 
       {events.length > 0 || group.canViewMemberContent ? (
         <section aria-labelledby="group-events-heading" className="mt-10">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-court">
-            Reviewed gatherings
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold text-linen" id="group-events-heading">
+          <p className="text-sm font-medium text-forest">Reviewed gatherings</p>
+          <h2 className="mt-2 text-2xl font-semibold text-foreground" id="group-events-heading">
             Approved future events
           </h2>
           {events.length === 0 ? (
-            <p className="mt-4 text-sm text-muted-dark">
+            <p className="mt-4 text-sm text-muted-foreground">
               No approved future event is visible to you. Pending submissions remain
               administrator-only.
             </p>
@@ -327,10 +344,11 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
         <section aria-labelledby="group-members-heading" className="mt-10">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-court">
-                Protected member content
-              </p>
-              <h2 className="mt-2 text-2xl font-semibold text-linen" id="group-members-heading">
+              <p className="text-sm font-medium text-forest">Protected member content</p>
+              <h2
+                className="mt-2 text-2xl font-semibold text-foreground"
+                id="group-members-heading"
+              >
                 Active members
               </h2>
             </div>
@@ -342,12 +360,12 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <Link
-                        className="font-semibold text-linen hover:text-court"
+                        className="font-semibold text-foreground hover:text-forest"
                         href={`/people/${member.handle}`}
                       >
                         {member.displayName}
                       </Link>
-                      <p className="mt-1 text-xs text-muted-dark">@{member.handle}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">@{member.handle}</p>
                     </div>
                     <Badge variant="outline">{member.role}</Badge>
                   </div>
@@ -366,7 +384,7 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
                   />
                 </PaginationItem>
                 <PaginationItem>
-                  <span className="px-4 text-sm text-muted-dark">
+                  <span className="px-4 text-sm text-muted-foreground">
                     Page {group.memberPage} of {group.memberPageCount}
                   </span>
                 </PaginationItem>
@@ -402,7 +420,7 @@ function statusDescription(visibility: "discoverable" | "unlisted", lifecycle: s
   if (lifecycle === "forming") {
     return "Add a clear description to make this group searchable. Until then, only active members can open it.";
   }
-  return "Supporters can find this page and apply. Member-only content stays protected.";
+  return "People can find this page and apply. Member-only content stays protected.";
 }
 
 async function loadShareCandidates(): Promise<GroupShareCandidate[]> {
@@ -419,7 +437,7 @@ async function loadShareCandidates(): Promise<GroupShareCandidate[]> {
       context:
         person.friendship?.status === "accepted"
           ? `Friend · ${person.cityName}`
-          : `${person.reason ?? "Suggested supporter"} · ${person.cityName}`,
+          : `${person.reason ?? "Suggested person"} · ${person.cityName}`,
     });
   }
   return [...candidates.values()];

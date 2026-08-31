@@ -59,13 +59,11 @@ export default async function ModerationPage({ searchParams }: Props) {
     <section className="py-12 sm:py-16">
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sand">
-            Platform-only workspace
-          </p>
-          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-linen sm:text-6xl">
+          <p className="text-sm font-medium text-sand">Platform-only workspace</p>
+          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-foreground sm:text-4xl">
             Moderation queue.
           </h1>
-          <p className="mt-5 max-w-3xl text-lg leading-8 text-muted-dark">
+          <p className="mt-5 max-w-3xl text-lg leading-8 text-muted-foreground">
             Group administrators have no access here. Assign each confidential report, apply the
             least severe effective action with a reason, and leave auditable reversal evidence.
           </p>
@@ -110,10 +108,10 @@ export default async function ModerationPage({ searchParams }: Props) {
                 <CardHeader>
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <p className="text-xs uppercase tracking-[0.14em] text-muted-dark">
+                      <p className="text-sm text-muted-foreground">
                         Reported by @{report.reporter_handle}
                       </p>
-                      <h3 className="mt-2 text-xl font-semibold text-linen">
+                      <h3 className="mt-2 text-xl font-semibold text-foreground">
                         {report.target_label}
                       </h3>
                     </div>
@@ -131,10 +129,10 @@ export default async function ModerationPage({ searchParams }: Props) {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="whitespace-pre-wrap text-sm leading-7 text-muted-dark">
+                  <p className="whitespace-pre-wrap text-sm leading-7 text-muted-foreground">
                     {report.details}
                   </p>
-                  <p className="mt-3 text-xs text-muted-dark">
+                  <p className="mt-3 text-xs text-muted-foreground">
                     Received {formatDate(report.created_at)}
                   </p>
                   <div className="mt-5">
@@ -146,11 +144,13 @@ export default async function ModerationPage({ searchParams }: Props) {
                         targetType={report.target_type}
                       />
                     ) : report.status === "reviewing" ? (
-                      <p className="text-sm font-semibold text-muted-dark">
+                      <p className="text-sm font-semibold text-muted-foreground">
                         Assigned to another moderator.
                       </p>
                     ) : (
-                      <p className="text-sm text-muted-dark">This report has a terminal outcome.</p>
+                      <p className="text-sm text-muted-foreground">
+                        This report has a terminal outcome.
+                      </p>
                     )}
                   </div>
                 </CardContent>
@@ -162,13 +162,11 @@ export default async function ModerationPage({ searchParams }: Props) {
 
       <section aria-labelledby="active-actions-heading" className="mt-16">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-court">
-            Audited product state
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold text-linen" id="active-actions-heading">
+          <p className="text-sm font-medium text-forest">Audited product state</p>
+          <h2 className="mt-2 text-2xl font-semibold text-foreground" id="active-actions-heading">
             Active enforcement actions
           </h2>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-dark">
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
             Timed restrictions and suspensions remain enforced until a moderator reviews the
             deadline and records an explicit reversal. This keeps product-state changes and the
             audit trail together.
@@ -176,26 +174,28 @@ export default async function ModerationPage({ searchParams }: Props) {
         </div>
 
         {actions.length === 0 ? (
-          <p className="mt-5 text-sm text-muted-dark">No active enforcement action is recorded.</p>
+          <p className="mt-5 text-sm text-muted-foreground">
+            No active enforcement action is recorded.
+          </p>
         ) : (
           <div className="mt-5 grid gap-4 lg:grid-cols-2">
             {actions.map((item) => (
               <Card key={item.moderation_action_id} size="sm">
                 <CardContent>
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="font-semibold text-linen">{item.target_label}</p>
+                    <p className="font-semibold text-foreground">{item.target_label}</p>
                     <div className="flex flex-wrap gap-2">
                       <Badge variant="outline">{item.target_type}</Badge>
                       <Badge variant="destructive">{item.action.replaceAll("_", " ")}</Badge>
                     </div>
                   </div>
-                  <p className="mt-4 text-sm leading-6 text-muted-dark">{item.reason}</p>
-                  <p className="mt-3 text-xs text-muted-dark">
+                  <p className="mt-4 text-sm leading-6 text-muted-foreground">{item.reason}</p>
+                  <p className="mt-3 text-xs text-muted-foreground">
                     Recorded {formatDate(item.created_at)}
                     {item.expires_at === null ? "" : ` · Review due ${formatDate(item.expires_at)}`}
                   </p>
                   {item.has_active_appeal ? (
-                    <p className="mt-5 text-sm font-semibold text-muted-dark">
+                    <p className="mt-5 text-sm font-semibold text-muted-foreground">
                       An active appeal must be decided from the appeal queue before this action can
                       be reversed.
                     </p>
@@ -212,10 +212,11 @@ export default async function ModerationPage({ searchParams }: Props) {
       <section aria-labelledby="moderation-appeals-heading" className="mt-16">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-court">
-              Independent review
-            </p>
-            <h2 className="mt-2 text-2xl font-semibold text-linen" id="moderation-appeals-heading">
+            <p className="text-sm font-medium text-forest">Independent review</p>
+            <h2
+              className="mt-2 text-2xl font-semibold text-foreground"
+              id="moderation-appeals-heading"
+            >
               Appeals
             </h2>
           </div>
@@ -239,20 +240,20 @@ export default async function ModerationPage({ searchParams }: Props) {
         </div>
 
         {appeals.length === 0 ? (
-          <p className="mt-5 text-sm text-muted-dark">No appeal matches this status.</p>
+          <p className="mt-5 text-sm text-muted-foreground">No appeal matches this status.</p>
         ) : (
           <div className="mt-5 space-y-4">
             {appeals.map((appeal) => (
               <Card key={appeal.appeal_id} size="sm">
                 <CardContent>
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="font-semibold text-linen">@{appeal.appellant_handle}</p>
+                    <p className="font-semibold text-foreground">@{appeal.appellant_handle}</p>
                     <div className="flex gap-2">
                       <Badge variant="outline">{appeal.action.replaceAll("_", " ")}</Badge>
                       <Badge variant="outline">{appeal.status}</Badge>
                     </div>
                   </div>
-                  <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-muted-dark">
+                  <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-muted-foreground">
                     {appeal.appeal_reason}
                   </p>
                   {appeal.status === "open" || appeal.status === "reviewing" ? (

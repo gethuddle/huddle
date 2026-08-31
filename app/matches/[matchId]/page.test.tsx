@@ -94,14 +94,21 @@ describe("MatchDetailPage event consistency", () => {
   it("lists a safe published event linked to this fixture", async () => {
     mocks.listMatchEvents.mockResolvedValue([event]);
 
-    render(await MatchDetailPage({ params: Promise.resolve({ matchId }) }));
+    const returnTo = "/discover?city=haifa&team=arsenal";
+    render(
+      await MatchDetailPage({
+        params: Promise.resolve({ matchId }),
+        searchParams: Promise.resolve({ returnTo }),
+      }),
+    );
 
     expect(mocks.listMatchEvents).toHaveBeenCalledWith(matchId);
     expect(screen.getByRole("heading", { name: "Watch this match with Huddle" })).toBeVisible();
     expect(screen.getByRole("link", { name: event.title })).toHaveAttribute(
       "href",
-      `/events/${eventId}`,
+      `/events/${eventId}?returnTo=${encodeURIComponent(returnTo)}`,
     );
+    expect(screen.getByRole("link", { name: "Back to Explore" })).toHaveAttribute("href", returnTo);
     expect(screen.getByRole("link", { name: "Plan a private huddle" })).toHaveAttribute(
       "href",
       `/events/new?matchId=${matchId}`,
@@ -110,7 +117,12 @@ describe("MatchDetailPage event consistency", () => {
   });
 
   it("shows the create path when no visible event is linked", async () => {
-    render(await MatchDetailPage({ params: Promise.resolve({ matchId }) }));
+    render(
+      await MatchDetailPage({
+        params: Promise.resolve({ matchId }),
+        searchParams: Promise.resolve({}),
+      }),
+    );
 
     expect(
       screen.getByRole("heading", { name: "No watch events for this fixture yet." }),
@@ -118,6 +130,10 @@ describe("MatchDetailPage event consistency", () => {
     expect(screen.getByRole("link", { name: "Plan a private huddle" })).toHaveAttribute(
       "href",
       `/events/new?matchId=${matchId}`,
+    );
+    expect(screen.getByRole("link", { name: "Back to Explore" })).toHaveAttribute(
+      "href",
+      "/discover",
     );
   });
 });

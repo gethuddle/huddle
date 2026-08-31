@@ -7,10 +7,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   cancelEventAction: vi.fn(),
   createEventInvitationAction: vi.fn(),
+  createEventInviteLinkAction: vi.fn(),
   createEventInvitationsAction: vi.fn(),
   removeAttendeeAction: vi.fn(),
   reviewAttendanceAction: vi.fn(),
   revokeEventInvitationAction: vi.fn(),
+  revokeEventInviteLinkAction: vi.fn(),
   refresh: vi.fn(),
 }));
 
@@ -64,8 +66,11 @@ describe("EventManagementControls", () => {
       />,
     );
 
-    expect(screen.getByText(/not a score/i)).toBeInTheDocument();
-    expect(screen.getByText("40 days")).toBeInTheDocument();
+    expect(screen.getAllByText(/not a score/i)).not.toHaveLength(0);
+    expect(screen.queryByText(/^Verified$/)).not.toBeInTheDocument();
+    expect(screen.getByText("40 days")).not.toBeVisible();
+    await user.click(screen.getByText("Why this request is eligible"));
+    expect(screen.getByText("40 days")).toBeVisible();
     expect(document.body.textContent).not.toContain("@example.com");
     expect(screen.queryByLabelText(/guest|plus-one/i)).not.toBeInTheDocument();
 
@@ -159,5 +164,23 @@ describe("EventManagementControls", () => {
       inviteeIds: ["90000000-0000-4000-8000-000000000102"],
     });
     expect(screen.queryByLabelText(/guest|plus-one/i)).not.toBeInTheDocument();
+  });
+
+  it("distinguishes a share link from a direct Huddle invitation", () => {
+    render(
+      <EventManagementControls
+        attendance={[]}
+        eventAudience="invite_only"
+        eventId={eventId}
+        eventStatus="published"
+        invitations={[]}
+        inviteLinks={[]}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Share this private event" })).toBeVisible();
+    expect(screen.getByText(/sent in any messaging app/i)).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Invite a specific person" })).toBeVisible();
+    expect(screen.getByText(/appears in that person's Home/i)).toBeVisible();
   });
 });

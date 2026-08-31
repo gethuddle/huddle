@@ -83,6 +83,8 @@ const eventSubmissionRowSchema = z
     competition_name: z.string(),
     starts_at: z.string(),
     submitted_at: z.string(),
+    can_review: z.boolean(),
+    can_withdraw: z.boolean(),
     total_count: z.number().int().nonnegative(),
   })
   .strict();
@@ -147,6 +149,8 @@ export type GroupEventSubmission = Readonly<{
   }>;
   startsAt: string;
   submittedAt: string;
+  canReview: boolean;
+  canWithdraw: boolean;
 }>;
 
 export type GroupOverviewAttention = Readonly<{
@@ -227,6 +231,8 @@ function eventSubmissionItem(row: z.infer<typeof eventSubmissionRowSchema>): Gro
     },
     startsAt: row.starts_at,
     submittedAt: row.submitted_at,
+    canReview: row.can_review,
+    canWithdraw: row.can_withdraw,
   };
 }
 
@@ -387,6 +393,8 @@ export async function getGroupManagement(
         },
         startsAt: row.starts_at,
         submittedAt: row.submitted_at,
+        canReview: row.can_review,
+        canWithdraw: row.can_withdraw,
       })),
     };
   }

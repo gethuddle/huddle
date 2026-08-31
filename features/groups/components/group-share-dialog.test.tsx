@@ -66,10 +66,7 @@ describe("GroupShareDialog", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Share group" }));
-    await user.type(
-      screen.getByRole("searchbox", { name: "Find a registered supporter" }),
-      "support",
-    );
+    await user.type(screen.getByRole("searchbox", { name: "Find a Huddle member" }), "support");
 
     expect(screen.getByText("Supporter One · @supporter")).toBeVisible();
     await user.click(screen.getByRole("radio", { name: /Supporter One/ }));

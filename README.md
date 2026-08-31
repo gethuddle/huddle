@@ -2,13 +2,15 @@
 
 **Find your people for every match.**
 
-Huddle is a social web application for finding safe, relevant places and communities to watch sports. Fans follow sports, competitions, teams, and venues, and join supporter groups; Huddle then connects upcoming fixtures to nearby watch events they are actually allowed to see and attend.
+Huddle is a social web application for finding safe, relevant places and communities to watch sports. Fans follow sports, competitions, teams, and venues, and join social or team-linked groups; Huddle then connects upcoming fixtures to nearby watch events they are actually allowed to see and attend.
 
 This is a two-person final project for the **Full-Stack & AI** course. The submitted application is an English-language pilot for Israel.
 
 The approved post-B12 redesign gives one Supabase login two separately authorized, optional workspaces: **Fan** for attendance and private social activity, and **Venue** for commercial operations. This deliberately supersedes the older assumptions that every completed personal profile may create a venue, that every group-organized event must wait for a separate owner/admin review, and that every venue event needs a capacity-backed guest list. The project-status history below remains evidence of what was merged before the redesign, not the current permission contract.
 
 The 31 August discovery-consistency revision makes a described owner-backed group searchable without fake activity quotas, lets eligible Fans find public-place events from discoverable groups before applying, keeps group home events private, preserves managed-Venue listings when switching to Fan Explore, lists visible watch events on their fixture pages, and gives group owners a safe Delete group flow backed by audited archival retention.
+
+The current Calm Explore revision replaces the dark, route-heavy interface with a light-first, border-led hierarchy; combines fixture, date, team, area, event, group, list, and map discovery under Explore; adds repository-owned team marks; completes friendship and invitation outcomes; provides secure event invite links; and gives Venue owners an audited Close venue action. The [86-action flow matrix](./docs/evidence/calm-explore/ACTION-MATRIX.md) and [bounded final UX audit](./docs/evidence/calm-explore/UX-AUDIT.md) record the current behavior and evidence.
 
 ## The problem
 
@@ -45,9 +47,9 @@ A private person cannot publish an event to the general public or to every follo
 
 Home events require host approval, are limited to 12 registered Huddle accounts, do not allow anonymous plus-ones, and keep their exact address in protected storage. Friendship or group membership alone never reveals a home address.
 
-### Supporter groups
+### Groups
 
-Groups provide the community layer between a private friendship and a public venue listing. They support:
+Groups provide the community layer between a private friendship and a public venue listing. A group may be a team-linked supporter community or a general private/social circle. They support:
 
 - discoverable and unlisted groups;
 - membership applications and expiring invite links;
@@ -121,7 +123,7 @@ The submitted implementation remains **football-first**: [football-data.org](htt
 - Follows for sports, competitions, teams, and venues.
 - Mutual friendships with no friends-of-friends visibility.
 - Safe signed-in people search by display name or handle.
-- Discoverable and unlisted supporter groups with applications, roles, invitations, bans, atomic owner/admin-authored event publication, and different-owner/admin review of ordinary-member submissions.
+- Discoverable and unlisted groups, with optional team association, applications, roles, invitations, bans, atomic owner/admin-authored event publication, and different-owner/admin review of ordinary-member submissions.
 - Owner-only group deletion through audited archive, with live events/invites closed and safety history retained.
 - Private-person events limited to group, friends, or invite-only audiences.
 - Business-venue events with public or team-follower audiences, fixture-first batch planning, public open-door listings or optional registered reservations, authorized by active Venue membership and never attended by the venue itself.
@@ -164,7 +166,7 @@ There is no separate Express service, ORM, Redis cache, WebSocket layer, payment
 - NBA provider integration and live scores;
 - chat, realtime match threads, and notifications;
 - ratings, reviews, and numeric reputation;
-- maps and paid address autocomplete;
+- route planning and paid address autocomplete beyond the implemented OpenStreetMap/Nominatim search and public-event map;
 - Google Calendar OAuth;
 - Stripe subscriptions, payments, ticketing, menus, offers, analytics, and promoted listings;
 - AI recommendations, automatic event creation, and AI moderation.
@@ -177,7 +179,7 @@ The merged baseline includes B01–B12: repository CI; account verification and 
 
 ### Visual system
 
-Huddle uses a dark-first visual language built from Ink, Linen, Court Green, Forest, and warm supporting neutrals, with Familjen Grotesk as the interface typeface. Every approved swatch is available as a named Tailwind token. Repository-owned shadcn/Radix primitives provide reusable behavior while shared and feature UI applies Huddle's tokens and replaceable brand components rather than hard-coded logo geometry or colors. The palette and typography are adopted; the exact website mark remains intentionally easy to replace.
+Huddle uses a light-first visual language built from a warm neutral canvas, white focused surfaces, Ink text, Court Green, Forest, and restrained warm supporting neutrals, with Familjen Grotesk as the interface typeface. Ordinary surfaces are border-led and shadow-free; floating layers use pale sage semantic elevation. Every approved swatch is available as a named Tailwind token. Repository-owned shadcn/Radix primitives provide reusable behavior while shared and feature UI applies Huddle's tokens and replaceable brand components rather than hard-coded logo geometry or colors. The palette and typography are adopted; the exact website mark remains intentionally easy to replace.
 
 See the [Huddle brand system](./docs/HUDDLE-BRAND.md) for tokens, assets, accessibility constraints, and usage rules.
 

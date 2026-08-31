@@ -21,14 +21,14 @@ export function AuthCard({ eyebrow, title, description, children, footer }: Auth
   return (
     <Card className="mx-auto my-14 w-full max-w-xl rounded-[2rem] sm:my-20">
       <CardHeader className="px-7 sm:px-10">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-court">{eyebrow}</p>
-        <CardTitle className="mt-3 text-4xl font-semibold tracking-[-0.045em] text-linen">
+        <p className="text-sm font-medium text-forest">{eyebrow}</p>
+        <CardTitle className="mt-3 text-4xl font-semibold tracking-[-0.045em] text-foreground">
           <h1>{title}</h1>
         </CardTitle>
         <CardDescription className="mt-2 leading-7">{description}</CardDescription>
       </CardHeader>
       <CardContent className="px-7 sm:px-10">{children}</CardContent>
-      <CardFooter className="px-7 text-sm text-muted-dark sm:px-10">{footer}</CardFooter>
+      <CardFooter className="px-7 text-sm text-muted-foreground sm:px-10">{footer}</CardFooter>
     </Card>
   );
 }

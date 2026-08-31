@@ -34,7 +34,7 @@ export default async function ReportsPage({ searchParams }: Props) {
         <ProfileAccessState
           actionHref="/auth/sign-in"
           actionLabel="Sign in"
-          description="Reports and appeals belong to a verified Huddle account."
+          description="Reports and appeals belong to your signed-in Huddle account."
           eyebrow="Sign in required"
           title="Sign in to open your safety center."
         />
@@ -45,7 +45,7 @@ export default async function ReportsPage({ searchParams }: Props) {
         <ProfileAccessState
           actionHref="/auth/verify"
           actionLabel="Review verification"
-          description="Confirm your email to open the safety center. Adult attestation, current-rules acceptance, restriction, and suspension never remove verified safety access."
+          description="Confirm your email to open the safety center. Adult attestation, current-rules acceptance, restriction, and suspension never remove access to your own safety records."
           eyebrow="Verification required"
           title="Verify your email to use safety tools."
           warning
@@ -65,13 +65,11 @@ export default async function ReportsPage({ searchParams }: Props) {
     <section className="py-12 sm:py-16">
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-court">
-            Safety center
-          </p>
-          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-linen sm:text-5xl">
+          <p className="text-sm font-medium text-forest">Safety center</p>
+          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-foreground sm:text-4xl">
             Reports and appeals.
           </h1>
-          <p className="mt-5 max-w-3xl text-lg leading-8 text-muted-dark">
+          <p className="mt-5 max-w-3xl text-lg leading-8 text-muted-foreground">
             Your report details and identity remain hidden from the reported person and group
             administrators. You see only a safe progress state—not internal investigation notes.
           </p>
@@ -82,7 +80,7 @@ export default async function ReportsPage({ searchParams }: Props) {
       </div>
 
       <section aria-labelledby="reports-heading" className="mt-12">
-        <h2 className="text-2xl font-semibold text-linen" id="reports-heading">
+        <h2 className="text-2xl font-semibold text-foreground" id="reports-heading">
           Your reports
         </h2>
         {reports.length === 0 ? (
@@ -97,13 +95,13 @@ export default async function ReportsPage({ searchParams }: Props) {
               <Card key={report.report_id} size="sm">
                 <CardContent>
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="font-semibold text-linen">{report.target_label}</p>
+                    <p className="font-semibold text-foreground">{report.target_label}</p>
                     <Badge variant="outline">{report.safe_status}</Badge>
                   </div>
-                  <p className="mt-2 text-sm text-muted-dark">
+                  <p className="mt-2 text-sm text-muted-foreground">
                     {report.target_type} · {report.category.replaceAll("_", " ")}
                   </p>
-                  <p className="mt-3 text-xs text-muted-dark">
+                  <p className="mt-3 text-xs text-muted-foreground">
                     Submitted {formatDate(report.created_at)}
                   </p>
                 </CardContent>
@@ -114,18 +112,20 @@ export default async function ReportsPage({ searchParams }: Props) {
       </section>
 
       <section aria-labelledby="actions-heading" className="mt-12">
-        <h2 className="text-2xl font-semibold text-linen" id="actions-heading">
+        <h2 className="text-2xl font-semibold text-foreground" id="actions-heading">
           Actions affecting you
         </h2>
         {actions.length === 0 ? (
-          <p className="mt-4 text-sm text-muted-dark">No platform moderation action affects you.</p>
+          <p className="mt-4 text-sm text-muted-foreground">
+            No platform moderation action affects you.
+          </p>
         ) : (
           <div className="mt-5 space-y-4">
             {actions.map((item) => (
               <Card key={item.moderation_action_id} size="sm">
                 <CardHeader>
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <h3 className="text-lg font-semibold text-linen">
+                    <h3 className="text-lg font-semibold text-foreground">
                       {item.action.replaceAll("_", " ")}
                     </h3>
                     <Badge variant={item.reversed_at === null ? "destructive" : "outline"}>
@@ -134,20 +134,20 @@ export default async function ReportsPage({ searchParams }: Props) {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm leading-6 text-muted-dark">{item.reason}</p>
-                  <p className="mt-3 text-xs text-muted-dark">
+                  <p className="text-sm leading-6 text-muted-foreground">{item.reason}</p>
+                  <p className="mt-3 text-xs text-muted-foreground">
                     Target: {item.target_label} · Recorded {formatDate(item.created_at)}
                     {item.expires_at === null ? "" : ` · Review due ${formatDate(item.expires_at)}`}
                   </p>
                   {item.reversal_reason === null ? null : (
-                    <p className="mt-4 text-sm text-court-hover">
+                    <p className="mt-4 text-sm text-forest-hover">
                       Reversal outcome: {item.reversal_reason}
                     </p>
                   )}
                   {item.reversed_at === null && !item.has_active_appeal ? (
                     <AppealControl moderationActionId={item.moderation_action_id} />
                   ) : item.has_active_appeal ? (
-                    <p className="mt-4 text-sm font-semibold text-court">Appeal under review.</p>
+                    <p className="mt-4 text-sm font-semibold text-forest">Appeal under review.</p>
                   ) : null}
                 </CardContent>
               </Card>
@@ -157,23 +157,25 @@ export default async function ReportsPage({ searchParams }: Props) {
       </section>
 
       <section aria-labelledby="appeals-heading" className="mt-12">
-        <h2 className="text-2xl font-semibold text-linen" id="appeals-heading">
+        <h2 className="text-2xl font-semibold text-foreground" id="appeals-heading">
           Appeal outcomes
         </h2>
         {appeals.length === 0 ? (
-          <p className="mt-4 text-sm text-muted-dark">No appeals submitted.</p>
+          <p className="mt-4 text-sm text-muted-foreground">No appeals submitted.</p>
         ) : (
           <div className="mt-5 space-y-4">
             {appeals.map((appeal) => (
               <Card key={appeal.appeal_id} size="sm">
                 <CardContent>
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="font-semibold text-linen">{appeal.action.replaceAll("_", " ")}</p>
+                    <p className="font-semibold text-foreground">
+                      {appeal.action.replaceAll("_", " ")}
+                    </p>
                     <Badge variant="outline">{appeal.status}</Badge>
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-muted-dark">{appeal.reason}</p>
+                  <p className="mt-3 text-sm leading-6 text-muted-foreground">{appeal.reason}</p>
                   {appeal.outcome_reason === null ? null : (
-                    <p className="mt-4 text-sm font-semibold text-court-hover">
+                    <p className="mt-4 text-sm font-semibold text-forest-hover">
                       Outcome: {appeal.outcome_reason}
                     </p>
                   )}

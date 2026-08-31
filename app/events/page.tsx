@@ -43,7 +43,7 @@ export default async function EventsDashboardPage({ searchParams }: Props) {
         <ProfileAccessState
           actionHref="/auth/sign-in"
           actionLabel="Sign in"
-          description="Invitations and attendance belong to your verified Huddle account."
+          description="Invitations and attendance belong to your signed-in Huddle account."
           eyebrow="Sign in required"
           title="Sign in to view your events."
         />
@@ -54,7 +54,7 @@ export default async function EventsDashboardPage({ searchParams }: Props) {
         <ProfileAccessState
           actionHref="/settings/profile"
           actionLabel="Review profile"
-          description="Verify your email, confirm you are 18+, accept the current rules, and complete your profile."
+          description="Confirm your email, confirm you are 18+, accept the current rules, and complete your profile."
           eyebrow="Profile required"
           title="Finish joining before managing attendance."
           warning={error.code === "ACCOUNT_SUSPENDED"}
@@ -77,13 +77,11 @@ export default async function EventsDashboardPage({ searchParams }: Props) {
     <section className="py-12 sm:py-16" id="attendance-inbox">
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-court">
-            Attendance inbox
-          </p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-linen sm:text-6xl">
+          <p className="text-sm font-medium text-forest">Attendance inbox</p>
+          <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-foreground sm:text-4xl">
             Invitations and requests
           </h1>
-          <p className="mt-4 max-w-3xl text-muted-dark">
+          <p className="mt-4 max-w-3xl text-muted-foreground">
             Every response represents your own registered place. There are no anonymous guests or
             plus-ones.
           </p>
@@ -105,18 +103,18 @@ export default async function EventsDashboardPage({ searchParams }: Props) {
             <Card key={item.event_id}>
               <CardHeader>
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-sm font-semibold text-court">{item.competition_name}</p>
+                  <p className="text-sm font-semibold text-forest">{item.competition_name}</p>
                   <Badge variant="outline">
                     {item.attendance_status ?? item.invitation_status ?? "invited"}
                   </Badge>
                 </div>
-                <h2 className="mt-3 text-2xl font-semibold text-linen">{item.title}</h2>
-                <p className="mt-2 text-sm text-muted-dark">
+                <h2 className="mt-3 text-2xl font-semibold text-foreground">{item.title}</h2>
+                <p className="mt-2 text-sm text-muted-foreground">
                   {item.home_team_name} vs {item.away_team_name}
                 </p>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-dark">
+                <p className="text-sm text-muted-foreground">
                   {formatIsraelKickoff(item.starts_at)} · {item.city_name}
                 </p>
                 <div className="mt-5">
@@ -153,7 +151,7 @@ export default async function EventsDashboardPage({ searchParams }: Props) {
               />
             </PaginationItem>
             <PaginationItem>
-              <span className="px-4 text-sm text-muted-dark">
+              <span className="px-4 text-sm text-muted-foreground">
                 Page {page} of {pageCount}
               </span>
             </PaginationItem>

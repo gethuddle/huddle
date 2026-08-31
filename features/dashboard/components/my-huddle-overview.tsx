@@ -1,7 +1,6 @@
 import { ArrowRight, Bookmark, CalendarDays, UsersRound } from "lucide-react";
 import Link from "next/link";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -20,6 +19,7 @@ import type {
   SavedBucket,
   SavedItem,
 } from "@/features/dashboard/queries";
+import { TeamMark } from "@/features/sports/components/team-initials";
 import { formatIsraelKickoff } from "@/features/sports/time";
 import {
   collectionHasOverflow,
@@ -65,55 +65,71 @@ export function MyHuddleOverview({
     savedBucket,
     savedPage,
   };
+  const hasCustomFilters =
+    eventBucket !== "upcoming" || groupBucket !== "owner" || savedBucket !== "all";
 
   return (
     <div className="space-y-14">
-      <form
-        action="/dashboard"
-        className="grid gap-5 rounded-[1.375rem] border border-border-dark bg-surface-raised p-5 md:grid-cols-3"
-        method="get"
+      <details
+        className="rounded-xl border border-border bg-card px-5 py-4"
+        open={hasCustomFilters}
       >
-        <FilterSelect
-          id="eventBucket"
-          label="Show events"
-          name="eventBucket"
-          options={[
-            ["upcoming", "Upcoming"],
-            ["hosting", "Hosting"],
-            ["pending", "Pending"],
-            ["history", "History"],
-          ]}
-          value={eventBucket}
-        />
-        <FilterSelect
-          id="groupBucket"
-          label="Show groups"
-          name="groupBucket"
-          options={[
-            ["member", "Member"],
-            ["owner", "Owner"],
-            ["admin", "Admin"],
-            ["applying", "Applying"],
-          ]}
-          value={groupBucket}
-        />
-        <FilterSelect
-          id="savedBucket"
-          label="Show saved items"
-          name="savedBucket"
-          options={[
-            ["all", "All saved"],
-            ["team", "Teams"],
-            ["competition", "Competitions"],
-            ["sport", "Sports"],
-            ["venue", "Venues"],
-          ]}
-          value={savedBucket}
-        />
-        <Button className="min-h-11 rounded-full md:col-span-3 md:justify-self-start" type="submit">
-          Apply filters
-        </Button>
-      </form>
+        <summary className="cursor-pointer font-semibold text-foreground">
+          Filter My Huddle
+          <span className="ml-2 font-normal text-muted-foreground">
+            · {eventBucket} events · {groupBucket} groups · {savedBucket} saved
+          </span>
+        </summary>
+        <form
+          action="/dashboard"
+          className="mt-5 grid gap-5 border-t border-border pt-5 md:grid-cols-3"
+          method="get"
+        >
+          <FilterSelect
+            id="eventBucket"
+            label="Show events"
+            name="eventBucket"
+            options={[
+              ["upcoming", "Upcoming"],
+              ["hosting", "Hosting"],
+              ["pending", "Pending"],
+              ["history", "History"],
+            ]}
+            value={eventBucket}
+          />
+          <FilterSelect
+            id="groupBucket"
+            label="Show groups"
+            name="groupBucket"
+            options={[
+              ["member", "Member"],
+              ["owner", "Owner"],
+              ["admin", "Admin"],
+              ["applying", "Applying"],
+            ]}
+            value={groupBucket}
+          />
+          <FilterSelect
+            id="savedBucket"
+            label="Show saved items"
+            name="savedBucket"
+            options={[
+              ["all", "All saved"],
+              ["team", "Teams"],
+              ["competition", "Competitions"],
+              ["sport", "Sports"],
+              ["venue", "Venues"],
+            ]}
+            value={savedBucket}
+          />
+          <Button
+            className="min-h-11 rounded-full md:col-span-3 md:justify-self-start"
+            type="submit"
+          >
+            Apply filters
+          </Button>
+        </form>
+      </details>
 
       <EventCollection events={events} state={state} />
       <GroupCollection groups={groups} state={state} />
@@ -184,7 +200,7 @@ function EventCollection({
         title={state.eventBucket === "history" ? "Event history" : "Your events"}
       />
       {state.eventBucket !== "history" ? (
-        <p className="mt-2 text-sm text-muted-dark">
+        <p className="mt-2 text-sm text-muted-foreground">
           Completed and cancelled events stay out of sight unless you choose History.
         </p>
       ) : null}
@@ -203,29 +219,32 @@ function EventCollection({
           {events.map((event) => (
             <Card className="h-full" key={event.id} size="sm">
               <CardHeader>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge>{event.relationshipLabel}</Badge>
-                  <Badge variant="outline">{event.status.replaceAll("_", " ")}</Badge>
-                </div>
-                <h3 className="mt-2 text-xl font-semibold text-linen">{event.title}</h3>
+                <p className="text-xs text-muted-foreground">
+                  {event.relationshipLabel} · {event.status.replaceAll("_", " ")}
+                </p>
+                <h3 className="mt-2 text-xl font-semibold text-foreground">{event.title}</h3>
               </CardHeader>
               <CardContent className="flex flex-1 flex-col">
-                <p className="font-medium text-linen">
-                  {event.homeTeamName} vs {event.awayTeamName}
-                </p>
-                <p className="mt-1 text-sm text-muted-dark">{event.competitionName}</p>
-                <p className="mt-4 inline-flex items-center gap-2 text-sm text-muted-dark">
-                  <CalendarDays aria-hidden="true" className="size-4 text-court" />
+                <div className="flex items-center gap-3">
+                  <TeamMark name={event.homeTeamName} size="sm" tla={null} />
+                  <p className="min-w-0 font-medium text-foreground">
+                    {event.homeTeamName} vs {event.awayTeamName}
+                  </p>
+                  <TeamMark name={event.awayTeamName} size="sm" tla={null} />
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">{event.competitionName}</p>
+                <p className="mt-4 inline-flex items-center gap-2 text-sm text-muted-foreground">
+                  <CalendarDays aria-hidden="true" className="size-4 text-forest" />
                   {formatIsraelKickoff(event.startsAt)} · {event.cityName}
                 </p>
                 <div className="mt-5 flex flex-wrap gap-2">
-                  <Button asChild className="min-h-11" size="sm">
+                  <Button asChild className="min-h-11" size="sm" variant="outline">
                     <Link href={`/events/${event.id}`}>
                       Open event <ArrowRight aria-hidden="true" />
                     </Link>
                   </Button>
                   {event.canManage ? (
-                    <Button asChild className="min-h-11" size="sm" variant="outline">
+                    <Button asChild className="min-h-11" size="sm" variant="ghost">
                       <Link href={`/events/${event.id}/manage`}>Manage</Link>
                     </Button>
                   ) : null}
@@ -281,30 +300,30 @@ function GroupCollection({
           {groups.map((group) => (
             <Card className="h-full" key={group.id} size="sm">
               <CardHeader>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge>{group.role ?? "application pending"}</Badge>
-                  <Badge variant="outline">{group.visibility}</Badge>
-                </div>
-                <h3 className="mt-2 text-xl font-semibold text-linen">{group.name}</h3>
+                <p className="text-xs text-muted-foreground">
+                  {group.role ?? "Application pending"} ·{" "}
+                  {group.visibility === "unlisted" ? "Private" : "Discoverable"}
+                </p>
+                <h3 className="mt-2 text-xl font-semibold text-foreground">{group.name}</h3>
               </CardHeader>
               <CardContent className="flex flex-1 flex-col">
                 {group.description === null ? null : (
-                  <p className="line-clamp-2 text-sm leading-6 text-muted-dark">
+                  <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
                     {group.description}
                   </p>
                 )}
-                <p className="mt-4 inline-flex items-center gap-2 text-sm text-muted-dark">
-                  <UsersRound aria-hidden="true" className="size-4 text-court" />
+                <p className="mt-4 inline-flex items-center gap-2 text-sm text-muted-foreground">
+                  <UsersRound aria-hidden="true" className="size-4 text-forest" />
                   {group.activeMemberCount === null
                     ? `${group.cityName} · Application pending`
                     : `${group.activeMemberCount} active · ${group.cityName}`}
                 </p>
                 <div className="mt-5 flex flex-wrap gap-2">
-                  <Button asChild className="min-h-11" size="sm">
+                  <Button asChild className="min-h-11" size="sm" variant="outline">
                     <Link href={`/groups/${group.slug}`}>Open group</Link>
                   </Button>
                   {group.canManage ? (
-                    <Button asChild className="min-h-11" size="sm" variant="outline">
+                    <Button asChild className="min-h-11" size="sm" variant="ghost">
                       <Link href={`/groups/${group.slug}/manage`}>Manage</Link>
                     </Button>
                   ) : null}
@@ -358,12 +377,15 @@ function SavedCollection({
             <Card key={`${item.kind}:${item.id}`} size="sm">
               <CardContent>
                 <div className="flex items-center gap-2">
-                  <Bookmark aria-hidden="true" className="size-4 text-court" />
-                  <Badge variant="outline">{item.kind}</Badge>
+                  <Bookmark aria-hidden="true" className="size-4 text-forest" />
+                  <span className="text-xs text-muted-foreground">{item.kind}</span>
+                  {item.kind === "team" ? (
+                    <TeamMark className="ml-auto" name={item.label} size="sm" tla={null} />
+                  ) : null}
                 </div>
-                <h3 className="mt-3 text-lg font-semibold text-linen">{item.label}</h3>
+                <h3 className="mt-3 text-lg font-semibold text-foreground">{item.label}</h3>
                 {item.detail === null ? null : (
-                  <p className="mt-1 text-sm text-muted-dark">{item.detail}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{item.detail}</p>
                 )}
                 <Button asChild className="mt-5 min-h-11" size="sm" variant="outline">
                   <Link href={item.href}>Open {item.label}</Link>
@@ -394,8 +416,8 @@ function CollectionHeading({
 }: Readonly<{ eyebrow: string; id: string; title: string }>) {
   return (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-court">{eyebrow}</p>
-      <h2 className="mt-2 text-2xl font-semibold text-linen" id={id}>
+      <p className="text-sm font-medium text-forest">{eyebrow}</p>
+      <h2 className="mt-2 text-2xl font-semibold text-foreground" id={id}>
         {title}
       </h2>
     </div>
@@ -404,7 +426,7 @@ function CollectionHeading({
 
 function BoundedWindowCopy({ label, totalCount }: Readonly<{ label: string; totalCount: number }>) {
   return (
-    <p className="mt-4 text-sm text-muted-dark">
+    <p className="mt-4 text-sm text-muted-foreground">
       Showing the first {collectionVisibleTotal(totalCount).toLocaleString("en-US")} {label}. Use
       the filters to narrow the collection.
     </p>
@@ -418,8 +440,8 @@ function CollectionEmpty({
   return (
     <Card className="mt-5 border-dashed" size="sm">
       <CardContent>
-        <p className="font-semibold text-linen">{copy[0]}</p>
-        <p className="mt-2 text-sm leading-6 text-muted-dark">{copy[1]}</p>
+        <p className="font-semibold text-foreground">{copy[0]}</p>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">{copy[1]}</p>
         <div className="mt-4 flex flex-wrap gap-2">{children}</div>
       </CardContent>
     </Card>
@@ -468,7 +490,7 @@ function CollectionPagination({
           />
         </PaginationItem>
         <PaginationItem>
-          <span className="px-4 text-sm text-muted-dark">
+          <span className="px-4 text-sm text-muted-foreground">
             Page {currentPage} of {pageCount}
           </span>
         </PaginationItem>

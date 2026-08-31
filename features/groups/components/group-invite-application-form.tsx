@@ -21,8 +21,9 @@ export function GroupInviteApplicationForm({ token }: Readonly<{ token: string }
     <form action={formAction} className="space-y-5" noValidate>
       <input name="token" type="hidden" value={token} />
       <div>
-        <Label className="text-linen" htmlFor="invite-application-message">
-          Note to the administrators <span className="font-normal text-muted-dark">(optional)</span>
+        <Label className="text-foreground" htmlFor="invite-application-message">
+          Note to the administrators{" "}
+          <span className="font-normal text-muted-foreground">(optional)</span>
         </Label>
         <Textarea
           aria-describedby="invite-application-help invite-application-error"
@@ -33,7 +34,7 @@ export function GroupInviteApplicationForm({ token }: Readonly<{ token: string }
           name="message"
           placeholder="Introduce yourself to the group administrators."
         />
-        <span className="mt-2 block text-xs text-muted-dark" id="invite-application-help">
+        <span className="mt-2 block text-xs text-muted-foreground" id="invite-application-help">
           Using an invitation submits a pending application. It never bypasses administrator review.
           Do not include a home address, phone number, financial or health information, sexual
           orientation, or full legal identity.

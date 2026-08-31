@@ -56,7 +56,7 @@ export default async function FriendsSettingsPage({ searchParams }: FriendsPageP
       <ProfileAccessState
         actionHref="/auth/sign-in"
         actionLabel="Sign in"
-        description="Friend requests belong to a verified Huddle account."
+        description="Friend requests belong to your signed-in Fan account."
         eyebrow="Sign in required"
         title="Sign in to manage friendships."
       />
@@ -90,11 +90,11 @@ export default async function FriendsSettingsPage({ searchParams }: FriendsPageP
     <section className="py-12 sm:py-16">
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-court">Your people</p>
-          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-linen sm:text-6xl">
+          <p className="text-sm font-medium text-forest">Your people</p>
+          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-foreground sm:text-4xl">
             Direct friendships.
           </h1>
-          <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-dark">
+          <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
             Requests are mutual and private. Only accepted direct friends count—Huddle never expands
             access through friends of friends.
           </p>
@@ -138,14 +138,14 @@ export default async function FriendsSettingsPage({ searchParams }: FriendsPageP
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Link
-                      className="font-semibold text-linen underline-offset-4 hover:text-court hover:underline"
+                      className="font-semibold text-foreground underline-offset-4 hover:text-forest hover:underline"
                       href={`/people/${friendship.handle}`}
                     >
                       {friendship.displayName}
                     </Link>
                     <Badge variant="outline">{friendship.cityName}</Badge>
                   </div>
-                  <p className="mt-1 text-sm text-muted-dark">@{friendship.handle}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">@{friendship.handle}</p>
                 </div>
                 <FriendshipControl
                   initialFriendship={{
@@ -172,7 +172,7 @@ export default async function FriendsSettingsPage({ searchParams }: FriendsPageP
               />
             </PaginationItem>
             <PaginationItem>
-              <span className="px-4 text-sm text-muted-dark">
+              <span className="px-4 text-sm text-muted-foreground">
                 Page {query.page} of {result.pageCount}
               </span>
             </PaginationItem>

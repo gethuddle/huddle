@@ -207,6 +207,39 @@ describe("auth Server Actions", () => {
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/", "layout");
   });
 
+  it("returns an active Fan to a safe invite path after sign-in", async () => {
+    mocks.signInWithPassword.mockResolvedValue({
+      data: { session: {}, user: { id: "complete-user-id" } },
+      error: null,
+    });
+    mocks.rpc.mockResolvedValue({
+      data: [
+        {
+          workspace_kind: "fan",
+          workspace_id: "e4000000-0000-4000-8000-000000000101",
+          slug: "complete_fan",
+          name: "Complete Fan",
+          role: "fan",
+        },
+      ],
+      error: null,
+    });
+
+    const result = await signInAction(
+      null,
+      formData({
+        email: "fan@example.com",
+        password: "matchday-strong",
+        next: `/join/event/${"a".repeat(43)}`,
+      }),
+    );
+
+    expect(result).toMatchObject({
+      ok: true,
+      data: { redirectTo: `/join/event/${"a".repeat(43)}` },
+    });
+  });
+
   it("returns a Venue-only account to its authorized Today page", async () => {
     mocks.signInWithPassword.mockResolvedValue({
       data: { session: {}, user: { id: "venue-user-id" } },

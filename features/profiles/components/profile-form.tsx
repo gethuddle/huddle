@@ -58,11 +58,11 @@ function ProfileFeedback({ state }: Readonly<{ state: ProfileActionState }>) {
 
   return (
     <Alert
-      className={state.ok ? "border-court/30 bg-court/10 text-court-hover" : undefined}
+      className={state.ok ? "border-court/30 bg-court/10 text-forest-hover" : undefined}
       role={state.ok ? "status" : "alert"}
       variant={state.ok ? "default" : "destructive"}
     >
-      <AlertDescription className={state.ok ? "text-court-hover" : "text-sand"}>
+      <AlertDescription className={state.ok ? "text-forest-hover" : "text-sand"}>
         {state.ok ? state.data.message : state.error.message}
       </AlertDescription>
     </Alert>
@@ -133,7 +133,7 @@ export function ProfileForm({
     >
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
-          <Label className="text-linen" htmlFor="profile-display-name">
+          <Label className="text-foreground" htmlFor="profile-display-name">
             Display name
           </Label>
           <Input
@@ -152,13 +152,13 @@ export function ProfileForm({
         </div>
 
         <div>
-          <Label className="text-linen" htmlFor="profile-handle">
+          <Label className="text-foreground" htmlFor="profile-handle">
             Handle
           </Label>
           <div className="relative">
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute left-4 top-[1.05rem] text-muted-dark"
+              className="pointer-events-none absolute left-4 top-[1.05rem] text-muted-foreground"
             >
               @
             </span>
@@ -176,7 +176,7 @@ export function ProfileForm({
               required
             />
           </div>
-          <span className="mt-2 block text-xs text-muted-dark" id="profile-handle-help">
+          <span className="mt-2 block text-xs text-muted-foreground" id="profile-handle-help">
             3–30 letters, numbers, or underscores. Huddle stores it in lowercase.
           </span>
           <FieldError id="profile-handle-error" messages={fieldErrors?.handle} />
@@ -184,7 +184,7 @@ export function ProfileForm({
       </div>
 
       <div>
-        <Label className="text-linen" htmlFor="profile-city">
+        <Label className="text-foreground" htmlFor="profile-city">
           City
         </Label>
         <NativeSelect
@@ -203,15 +203,15 @@ export function ProfileForm({
             </NativeSelectOption>
           ))}
         </NativeSelect>
-        <span className="mt-2 block text-xs text-muted-dark" id="profile-city-help">
+        <span className="mt-2 block text-xs text-muted-foreground" id="profile-city-help">
           This is your fallback when you do not share browser location.
         </span>
         <FieldError id="profile-city-error" messages={fieldErrors?.citySlug} />
       </div>
 
       <div>
-        <Label className="text-linen" htmlFor="profile-bio">
-          Short bio <span className="font-normal text-muted-dark">(optional)</span>
+        <Label className="text-foreground" htmlFor="profile-bio">
+          Short bio <span className="font-normal text-muted-foreground">(optional)</span>
         </Label>
         <Textarea
           aria-describedby="profile-bio-help profile-bio-error"
@@ -223,7 +223,7 @@ export function ProfileForm({
           name="bio"
           placeholder="The clubs, competitions, or match-day atmosphere you enjoy."
         />
-        <span className="mt-2 block text-xs text-muted-dark" id="profile-bio-help">
+        <span className="mt-2 block text-xs text-muted-foreground" id="profile-bio-help">
           Plain text only, up to 500 characters. Do not include private contact details.
         </span>
         <FieldError id="profile-bio-error" messages={fieldErrors?.bio} />
@@ -233,8 +233,8 @@ export function ProfileForm({
       {initialValue.adultAttested ? (
         <input name="adultAttested" type="hidden" value="on" />
       ) : (
-        <fieldset className="rounded-[1.375rem] border border-border-dark p-5 sm:p-6">
-          <legend className="px-2 text-sm font-semibold text-linen">Adult attestation</legend>
+        <fieldset className="rounded-[1.375rem] border border-border p-5 sm:p-6">
+          <legend className="px-2 text-sm font-semibold text-foreground">Adult attestation</legend>
           <div className="flex items-start gap-3">
             <Checkbox
               aria-describedby="profile-adult-error"
@@ -245,7 +245,7 @@ export function ProfileForm({
               value="on"
             />
             <Label
-              className="cursor-pointer text-sm leading-6 text-linen"
+              className="cursor-pointer text-sm leading-6 text-foreground"
               htmlFor="profile-adult-attested"
             >
               I confirm that I am 18 or older.
@@ -258,21 +258,21 @@ export function ProfileForm({
       {initialValue.currentRulesAccepted ? (
         <input name="rulesAccepted" type="hidden" value="on" />
       ) : (
-        <fieldset className="rounded-[1.375rem] border border-border-dark p-5 sm:p-6">
-          <legend className="px-2 text-sm font-semibold text-linen">
+        <fieldset className="rounded-[1.375rem] border border-border p-5 sm:p-6">
+          <legend className="px-2 text-sm font-semibold text-foreground">
             {CURRENT_COMMUNITY_RULES.title} · version {CURRENT_COMMUNITY_RULES.version}
           </legend>
-          <p className="mt-1 text-sm leading-6 text-muted-dark">
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">
             {CURRENT_COMMUNITY_RULES.introduction}
           </p>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             {CURRENT_COMMUNITY_RULES.sections.map((section) => (
               <section key={section.title}>
-                <h2 className="text-sm font-semibold text-linen">{section.title}</h2>
-                <ul className="mt-2 space-y-2 text-sm leading-6 text-muted-dark">
+                <h2 className="text-sm font-semibold text-foreground">{section.title}</h2>
+                <ul className="mt-2 space-y-2 text-sm leading-6 text-muted-foreground">
                   {section.points.map((point) => (
                     <li className="flex gap-2" key={point}>
-                      <span aria-hidden="true" className="text-court">
+                      <span aria-hidden="true" className="text-forest">
                         •
                       </span>
                       <span>{point}</span>
@@ -282,7 +282,7 @@ export function ProfileForm({
               </section>
             ))}
           </div>
-          <div className="mt-5 flex items-start gap-3 border-t border-border-dark pt-5">
+          <div className="mt-5 flex items-start gap-3 border-t border-border pt-5">
             <Checkbox
               aria-describedby="profile-rules-error"
               className="mt-0.5"
@@ -292,7 +292,7 @@ export function ProfileForm({
               value="on"
             />
             <Label
-              className="cursor-pointer text-sm leading-6 text-linen"
+              className="cursor-pointer text-sm leading-6 text-foreground"
               htmlFor="profile-rules-accepted"
             >
               I have read and accept the current Huddle community rules.
@@ -305,14 +305,14 @@ export function ProfileForm({
       {initialValue.adultAttested && initialValue.currentRulesAccepted ? (
         <section
           aria-label="Eligibility status"
-          className="rounded-[1.375rem] border border-border-dark p-5"
+          className="rounded-[1.375rem] border border-border p-5"
         >
-          <p className="font-semibold text-linen">Eligibility saved</p>
-          <p className="mt-1 text-sm leading-6 text-muted-dark">
+          <p className="font-semibold text-foreground">Eligibility saved</p>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">
             Your 18+ attestation and current community rules acceptance are saved.
           </p>
-          <details className="mt-3 text-sm text-muted-dark">
-            <summary className="min-h-11 cursor-pointer content-center font-semibold text-linen">
+          <details className="mt-3 text-sm text-muted-foreground">
+            <summary className="min-h-11 cursor-pointer content-center font-semibold text-foreground">
               View eligibility details
             </summary>
             <p className="mt-2 leading-6">
@@ -322,11 +322,11 @@ export function ProfileForm({
           </details>
         </section>
       ) : initialValue.adultAttested ? (
-        <p className="rounded-[1.375rem] border border-border-dark p-4 text-sm text-muted-dark">
+        <p className="rounded-[1.375rem] border border-border p-4 text-sm text-muted-foreground">
           Your 18+ attestation is saved. Review the updated rules below to continue.
         </p>
       ) : initialValue.currentRulesAccepted ? (
-        <p className="rounded-[1.375rem] border border-border-dark p-4 text-sm text-muted-dark">
+        <p className="rounded-[1.375rem] border border-border p-4 text-sm text-muted-foreground">
           Your current community rules acceptance is saved.
         </p>
       ) : null}

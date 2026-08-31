@@ -167,8 +167,22 @@ export const venueSettingsInputSchema = z
     }
   });
 
+export const venueArchiveSchema = z
+  .object({
+    venueId: z.uuid(),
+    venueSlug: venueSlugSchema,
+    venueName: z.string().trim().min(2).max(120),
+    confirmation: z.string().trim().max(120),
+  })
+  .strict()
+  .refine((value) => value.confirmation === value.venueName, {
+    path: ["confirmation"],
+    message: "Type the Venue name exactly to confirm closure.",
+  });
+
 export type VenueWorkspaceActivationInput = z.infer<typeof venueWorkspaceActivationSchema>;
 export type VenueWorkspaceUpdateInput = z.infer<typeof venueWorkspaceUpdateSchema>;
 export type VenueSpaceInput = z.infer<typeof venueSpaceInputSchema>;
 export type VenuePlanInput = z.infer<typeof venuePlanSchema>;
 export type VenueSettingsInput = z.infer<typeof venueSettingsInputSchema>;
+export type VenueArchiveInput = z.infer<typeof venueArchiveSchema>;

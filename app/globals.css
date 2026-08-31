@@ -14,6 +14,10 @@
   --color-border-strong: #2a332e;
   --color-surface-raised: #151d18;
   --color-surface-deep: #0e1512;
+  --color-canvas-light: #f7f8f6;
+  --color-surface-light: #ffffff;
+  --color-surface-subtle: #f0f3f0;
+  --color-border-light: #dde3de;
 }
 
 @theme inline {
@@ -45,29 +49,32 @@
 }
 
 :root {
-  --page-background: var(--color-ink);
-  --page-foreground: var(--color-linen);
-  --background: var(--color-ink);
-  --foreground: var(--color-linen);
-  --card: var(--color-surface-raised);
-  --card-foreground: var(--color-linen);
-  --popover: var(--color-surface-raised);
-  --popover-foreground: var(--color-linen);
+  --page-background: var(--color-canvas-light);
+  --page-foreground: var(--color-ink);
+  --background: var(--color-canvas-light);
+  --foreground: var(--color-ink);
+  --card: var(--color-surface-light);
+  --card-foreground: var(--color-ink);
+  --popover: var(--color-surface-light);
+  --popover-foreground: var(--color-ink);
   --primary: var(--color-court);
   --primary-foreground: var(--color-ink);
-  --secondary: var(--color-surface-deep);
-  --secondary-foreground: var(--color-linen);
-  --muted: var(--color-surface-deep);
-  --muted-foreground: var(--color-muted-dark);
-  --accent: var(--color-border-dark);
-  --accent-foreground: var(--color-linen);
-  --destructive: var(--color-sand);
-  --destructive-foreground: var(--color-ink);
-  --border: var(--color-border-dark);
-  --input: var(--color-border-strong);
-  --ring: var(--color-court);
+  --secondary: var(--color-surface-subtle);
+  --secondary-foreground: var(--color-ink);
+  --muted: var(--color-surface-subtle);
+  --muted-foreground: var(--color-muted-light);
+  --accent: var(--color-surface-subtle);
+  --accent-foreground: var(--color-ink);
+  --destructive: #8a3d31;
+  --destructive-foreground: #ffffff;
+  --border: var(--color-border-light);
+  --input: #cbd4cc;
+  --ring: var(--color-forest);
   --radius: 0.875rem;
-  color-scheme: dark;
+  --shadow-floating: 0 20px 52px rgba(104, 135, 114, 0.2), 0 2px 8px rgba(104, 135, 114, 0.12);
+  --shadow-search: 0 10px 30px rgba(114, 145, 123, 0.16);
+  --shadow-docked: 0 -8px 24px rgba(114, 145, 123, 0.12);
+  color-scheme: light;
 }
 
 * {
@@ -75,11 +82,13 @@
 }
 
 html {
+  width: 100%;
   min-width: 320px;
   background: var(--page-background);
 }
 
 body {
+  width: 100%;
   min-height: 100vh;
   margin: 0;
   font-size: 1rem;

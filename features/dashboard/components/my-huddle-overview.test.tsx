@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import type { MyEvent, MyGroupRelationship, SavedItem } from "@/features/dashboard/queries";
@@ -45,7 +45,7 @@ const saved: SavedItem = {
   kind: "team",
   label: "Arsenal FC",
   detail: "England",
-  href: "/matches?team=c1000000-0000-4000-8000-000000000103",
+  href: "/discover?team=c1000000-0000-4000-8000-000000000103",
   createdAt: "2026-08-30T06:00:00Z",
   totalCount: 21,
 };
@@ -84,15 +84,16 @@ describe("MyHuddleOverview", () => {
       <MyHuddleOverview
         eventBucket="upcoming"
         events={[]}
-        groupBucket="member"
+        groupBucket="owner"
         groups={[]}
         saved={[]}
         savedBucket="all"
       />,
     );
 
+    fireEvent.click(screen.getByText(/Filter My Huddle/i));
     expect(screen.getByRole("combobox", { name: "Show events" })).toHaveValue("upcoming");
-    expect(screen.getByRole("combobox", { name: "Show groups" })).toHaveValue("member");
+    expect(screen.getByRole("combobox", { name: "Show groups" })).toHaveValue("owner");
     expect(screen.getByRole("combobox", { name: "Show saved items" })).toHaveValue("all");
     expect(screen.getByRole("button", { name: "Apply filters" })).toBeVisible();
     expect(screen.queryByText(/past activity/i)).not.toBeInTheDocument();

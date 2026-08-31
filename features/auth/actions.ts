@@ -15,6 +15,7 @@ import {
 } from "@/features/workspaces/state";
 import { getPublicEnvironment } from "@/lib/env/public";
 import { actionFailure, actionSuccess, DomainError } from "@/lib/errors";
+import { safeInternalRedirect } from "@/lib/security/redirect";
 import { createClient } from "@/lib/supabase/server";
 
 export async function signUpAction(
@@ -72,6 +73,7 @@ export async function signInAction(
   }
 
   const supabase = await createClient();
+  const requestedNext = safeInternalRedirect(formData.get("next"), "");
   let signInResult: Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>;
 
   try {
@@ -111,6 +113,7 @@ export async function signInAction(
           workspaceCookieOptions(),
         );
         redirectTo = workspaceLanding(active);
+        if (requestedNext !== "") redirectTo = requestedNext;
       }
     }
   } catch {

@@ -6,7 +6,7 @@ export default function PublicProfileLoading() {
       className="mx-auto my-16 w-full max-w-4xl animate-pulse"
       role="status"
     >
-      <div className="h-[30rem] rounded-[2rem] border border-border-dark bg-surface-raised" />
+      <div className="h-[30rem] rounded-[2rem] border border-border bg-card" />
       <span className="sr-only">Loading community profile…</span>
     </section>
   );

@@ -1,5 +1,3 @@
-import { Badge } from "@/components/ui/badge";
-
 type VenueVerificationBadgeProps = Readonly<{
   status: "unverified" | "verified" | "suspended";
 }>;
@@ -7,14 +5,19 @@ type VenueVerificationBadgeProps = Readonly<{
 export function VenueVerificationBadge({ status }: VenueVerificationBadgeProps) {
   const label =
     status === "unverified"
-      ? "Unverified venue"
+      ? "Self-listed venue · business identity not checked by Huddle"
       : status === "verified"
-        ? "Verified venue"
-        : "Suspended venue";
+        ? "Business identity checked by Huddle"
+        : "Venue unavailable";
 
   return (
-    <Badge aria-label={label} variant={status === "unverified" ? "outline" : "secondary"}>
+    <span
+      aria-label={label}
+      className={
+        status === "suspended" ? "text-sm text-destructive" : "text-sm text-muted-foreground"
+      }
+    >
       {label}
-    </Badge>
+    </span>
   );
 }

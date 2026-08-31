@@ -60,7 +60,7 @@ export function VenueFollowControl({
           role={state.result.ok ? "status" : "alert"}
           variant={state.result.ok ? "default" : "destructive"}
         >
-          <AlertDescription className={state.result.ok ? "text-court-hover" : "text-sand"}>
+          <AlertDescription className={state.result.ok ? "text-forest-hover" : "text-sand"}>
             {state.result.ok ? state.result.data.message : state.result.error.message}
           </AlertDescription>
         </Alert>

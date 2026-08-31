@@ -108,15 +108,15 @@ export default async function FanOnboardingPage() {
   return (
     <section className="mx-auto my-12 w-full max-w-4xl sm:my-16">
       <div className="mb-8 max-w-2xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-court">Fan setup</p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">
+        <p className="text-sm font-medium text-forest">Fan setup</p>
+        <h1 className="mt-3 text-4xl font-semibold tracking-[-0.04em] sm:text-4xl">
           Tell fans how to know you.
         </h1>
-        <p className="mt-4 text-lg leading-8 text-muted-dark">
+        <p className="mt-4 text-lg leading-8 text-muted-foreground">
           One short form activates the social and attendance side of Huddle.
         </p>
       </div>
-      <div className="rounded-[1.375rem] border border-border-dark bg-surface-raised p-6 sm:p-9">
+      <div className="rounded-[1.375rem] border border-border bg-card p-6 sm:p-9">
         <ProfileForm
           cities={cities}
           draftOwnerId={user.id}

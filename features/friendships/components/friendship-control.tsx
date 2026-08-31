@@ -57,8 +57,8 @@ export function FriendshipControl({
   if (disabledByOwnBlock) {
     return (
       <div className="space-y-2">
-        <p className="font-semibold text-linen">Direct interaction is paused.</p>
-        <p className="text-sm leading-6 text-muted-dark">
+        <p className="font-semibold text-foreground">Direct interaction is paused.</p>
+        <p className="text-sm leading-6 text-muted-foreground">
           Unblock this person before sending a friend request.
         </p>
       </div>
@@ -98,7 +98,7 @@ export function FriendshipControl({
           <MutationForm
             action={formAction}
             friendshipId={friendship.id}
-            intent="remove"
+            intent="cancel"
             pending={pending}
             targetHandle={targetHandle}
             variant="outline"
@@ -110,7 +110,9 @@ export function FriendshipControl({
 
       {friendship?.direction === "incoming" ? (
         <div className="space-y-3">
-          <p className="font-semibold text-linen">@{targetHandle} sent you a friend request.</p>
+          <p className="font-semibold text-foreground">
+            @{targetHandle} sent you a friend request.
+          </p>
           <div className="flex flex-wrap gap-2">
             <MutationForm
               action={formAction}
@@ -194,7 +196,7 @@ function MutationForm({
   action: (payload: FormData) => void;
   children: string;
   friendshipId?: string;
-  intent: "request" | "accept" | "decline" | "remove";
+  intent: "request" | "accept" | "cancel" | "decline" | "remove";
   pending: boolean;
   targetHandle: string;
   variant?: "default" | "outline";
@@ -222,7 +224,7 @@ function ActionFeedback({ state }: Readonly<{ state: FriendshipActionState }>) {
       role={state.ok ? "status" : "alert"}
       variant={state.ok ? "default" : "destructive"}
     >
-      <AlertDescription className={state.ok ? "text-court-hover" : "text-sand"}>
+      <AlertDescription className={state.ok ? "text-forest-hover" : "text-sand"}>
         {state.ok ? state.data.message : state.error.message}
       </AlertDescription>
     </Alert>

@@ -7,9 +7,9 @@ import { VenueVerificationBadge } from "./venue-verification-badge";
 
 describe("VenueVerificationBadge", () => {
   it.each([
-    ["unverified", "Unverified venue"],
-    ["verified", "Verified venue"],
-    ["suspended", "Suspended venue"],
+    ["unverified", "Self-listed venue · business identity not checked by Huddle"],
+    ["verified", "Business identity checked by Huddle"],
+    ["suspended", "Venue unavailable"],
   ] as const)("labels %s venue identity explicitly", (status, label) => {
     render(<VenueVerificationBadge status={status} />);
     expect(screen.getByLabelText(label)).toHaveTextContent(label);

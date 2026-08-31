@@ -25,7 +25,7 @@ export default async function GroupInvitePage({ params }: GroupInvitePageProps) 
       <ProfileAccessState
         actionHref="/auth/sign-in"
         actionLabel="Sign in"
-        description="Group invitations are bound to one verified Huddle account and never admit anonymous guests. Sign in, then reopen this invitation."
+        description="Group invitations are bound to one signed-in Fan account and never admit anonymous guests. Sign in, then reopen this invitation."
         eyebrow="Sign in required"
         title="Sign in to use this invitation."
       />
@@ -74,25 +74,27 @@ export default async function GroupInvitePage({ params }: GroupInvitePageProps) 
             <Badge>Unlisted group</Badge>
             <Badge variant="outline">Administrator review required</Badge>
           </div>
-          <CardTitle className="mt-5 text-4xl font-semibold tracking-[-0.045em] text-linen">
+          <CardTitle className="mt-5 text-4xl font-semibold tracking-[-0.045em] text-foreground">
             <h1>{preview.group.name}</h1>
           </CardTitle>
         </CardHeader>
         <CardContent className="px-7 sm:px-10">
           {alreadyPending ? (
             <div>
-              <h2 className="text-xl font-semibold text-linen">Your application is pending.</h2>
-              <p className="mt-3 leading-7 text-muted-dark">
+              <h2 className="text-xl font-semibold text-foreground">
+                Your application is pending.
+              </h2>
+              <p className="mt-3 leading-7 text-muted-foreground">
                 An active group owner or admin must review it. Reusing this invitation cannot skip
                 that decision.
               </p>
             </div>
           ) : alreadyActive ? (
             <div>
-              <h2 className="text-xl font-semibold text-linen">
+              <h2 className="text-xl font-semibold text-foreground">
                 You are already an active member.
               </h2>
-              <p className="mt-3 leading-7 text-muted-dark">
+              <p className="mt-3 leading-7 text-muted-foreground">
                 Open the protected group page instead of consuming another invitation use.
               </p>
               <Button asChild className="mt-6">
@@ -101,7 +103,7 @@ export default async function GroupInvitePage({ params }: GroupInvitePageProps) 
             </div>
           ) : (
             <div>
-              <p className="mb-6 leading-7 text-muted-dark">
+              <p className="mb-6 leading-7 text-muted-foreground">
                 This secret link identifies the group, but it does not grant membership. Submit one
                 application for an administrator to approve or reject.
               </p>

@@ -20,7 +20,7 @@ export function TodayDashboard({ slug, snapshot }: TodayDashboardProps) {
   return (
     <div className="mt-8 space-y-10">
       <div className="flex items-center justify-between gap-4">
-        <p className="text-sm text-muted-dark">
+        <p className="text-sm text-muted-foreground">
           {snapshot.todayEvents.length === 0
             ? "No events today"
             : `${snapshot.todayEvents.length} event${snapshot.todayEvents.length === 1 ? "" : "s"} today`}
@@ -37,7 +37,7 @@ export function TodayDashboard({ slug, snapshot }: TodayDashboardProps) {
             title="Nothing is planned yet"
           />
         ) : (
-          <Card className="overflow-hidden rounded-3xl border-border-strong bg-surface-raised shadow-none">
+          <Card className="overflow-hidden rounded-3xl border-input bg-card shadow-none">
             <CardHeader className="p-6 sm:p-8">
               <div className="flex flex-wrap items-center gap-2">
                 <span aria-hidden="true" className="size-2 rounded-full bg-court" />
@@ -47,7 +47,7 @@ export function TodayDashboard({ slug, snapshot }: TodayDashboardProps) {
               <h2 className="mt-5 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">
                 {next.title}
               </h2>
-              <p className="mt-1 text-muted-dark">
+              <p className="mt-1 text-muted-foreground">
                 {formatIsraelKickoff(next.startsAt)} ·{" "}
                 {next.venueSpace?.name ?? "Area not assigned"}
               </p>
@@ -56,7 +56,7 @@ export function TodayDashboard({ slug, snapshot }: TodayDashboardProps) {
               {next.attendanceMode === "open_door" ? (
                 <div className="rounded-2xl border border-court/20 bg-court/10 p-4">
                   <p className="font-semibold">Open door · no guest list</p>
-                  <p className="mt-1 text-sm leading-6 text-muted-dark">
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
                     Fans just come along. There are no Huddle requests, invitations, or place counts
                     to manage.
                   </p>
@@ -90,15 +90,15 @@ export function TodayDashboard({ slug, snapshot }: TodayDashboardProps) {
           <h2 className="text-2xl font-semibold" id="venue-later-today-heading">
             Later today
           </h2>
-          <ol className="mt-4 divide-y divide-border-dark rounded-[1.375rem] border border-border-dark bg-surface-raised">
+          <ol className="mt-4 divide-y divide-border-dark rounded-[1.375rem] border border-border bg-card">
             {laterToday.map((event) => (
               <li key={event.id}>
                 <Link
-                  className="grid min-h-16 gap-1 p-5 outline-none hover:bg-surface-deep focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring sm:grid-cols-[1fr_auto]"
+                  className="grid min-h-16 gap-1 p-5 outline-none hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring sm:grid-cols-[1fr_auto]"
                   href={`/events/${event.id}`}
                 >
                   <span className="font-semibold">{event.title}</span>
-                  <span className="text-sm text-muted-dark">
+                  <span className="text-sm text-muted-foreground">
                     {formatIsraelKickoff(event.startsAt)} · {event.venueSpace?.name ?? "No area"}
                   </span>
                 </Link>
@@ -122,10 +122,10 @@ function AttentionPanel({
 }>) {
   if (attention.length === 0 && setupTasks.length === 0) {
     return (
-      <aside className="rounded-3xl border border-border-dark bg-surface-raised p-6 sm:p-7">
-        <CheckCircle2 aria-hidden="true" className="size-7 text-court" />
+      <aside className="rounded-3xl border border-border bg-card p-6 sm:p-7">
+        <CheckCircle2 aria-hidden="true" className="size-7 text-forest" />
         <h2 className="mt-5 text-2xl font-semibold">All set</h2>
-        <p className="mt-2 text-sm leading-6 text-muted-dark">
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
           No attendance requests or venue setup tasks need action.
         </p>
       </aside>
@@ -135,10 +135,10 @@ function AttentionPanel({
   return (
     <section
       aria-labelledby="venue-attention-heading"
-      className="overflow-hidden rounded-3xl border border-border-dark bg-surface-raised"
+      className="overflow-hidden rounded-3xl border border-border bg-card"
     >
       <div className="p-6 pb-4 sm:px-7">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-sand">Action queue</p>
+        <p className="text-sm font-medium text-sand">Action queue</p>
         <h2 className="mt-2 text-2xl font-semibold" id="venue-attention-heading">
           Needs attention
         </h2>
@@ -146,7 +146,7 @@ function AttentionPanel({
       <div className="divide-y divide-border-dark">
         {attention.map((item) => (
           <Link
-            className="flex min-h-16 items-center justify-between gap-4 px-6 py-4 outline-none hover:bg-surface-deep focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring sm:px-7"
+            className="flex min-h-16 items-center justify-between gap-4 px-6 py-4 outline-none hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring sm:px-7"
             href={`/events/${item.eventId}`}
             key={item.eventId}
           >
@@ -158,7 +158,7 @@ function AttentionPanel({
         ))}
         {setupTasks.map((task) => (
           <Link
-            className="block min-h-16 px-6 py-5 font-semibold outline-none hover:bg-surface-deep focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring sm:px-7"
+            className="block min-h-16 px-6 py-5 font-semibold outline-none hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring sm:px-7"
             href={`/venues/${slug}/workspace/settings`}
             key={task}
           >
@@ -172,8 +172,8 @@ function AttentionPanel({
 
 function Count({ label, value }: Readonly<{ label: string; value: string }>) {
   return (
-    <div className="rounded-2xl bg-surface-deep p-4">
-      <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-dark">{label}</dt>
+    <div className="rounded-2xl bg-muted p-4">
+      <dt className="text-sm font-medium text-muted-foreground">{label}</dt>
       <dd className="mt-2 font-semibold">{value}</dd>
     </div>
   );

@@ -11,14 +11,14 @@ const buttonVariants = cva(
       variant: {
         default: "bg-primary text-primary-foreground hover:bg-court-hover",
         outline:
-          "border-input bg-transparent text-foreground hover:border-primary hover:text-primary aria-expanded:border-primary aria-expanded:text-primary",
+          "border-input bg-card text-foreground hover:border-muted-foreground/45 hover:bg-muted aria-expanded:border-forest aria-expanded:text-forest",
         secondary:
           "border-border bg-secondary text-secondary-foreground hover:border-input hover:bg-card",
         ghost:
           "text-muted-foreground hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground",
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-linen focus-visible:outline-destructive",
-        link: "text-primary underline-offset-4 hover:underline",
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:outline-destructive",
+        link: "text-forest underline-offset-4 hover:underline",
       },
       size: {
         default: "min-h-11 px-4 py-2.5",

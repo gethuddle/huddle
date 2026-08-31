@@ -7,6 +7,7 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 import {
   listApprovedEventAttendees,
   listEventAttendance,
+  listEventInviteLinks,
   listEventInvitations,
   listMyEventParticipation,
 } from "./queries";
@@ -112,6 +113,32 @@ describe("listEventAttendance", () => {
       input_event_id: "90000000-0000-4000-8000-000000000401",
       input_limit: 20,
       input_offset: 10_000,
+    });
+  });
+
+  it("parses non-secret event invite-link metadata", async () => {
+    const eventId = "90000000-0000-4000-8000-000000000401";
+    mocks.rpc.mockResolvedValue({
+      data: [
+        {
+          invite_token_id: "90000000-0000-4000-8000-000000000701",
+          creator_handle: "host",
+          expires_at: "2026-09-07T12:00:00Z",
+          max_uses: 10,
+          use_count: 2,
+          revoked_at: null,
+          invite_status: "active",
+          created_at: "2026-08-31T12:00:00Z",
+        },
+      ],
+      error: null,
+    });
+
+    await expect(listEventInviteLinks(eventId)).resolves.toEqual([
+      expect.objectContaining({ invite_status: "active", use_count: 2, max_uses: 10 }),
+    ]);
+    expect(mocks.rpc).toHaveBeenCalledWith("list_event_invite_tokens", {
+      input_event_id: eventId,
     });
   });
 });

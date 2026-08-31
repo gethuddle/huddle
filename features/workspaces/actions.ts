@@ -199,7 +199,7 @@ export async function activateVenueOnboardingAction(
     revalidatePath("/", "layout");
     revalidatePath(`/venues/${activated.slug}`, "layout");
     return actionSuccess({
-      message: "Venue account ready. Your venue is visibly Unverified.",
+      message: "Venue account is ready.",
       redirectTo,
     });
   } catch (error) {

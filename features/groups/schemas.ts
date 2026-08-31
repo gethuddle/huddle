@@ -58,6 +58,12 @@ export const groupEventReviewSchema = z.object({
   decision: z.enum(["approve", "reject"]),
 });
 
+export const groupEventWithdrawalSchema = z.object({
+  groupId: z.uuid(),
+  groupSlug: groupRouteSlugSchema,
+  eventId: z.uuid(),
+});
+
 export const groupLeaveSchema = z.object({
   groupId: z.uuid(),
   groupSlug: groupRouteSlugSchema,

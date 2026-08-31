@@ -14,10 +14,22 @@ import {
   discoverySearchParams,
   type DiscoveryFilters,
 } from "@/features/discovery/schemas";
-import type { DiscoveryApiPage, DiscoveryPage } from "@/features/discovery/types";
+import { TeamMark } from "@/features/sports/components/team-initials";
+import { formatIsraelKickoff } from "@/features/sports/time";
+import type { DiscoveryApiPage, DiscoveryEvent, DiscoveryPage } from "@/features/discovery/types";
 
 type Coordinates = Readonly<{ lat: number; lng: number }>;
 type LocationState = "city" | "locating" | "browser" | "denied";
+
+function groupEventsByMatch(events: readonly DiscoveryEvent[]) {
+  const groups = new Map<string, DiscoveryEvent[]>();
+  for (const event of events) {
+    const group = groups.get(event.match.id);
+    if (group === undefined) groups.set(event.match.id, [event]);
+    else group.push(event);
+  }
+  return [...groups.values()];
+}
 
 async function fetchDiscoveryPage(
   filters: DiscoveryFilters,
@@ -94,15 +106,17 @@ function DiscoveryFeedInner({
   }
 
   const events = query.data?.pages.flatMap((page) => page.items) ?? [];
+  const eventGroups = groupEventsByMatch(events);
+  const returnTo = `/discover?${discoverySearchParams(filters, null).toString()}`;
 
   return (
     <div className="mt-7">
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border-dark pb-5">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
         <div>
-          <p className="font-semibold text-linen">
+          <p className="font-semibold text-foreground">
             {locationState === "browser" ? "Using this browser location" : "Using city fallback"}
           </p>
-          <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-dark">
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
             Current location is optional, used once, and never saved.
           </p>
         </div>
@@ -139,8 +153,8 @@ function DiscoveryFeedInner({
         </div>
       ) : query.isError ? (
         <div className="mt-8 rounded-2xl border border-sand/30 bg-sand/10 p-6" role="alert">
-          <p className="font-semibold text-linen">Discovery could not load.</p>
-          <p className="mt-2 text-sm text-muted-dark">
+          <p className="font-semibold text-foreground">Discovery could not load.</p>
+          <p className="mt-2 text-sm text-muted-foreground">
             We could not refresh these opportunities. Try the search again.
           </p>
           <Button className="mt-4 min-h-11" onClick={() => void query.refetch()} type="button">
@@ -153,11 +167,9 @@ function DiscoveryFeedInner({
             <section aria-labelledby="discovery-results-heading" className="min-w-0">
               <div className="flex items-end justify-between gap-4">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-dark">
-                    Explore
-                  </p>
+                  <p className="text-sm font-medium text-muted-foreground">Explore</p>
                   <h2
-                    className="mt-2 text-2xl font-semibold text-linen"
+                    className="mt-2 text-2xl font-semibold text-foreground"
                     id="discovery-results-heading"
                   >
                     {events.length} watch event{events.length === 1 ? "" : "s"} nearby
@@ -181,10 +193,33 @@ function DiscoveryFeedInner({
                   title="No new events match this search."
                 />
               ) : (
-                <div className="mt-6 space-y-5">
-                  {events.map((event) => (
-                    <DiscoveryEventCard event={event} key={event.id} />
-                  ))}
+                <div className="mt-6 space-y-8">
+                  {eventGroups.map((group) => {
+                    const match = group[0]!.match;
+                    const headingId = `discovery-match-${match.id}`;
+                    return (
+                      <section aria-labelledby={headingId} key={match.id}>
+                        <div className="flex items-center gap-4 rounded-2xl bg-muted px-4 py-4 sm:px-5">
+                          <TeamMark name={match.homeTeamName} size="md" tla={null} />
+                          <span className="text-xs font-semibold text-muted-foreground">vs</span>
+                          <TeamMark name={match.awayTeamName} size="md" tla={null} />
+                          <div className="min-w-0">
+                            <h3 className="font-semibold text-foreground" id={headingId}>
+                              {match.homeTeamName} vs {match.awayTeamName}
+                            </h3>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {match.competitionName} · {formatIsraelKickoff(group[0]!.startsAt)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-3 space-y-3">
+                          {group.map((event) => (
+                            <DiscoveryEventCard event={event} key={event.id} returnTo={returnTo} />
+                          ))}
+                        </div>
+                      </section>
+                    );
+                  })}
                 </div>
               )}
 
@@ -200,7 +235,7 @@ function DiscoveryFeedInner({
                     {query.isFetchingNextPage ? "Loading more…" : "Load more events"}
                   </Button>
                 ) : events.length > 0 ? (
-                  <p className="text-sm text-muted-dark">
+                  <p className="text-sm text-muted-foreground">
                     That is every new opportunity in this search.
                   </p>
                 ) : null}
@@ -212,7 +247,7 @@ function DiscoveryFeedInner({
               className="sticky top-28 hidden min-w-0 lg:block"
             >
               <DiscoveryMap events={events} userLocation={coordinates} />
-              <p className="mt-3 text-center text-xs leading-5 text-muted-dark">
+              <p className="mt-3 text-center text-xs leading-5 text-muted-foreground">
                 Pins are limited to public Venues and public places. Home locations never appear.
               </p>
             </aside>
@@ -222,15 +257,13 @@ function DiscoveryFeedInner({
             <div
               aria-label="Map of nearby places"
               aria-modal="true"
-              className="fixed inset-0 z-[70] overflow-y-auto bg-ink p-3 pb-24 lg:hidden"
+              className="fixed inset-0 z-[70] overflow-y-auto bg-background p-3 pb-24 lg:hidden"
               role="dialog"
             >
               <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-1 py-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-court">
-                    Explore map
-                  </p>
-                  <h2 className="mt-1 text-xl font-semibold text-linen">
+                  <p className="text-sm font-medium text-forest">Explore map</p>
+                  <h2 className="mt-1 text-xl font-semibold text-foreground">
                     Places showing games nearby
                   </h2>
                 </div>
@@ -246,7 +279,7 @@ function DiscoveryFeedInner({
               </div>
               <div className="mx-auto mt-2 max-w-3xl">
                 <DiscoveryMap events={events} userLocation={coordinates} />
-                <p className="mt-3 px-2 text-center text-xs leading-5 text-muted-dark">
+                <p className="mt-3 px-2 text-center text-xs leading-5 text-muted-foreground">
                   Only public Venues and public places are pinned. Your current location is used
                   once and is never saved.
                 </p>

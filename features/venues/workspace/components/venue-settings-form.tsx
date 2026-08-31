@@ -125,13 +125,13 @@ export function VenueSettingsForm({
       </div>
 
       <section
-        className="rounded-[1.375rem] border border-border-dark p-5"
+        className="rounded-[1.375rem] border border-border p-5"
         aria-labelledby="current-venue-address"
       >
         <h2 className="font-semibold" id="current-venue-address">
           Public address
         </h2>
-        <p className="mt-2 text-sm text-muted-dark">{address?.label ?? venue.addressText}</p>
+        <p className="mt-2 text-sm text-muted-foreground">{address?.label ?? venue.addressText}</p>
         {changingAddress ? (
           city === null ? (
             <p className="mt-4 text-sm text-sand">
@@ -166,7 +166,7 @@ export function VenueSettingsForm({
         />
       </div>
 
-      <fieldset className="rounded-[1.375rem] border border-border-dark p-5">
+      <fieldset className="rounded-[1.375rem] border border-border p-5">
         <legend className="px-2 font-semibold">Facilities</legend>
         <div className="grid gap-3 sm:grid-cols-2">
           {FACILITIES.map(([value, label]) => (
@@ -195,10 +195,10 @@ export function VenueSettingsForm({
         />
       </div>
 
-      <fieldset className="rounded-2xl border border-border-dark p-5">
+      <fieldset className="rounded-2xl border border-border p-5">
         <legend className="px-2 font-semibold">Usual attendance</legend>
         <div className="mt-1 grid gap-3 sm:grid-cols-2">
-          <label className="flex min-h-20 cursor-pointer items-start gap-3 rounded-2xl border border-border-dark bg-surface-deep p-4 has-[:checked]:border-court">
+          <label className="flex min-h-20 cursor-pointer items-start gap-3 rounded-2xl border border-border bg-muted p-4 has-[:checked]:border-court">
             <input
               checked={attendanceMode === "open_door"}
               className="mt-1 size-4 accent-court"
@@ -208,13 +208,13 @@ export function VenueSettingsForm({
               value="open_door"
             />
             <span>
-              <span className="block font-semibold text-linen">Open door</span>
-              <span className="mt-1 block text-sm leading-5 text-muted-dark">
+              <span className="block font-semibold text-foreground">Open door</span>
+              <span className="mt-1 block text-sm leading-5 text-muted-foreground">
                 Fans simply come along. No RSVP, invitation, queue, or capacity claim.
               </span>
             </span>
           </label>
-          <label className="flex min-h-20 cursor-pointer items-start gap-3 rounded-2xl border border-border-dark bg-surface-deep p-4 has-[:checked]:border-court">
+          <label className="flex min-h-20 cursor-pointer items-start gap-3 rounded-2xl border border-border bg-muted p-4 has-[:checked]:border-court">
             <input
               checked={attendanceMode === "reservations"}
               className="mt-1 size-4 accent-court"
@@ -224,8 +224,8 @@ export function VenueSettingsForm({
               value="reservations"
             />
             <span>
-              <span className="block font-semibold text-linen">Reservations</span>
-              <span className="mt-1 block text-sm leading-5 text-muted-dark">
+              <span className="block font-semibold text-foreground">Reservations</span>
+              <span className="mt-1 block text-sm leading-5 text-muted-foreground">
                 Keep a registered guest list with real area capacity.
               </span>
             </span>
@@ -234,7 +234,7 @@ export function VenueSettingsForm({
       </fieldset>
 
       {attendanceMode === "reservations" ? (
-        <div className="flex min-h-11 items-start gap-3 rounded-xl border border-border-dark p-4">
+        <div className="flex min-h-11 items-start gap-3 rounded-xl border border-border p-4">
           <Checkbox
             defaultChecked={venue.defaultRequiresApproval}
             id="venue-settings-default-approval"
@@ -252,7 +252,7 @@ export function VenueSettingsForm({
         </p>
       ) : null}
       {state === null ? null : state.ok ? (
-        <p className="text-sm text-court" role="status">
+        <p className="text-sm text-forest" role="status">
           {state.data.message}
         </p>
       ) : (

@@ -7,6 +7,7 @@ import { requireActor } from "@/features/auth/actor";
 import {
   venueSpaceInputSchema,
   venuePlanSchema,
+  venueArchiveSchema,
   venueSettingsInputSchema,
   venueWorkspaceActivationSchema,
   venueWorkspaceUpdateSchema,
@@ -68,6 +69,7 @@ type VenuePlanMutationData = Readonly<{
   eventIds: readonly string[];
 }>;
 export type VenuePlanMutationState = ActionResult<VenuePlanMutationData>;
+export type VenueArchiveMutationState = ActionResult<Readonly<{ message: string }>> | null;
 
 function formValue(formData: FormData, name: string): FormDataEntryValue | null {
   return formData.get(name);
@@ -138,7 +140,7 @@ export async function createVenueWorkspaceAction(
     revalidatePath(`/venues/${row.slug}`);
 
     return actionSuccess({
-      message: "Venue workspace activated as visibly unverified.",
+      message: "Venue workspace is ready.",
       venue: {
         id: row.venue_id,
         slug: row.slug,
@@ -347,6 +349,36 @@ export async function updateVenueSettingsAction(
         slug: row.slug,
         verificationStatus: row.verification_status,
       },
+    });
+  } catch (error) {
+    return actionFailure(error);
+  }
+}
+
+export async function archiveVenueAction(
+  _previousState: VenueArchiveMutationState,
+  input: unknown,
+): Promise<VenueArchiveMutationState> {
+  const parsed = venueArchiveSchema.safeParse(input);
+  if (!parsed.success) return actionFailure(parsed.error);
+
+  try {
+    const [{ supabase }, requestId] = await Promise.all([
+      requireActor({ venueId: parsed.data.venueId }),
+      getRequestId(),
+    ]);
+    const { error } = await supabase.rpc("archive_venue", {
+      input_venue_id: parsed.data.venueId,
+      input_confirmation: parsed.data.confirmation,
+      audit_request_id: requestId,
+    });
+    if (error !== null) throw domainErrorFromDatabase(error);
+
+    revalidatePath("/", "layout");
+    revalidatePath("/dashboard");
+    revalidatePath(`/venues/${parsed.data.venueSlug}`);
+    return actionSuccess({
+      message: "Venue closed. Future events were cancelled and history was retained.",
     });
   } catch (error) {
     return actionFailure(error);

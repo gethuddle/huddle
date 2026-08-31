@@ -23,7 +23,7 @@ export function ProfileCommunityControl({
 }: ProfileCommunityControlProps) {
   if (viewerState === "eligible") {
     return (
-      <Card className="bg-surface-deep" size="sm">
+      <Card className="bg-muted" size="sm">
         <CardContent className="space-y-5">
           <FriendshipControl
             disabledByOwnBlock={viewerHasBlocked}
@@ -33,9 +33,7 @@ export function ProfileCommunityControl({
           />
           <Separator />
           <div>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-dark">
-              Safety actions
-            </p>
+            <p className="mb-3 text-sm font-medium text-muted-foreground">Safety actions</p>
             <BlockControl initiallyBlocked={viewerHasBlocked} targetHandle={targetHandle} />
           </div>
         </CardContent>
@@ -52,7 +50,7 @@ export function ProfileCommunityControl({
     },
     "complete-profile": {
       title: "Complete your profile to interact.",
-      description: "Verified email, 18+ attestation, and the current rules are required.",
+      description: "Confirmed email, 18+ attestation, and the current rules are required.",
       href: "/settings/profile",
       action: "Complete profile",
     },
@@ -71,10 +69,10 @@ export function ProfileCommunityControl({
   }[viewerState];
 
   return (
-    <Card className="bg-surface-deep" size="sm">
+    <Card className="bg-muted" size="sm">
       <CardContent>
-        <p className="font-semibold text-linen">{content.title}</p>
-        <p className="mt-2 text-sm leading-6 text-muted-dark">{content.description}</p>
+        <p className="font-semibold text-foreground">{content.title}</p>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">{content.description}</p>
         {content.href === null || content.action === null ? null : (
           <Button asChild className="mt-4" variant="outline">
             <Link href={content.href}>{content.action}</Link>

@@ -18,6 +18,19 @@ const invitationRowSchema = z.object({
   total_count: z.number().int().nonnegative(),
 });
 
+const eventInviteLinkRowSchema = z
+  .object({
+    invite_token_id: z.uuid(),
+    creator_handle: z.string(),
+    expires_at: z.string(),
+    max_uses: z.number().int().min(1).max(100),
+    use_count: z.number().int().nonnegative(),
+    revoked_at: z.string().nullable(),
+    invite_status: z.enum(["active", "expired", "used", "revoked"]),
+    created_at: z.string(),
+  })
+  .strict();
+
 const attendanceRowSchema = z
   .object({
     attendance_id: z.uuid(),
@@ -113,6 +126,7 @@ function parseRows<T>(schema: z.ZodType<T>, value: unknown): T[] {
 }
 
 export type EventInvitation = z.infer<typeof invitationRowSchema>;
+export type EventInviteLink = z.infer<typeof eventInviteLinkRowSchema>;
 export type EventAttendance = z.infer<typeof attendanceRowSchema>;
 export type EventParticipation = z.infer<typeof dashboardRowSchema>;
 export type ApprovedAttendee = z.infer<typeof attendeeRowSchema>;
@@ -127,6 +141,15 @@ export async function listEventInvitations(eventId: string, page: number) {
   });
   if (error !== null) throw domainErrorFromDatabase(error);
   return parseRows(invitationRowSchema, data);
+}
+
+export async function listEventInviteLinks(eventId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("list_event_invite_tokens", {
+    input_event_id: eventId,
+  });
+  if (error !== null) throw domainErrorFromDatabase(error);
+  return parseRows(eventInviteLinkRowSchema, data);
 }
 
 export async function listEventAttendance(eventId: string, page: number) {

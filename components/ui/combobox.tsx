@@ -154,7 +154,7 @@ export function Combobox({
       {open ? (
         <div
           aria-label={`${label} results`}
-          className="absolute z-40 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-border bg-popover p-2 shadow-2xl"
+          className="absolute z-40 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-border bg-popover p-2 [box-shadow:var(--shadow-floating)]"
           id={listboxId}
           role="listbox"
         >

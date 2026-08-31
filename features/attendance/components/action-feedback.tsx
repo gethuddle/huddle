@@ -13,7 +13,7 @@ export function AttendanceActionFeedback({
       role={state.ok ? "status" : "alert"}
       variant={state.ok ? "default" : "destructive"}
     >
-      <AlertDescription className={state.ok ? "text-court-hover" : "text-sand"}>
+      <AlertDescription className={state.ok ? "text-forest-hover" : "text-sand"}>
         {state.ok ? state.data.message : state.error.message}
       </AlertDescription>
     </Alert>

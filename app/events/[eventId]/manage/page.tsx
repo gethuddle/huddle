@@ -12,7 +12,11 @@ import {
 } from "@/components/ui/pagination";
 import { EventManagementControls } from "@/features/attendance/components/event-management-controls";
 import type { EventInvitationCandidate } from "@/features/attendance/components/event-invitation-picker";
-import { listEventAttendance, listEventInvitations } from "@/features/attendance/queries";
+import {
+  listEventAttendance,
+  listEventInvitations,
+  listEventInviteLinks,
+} from "@/features/attendance/queries";
 import { getEventSummary } from "@/features/events/queries";
 import { eventRouteIdSchema } from "@/features/events/schemas";
 import { listPeopleHub } from "@/features/people/search";
@@ -39,10 +43,13 @@ export default async function ManageEventPage({ params, searchParams }: Props) {
   }
   const page = pageInput.page;
   const openDoor = event.attendanceMode === "open_door";
-  const [invitations, attendance, people] = await Promise.all([
+  const canShareInviteLink =
+    !openDoor && event.host.kind === "person" && event.audience === "invite_only";
+  const [invitations, attendance, people, inviteLinks] = await Promise.all([
     openDoor ? Promise.resolve([]) : listEventInvitations(event.id, page),
     openDoor ? Promise.resolve([]) : listEventAttendance(event.id, page),
     openDoor ? Promise.resolve([]) : readInvitationPeople(),
+    canShareInviteLink ? listEventInviteLinks(event.id) : Promise.resolve([]),
   ]);
   const total = Math.max(invitations.at(0)?.total_count ?? 0, attendance.at(0)?.total_count ?? 0);
   const pageCount = collectionPageCount(total);
@@ -67,16 +74,14 @@ export default async function ManageEventPage({ params, searchParams }: Props) {
       <Button asChild variant="ghost">
         <Link href={`/events/${event.id}`}>← Event details</Link>
       </Button>
-      <p className="mt-8 text-xs font-semibold uppercase tracking-[0.16em] text-court">
-        Event management
-      </p>
-      <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-linen sm:text-6xl">
+      <p className="mt-8 text-sm font-medium text-forest">Event management</p>
+      <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-foreground sm:text-4xl">
         {event.title}
       </h1>
-      <p className="mt-4 max-w-3xl text-muted-dark">
+      <p className="mt-4 max-w-3xl text-muted-foreground">
         {openDoor
           ? "This fixture is public and walk-in. There is no digital guest list to manage."
-          : "Invite registered supporters, review factual request context, and manage approved attendees."}
+          : "Invite people, review attendance requests, and manage approved attendees."}
       </p>
 
       <div className="mt-10" id="event-management-queue">
@@ -84,8 +89,10 @@ export default async function ManageEventPage({ params, searchParams }: Props) {
           attendance={attendance}
           attendanceMode={event.attendanceMode}
           candidates={candidates}
+          eventAudience={event.audience}
           eventId={event.id}
           eventStatus={event.status}
+          inviteLinks={inviteLinks}
           invitations={invitations}
           remainingCapacity={event.remainingCapacity ?? undefined}
         />
@@ -101,7 +108,7 @@ export default async function ManageEventPage({ params, searchParams }: Props) {
               />
             </PaginationItem>
             <PaginationItem>
-              <span className="px-4 text-sm text-muted-dark">
+              <span className="px-4 text-sm text-muted-foreground">
                 Page {page} of {pageCount}
               </span>
             </PaginationItem>

@@ -242,6 +242,38 @@ describe("EventCreateFlow", () => {
     );
   });
 
+  it("explains each audience in Explore terms and keeps group review advanced", () => {
+    render(
+      <EventCreateFlow
+        catalog={{
+          ...catalog,
+          groups: [
+            {
+              id: "60000000-0000-4000-8000-000000000105",
+              name: "Weekend Crew",
+              slug: "weekend-crew",
+              lifecycle: "active",
+            },
+          ],
+        }}
+        initialDraft={{
+          id: draftId,
+          step: 2,
+          values: { matchId },
+          savedAt: "2026-08-30T10:00:00+00:00",
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("radio", { name: /Group.*active members/i })).toBeVisible();
+    expect(screen.queryByRole("radio", { name: /Supporter group/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/stays out of Explore/i)).toBeVisible();
+    expect(screen.getByText(/accepted friends/i)).toBeVisible();
+    expect(screen.getByText(/active members of one group/i)).toBeVisible();
+    expect(screen.getByLabelText("Group")).not.toBeVisible();
+    expect(screen.getByText("Submit through a group (optional)")).toBeVisible();
+  });
+
   it("clears stale protected and public locations when city or place kind changes", async () => {
     const user = userEvent.setup();
     render(

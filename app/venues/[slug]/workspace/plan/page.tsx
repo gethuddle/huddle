@@ -33,9 +33,9 @@ export default async function VenuePlanPage({ params, searchParams }: VenuePlanP
 
   return (
     <section className="py-10 sm:py-14">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sand">Venue workspace</p>
-      <h1 className="mt-2 text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Plan events</h1>
-      <p className="mt-3 max-w-2xl text-lg text-muted-dark">
+      <p className="text-sm font-medium text-sand">Venue workspace</p>
+      <h1 className="mt-2 text-4xl font-semibold tracking-[-0.04em] sm:text-4xl">Plan events</h1>
+      <p className="mt-3 max-w-2xl text-lg text-muted-foreground">
         Find the fixtures you will show, then publish them together using your Venue defaults.
       </p>
 

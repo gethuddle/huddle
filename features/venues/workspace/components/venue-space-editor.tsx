@@ -18,10 +18,7 @@ export function VenueSpaceEditor({
   const [state, action, pending] = useActionState(saveVenueSpaceAction, null);
   const prefix = space?.id ?? "new";
   return (
-    <form
-      action={action}
-      className="rounded-[1.375rem] border border-border-dark bg-surface-raised p-5"
-    >
+    <form action={action} className="rounded-[1.375rem] border border-border bg-card p-5">
       <input name="venueId" type="hidden" value={venueId} />
       <input name="spaceId" type="hidden" value={space?.id ?? ""} />
       <input name="sortOrder" type="hidden" value={sortOrder} />
@@ -59,7 +56,7 @@ export function VenueSpaceEditor({
         </Label>
       </div>
       {state === null ? null : state.ok ? (
-        <p className="mt-3 text-sm text-court" role="status">
+        <p className="mt-3 text-sm text-forest" role="status">
           {state.data.message}
         </p>
       ) : (

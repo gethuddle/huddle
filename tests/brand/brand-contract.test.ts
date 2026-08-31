@@ -87,6 +87,29 @@ describe("brand contract", () => {
     expect(nativeSelect).toContain("rounded-[0.875rem]");
   });
 
+  it("uses border-led surfaces and pale semantic elevation instead of dark stock shadows", () => {
+    const globalStyles = readFileSync(join(process.cwd(), "app/globals.css"), "utf8");
+    const elevatedSources = [
+      "components/ui/card.tsx",
+      "components/ui/button.tsx",
+      "components/ui/dropdown-menu.tsx",
+      "components/ui/dialog.tsx",
+      "components/ui/alert-dialog.tsx",
+      "components/ui/combobox.tsx",
+      "features/discovery/components/discovery-filters.tsx",
+      "features/workspaces/components/fan-bottom-navigation.tsx",
+      "features/workspaces/components/venue-workspace-header.tsx",
+    ].map((file) => readFileSync(join(process.cwd(), file), "utf8"));
+
+    expect(globalStyles).toContain("--shadow-floating:");
+    expect(globalStyles).toContain("--shadow-search:");
+    expect(globalStyles).toContain("--shadow-docked:");
+    for (const source of elevatedSources) {
+      expect(source).not.toMatch(/shadow-(?:sm|md|lg|xl|2xl)/);
+      expect(source).not.toContain("rgba(11,18,16");
+    }
+  });
+
   it("keeps current navigation semantic and visibly selected", () => {
     const siteHeader = readFileSync(
       join(process.cwd(), "components/layout/site-header.tsx"),
@@ -99,7 +122,7 @@ describe("brand contract", () => {
 
     for (const source of [siteHeader, fanNavigation]) {
       expect(source).toContain('aria-current={current ? "page" : undefined}');
-      expect(source).toContain('current && "');
+      expect(source).toMatch(/current\s*&&\s*["']/);
     }
   });
 

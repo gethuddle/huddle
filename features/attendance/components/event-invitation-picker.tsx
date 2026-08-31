@@ -80,7 +80,9 @@ export function EventInvitationPicker({
         setFeedback(result.error.message);
         return;
       }
-      setFeedback(result.data.message);
+      setFeedback(
+        `${result.data.message} They'll see it in Home and My Huddle and can accept or decline.`,
+      );
       setSelected([]);
       router.refresh();
     });
@@ -109,8 +111,8 @@ export function EventInvitationPicker({
         <DialogHeader>
           <DialogTitle>Invite eligible people</DialogTitle>
           <DialogDescription>
-            Search friends, shared-group supporters, and recent authorized contacts without leaving
-            this event.
+            Search friends, people from shared groups, and recent authorized contacts without
+            leaving this event.
           </DialogDescription>
         </DialogHeader>
 

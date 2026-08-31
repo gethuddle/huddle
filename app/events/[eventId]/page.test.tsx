@@ -100,6 +100,18 @@ describe("EventPage attendee pagination", () => {
     mocks.listApprovedEventAttendees.mockResolvedValue([]);
   });
 
+  it("returns to the allowlisted Explore search that opened the event", async () => {
+    const returnTo = "/discover?city=haifa&from=2026-08-31";
+    render(
+      await EventPage({
+        params: Promise.resolve({ eventId }),
+        searchParams: Promise.resolve({ returnTo }),
+      }),
+    );
+
+    expect(screen.getByRole("link", { name: "Back to Explore" })).toHaveAttribute("href", returnTo);
+  });
+
   it.each(["502", "999999999999999999999999999999"])(
     "redirects raw attendee page %s before attendee or location RPCs and preserves created state",
     async (attendeePage) => {

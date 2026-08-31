@@ -475,14 +475,14 @@ async function expectNoHorizontalOverflow(page: Page) {
 
 async function expectFanNavigation(page: Page, width: number, currentLabel: string) {
   const navigation = page.getByRole("navigation", {
-    name: width < 768 ? "Fan mobile navigation" : "Fan navigation",
+    name: width < 1024 ? "Fan mobile navigation" : "Fan navigation",
   });
   await expect(navigation.getByRole("link")).toHaveText(
-    width < 768
+    width < 1024
       ? ["Home", "Explore", "My Huddle", "People", "Account"]
       : ["Home", "Explore", "My Huddle", "People"],
   );
-  if (width >= 768 && currentLabel === "Account") {
+  if (width >= 1024 && currentLabel === "Account") {
     await expect(navigation.locator('a[aria-current="page"]')).toHaveCount(0);
     await page.getByRole("banner").getByRole("button", { name: "Switch workspace" }).click();
     await expect(page.getByRole("menuitem", { name: "Account settings" })).toBeVisible();
@@ -503,7 +503,7 @@ async function expectFanNavigation(page: Page, width: number, currentLabel: stri
     expect(box.height).toBeGreaterThanOrEqual(44);
     expect(box.width).toBeGreaterThanOrEqual(44);
   }
-  if (width < 768) {
+  if (width < 1024) {
     const anchor = await navigation.evaluate((element) => {
       const box = element.getBoundingClientRect();
       return {
@@ -518,7 +518,7 @@ async function expectFanNavigation(page: Page, width: number, currentLabel: stri
 
 async function expectVenueNavigation(page: Page, width: number, currentLabel: string) {
   const navigation = page.getByRole("navigation", {
-    name: width < 768 ? "Venue mobile navigation" : "Venue navigation",
+    name: width < 1024 ? "Venue mobile navigation" : "Venue navigation",
   });
   await expect(navigation).toBeVisible();
   await expect(navigation.getByRole("link")).toHaveText([
@@ -542,7 +542,7 @@ async function expectVenueNavigation(page: Page, width: number, currentLabel: st
     expect(box.height).toBeGreaterThanOrEqual(44);
     expect(box.width).toBeGreaterThanOrEqual(44);
   }
-  if (width < 768) {
+  if (width < 1024) {
     const anchor = await navigation.evaluate((element) => {
       const box = element.getBoundingClientRect();
       return {
@@ -784,7 +784,7 @@ test("complete deterministic Fan and Venue workspace journey", async ({
       .getByRole("checkbox", { name: `${identity.participantName} @${identity.participantHandle}` })
       .click();
     await page.getByRole("button", { name: "Invite 1 person" }).click();
-    await expect(page.getByRole("status")).toHaveText("1 invitation sent.");
+    await expect(page.getByRole("status")).toContainText("1 invitation sent.");
     await page.getByRole("button", { name: "Close" }).click();
     await expect(inviteTrigger).toBeFocused();
 
@@ -899,7 +899,9 @@ test("complete deterministic Fan and Venue workspace journey", async ({
       identity.venueName,
     );
     await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
-    await expect(page.getByLabel("Unverified venue")).toBeVisible();
+    await expect(
+      page.getByLabel("Self-listed venue · business identity not checked by Huddle"),
+    ).toBeVisible();
     await expectVenueNavigation(page, project.width, "Today");
     await expect(page.getByRole("heading", { name: "Nothing is planned yet" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Huddle home" })).toHaveAttribute(
@@ -914,7 +916,9 @@ test("complete deterministic Fan and Venue workspace journey", async ({
 
     await page.goto(journeyUrl(page, `/venues/${identity.venueSlug}/workspace/settings`));
     await expectVenueNavigation(page, project.width, "Venue");
-    await expect(page.getByLabel("Unverified venue")).toBeVisible();
+    await expect(
+      page.getByLabel("Self-listed venue · business identity not checked by Huddle"),
+    ).toBeVisible();
     await expect(page.getByRole("textbox", { name: "Venue name" })).toHaveValue(identity.venueName);
     await expect(page.getByText(venueAddress, { exact: true })).toBeVisible();
     await page
@@ -972,7 +976,7 @@ test("complete deterministic Fan and Venue workspace journey", async ({
     }
     await page
       .getByRole("navigation", {
-        name: project.width < 768 ? "Venue mobile navigation" : "Venue navigation",
+        name: project.width < 1024 ? "Venue mobile navigation" : "Venue navigation",
       })
       .getByRole("link", { name: "Events", exact: true })
       .click();
@@ -988,12 +992,16 @@ test("complete deterministic Fan and Venue workspace journey", async ({
 
     await participantPage.goto(journeyUrl(participantPage, `/venues/${identity.venueSlug}`));
     await expect(participantPage.getByRole("heading", { name: identity.venueName })).toBeVisible();
-    await expect(participantPage.getByLabel("Unverified venue")).toBeVisible();
+    await expect(
+      participantPage.getByLabel("Self-listed venue · business identity not checked by Huddle"),
+    ).toBeVisible();
     await participantPage.getByRole("link", { name: identity.publishedVenueTitles[0] }).click();
     await expect(
       participantPage.getByRole("heading", { name: identity.publishedVenueTitles[0] }),
     ).toBeVisible();
-    await expect(participantPage.getByText("Open door · no RSVP", { exact: true })).toBeVisible();
+    await expect(
+      participantPage.getByText("Open door · just come along", { exact: true }),
+    ).toBeVisible();
     await expect(
       participantPage.getByRole("heading", { name: "No reservation needed" }),
     ).toBeVisible();
