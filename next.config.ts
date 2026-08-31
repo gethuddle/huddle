@@ -26,6 +26,15 @@ const nextConfig: NextConfig = {
     // ceiling is customized; no proxy origin receives a bypass.
     serverActions: { bodySizeLimit: "256kb" },
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "crests.football-data.org",
+        pathname: "/**",
+      },
+    ],
+  },
   async headers() {
     return [
       {

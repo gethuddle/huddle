@@ -14,7 +14,7 @@ export function GroupSearchFilters({
   return (
     <form
       action="/groups"
-      className="grid gap-4 rounded-[1.375rem] border border-border bg-card p-5 md:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr_auto] lg:items-end"
+      className="grid gap-4 rounded-[1.375rem] border border-border bg-card p-5 md:grid-cols-[1.4fr_1fr_auto] md:items-end"
       method="get"
     >
       <div>
@@ -29,22 +29,6 @@ export function GroupSearchFilters({
           placeholder="Search groups"
           type="search"
         />
-      </div>
-      <div>
-        <Label htmlFor="group-search-city">City</Label>
-        <NativeSelect
-          className="mt-2 [&_select]:rounded-full"
-          defaultValue={filters.citySlug ?? ""}
-          id="group-search-city"
-          name="city"
-        >
-          <NativeSelectOption value="">All pilot cities</NativeSelectOption>
-          {catalog.cities.map((city) => (
-            <NativeSelectOption key={city.id} value={city.slug}>
-              {city.name}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
       </div>
       <div>
         <Label htmlFor="group-search-team">Team</Label>
@@ -62,7 +46,7 @@ export function GroupSearchFilters({
           ))}
         </NativeSelect>
       </div>
-      <div className="flex gap-2 md:col-span-2 lg:col-span-1">
+      <div className="flex gap-2">
         <Button className="flex-1 rounded-full lg:flex-none" type="submit">
           Search
         </Button>

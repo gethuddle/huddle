@@ -4,9 +4,16 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ selectWorkspaceAction: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  refresh: vi.fn(),
+  replace: vi.fn(),
+  selectWorkspaceAction: vi.fn(),
+}));
 vi.mock("@/features/workspaces/actions", () => ({
   selectWorkspaceAction: mocks.selectWorkspaceAction,
+}));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: mocks.refresh, replace: mocks.replace }),
 }));
 
 import { WorkspaceSwitcher } from "./workspace-switcher";
@@ -92,5 +99,39 @@ describe("WorkspaceSwitcher", () => {
     expect(
       screen.getByRole("button", { name: "Switch workspace" }).querySelector(".text-left"),
     ).toHaveClass("hidden", "sm:block");
+  });
+
+  it("leaves the Fan route and opens the selected Venue workspace", async () => {
+    const user = userEvent.setup();
+    mocks.selectWorkspaceAction.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        message: "Switched to Match Corner.",
+        redirectTo: "/venues/match-corner/workspace",
+      },
+    });
+    render(
+      <WorkspaceSwitcher
+        active={{ kind: "fan", id: fanId, slug: "fan_one", label: "Fan One", role: "fan" }}
+        available={[
+          { kind: "fan", id: fanId, slug: "fan_one", label: "Fan One", role: "fan" },
+          {
+            kind: "venue",
+            id: venueId,
+            slug: "match-corner",
+            label: "Match Corner",
+            role: "owner",
+          },
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Switch workspace" }));
+    await user.click(await screen.findByRole("menuitem", { name: /Match Corner/ }));
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith("/venues/match-corner/workspace");
+      expect(mocks.refresh).toHaveBeenCalledOnce();
+    });
   });
 });

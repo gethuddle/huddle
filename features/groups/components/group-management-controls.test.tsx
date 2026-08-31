@@ -8,11 +8,15 @@ const mocks = vi.hoisted(() => ({
   banGroupMemberAction: vi.fn(),
   changeGroupRoleAction: vi.fn(),
   createGroupInviteAction: vi.fn(),
+  createDirectGroupInvitationAction: vi.fn(),
   createGroupRuleAction: vi.fn(),
   reorderGroupRulesAction: vi.fn(),
   reviewGroupApplicationAction: vi.fn(),
   revokeGroupInviteAction: vi.fn(),
   reviewGroupEventAction: vi.fn(),
+  removeGroupMemberAction: vi.fn(),
+  respondGroupInvitationAction: vi.fn(),
+  revokeGroupInvitationAction: vi.fn(),
   unbanGroupMemberAction: vi.fn(),
   updateGroupRuleAction: vi.fn(),
   withdrawGroupEventAction: vi.fn(),
@@ -24,6 +28,7 @@ import {
   BanMemberControl,
   EventReviewControl,
   InviteRevocationControl,
+  RemoveMemberControl,
 } from "./group-management-controls";
 
 const group = {
@@ -77,6 +82,29 @@ describe("destructive group management confirmations", () => {
     await waitFor(() => expect(mocks.banGroupMemberAction).toHaveBeenCalledOnce());
     const formData = mocks.banGroupMemberAction.mock.calls[0]?.[1] as FormData;
     expect(formData.get("reason")).toBe("Repeated abuse");
+    expect(formData.get("userId")).toBe("52000000-0000-4000-8000-000000000202");
+  });
+
+  it("separates ordinary removal from a safety ban", async () => {
+    mocks.removeGroupMemberAction.mockResolvedValue({
+      ok: true,
+      data: { message: "Member removed. They can apply again unless you ban them." },
+    });
+    const user = userEvent.setup();
+    render(
+      <RemoveMemberControl
+        {...group}
+        targetLabel="@fan_two"
+        userId="52000000-0000-4000-8000-000000000202"
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    expect(screen.getByRole("alertdialog")).toHaveTextContent(/does not ban/i);
+    await user.click(screen.getByRole("button", { name: "Remove member" }));
+
+    await waitFor(() => expect(mocks.removeGroupMemberAction).toHaveBeenCalledOnce());
+    const formData = mocks.removeGroupMemberAction.mock.calls[0]?.[1] as FormData;
     expect(formData.get("userId")).toBe("52000000-0000-4000-8000-000000000202");
   });
 

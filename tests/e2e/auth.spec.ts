@@ -905,7 +905,6 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
   await page.goto(new URL("/groups/new", page.url()).toString());
 
   await page.getByRole("textbox", { name: "Group name" }).fill(`Haifa Huddle ${suffix}`);
-  await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
   await page
     .getByRole("textbox", { name: "Short description" })
     .fill("A local group for respectful match-day gatherings.");
@@ -1075,7 +1074,6 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
     const unlistedSlug = `haifa-private-circle-${suffix}`;
     await page.goto(new URL("/groups/new", page.url()).toString());
     await page.getByRole("textbox", { name: "Group name" }).fill(`Haifa Private Circle ${suffix}`);
-    await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
     await page.getByRole("combobox", { name: "Visibility" }).selectOption("unlisted");
     await page
       .getByRole("textbox", { name: "Short description" })
@@ -1085,7 +1083,8 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
     await page.getByRole("button", { name: "Create group" }).click();
     await expect(page).toHaveURL(new RegExp(`/groups/${unlistedSlug}[?]created=1$`));
     await page.getByRole("button", { name: "Share group" }).click();
-    await page.getByRole("button", { name: "Create invitation link" }).click();
+    await page.getByText("Create a share link instead", { exact: true }).click();
+    await page.getByRole("button", { name: "Create share link" }).click();
     await expect(page.getByRole("status")).toContainText("Copy it now");
     const inviteUrl = await page.getByRole("textbox", { name: "New invitation URL" }).inputValue();
     expect(inviteUrl).toMatch(/\/join\/group\/[A-Za-z0-9_-]{43}$/);
@@ -1199,7 +1198,6 @@ test("review corrections persist Fan drafts and reach the full local fixture hor
   const groupSlug = `review-circle-${suffix}`;
   await page.goto(new URL("/groups/new", page.url()).toString());
   await page.getByRole("textbox", { name: "Group name" }).fill(groupName);
-  await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
   await page
     .getByRole("textbox", { name: "Short description" })
     .fill("A discoverable group with a truthful application-link handoff.");
@@ -1316,10 +1314,11 @@ test("completed users create venue and private events with safe projections", as
   await page.getByRole("textbox", { name: "Venue name" }).fill(`Match Corner ${suffix}`);
   await page.getByRole("textbox", { name: "Venue URL" }).fill(venueSlug);
   await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
-  await page.getByRole("textbox", { name: "Public address" }).fill("12 Hanassi Boulevard");
-  await page.getByRole("button", { name: "Search addresses" }).click();
+  await page.getByRole("combobox", { name: "Public address" }).fill("12 Hanassi Boulevard");
   await page.getByRole("option", { name: "12 Hanassi Boulevard, Haifa, Israel" }).click();
-  await page.getByRole("button", { name: "Confirm this address" }).click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "Confirmed public address" }),
+  ).toContainText("12 Hanassi Boulevard, Haifa, Israel");
   await page
     .getByRole("textbox", { name: "Public description" })
     .fill("A local match-day venue with several screens and accessible seating.");
@@ -1382,7 +1381,7 @@ test("completed users create venue and private events with safe projections", as
     await expect(anonymousPage.getByRole("link", { name: venueEventTitle })).toBeVisible();
     await anonymousPage.goto(new URL("/discover?city=haifa", anonymousPage.url()).toString());
     await expect(anonymousPage.getByText(venueEventTitle, { exact: true })).toBeVisible();
-    await expect(anonymousPage.getByText("Using city fallback", { exact: true })).toBeVisible();
+    await expect(anonymousPage.getByText("Near Haifa", { exact: true })).toBeVisible();
     if (captureB09Evidence) {
       await anonymousPage.screenshot({
         fullPage: true,
@@ -1519,10 +1518,11 @@ test("a Venue-only operator completes the real onboarding boundary and publishes
     await page.getByRole("textbox", { name: "Venue URL" }).fill(venueSlug);
     await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
     await expect(page.locator('input[name="longitude"], input[name="latitude"]')).toHaveCount(0);
-    await page.getByRole("textbox", { name: "Public address" }).fill(addressQuery);
-    await page.getByRole("button", { name: "Search addresses" }).click();
+    await page.getByRole("combobox", { name: "Public address" }).fill(addressQuery);
     await page.getByRole("option", { name: suggestion.label }).click();
-    await page.getByRole("button", { name: "Confirm this address" }).click();
+    await expect(
+      page.getByRole("status").filter({ hasText: "Confirmed public address" }),
+    ).toContainText(suggestion.label);
     await page
       .getByRole("textbox", { name: "Public description" })
       .fill("A dedicated commercial Venue-only workspace for deterministic browser coverage.");
@@ -2010,7 +2010,7 @@ test("16 a confidential report becomes an independently reviewed moderation appe
   }
 });
 
-test("02 personalized discovery uses a one-shot browser coordinate without persisting it", async ({
+test("02 personalized discovery uses a browser coordinate without exposing it in the URL", async ({
   context,
   page,
 }) => {
@@ -2046,17 +2046,17 @@ test("02 personalized discovery uses a one-shot browser coordinate without persi
   await context.grantPermissions(["geolocation"], { origin: "http://127.0.0.1:3000" });
   await context.setGeolocation({ latitude: 32.81303, longitude: 34.99928 });
   await signIn(page, viewerEmail, password);
-  const discoveryRequests: string[] = [];
+  const discoveryRequests: unknown[] = [];
   page.on("request", (request) => {
-    if (request.url().includes("/api/discovery?")) discoveryRequests.push(request.url());
+    if (new URL(request.url()).pathname === "/api/discovery" && request.method() === "POST") {
+      discoveryRequests.push(request.postDataJSON());
+    }
   });
   await page.goto(new URL("/discover?city=haifa", page.url()).toString());
   await expect(page.getByText(event.input.input_title, { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Use my location once" }).click();
   await expect(page.getByText("Using this browser location", { exact: true })).toBeVisible();
   await expect.poll(() => discoveryRequests.length).toBeGreaterThan(0);
-  expect(discoveryRequests.at(-1)).toContain("lat=32.81303");
-  expect(discoveryRequests.at(-1)).toContain("lng=34.99928");
+  expect(discoveryRequests.at(-1)).toMatchObject({ lat: 32.81303, lng: 34.99928 });
   expect(page.url()).not.toContain("lat=");
   expect(page.url()).not.toContain("lng=");
 });

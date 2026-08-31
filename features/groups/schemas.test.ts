@@ -31,6 +31,13 @@ describe("group schemas", () => {
     });
   });
 
+  it("treats a group home area as optional context", () => {
+    expect(groupCreationSchema.parse({ ...validInput, cityId: "" })).toMatchObject({
+      cityId: null,
+      teamId: null,
+    });
+  });
+
   it("rejects crafted visibility and unbounded content", () => {
     expect(
       groupCreationSchema.safeParse({

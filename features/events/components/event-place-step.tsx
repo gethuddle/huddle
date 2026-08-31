@@ -23,6 +23,7 @@ type EventPlaceStepProps = Readonly<{
   onValuesChange: (patch: EventDraftPatch) => void;
   onFindFirstFriend: () => void;
   saving: boolean;
+  fieldErrors?: Readonly<Record<string, string>>;
 }>;
 
 export function EventPlaceStep({
@@ -35,6 +36,7 @@ export function EventPlaceStep({
   protectedLocation,
   saving,
   values,
+  fieldErrors = {},
 }: EventPlaceStepProps) {
   const [replacePrivateLocation, setReplacePrivateLocation] = useState(protectedLocation === null);
   const city = catalog.cities.find((candidate) => candidate.id === values.cityId) ?? null;
@@ -98,8 +100,10 @@ export function EventPlaceStep({
   return (
     <div className="space-y-7">
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field id="event-title" label="Event title">
+        <Field error={fieldErrors["event-title"]} id="event-title" label="Event title">
           <Input
+            aria-describedby={fieldErrors["event-title"] ? "event-title-error" : undefined}
+            aria-invalid={fieldErrors["event-title"] ? true : undefined}
             id="event-title"
             maxLength={120}
             onChange={(event) => onValuesChange({ title: event.currentTarget.value })}
@@ -107,8 +111,10 @@ export function EventPlaceStep({
             value={values.title ?? ""}
           />
         </Field>
-        <Field id="event-city" label="City">
+        <Field error={fieldErrors["event-city"]} id="event-city" label="City">
           <NativeSelect
+            aria-describedby={fieldErrors["event-city"] ? "event-city-error" : undefined}
+            aria-invalid={fieldErrors["event-city"] ? true : undefined}
             id="event-city"
             onChange={(event) => changeCity(event.currentTarget.value)}
             required
@@ -124,8 +130,12 @@ export function EventPlaceStep({
         </Field>
       </div>
 
-      <Field id="event-description" label="Description">
+      <Field error={fieldErrors["event-description"]} id="event-description" label="Description">
         <Textarea
+          aria-describedby={
+            fieldErrors["event-description"] ? "event-description-error" : undefined
+          }
+          aria-invalid={fieldErrors["event-description"] ? true : undefined}
           className="min-h-28"
           id="event-description"
           maxLength={2000}
@@ -165,7 +175,11 @@ export function EventPlaceStep({
           Choose a city before setting the location.
         </p>
       ) : placeKind === "home" ? (
-        <div className="space-y-4 rounded-[1.375rem] border border-border bg-secondary p-5">
+        <div
+          className="space-y-4 rounded-[1.375rem] border border-border bg-secondary p-5"
+          id="event-private-location"
+          tabIndex={-1}
+        >
           {protectedLocation !== null && !replacePrivateLocation ? (
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-muted-foreground">
@@ -182,11 +196,24 @@ export function EventPlaceStep({
           ) : (
             <MapPinPicker citySlug={city.slug} onChange={updatePrivateLocation} />
           )}
+          {fieldErrors["event-private-location"] ? (
+            <p className="text-sm text-destructive" id="event-private-location-error">
+              {fieldErrors["event-private-location"]}
+            </p>
+          ) : null}
         </div>
       ) : (
         <div className="space-y-5 rounded-[1.375rem] border border-border bg-secondary p-5">
-          <Field id="event-public-place" label="Place name">
+          <Field
+            error={fieldErrors["event-public-place"]}
+            id="event-public-place"
+            label="Place name"
+          >
             <Input
+              aria-describedby={
+                fieldErrors["event-public-place"] ? "event-public-place-error" : undefined
+              }
+              aria-invalid={fieldErrors["event-public-place"] ? true : undefined}
               id="event-public-place"
               maxLength={120}
               onChange={(event) => onValuesChange({ publicPlaceName: event.currentTarget.value })}
@@ -200,11 +227,16 @@ export function EventPlaceStep({
               <span className="font-semibold text-foreground">{values.publicAddressText}</span>
             </p>
           )}
-          <AddressSearch
-            city={city.name}
-            locationKind="public_place"
-            onConfirm={updatePublicAddress}
-          />
+          <div id="event-public-address" tabIndex={-1}>
+            <AddressSearch
+              city={city.name}
+              locationKind="public_place"
+              onConfirm={updatePublicAddress}
+            />
+            {fieldErrors["event-public-address"] ? (
+              <p className="mt-2 text-sm text-destructive">{fieldErrors["event-public-address"]}</p>
+            ) : null}
+          </div>
         </div>
       )}
 
@@ -253,8 +285,16 @@ export function EventPlaceStep({
       </fieldset>
 
       {audience === "group" ? (
-        <Field id="event-audience-group" label="Audience group">
+        <Field
+          error={fieldErrors["event-audience-group"]}
+          id="event-audience-group"
+          label="Audience group"
+        >
           <NativeSelect
+            aria-describedby={
+              fieldErrors["event-audience-group"] ? "event-audience-group-error" : undefined
+            }
+            aria-invalid={fieldErrors["event-audience-group"] ? true : undefined}
             id="event-audience-group"
             onChange={(event) => {
               const groupId = event.currentTarget.value || null;
@@ -303,8 +343,10 @@ export function EventPlaceStep({
       )}
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field id="event-capacity" label="Maximum people">
+        <Field error={fieldErrors["event-capacity"]} id="event-capacity" label="Maximum people">
           <Input
+            aria-describedby={fieldErrors["event-capacity"] ? "event-capacity-error" : undefined}
+            aria-invalid={fieldErrors["event-capacity"] ? true : undefined}
             id="event-capacity"
             max={placeKind === "home" ? 12 : 1000}
             min={1}
@@ -318,14 +360,26 @@ export function EventPlaceStep({
         </Field>
         <label className="flex min-h-12 items-start gap-3 rounded-xl border border-border bg-secondary p-4 text-sm leading-6 text-muted-foreground">
           <input
+            aria-describedby={
+              fieldErrors["event-host-presence"] ? "event-host-presence-error" : undefined
+            }
+            aria-invalid={fieldErrors["event-host-presence"] ? true : undefined}
             checked={values.hostPresenceConfirmed ?? false}
             className="mt-1 size-5 accent-[var(--color-court)]"
+            id="event-host-presence"
             onChange={(event) =>
               onValuesChange({ hostPresenceConfirmed: event.currentTarget.checked })
             }
             type="checkbox"
           />
-          <span>I will be present, and each attendee will use their own Huddle account.</span>
+          <span>
+            I will be present, and each attendee will use their own Huddle account.
+            {fieldErrors["event-host-presence"] ? (
+              <span className="mt-1 block text-destructive" id="event-host-presence-error">
+                {fieldErrors["event-host-presence"]}
+              </span>
+            ) : null}
+          </span>
         </label>
       </div>
 
@@ -378,13 +432,19 @@ export function EventPlaceStep({
 
 function Field({
   children,
+  error,
   id,
   label,
-}: Readonly<{ children: React.ReactNode; id: string; label: string }>) {
+}: Readonly<{ children: React.ReactNode; error?: string; id: string; label: string }>) {
   return (
     <div>
       <Label htmlFor={id}>{label}</Label>
       <div className="mt-2">{children}</div>
+      {error ? (
+        <p className="mt-2 text-sm text-destructive" id={`${id}-error`}>
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

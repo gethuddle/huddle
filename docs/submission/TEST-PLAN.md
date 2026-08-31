@@ -24,8 +24,8 @@ The 2026-08-29 B12 run passed 90 Vitest files / 403 tests (78.7% statements,
 and all 17 Playwright journeys. The PR/main CI run and second-computer reproduction
 remain separate evidence.
 
-The current Calm Explore inventory contains 151 Vitest files / 757 tests,
-30 ordered migrations, 36 pgTAP files / 1624 assertions, and 28 Playwright scenarios.
+The current Calm Explore inventory contains 153 Vitest files / 778 tests,
+33 ordered migrations, 39 pgTAP files / 1656 assertions, and 28 Playwright scenarios.
 The complete acceptance command passes this combined inventory. The B12 numbers above are
 retained as historical accepted evidence rather than presented as the current repository
 inventory. Hosted migration and production acceptance remain separately evidenced operations.
@@ -40,7 +40,7 @@ depend on execution order, wall-clock equality, a provider network, or hosted da
 | # | Acceptance journey | Principal enforcement |
 |---:|---|---|
 | 01 | Sign up, verify email, complete mandatory profile, follow a team | Supabase Auth, profile RPC, subscription RPC |
-| 02 | Use browser location once without persisting coordinates | discovery route/query and no-store response |
+| 02 | Use browser location for the current session without exposing coordinates in the URL | discovery POST route/query and no-store response |
 | 03 | Friend sees friends-only event; stranger receives no event or address | audience function and safe event projection |
 | 04 | Crafted private-public and venue-private host/audience requests fail | event transaction constraints and authorization |
 | 05 | A described owner-backed group becomes searchable without activity quotas; application and event review stay enforced | group lifecycle/readiness and review functions |
@@ -73,11 +73,11 @@ accounts and a fresh event.
 
 ## Database coverage
 
-The 36 pgTAP files under `supabase/tests/database/` cover all exposed-table RLS
+The 39 pgTAP files under `supabase/tests/database/` cover all exposed-table RLS
 inventory, CHECK/unique/FK invariants, minimum grants, safe reads, denied reads and
 mutations, lifecycle transitions, cooldowns, exact-address authorization, capacity,
 moderation, workspace membership, protected drafts, current-state projections,
-public-address caching, fixture coverage, open-door venue events, the public map
+public-address caching and autocomplete, global group discovery, direct group invitations and member removal, team crest normalization, fixture coverage, open-door venue events, the public map
 projection, managed-Venue discovery continuity, fixture/event consistency, secure event
 invite links, audited group archive, and audited Venue closure. Dedicated two-connection regressions cover friendship/block,
 application/block, group invite, event creation, group review/block, attendance,

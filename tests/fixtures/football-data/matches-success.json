@@ -22,7 +22,7 @@
         "name": "Arsenal FC",
         "shortName": "Arsenal",
         "tla": "ARS",
-        "crest": "https://assets.invalid/ignored-home.png",
+        "crest": "https://crests.football-data.org/57.png",
         "area": { "name": "England" }
       },
       "awayTeam": {
@@ -30,7 +30,7 @@
         "name": "Chelsea FC",
         "shortName": "Chelsea",
         "tla": "CHE",
-        "crest": "https://assets.invalid/ignored-away.png",
+        "crest": "https://crests.football-data.org/61.png",
         "area": { "name": "England" }
       },
       "score": { "winner": null, "duration": "REGULAR", "fullTime": { "home": null, "away": null } }

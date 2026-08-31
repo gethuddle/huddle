@@ -12,10 +12,12 @@ const publicMatchRowSchema = z
     home_team_name: z.string().min(1),
     home_team_short_name: z.string().nullable(),
     home_team_tla: z.string().nullable(),
+    home_team_crest_url: z.url().nullable(),
     away_team_id: z.uuid(),
     away_team_name: z.string().min(1),
     away_team_short_name: z.string().nullable(),
     away_team_tla: z.string().nullable(),
+    away_team_crest_url: z.url().nullable(),
     starts_at: z.iso.datetime({ offset: true }),
     status: z.enum(["scheduled", "timed", "postponed"]),
     matchday: z.number().int().positive().nullable(),
@@ -30,6 +32,7 @@ export type TeamSummary = Readonly<{
   name: string;
   shortName: string | null;
   tla: string | null;
+  crestUrl: string | null;
 }>;
 
 export type PublicMatchDto = Readonly<{
@@ -62,12 +65,14 @@ export function toPublicMatchDto(input: unknown): PublicMatchDto {
       name: row.home_team_name,
       shortName: row.home_team_short_name,
       tla: row.home_team_tla,
+      crestUrl: row.home_team_crest_url,
     },
     awayTeam: {
       id: row.away_team_id,
       name: row.away_team_name,
       shortName: row.away_team_short_name,
       tla: row.away_team_tla,
+      crestUrl: row.away_team_crest_url,
     },
     startsAt: row.starts_at,
     status: row.status,

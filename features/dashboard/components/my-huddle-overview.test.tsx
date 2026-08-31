@@ -77,6 +77,37 @@ describe("MyHuddleOverview", () => {
     );
     expect(screen.getAllByRole("link", { name: "Manage" })).toHaveLength(2);
     expect(screen.getByRole("link", { name: "Find groups" })).toHaveAttribute("href", "/groups");
+    expect(screen.getByRole("link", { name: "Create group" })).toHaveAttribute(
+      "href",
+      "/groups/new",
+    );
+  });
+
+  it("shows recipient-bound group invitations where they can be answered", () => {
+    render(
+      <MyHuddleOverview
+        eventBucket="upcoming"
+        events={[]}
+        groupBucket="all"
+        groupInvitations={[
+          {
+            id: "c1000000-0000-4000-8000-000000000104",
+            groupId: group.id,
+            groupSlug: group.slug,
+            groupName: group.name,
+            inviterHandle: "owner",
+            invitedAt: "2026-08-31T15:00:00Z",
+          },
+        ]}
+        groups={[]}
+        saved={[]}
+        savedBucket="all"
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Groups waiting for you" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Join group" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Decline" })).toBeVisible();
   });
 
   it("uses labeled filters rather than route-like tabs and keeps History off by default", () => {
@@ -84,7 +115,7 @@ describe("MyHuddleOverview", () => {
       <MyHuddleOverview
         eventBucket="upcoming"
         events={[]}
-        groupBucket="owner"
+        groupBucket="all"
         groups={[]}
         saved={[]}
         savedBucket="all"
@@ -93,13 +124,13 @@ describe("MyHuddleOverview", () => {
 
     fireEvent.click(screen.getByText(/Filter My Huddle/i));
     expect(screen.getByRole("combobox", { name: "Show events" })).toHaveValue("upcoming");
-    expect(screen.getByRole("combobox", { name: "Show groups" })).toHaveValue("owner");
+    expect(screen.getByRole("combobox", { name: "Show groups" })).toHaveValue("all");
     expect(screen.getByRole("combobox", { name: "Show saved items" })).toHaveValue("all");
     expect(screen.getByRole("button", { name: "Apply filters" })).toBeVisible();
     expect(screen.queryByText(/past activity/i)).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Plan a huddle" })).toHaveClass("min-h-11");
     expect(screen.getByRole("link", { name: "Explore events" })).toHaveClass("min-h-11");
-    expect(screen.getByRole("link", { name: "Create a group" })).toHaveClass("min-h-11");
+    expect(screen.getByRole("link", { name: "Create group" })).toHaveClass("min-h-11");
     expect(screen.getByRole("link", { name: "Find groups" })).toHaveClass("min-h-11");
     expect(screen.getByRole("link", { name: "Choose interests" })).toHaveClass("min-h-11");
   });

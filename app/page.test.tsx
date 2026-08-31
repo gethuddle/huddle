@@ -140,10 +140,32 @@ describe("Home", () => {
       attention: [],
       suggestion: {
         id: "c5000000-0000-4000-8000-000000000502",
-        competition: { id: "c5000000-0000-4000-8000-000000000503", name: "Premier League" },
-        homeTeam: { id: "c5000000-0000-4000-8000-000000000504", name: "Arsenal FC" },
-        awayTeam: { id: "c5000000-0000-4000-8000-000000000505", name: "Chelsea FC" },
+        sport: { id: "c5000000-0000-4000-8000-000000000506", slug: "football" },
+        competition: {
+          id: "c5000000-0000-4000-8000-000000000503",
+          code: "PL",
+          name: "Premier League",
+        },
+        homeTeam: {
+          id: "c5000000-0000-4000-8000-000000000504",
+          name: "Arsenal FC",
+          shortName: "Arsenal",
+          tla: "ARS",
+          crestUrl: "https://crests.football-data.org/57.png",
+        },
+        awayTeam: {
+          id: "c5000000-0000-4000-8000-000000000505",
+          name: "Chelsea FC",
+          shortName: "Chelsea",
+          tla: "CHE",
+          crestUrl: "https://crests.football-data.org/61.png",
+        },
         startsAt: "2026-09-08T17:00:00Z",
+        status: "timed",
+        matchday: 4,
+        stage: "REGULAR_SEASON",
+        seasonLabel: "2026/27",
+        lastSyncedAt: "2026-08-31T12:00:00Z",
       },
     });
 

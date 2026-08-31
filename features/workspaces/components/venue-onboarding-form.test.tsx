@@ -43,7 +43,7 @@ describe("VenueOnboardingForm", () => {
       "e4000000-0000-4000-8000-000000000201",
     ]);
 
-    expect(screen.getByRole("textbox", { name: "Public address" })).toBeVisible();
+    expect(screen.getByRole("combobox", { name: "Public address" })).toBeVisible();
     expect(container.querySelector("form form")).toBeNull();
     expect(container.querySelector('[name="latitude"]')).toBeNull();
     expect(container.querySelector('[name="longitude"]')).toBeNull();
@@ -87,10 +87,8 @@ describe("VenueOnboardingForm", () => {
     await user.selectOptions(screen.getByRole("combobox", { name: "City" }), [
       "e4000000-0000-4000-8000-000000000201",
     ]);
-    await user.type(screen.getByRole("textbox", { name: "Public address" }), "10 Herzl Street");
-    await user.click(screen.getByRole("button", { name: "Search addresses" }));
+    await user.type(screen.getByRole("combobox", { name: "Public address" }), "10 Herzl Street");
     await user.click(await screen.findByRole("option", { name: suggestion.label }));
-    await user.click(screen.getByRole("button", { name: "Confirm this address" }));
     await user.type(
       screen.getByRole("textbox", { name: "Public description" }),
       "A welcoming match-day venue.",
@@ -152,11 +150,9 @@ describe("VenueOnboardingForm", () => {
 
     const city = screen.getByRole("combobox", { name: "City" });
     await user.selectOptions(city, ["e4000000-0000-4000-8000-000000000201"]);
-    const input = screen.getByRole("textbox", { name: "Public address" });
+    const input = screen.getByRole("combobox", { name: "Public address" });
     await user.type(input, "10 Herzl Street");
-    await user.click(screen.getByRole("button", { name: "Search addresses" }));
     await user.click(await screen.findByRole("option", { name: suggestion.label }));
-    await user.click(screen.getByRole("button", { name: "Confirm this address" }));
     expect(screen.getByRole("button", { name: "Create venue account" })).toBeEnabled();
 
     await user.type(input, " edited");
@@ -165,15 +161,13 @@ describe("VenueOnboardingForm", () => {
 
     await user.clear(input);
     await user.type(input, "10 Herzl Street");
-    await user.click(screen.getByRole("button", { name: "Search addresses" }));
     expect(screen.getByRole("button", { name: "Create venue account" })).toBeDisabled();
     await user.click(await screen.findByRole("option", { name: suggestion.label }));
-    await user.click(screen.getByRole("button", { name: "Confirm this address" }));
     expect(screen.getByRole("button", { name: "Create venue account" })).toBeEnabled();
 
     await user.selectOptions(city, [""]);
     expect(screen.getByRole("button", { name: "Create venue account" })).toBeDisabled();
-    expect(screen.queryByRole("textbox", { name: "Public address" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "Public address" })).not.toBeInTheDocument();
     expect(screen.queryByText("Confirmed public address")).not.toBeInTheDocument();
   });
 
@@ -210,10 +204,8 @@ describe("VenueOnboardingForm", () => {
     await user.type(screen.getByRole("textbox", { name: "Venue name" }), "Match House");
     await user.type(screen.getByRole("textbox", { name: "Venue URL" }), "match-house");
     await user.selectOptions(screen.getByRole("combobox", { name: "City" }), props.cities[0].id);
-    await user.type(screen.getByRole("textbox", { name: "Public address" }), "10 Herzl Street");
-    await user.click(screen.getByRole("button", { name: "Search addresses" }));
+    await user.type(screen.getByRole("combobox", { name: "Public address" }), "10 Herzl Street");
     await user.click(await screen.findByRole("option", { name: suggestion.label }));
-    await user.click(screen.getByRole("button", { name: "Confirm this address" }));
     await user.type(
       screen.getByRole("textbox", { name: "Public description" }),
       "A welcoming public match venue.",

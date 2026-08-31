@@ -281,11 +281,13 @@ describe("getGroupManagement", () => {
       members: { page: 1, items: [{ handle: "owner" }] },
       rules: [],
       bans: { page: 1, items: [] },
+      directInvitations: [],
     });
     expect(rpc.mock.calls.map(([name]) => name)).toEqual([
       "list_group_admin_members",
       "list_group_rules",
       "list_group_bans",
+      "list_group_direct_invitations",
     ]);
   });
 });

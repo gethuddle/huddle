@@ -44,8 +44,8 @@ describe("discovery filter schemas", () => {
     );
     const query = discoverySearchParams(filters, "signed-cursor");
 
-    expect(query.get("lat")).toBe("32.0853");
-    expect(query.get("lng")).toBe("34.7818");
+    expect(query.get("lat")).toBeNull();
+    expect(query.get("lng")).toBeNull();
     expect(query.get("cursor")).toBe("signed-cursor");
     expect(discoveryFilterIdentity(filters)).not.toHaveProperty("cursor");
   });
@@ -55,19 +55,25 @@ describe("discovery filter schemas", () => {
     { city: "haifa", lat: "91", lng: "35" },
     { city: "haifa", radiusKm: "12" },
     { city: "haifa", from: "2026-08-26" },
-    { city: "haifa", to: "2026-10-30" },
+    { city: "haifa", to: "2027-06-01" },
     { city: "haifa", extra: "not-allowed" },
   ])("rejects malformed or unbounded filters: %o", (input) => {
     expect(() => parseDiscoveryFilters(input, now)).toThrow();
   });
 
-  it("bounds one search to 45 calendar days", () => {
+  it("accepts the synchronized season instead of imposing a 45-day ceiling", () => {
     expect(() =>
-      parseDiscoveryFilters({ city: "haifa", from: "2026-08-27", to: "2026-10-11" }, now),
-    ).toThrow();
-    expect(() =>
-      parseDiscoveryFilters({ city: "haifa", from: "2026-08-27", to: "2026-10-10" }, now),
+      parseDiscoveryFilters(
+        { city: "haifa", from: "2026-08-31", to: "2026-10-21" },
+        new Date("2026-08-31T09:00:00.000Z"),
+      ),
     ).not.toThrow();
+    expect(() =>
+      parseDiscoveryFilters(
+        { city: "haifa", from: "2026-08-31", to: "2027-06-01" },
+        new Date("2026-08-31T09:00:00.000Z"),
+      ),
+    ).toThrow();
   });
 
   it("returns field recovery data instead of throwing for an inverted date range", () => {
@@ -83,15 +89,15 @@ describe("discovery filter schemas", () => {
     });
   });
 
-  it("preserves a 45-day Israel-time window across the autumn DST fallback", () => {
+  it("preserves a multi-month Israel-time window across the autumn DST fallback", () => {
     const filters = parseDiscoveryFilters(
-      { city: "haifa", from: "2026-09-15", to: "2026-10-29" },
+      { city: "haifa", from: "2026-09-15", to: "2026-11-15" },
       new Date("2026-09-15T09:00:00.000Z"),
     );
 
     expect(discoveryUtcRange(filters)).toEqual({
       from: "2026-09-14T21:00:00.000Z",
-      to: "2026-10-29T22:00:00.000Z",
+      to: "2026-11-15T22:00:00.000Z",
     });
   });
 });

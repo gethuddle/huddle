@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DomainError } from "@/lib/errors";
 
-import { GET } from "./route";
+import { GET, POST } from "./route";
 
 const mocks = vi.hoisted(() => ({ getDiscoveryPage: vi.fn() }));
 
@@ -13,6 +13,14 @@ vi.mock("@/features/discovery/query", () => ({
 
 function discoveryRequest(query: string) {
   return new NextRequest(`https://huddle.test/api/discovery?${query}`);
+}
+
+function locatedDiscoveryRequest(body: Record<string, unknown>) {
+  return new NextRequest("https://huddle.test/api/discovery", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
 }
 
 const emptyPage = {
@@ -85,16 +93,23 @@ describe("GET /api/discovery", () => {
     { locationMode: "city", requiresPrivateCache: true },
   ])("never shared-caches browser or private results: %o", async (privacy) => {
     mocks.getDiscoveryPage.mockResolvedValue({ ...emptyPage, ...privacy });
-    const response = await GET(discoveryRequest("city=haifa&lat=32.8&lng=35"));
+    const response = await POST(locatedDiscoveryRequest({ city: "haifa", lat: 32.8, lng: 35 }));
 
     expect(response.headers.get("cache-control")).toContain("no-store");
   });
 
   it("rejects malformed coordinates before querying the database", async () => {
-    const response = await GET(discoveryRequest("city=haifa&lat=32.8"));
+    const response = await POST(locatedDiscoveryRequest({ city: "haifa", lat: 32.8 }));
 
     expect(response.status).toBe(400);
     expect(response.headers.get("cache-control")).toContain("no-store");
+    expect(mocks.getDiscoveryPage).not.toHaveBeenCalled();
+  });
+
+  it("rejects precise coordinates in GET query strings", async () => {
+    const response = await GET(discoveryRequest("city=haifa&lat=32.8&lng=35"));
+
+    expect(response.status).toBe(400);
     expect(mocks.getDiscoveryPage).not.toHaveBeenCalled();
   });
 

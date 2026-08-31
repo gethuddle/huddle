@@ -71,9 +71,7 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
     listGroupEvents(group.id),
     canManage ? getGroupDiscoveryProgress(group.id) : Promise.resolve(null),
     getGroupOverviewAttention(group),
-    canManage && group.visibility === "unlisted"
-      ? loadShareCandidates()
-      : Promise.resolve<GroupShareCandidate[]>([]),
+    canManage ? loadShareCandidates() : Promise.resolve<GroupShareCandidate[]>([]),
   ]);
 
   return (
@@ -120,7 +118,9 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
             <dl className="mt-8 grid gap-5 border-y border-border py-6 sm:grid-cols-3">
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">City</dt>
-                <dd className="mt-2 font-semibold text-foreground">{group.cityName}</dd>
+                <dd className="mt-2 font-semibold text-foreground">
+                  {group.cityName ?? "Open to supporters anywhere"}
+                </dd>
               </div>
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">Team</dt>

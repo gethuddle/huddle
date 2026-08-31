@@ -14,11 +14,13 @@ import {
 import type {
   EventBucket,
   GroupBucket,
+  MyGroupInvitation,
   MyEvent,
   MyGroupRelationship,
   SavedBucket,
   SavedItem,
 } from "@/features/dashboard/queries";
+import { GroupInvitationResponseControl } from "@/features/groups/components/group-management-controls";
 import { TeamMark } from "@/features/sports/components/team-initials";
 import { formatIsraelKickoff } from "@/features/sports/time";
 import {
@@ -39,6 +41,7 @@ type CollectionState = Readonly<{
 export function MyHuddleOverview({
   events,
   groups,
+  groupInvitations = [],
   saved,
   eventBucket,
   groupBucket,
@@ -49,6 +52,7 @@ export function MyHuddleOverview({
 }: Readonly<{
   events: readonly MyEvent[];
   groups: readonly MyGroupRelationship[];
+  groupInvitations?: readonly MyGroupInvitation[];
   saved: readonly SavedItem[];
   eventBucket: EventBucket;
   groupBucket: GroupBucket;
@@ -66,7 +70,7 @@ export function MyHuddleOverview({
     savedPage,
   };
   const hasCustomFilters =
-    eventBucket !== "upcoming" || groupBucket !== "owner" || savedBucket !== "all";
+    eventBucket !== "upcoming" || groupBucket !== "all" || savedBucket !== "all";
 
   return (
     <div className="space-y-14">
@@ -102,6 +106,7 @@ export function MyHuddleOverview({
             label="Show groups"
             name="groupBucket"
             options={[
+              ["all", "All groups"],
               ["member", "Member"],
               ["owner", "Owner"],
               ["admin", "Admin"],
@@ -132,9 +137,45 @@ export function MyHuddleOverview({
       </details>
 
       <EventCollection events={events} state={state} />
+      <GroupInvitationCollection invitations={groupInvitations} />
       <GroupCollection groups={groups} state={state} />
       <SavedCollection items={saved} state={state} />
     </div>
+  );
+}
+
+function GroupInvitationCollection({
+  invitations,
+}: Readonly<{ invitations: readonly MyGroupInvitation[] }>) {
+  if (invitations.length === 0) return null;
+
+  return (
+    <section aria-labelledby="group-invitations-heading" id="group-invitations">
+      <CollectionHeading
+        eyebrow="Invitations"
+        id="group-invitations-heading"
+        title="Groups waiting for you"
+      />
+      <div className="mt-5 grid gap-4 md:grid-cols-2">
+        {invitations.map((invitation) => (
+          <Card key={invitation.id} size="sm">
+            <CardHeader>
+              <h3 className="text-xl font-semibold text-foreground">{invitation.groupName}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                @{invitation.inviterHandle} invited you. Joining makes you an active member;
+                declining removes this invitation.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <GroupInvitationResponseControl
+                groupSlug={invitation.groupSlug}
+                invitationId={invitation.id}
+              />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -278,9 +319,14 @@ function GroupCollection({
     <section aria-labelledby="your-groups-heading">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <CollectionHeading eyebrow="Groups" id="your-groups-heading" title="Your groups" />
-        <Button asChild className="min-h-11" size="sm" variant="outline">
-          <Link href="/groups">Find groups</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild className="min-h-11" size="sm">
+            <Link href="/groups/new">Create group</Link>
+          </Button>
+          <Button asChild className="min-h-11" size="sm" variant="outline">
+            <Link href="/groups">Find groups</Link>
+          </Button>
+        </div>
       </div>
       {groups.length === 0 ? (
         <CollectionEmpty
@@ -290,11 +336,7 @@ function GroupCollection({
               : "No groups in this role.",
             "Create a group or browse discoverable communities when you want to join one.",
           ]}
-        >
-          <Button asChild className="min-h-11" size="sm">
-            <Link href="/groups/new">Create a group</Link>
-          </Button>
-        </CollectionEmpty>
+        />
       ) : (
         <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {groups.map((group) => (
@@ -315,8 +357,10 @@ function GroupCollection({
                 <p className="mt-4 inline-flex items-center gap-2 text-sm text-muted-foreground">
                   <UsersRound aria-hidden="true" className="size-4 text-forest" />
                   {group.activeMemberCount === null
-                    ? `${group.cityName} · Application pending`
-                    : `${group.activeMemberCount} active · ${group.cityName}`}
+                    ? [group.cityName, "Application pending"].filter(Boolean).join(" · ")
+                    : [`${group.activeMemberCount} active`, group.cityName]
+                        .filter(Boolean)
+                        .join(" · ")}
                 </p>
                 <div className="mt-5 flex flex-wrap gap-2">
                   <Button asChild className="min-h-11" size="sm" variant="outline">
@@ -436,13 +480,15 @@ function BoundedWindowCopy({ label, totalCount }: Readonly<{ label: string; tota
 function CollectionEmpty({
   children,
   copy,
-}: Readonly<{ children: React.ReactNode; copy: readonly [string, string] }>) {
+}: Readonly<{ children?: React.ReactNode; copy: readonly [string, string] }>) {
   return (
     <Card className="mt-5 border-dashed" size="sm">
       <CardContent>
         <p className="font-semibold text-foreground">{copy[0]}</p>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">{copy[1]}</p>
-        <div className="mt-4 flex flex-wrap gap-2">{children}</div>
+        {children === undefined ? null : (
+          <div className="mt-4 flex flex-wrap gap-2">{children}</div>
+        )}
       </CardContent>
     </Card>
   );

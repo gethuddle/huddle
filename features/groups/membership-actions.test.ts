@@ -20,9 +20,12 @@ import {
   archiveGroupAction,
   banGroupMemberAction,
   consumeGroupInviteAction,
+  createDirectGroupInvitationAction,
   createGroupInviteAction,
   createGroupRuleAction,
   leaveGroupAction,
+  removeGroupMemberAction,
+  respondGroupInvitationAction,
   reviewGroupApplicationAction,
   reviewGroupEventAction,
   withdrawGroupEventAction,
@@ -215,6 +218,58 @@ describe("B06 group membership actions", () => {
       input_text: "Respect every attendee.",
       input_publish: true,
       audit_request_id: requestId,
+    });
+  });
+
+  it("creates a recipient-bound invitation without generating a share token", async () => {
+    const formData = groupForm();
+    formData.set("userId", userId);
+
+    const result = await createDirectGroupInvitationAction(null, formData);
+
+    expect(rpc).toHaveBeenCalledWith("create_group_invitation", {
+      input_group_id: groupId,
+      input_invitee_id: userId,
+      audit_request_id: requestId,
+    });
+    expect(result).toEqual({
+      ok: true,
+      data: {
+        message: "Invitation sent. They’ll see it in Home and My Huddle.",
+      },
+    });
+    expect(JSON.stringify(rpc.mock.calls)).not.toContain("token_hash");
+  });
+
+  it("lets the recipient accept or decline only through the invitation transition", async () => {
+    const formData = groupForm();
+    formData.set("invitationId", "52000000-0000-4000-8000-000000000204");
+    formData.set("decision", "accept");
+
+    const result = await respondGroupInvitationAction(null, formData);
+
+    expect(rpc).toHaveBeenCalledWith("respond_group_invitation", {
+      input_invitation_id: "52000000-0000-4000-8000-000000000204",
+      input_decision: "accept",
+      audit_request_id: requestId,
+    });
+    expect(result).toMatchObject({ ok: true, data: { message: "You joined the group." } });
+  });
+
+  it("removes an active member without creating a ban", async () => {
+    const formData = groupForm();
+    formData.set("userId", userId);
+
+    const result = await removeGroupMemberAction(null, formData);
+
+    expect(rpc).toHaveBeenCalledWith("remove_group_member", {
+      input_group_id: groupId,
+      input_user_id: userId,
+      audit_request_id: requestId,
+    });
+    expect(result).toEqual({
+      ok: true,
+      data: { message: "Member removed. They can apply again unless you ban them." },
     });
   });
 

@@ -4,9 +4,13 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ createGroupInviteAction: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  createDirectGroupInvitationAction: vi.fn(),
+  createGroupInviteAction: vi.fn(),
+}));
 
 vi.mock("@/features/groups/membership-actions", () => ({
+  createDirectGroupInvitationAction: mocks.createDirectGroupInvitationAction,
   createGroupInviteAction: mocks.createGroupInviteAction,
 }));
 
@@ -30,10 +34,25 @@ describe("GroupShareDialog", () => {
   it("copies and opens the supported application link for a discoverable group", async () => {
     const user = userEvent.setup();
     const writeText = vi.spyOn(navigator.clipboard, "writeText");
-    render(<GroupShareDialog {...group} canManage visibility="discoverable" />);
+    render(
+      <GroupShareDialog
+        {...group}
+        candidates={[
+          {
+            id: "52000000-0000-4000-8000-000000000101",
+            handle: "supporter",
+            displayName: "Supporter One",
+            context: "Friend · Ashdod",
+          },
+        ]}
+        canManage
+        visibility="discoverable"
+      />,
+    );
 
     await user.click(screen.getByRole("button", { name: "Share group" }));
     expect(screen.getByRole("dialog", { name: "Share Haifa Group" })).toBeVisible();
+    expect(screen.getByRole("searchbox", { name: "Find a Huddle member" })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Copy application link" }));
 
     await waitFor(() =>
@@ -47,7 +66,11 @@ describe("GroupShareDialog", () => {
     );
   });
 
-  it("keeps unlisted invitation creation and registered-supporter search in context", async () => {
+  it("separates a recipient-bound invitation from an optional reusable share link", async () => {
+    mocks.createDirectGroupInvitationAction.mockResolvedValue({
+      ok: true,
+      data: { message: "Invitation sent. They’ll see it in Home and My Huddle." },
+    });
     const user = userEvent.setup();
     render(
       <GroupShareDialog
@@ -70,8 +93,18 @@ describe("GroupShareDialog", () => {
 
     expect(screen.getByText("Supporter One · @supporter")).toBeVisible();
     await user.click(screen.getByRole("radio", { name: /Supporter One/ }));
-    expect(screen.getByText(/Link recipient: @supporter/)).toBeVisible();
-    expect(screen.getByRole("button", { name: "Create invitation link" })).toBeVisible();
-    expect(screen.queryByText(/unavailable/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Invitee: @supporter/)).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Send invitation" }));
+
+    await waitFor(() => expect(mocks.createDirectGroupInvitationAction).toHaveBeenCalledOnce());
+    const formData = mocks.createDirectGroupInvitationAction.mock.calls[0]?.[1] as FormData;
+    expect(formData.get("userId")).toBe("52000000-0000-4000-8000-000000000101");
+
+    expect(
+      screen.getByRole("spinbutton", { name: "Maximum uses", hidden: true }),
+    ).not.toBeVisible();
+    await user.click(screen.getByText("Create a share link instead"));
+    expect(screen.getByRole("spinbutton", { name: "Maximum uses" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Create share link" })).toBeVisible();
   });
 });

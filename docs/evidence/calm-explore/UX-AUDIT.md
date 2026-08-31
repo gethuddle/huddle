@@ -7,7 +7,7 @@
 
 ## Audit lens
 
-The audit used an anonymous visitor, a new Fan, a second Fan, and a Fan/Venue account. The complete two-account journey ran at 1280×800, 768×1024, and 375×812. A separate anonymous layout regression ran at the reported 1364×1440 viewport. The action matrix inventories 86 account, Explore, event, group, Venue, friendship, safety, and moderation outcomes.
+The audit used an anonymous visitor, a new Fan, a second Fan, and a Fan/Venue account. The complete two-account journey ran at 1280×800, 768×1024, and 375×812. A separate anonymous layout regression ran at the reported 1364×1440 viewport. The action matrix inventories 89 account, Explore, event, group, Venue, friendship, safety, and moderation outcomes.
 
 The review applied:
 
@@ -40,22 +40,50 @@ One real visual issue remained: ordinary cards and buttons still inherited ink-c
 
 **Status:** resolved; focused RED reproduced the ink shadow, then GREEN passed.
 
+### UX-A02 — global groups reached a stale city parser
+
+The final two-account replay created a deliberately city-free global group. Creation, direct invitation, removal, reapplication, and approval worked, but opening the current-group directory could reach a compatibility parser that still required `city_name` to be a string. A new fan would see the generic “Something went wrong” screen even though the group itself was valid.
+
+The correction makes that response boundary explicitly nullable and adds a focused regression proving that My Huddle accepts a global group without inventing a city. The complete group lifecycle then passed from creation through public search, private sharing, event review, membership changes, and archive behavior.
+
+**Status:** resolved; focused query test and browser journey passed, followed by the complete acceptance gate.
+
+## Final integration re-audit
+
+**Personas:** a time-poor first-time Fan, a second Fan receiving invitations, and a returning Fan who also operates a Venue.
+
+| Check | Result |
+| --- | --- |
+| New-user orientation | Home presents one next step; Explore, My Huddle, People, and Account use task language and remain stable across viewports. |
+| Location search | Browser permission is reused only when already granted; city/address suggestions are debounced, keyboard-selectable, and keep precise coordinates out of the URL. |
+| Group workflow | Create is always reachable; city is optional; direct invitations name their destination; reusable links are secondary; Remove and Ban have distinct outcomes. |
+| Event workflow | Draft state survives navigation/refresh, missing fields are identified together, and the first invalid field receives focus without a phantom map marker. |
+| Venue workflow | Workspace switching lands on Venue Today, address selection confirms inline, batch planning inherits fixture dates, and open-door events omit reservation controls. |
+| Returning-user awareness | Home exposes actionable invitations/applications; My Huddle retains current events, groups, and saved interests without removed-history residue. |
+| Responsive/visual | The same two-account journey passed at 1280×800, 768×1024, and 375×812 with no horizontal overflow or browser console/page errors. |
+| Recovery | Address retry, form validation, draft reload, wrong-route recovery, Explore return context, and controlled destructive confirmations all completed. |
+
+**Scenario synthesis:** a new Fan can verify, set up, explore, connect, create or join a group, and plan a huddle without developer terminology. A Venue operator can switch workspaces, confirm an address, plan multiple fixture-backed events, and return to the Fan workspace without being stranded on a Fan route. The same tasks are faster on day two because current work lives in Home/My Huddle and Venue Calendar rather than requiring reconstruction from object URLs.
+
+**Unexpected network/browser failures:** 0. The acceptance journey deliberately exercised one invalid address response and one unauthorized calendar request to verify recovery and denial; both produced their expected controlled UI/HTTP outcomes.
+
 ## Final findings
 
 - **Critical:** 0 open
 - **Important:** 0 open
 - **F01–F40 recurrences:** 0
-- **Broken action outcomes in the 86-row matrix:** 0 after the complete gate
+- **Broken action outcomes in the 89-row matrix:** 0 after the complete gate
 - **Browser console/runtime failures in the two-account journey:** 0
 - **Horizontal-overflow failures:** 0
 
 ## Non-blocking polish
 
-- Team identity uses repository-owned TLA/initial marks rather than provider crest files. This gives every fixture a consistent visual anchor without introducing unlicensed third-party assets; an approved licensed crest pack can replace the mark component later.
+- Scheduled football-data synchronization retains only allowlisted HTTPS crest URLs. Product pages show those provider-supplied crests with attribution and immediately fall back to the accessible Huddle TLA/initial mark if an image is absent or fails.
 - Helium's Responsive-mode outer canvas can still look like page whitespace when zoomed below 100%. The saved browser screenshot records the actual application viewport without tool chrome.
+- The workspace picker intentionally overlays nearby account cards while open. It remains fully reachable at 375 px and closes with Escape, but a future polish pass could prefer an upward mobile sheet if the workspace list grows substantially.
 
 ## Evidence
 
-- `npm run test:acceptance`: 151 Vitest files / 757 tests, 36 pgTAP files / 1624 assertions, production build, security audit, diff hygiene, and 28 Playwright scenarios.
+- `npm run test:acceptance`: 153 Vitest files / 778 tests, 39 pgTAP files / 1656 assertions, production build, security audit, diff hygiene, and 28 Playwright scenarios.
 - Responsive evidence: [1280](../ux-redesign/desktop-1280.png), [768](../ux-redesign/tablet-768.png), [375](../ux-redesign/mobile-375.png), and [1364×1440](sign-in-1364x1440.png).
 - Complete control/outcome map: [ACTION-MATRIX.md](ACTION-MATRIX.md).

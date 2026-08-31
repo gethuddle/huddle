@@ -21,7 +21,7 @@ export const groupCreationSchema = z.object({
   intent: z.enum(["check", "create"]),
   name: z.string().trim().min(3, "Use at least 3 characters.").max(80),
   slug: groupSlugSchema,
-  cityId: z.uuid(),
+  cityId: optionalUuidSchema,
   teamId: optionalUuidSchema,
   visibility: z.enum(["discoverable", "unlisted"]),
   description: z.string().trim().max(2000, "Use 2,000 characters or fewer."),
@@ -91,6 +91,30 @@ export const groupInviteRevocationSchema = z.object({
   groupId: z.uuid(),
   groupSlug: groupRouteSlugSchema,
   inviteId: z.uuid(),
+});
+
+export const groupDirectInvitationCreationSchema = z.object({
+  groupId: z.uuid(),
+  groupSlug: groupRouteSlugSchema,
+  userId: z.uuid(),
+});
+
+export const groupInvitationResponseSchema = z.object({
+  groupSlug: groupRouteSlugSchema,
+  invitationId: z.uuid(),
+  decision: z.enum(["accept", "decline"]),
+});
+
+export const groupDirectInvitationRevocationSchema = z.object({
+  groupId: z.uuid(),
+  groupSlug: groupRouteSlugSchema,
+  invitationId: z.uuid(),
+});
+
+export const groupMemberRemovalSchema = z.object({
+  groupId: z.uuid(),
+  groupSlug: groupRouteSlugSchema,
+  userId: z.uuid(),
 });
 
 export const groupRoleChangeSchema = z.object({

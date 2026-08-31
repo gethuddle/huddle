@@ -11,9 +11,13 @@ import { AppShell } from "./app-shell";
 const mocks = vi.hoisted(() => ({
   getAppShellState: vi.fn(),
   pathname: "/",
+  router: { refresh: vi.fn(), replace: vi.fn() },
 }));
 
-vi.mock("next/navigation", () => ({ usePathname: () => mocks.pathname }));
+vi.mock("next/navigation", () => ({
+  usePathname: () => mocks.pathname,
+  useRouter: () => mocks.router,
+}));
 vi.mock("@/features/workspaces/queries", () => ({
   getAppShellState: mocks.getAppShellState,
 }));
@@ -25,6 +29,7 @@ const anonymousState: AppShellState = {
 
 describe("AppShell", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     mocks.pathname = "/";
     mocks.getAppShellState.mockResolvedValue(anonymousState);
   });

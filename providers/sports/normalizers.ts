@@ -51,6 +51,7 @@ function normalizeFootballDataTeam(team: FootballDataMatch["homeTeam"]): Normali
     shortName: team.shortName ?? null,
     tla: team.tla?.toUpperCase() ?? null,
     countryName: team.area?.name ?? null,
+    crestUrl: team.crest ?? null,
   };
 }
 

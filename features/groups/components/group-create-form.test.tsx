@@ -21,7 +21,6 @@ const catalog = {
 
 async function fillForm(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText("Group name"), "Haifa Arsenal Supporters");
-  await user.selectOptions(screen.getByLabelText("City"), cityId);
   await user.selectOptions(screen.getByLabelText(/Team/), teamId);
   await user.type(screen.getByLabelText(/description/i), "Match-going supporters in Haifa.");
 }
@@ -37,6 +36,7 @@ describe("GroupCreateForm", () => {
     expect(screen.getByText(/owner or admin reviews each application/i)).toBeVisible();
     expect(screen.queryByLabelText("Group URL")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Review group" })).toBeVisible();
+    expect(screen.getByLabelText("Home area (optional)")).not.toBeRequired();
     expect(screen.queryByRole("button", { name: "Create group" })).not.toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText("Visibility"), "unlisted");
@@ -65,7 +65,7 @@ describe("GroupCreateForm", () => {
         values: {
           name: "Haifa Arsenal Supporters",
           slug: "haifa-arsenal-supporters",
-          cityId,
+          cityId: null,
           teamId,
           visibility: "discoverable",
           description: "Match-going supporters in Haifa.",
@@ -91,6 +91,7 @@ describe("GroupCreateForm", () => {
     await waitFor(() => expect(mocks.createGroupAction).toHaveBeenCalledOnce());
     const submitted = mocks.createGroupAction.mock.calls[0]?.[1] as FormData;
     expect(submitted.get("slug")).toBe("haifa-arsenal-supporters");
+    expect(submitted.get("cityId")).toBe("");
     expect(
       await screen.findByRole("heading", { name: "Similar discoverable groups" }),
     ).toBeVisible();

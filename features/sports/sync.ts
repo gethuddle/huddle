@@ -114,7 +114,8 @@ function setUniqueTeam(map: Map<string, NormalizedTeam>, team: NormalizedTeam): 
     (existing.tla !== null && team.tla !== null && existing.tla !== team.tla) ||
     (existing.countryName !== null &&
       team.countryName !== null &&
-      existing.countryName !== team.countryName)
+      existing.countryName !== team.countryName) ||
+    (existing.crestUrl !== null && team.crestUrl !== null && existing.crestUrl !== team.crestUrl)
   ) {
     throw new ProviderAdapterError("INVALID_RESPONSE");
   }
@@ -124,6 +125,7 @@ function setUniqueTeam(map: Map<string, NormalizedTeam>, team: NormalizedTeam): 
     shortName: existing.shortName ?? team.shortName,
     tla: existing.tla ?? team.tla,
     countryName: existing.countryName ?? team.countryName,
+    crestUrl: existing.crestUrl ?? team.crestUrl,
   });
 }
 
@@ -185,6 +187,7 @@ function catalogPayload(competitions: NormalizedCompetition[], fixtures: Normali
       short_name: team.shortName,
       tla: team.tla,
       country_name: team.countryName,
+      crest_url: team.crestUrl,
     })) as Json,
     competitionTeams: [...memberships.values()] as Json,
     matches: [...matches.values()].map((fixture) => ({

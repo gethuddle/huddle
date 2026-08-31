@@ -60,6 +60,15 @@ const savedRow = {
   total_count: 1,
 };
 
+const groupInvitationRow = {
+  invitation_id: "c5000000-0000-4000-8000-000000000401",
+  group_id: groupId,
+  group_slug: "current-active-group",
+  group_name: "Current Active Group",
+  inviter_handle: "group_owner",
+  invited_at: "2026-08-31T15:00:00Z",
+};
+
 describe("listMyGroupsForViewer", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -88,11 +97,22 @@ describe("listMyGroupsForViewer", () => {
     await expect(listMyGroupsForViewer()).rejects.toMatchObject({ code: "INTERNAL_ERROR" });
   });
 
+  it("accepts a global group without inventing a city", async () => {
+    mocks.rpc.mockResolvedValue({ data: [{ ...groupRow, city_name: null }], error: null });
+
+    await expect(listMyGroupsForViewer()).resolves.toEqual([
+      expect.objectContaining({ group_id: groupId, city_name: null }),
+    ]);
+  });
+
   it("loads only the selected current-state buckets for My Huddle", async () => {
     mocks.rpc.mockImplementation(async (name: string) => {
       if (name === "list_my_events") return { data: [eventRow], error: null };
       if (name === "list_my_group_relationships") return { data: [groupRow], error: null };
       if (name === "list_my_saved_items") return { data: [savedRow], error: null };
+      if (name === "list_my_group_invitations") {
+        return { data: [groupInvitationRow], error: null };
+      }
       return { data: null, error: { message: "unexpected RPC" } };
     });
 
@@ -108,6 +128,7 @@ describe("listMyGroupsForViewer", () => {
     ).resolves.toMatchObject({
       events: [{ id: eventId, bucket: "upcoming", relationshipLabel: "You are going" }],
       groups: [{ id: groupId, role: "owner" }],
+      groupInvitations: [{ id: groupInvitationRow.invitation_id, groupId }],
       saved: [{ id: teamId, kind: "team", href: `/discover?team=${teamId}` }],
       pages: { events: 2, groups: 1, saved: 1 },
     });
@@ -222,6 +243,8 @@ describe("listMyGroupsForViewer", () => {
       away_team_name: "Current Away FC",
       away_team_short_name: "Current Away",
       away_team_tla: "CAF",
+      home_team_crest_url: null,
+      away_team_crest_url: null,
       starts_at: "2026-09-06T18:00:00Z",
       status: "timed",
       matchday: 1,

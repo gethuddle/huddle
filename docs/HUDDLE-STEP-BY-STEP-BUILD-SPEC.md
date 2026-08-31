@@ -632,7 +632,7 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 - [x] Preserve provider identity with unique `(provider, provider_external_id)`.
 - [x] Add every competition, team, match-time, status, and provider index from the implementation spec.
 - [x] Store UTC `timestamptz`; add no live-score tables.
-- [x] Do not store/display provider crest URLs.
+- [x] Store only the scheduled adapter's allowlisted HTTPS crest URL; keep provider attribution and the accessible Huddle initials fallback.
 - [x] Add public future-match projection and sync-service-only mutations.
 - [x] Retain referenced matches instead of deleting them when stale/outside the active window.
 
@@ -705,7 +705,7 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 - [x] Show safe freshness/stale status based on the last successful run.
 - [x] Keep a provider outage from making cached matches unavailable.
 - [x] Add visible football-data.org attribution and a data-sources page.
-- [x] Use text initials or original art rather than provider crests.
+- [x] Display cached provider crests when available and use accessible Huddle text initials whenever a crest is absent or fails.
 - [x] Confirm Israel display time around UTC conversion.
 
 **Tests/evidence:** shared-component and migrated-flow regression tests, query/unit tests, component empty/stale/error states, responsive visual evidence, E2E cached browsing during simulated provider failure, and manual network proof that page loads do not call the provider.
@@ -1011,7 +1011,7 @@ The following checked modules describe the B01–B12 baseline. Their original ou
 
 **Authority:** implementation spec §§4.1–4.3, 7.2, 9, 12.
 
-**Outcome:** anonymous and signed-in users discover only eligible future events using a city or one-request browser location with cursor pagination.
+**Outcome:** anonymous and signed-in users discover only eligible future events from a profile-city fallback, one-request browser location, or session-scoped Photon/OpenStreetMap address origin with cursor pagination and cross-city distance ranking.
 
 **Tasks:**
 
@@ -1022,13 +1022,13 @@ The following checked modules describe the B01–B12 baseline. Their original ou
 - [x] Add opaque/tamper-resistant cursor encode/decode.
 - [x] Add `GET /api/discovery` with narrow DTO and privacy-safe cache headers.
 - [x] Store browser coordinates only for the request; do not create location history.
-- [x] Build URL-owned filters, browser permission prompt, city fallback, and TanStack Query cursor pages.
+- [x] Build URL-owned non-coordinate filters, browser permission prompt, city fallback, session-scoped address origin, and TanStack Query cursor pages.
 - [x] Avoid per-card N+1 requests and never fetch exact private location.
 - [x] Add empty, loading, retry, permission-denied, stale, and end-of-list states.
 
 **Tests/evidence:** SQL query and authorization matrix, cursor tests, query-count inspection, component geolocation denial, E2E personalized/anonymous discovery, representative `EXPLAIN` evidence.
 
-**B09 implementation decisions:** group lifecycle is recalculated from current gate facts after every relevant membership, role, rule, description, event, ban, and suspension transition; search also requires a currently future published group event so wall-clock expiry cannot leak a stale group. Event discovery uses one authorization-filtered RPC and one safe DTO page rather than per-card reads. Spatial candidates are selected separately from indexed public-place, venue, and protected-home locations, while responses expose only a coarse distance band and never an exact address, coordinate, or distance. Signed cursors are endpoint-scoped and bound to normalized filters. Browser coordinates are requested only after an explicit click, sent for that discovery request, omitted from address-bar state, and discarded when city fallback is restored. Database date bounds compare Israel calendar timestamps, so 23-hour and 25-hour daylight-saving transition days do not change the accepted discovery window.
+**B09 implementation decisions:** group lifecycle is recalculated from current gate facts after every relevant membership, role, rule, description, event, ban, and suspension transition; search also requires a currently future published group event so wall-clock expiry cannot leak a stale group. Event discovery uses one authorization-filtered RPC and one safe DTO page rather than per-card reads. Spatial candidates are selected separately from indexed public-place, venue, and protected-home locations, while responses expose only a coarse distance band and never an exact address, coordinate, or distance. Signed cursors are endpoint-scoped and bound to normalized filters. Precise browser or selected public-address coordinates are sent only in a no-store request body, omitted from address-bar state, retained only for the current browser session, and discarded when city fallback is restored. Browser permission is requested only after an explicit click. Database date bounds compare Israel calendar timestamps, so 23-hour and 25-hour daylight-saving transition days do not change the accepted discovery window.
 
 **Post-redesign discovery correction:** the historical member/moderator/rule/event thresholds above no longer control current lifecycle or search. Event discovery merges the ordinary reservation, open-door, and current Fan's managed-Venue projections with event-ID deduplication. Eligible signed-in nonmembers may receive a safe public-place event preview for an active discoverable group and are directed to apply before attendance; anonymous visitors and all nonmembers remain unable to discover group home events. Fixture detail loads one bounded authorization-filtered linked-event projection so Explore and fixture navigation do not disagree.
 

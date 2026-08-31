@@ -55,7 +55,7 @@ Groups provide the community layer between a private friendship and a public ven
 - membership applications and expiring invite links;
 - `owner`, `admin`, and `member` roles;
 - rules, bans, and group-event approval;
-- duplicate-group suggestions based on team and city.
+- duplicate-group suggestions based on name and optional team association.
 
 An event authored by a current group owner or admin publishes atomically without self-review. An ordinary member may propose an event, but it remains pending until a different current owner or admin publishes or rejects it. Promotion after submission never lets the creator decide their own pending event. A discoverable group appears in search once its owner is active and it has a clear description; members, additional admins, rules, and events are optional rather than artificial launch quotas.
 
@@ -127,7 +127,7 @@ The submitted implementation remains **football-first**: [football-data.org](htt
 - Owner-only group deletion through audited archive, with live events/invites closed and safety history retained.
 - Private-person events limited to group, friends, or invite-only audiences.
 - Business-venue events with public or team-follower audiences, fixture-first batch planning, public open-door listings or optional registered reservations, authorized by active Venue membership and never attended by the venue itself.
-- City-based discovery across the Israel pilot, optional browser geolocation, PostGIS distance queries, managed-Venue continuity in Fan Explore, and signed-in acquisition previews for discoverable-group public-place events.
+- Origin-based discovery across the Israel pilot using browser location, Photon/OpenStreetMap address suggestions, and PostGIS distance ranking across city borders, with managed-Venue continuity in Fan Explore and signed-in acquisition previews for discoverable-group public-place events.
 - Reservation attendance request, approval, decline, removal, and leave flows with atomic capacity enforcement; open-door venue listings deliberately have no attendance state.
 - Protected home locations, blocking, reporting, moderation, and audit records.
 - RFC 5545 `.ics` calendar download.
@@ -166,7 +166,7 @@ There is no separate Express service, ORM, Redis cache, WebSocket layer, payment
 - NBA provider integration and live scores;
 - chat, realtime match threads, and notifications;
 - ratings, reviews, and numeric reputation;
-- route planning and paid address autocomplete beyond the implemented OpenStreetMap/Nominatim search and public-event map;
+- route planning and paid address autocomplete beyond the implemented Photon/OpenStreetMap search and public-event map;
 - Google Calendar OAuth;
 - Stripe subscriptions, payments, ticketing, menus, offers, analytics, and promoted listings;
 - AI recommendations, automatic event creation, and AI moderation.

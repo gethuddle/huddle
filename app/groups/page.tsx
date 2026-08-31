@@ -14,7 +14,7 @@ import { groupSearchParams, parseGroupSearchFilters } from "@/features/groups/se
 
 export const metadata: Metadata = {
   title: "Groups — Huddle",
-  description: "Find active, discoverable groups by name, city, or team.",
+  description: "Find active, discoverable groups by name or team.",
 };
 
 type GroupsPageProps = Readonly<{
@@ -39,8 +39,8 @@ export default async function GroupsPage({ searchParams }: GroupsPageProps) {
             Find a group that fits.
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
-            Search groups by name or city, and narrow by team when a group follows one. Unlisted
-            groups stay out of these results.
+            Search groups by name and narrow by team when a group follows one. Your location never
+            limits which communities you can join. Unlisted groups stay out of these results.
           </p>
         </div>
         <Button asChild>
@@ -78,7 +78,8 @@ export default async function GroupsPage({ searchParams }: GroupsPageProps) {
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">
-                    {group.city_name} · {group.active_member_count} active members
+                    {group.city_name === null ? null : `${group.city_name} · `}
+                    {group.active_member_count} active members
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2">
                     <Button asChild size="sm" variant="outline">
@@ -109,7 +110,7 @@ export default async function GroupsPage({ searchParams }: GroupsPageProps) {
                 <Link href="/groups">Clear filters</Link>
               </Button>
             }
-            description="Try another city, team, or group name. A discoverable group appears after its owner adds a clear description."
+            description="Try another team or group name. A discoverable group appears after its owner adds a clear description."
             headingLevel="h2"
             title="No active groups match these filters."
           />

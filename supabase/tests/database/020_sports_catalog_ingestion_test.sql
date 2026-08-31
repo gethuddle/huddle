@@ -457,6 +457,7 @@ select is(
     limit 1
   ),
   array[
+    'away_team_crest_url',
     'away_team_id',
     'away_team_name',
     'away_team_short_name',
@@ -464,6 +465,7 @@ select is(
     'competition_code',
     'competition_id',
     'competition_name',
+    'home_team_crest_url',
     'home_team_id',
     'home_team_name',
     'home_team_short_name',

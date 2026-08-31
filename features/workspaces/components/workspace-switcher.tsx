@@ -2,6 +2,7 @@
 
 import { Check, ChevronsUpDown } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useActionState, useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -42,14 +43,18 @@ export function WorkspaceSwitcher({
   appearance = "compact",
   available,
 }: WorkspaceSwitcherProps) {
+  const router = useRouter();
   const [state, action, pending] = useActionState(
     selectWorkspaceAction,
     INITIAL_WORKSPACE_ACTION_STATE,
   );
 
   useEffect(() => {
-    if (state?.ok === true) window.location.assign(state.data.redirectTo);
-  }, [state]);
+    if (state?.ok === true) {
+      router.replace(state.data.redirectTo);
+      router.refresh();
+    }
+  }, [router, state]);
 
   if (available.length === 0) return null;
 

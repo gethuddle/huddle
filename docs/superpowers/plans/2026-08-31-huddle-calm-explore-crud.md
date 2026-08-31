@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Subagent dispatch is intentionally disabled for this run. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Deliver a light, calm Huddle interface with one unified Explore experience, coherent Friends/Groups/Invite-only acquisition, repository-owned team marks, working venue closure, and verified end-to-end outcomes for every exposed action.
+**Goal:** Deliver a light, calm Huddle interface with one unified distance-ranked Explore experience, coherent Friends/Groups/Invite-only acquisition, provider-synchronized team crests with a Huddle fallback, working venue closure, and verified end-to-end outcomes for every exposed action.
 
-**Architecture:** Keep the modular Next.js/Supabase monolith. Shared semantic UI primitives establish the light hierarchy; Explore composes the existing local fixture and event catalogs; secure invite links and venue closure are transactional database boundaries implemented by one tracked migration. Existing private-location, attendance, block, and RLS invariants remain unchanged.
+**Architecture:** Keep the modular Next.js/Supabase monolith. Shared semantic UI primitives establish the light hierarchy; Explore composes the existing local fixture and event catalogs around a privacy-safe search origin; secure invite links, group membership transitions, and venue closure remain transactional database boundaries. Public address suggestions use a replaceable server-side Photon adapter, while protected home addresses never enter a third-party geocoder. Existing attendance, block, and RLS invariants remain unchanged.
 
 **Tech Stack:** Next.js 16 App Router, React 19, strict TypeScript, Tailwind CSS 4, Radix/shadcn primitives, Supabase PostgreSQL/RLS/PostGIS, Zod, TanStack Query, Vitest/RTL, pgTAP, Playwright.
 
@@ -14,12 +14,14 @@
 
 - Court Green is used for one primary action or positive state per task area; current navigation is Forest text plus a quiet indicator.
 - Product surfaces are light-first with AA text contrast, visible keyboard focus, and at least 44px product touch targets.
-- Provider crest assets remain forbidden; `TeamMark` is repository-owned initials/TLA artwork.
+- Provider-supplied team crest URLs may be synchronized into a nullable, validated field and displayed with `TeamMark` as the accessible failure/missing-data fallback; Huddle does not claim ownership of provider artwork.
 - A private person's event audience remains exactly `group`, `friends`, or `invite_only`; a venue remains `public` or `team_followers`.
 - Invite-only ordinary event URLs never grant access. Only a targeted invitation or controlled token redemption can create visibility eligibility.
 - Event-link tokens are high entropy, stored only as SHA-256 digests, expiring, revocable, usage-limited, block-aware, and capacity-safe.
 - Venue “Close” is audited archive, not hard delete; future events close while security and attendance history remain.
 - Protected home coordinates never enter Explore or logs.
+- Public location autocomplete never receives protected-home address text, precise origins never enter URLs, and browser permission is never prompted without a user gesture.
+- Group city is optional context, never membership eligibility; discoverable groups remain globally searchable.
 - Write a failing behavioral test and observe the intended failure before every production behavior change.
 - Run focused tests during implementation and the full `npm run test:acceptance` gate once after the integrated wave.
 - Do not commit until the repository's genuine reciprocal-participation rule is satisfied. Do not push, create the PR, deploy, or mutate hosted Supabase before the final publication gate.
@@ -70,7 +72,7 @@ Run:
 rg -n 'dark-first|Explore fixtures|Supporter groups|provider crest|invite.only|Close venue|hard delete' README.md docs AGENTS.md
 ```
 
-Expected: historical evidence is explicitly labeled; current normative sources agree with the new contract; provider crests remain forbidden.
+Expected: historical evidence is explicitly labeled; current normative sources agree with the new contract; only scheduled, allowlisted provider crest URLs are accepted and Huddle initials remain the fallback.
 
 - [x] **Step 4: Keep a local checkpoint only**
 
@@ -514,10 +516,243 @@ gh auth status
 
 Confirm scope, no secrets/private locations/generated junk, valid Guy identity, and genuine reciprocal participation before commit.
 
-- [ ] **Step 5: Publish with the repository skill**
+- [x] **Step 5: Publish the original calm-CRUD slice with the repository skill**
 
-Only after all earlier steps pass, use `$huddle-publish-pr` to create the coherent commit with exactly one Ohad co-author trailer, push `codex/calm-explore-crud-audit`, open the single PR into `main`, and request `ohadsho`.
+The original calm-CRUD slice was published from `codex/calm-explore-crud-audit` as PR #41 with exactly one Ohad co-author trailer and reciprocal review from `ohadsho`.
 
-- [ ] **Step 6: Stop at reciprocal review handoff**
+- [x] **Step 6: Stop at reciprocal review handoff**
 
-Return the PR URL, exact head SHA, verification counts, known exclusions, and instruction for Ohad to run `$huddle-review-merge`. Do not approve, merge, deploy, or mutate hosted Supabase.
+PR #41 completed its reciprocal handoff and merged before Tasks 10–14 began. The later location/group/catalog wave requires a fresh branch and reciprocal PR; it must not reopen or reuse the merged PR head. Do not approve, merge, deploy, or mutate hosted Supabase from the writer workflow.
+
+### Task 10: Search-as-you-type public location origins
+
+**Files:**
+- Create: `features/locations/photon.ts`
+- Create: `features/locations/photon.test.ts`
+- Modify: `features/locations/provider.ts`
+- Modify: `features/locations/schemas.ts`
+- Modify: `features/locations/types.ts`
+- Modify: `app/api/locations/search/route.ts`
+- Modify: `app/api/locations/search/route.test.ts`
+- Modify: `features/locations/components/address-search.tsx`
+- Modify: `features/locations/components/address-search.test.tsx`
+- Modify: `features/discovery/components/discovery-filters.tsx`
+- Test: `app/discover/page.test.tsx`
+
+**Interfaces:**
+- Produces `PhotonPublicGeocoder.search(query, bias?)`, a five-result Israel-bounded suggestion DTO, and a combobox that searches after three trimmed characters with a 500 ms debounce.
+- Keeps `locationKind = "home"` rejected before authentication/provider construction.
+
+- [x] **Step 1: Write failing provider and combobox tests**
+
+Assert Photon response normalization, Israel-only filtering, abort propagation, stale-result suppression, ArrowUp/ArrowDown/Enter/Escape behavior, and no request below three characters. Assert the route rejects `locationKind: "home"` without constructing the provider.
+
+- [x] **Step 2: Run RED**
+
+```bash
+npm test -- features/locations/photon.test.ts features/locations/components/address-search.test.tsx app/api/locations/search/route.test.ts
+```
+
+Expected: FAIL because the Photon adapter and automatic combobox behavior do not exist.
+
+- [x] **Step 3: Implement the provider-neutral server boundary**
+
+Send `q`, `limit=5`, `lang=en`, and Israel bounding coordinates to `https://photon.komoot.io/api/`. Validate the full upstream payload with Zod, return only `id`, `label`, `city`, `latitude`, and `longitude`, and retain the existing authenticated cache/rate-limit boundary. Never pass the raw browser origin or private-home text upstream.
+
+- [x] **Step 4: Implement the accessible combobox**
+
+Use `role="combobox"`, `aria-expanded`, `aria-activedescendant`, a listbox, a 500 ms debounce, `AbortController`, stale request IDs, loading/empty/error states, and selection on Enter/click. Selecting a suggestion confirms it immediately; an explicit retry remains available when the provider fails.
+
+- [x] **Step 5: Run GREEN**
+
+Run the RED command plus `npm run typecheck`. Expected: PASS.
+
+### Task 11: Location-origin discovery and global groups
+
+**Files:**
+- Create: `supabase/migrations/20260831200000_location_origins_global_groups.sql`
+- Create: `supabase/tests/database/230_location_origins_global_groups_test.sql`
+- Modify: `features/discovery/schemas.ts`
+- Modify: `features/discovery/schemas.test.ts`
+- Modify: `features/discovery/query.ts`
+- Modify: `features/discovery/components/discovery-filters.tsx`
+- Modify: `features/discovery/components/discovery-feed.tsx`
+- Modify: `features/groups/schemas.ts`
+- Modify: `features/groups/actions.ts`
+- Modify: `features/groups/search-schemas.ts`
+- Modify: `features/groups/search.ts`
+- Modify: `features/groups/components/group-create-form.tsx`
+- Modify: `features/groups/components/group-search-filters.tsx`
+- Modify: `app/groups/page.tsx`
+- Modify: `features/dashboard/components/my-huddle-overview.tsx`
+- Modify: `types/database.generated.ts`
+- Test: adjacent `.test.ts` and `.test.tsx` files
+
+**Interfaces:**
+- Produces optional `groups.city_id`, global `search_groups` behavior, and discovery inputs whose coordinates rank eligible public events without exact-city exclusion.
+- Date validation accepts `today..seasonEnd(today)` where season end is May 31 of the active football season.
+
+- [x] **Step 1: Write failing pgTAP and schema tests**
+
+Assert a group can be created with `input_city_id = null`, cross-city applicants can apply, city filters do not exclude discoverable groups, archived/unlisted/banned objects remain hidden, and distance ordering crosses city boundaries without exposing coordinates. Assert 31 August through 21 October is valid and dates after the season end are rejected.
+
+- [x] **Step 2: Run RED**
+
+```bash
+npm run db:start
+npm run db:reset
+supabase test db --local supabase/tests/database/230_location_origins_global_groups_test.sql
+npm test -- features/discovery/schemas.test.ts features/groups/schemas.test.ts features/groups/search-schemas.test.ts
+```
+
+Expected: FAIL on required group city, exact-city search, and the 45-day ceiling.
+
+- [x] **Step 3: Implement the additive migration**
+
+Make `groups.city_id` nullable, replace city-paired indexes with live/search indexes, revise controlled create/similarity/search/list functions to left-join cities, and retain city text when present. Revise discovery to use supplied coordinates for PostGIS candidate ranking across all pilot cities while preserving audience, block, private-location, and own/current-relationship exclusions.
+
+- [x] **Step 4: Implement origin and group UI**
+
+Use an already-granted browser origin automatically; otherwise use the last session origin, then profile city, then present `Use my location`. Do not store coordinates in query strings. Remove required city from group creation and group search, describe home area as optional, add `Create group` beside `Find groups` in My Huddle, and default group buckets to `All`.
+
+- [x] **Step 5: Run GREEN**
+
+Run the RED commands, related page/component tests, `npm run db:types`, and `npm run typecheck`. Expected: PASS.
+
+### Task 12: Provider-synchronized team crests
+
+**Files:**
+- Create: `supabase/migrations/20260831201000_team_crests.sql`
+- Create: `supabase/tests/database/240_team_crests_test.sql`
+- Modify: `providers/sports/football-data-schemas.ts`
+- Modify: `providers/sports/normalizers.ts`
+- Modify: `providers/sports/types.ts`
+- Modify: `features/sports/sync.ts`
+- Modify: `features/sports/components/team-initials.tsx`
+- Modify: `features/sports/components/team-initials.test.tsx`
+- Modify: sports DTO/query projections and their tests
+- Modify: `types/database.generated.ts`
+
+**Interfaces:**
+- Adds nullable `teams.crest_url` constrained to HTTPS URLs on `crests.football-data.org`.
+- Extends `NormalizedTeam` and visible team DTOs with `crestUrl: string | null`.
+- `TeamMark` renders a lazy crest image and preserves initials plus the full accessible team name as fallback.
+
+- [x] **Step 1: Write failing parser, sync, database, and component tests**
+
+Cover valid/absent crest values, rejection of non-HTTPS or foreign-host URLs, synchronized upsert, image load fallback, and no normal-page football-data API request.
+
+- [x] **Step 2: Run RED**
+
+```bash
+npm test -- providers/sports/football-data.test.ts providers/sports/normalizers.test.ts features/sports/sync.test.ts features/sports/components/team-initials.test.tsx
+supabase test db --local supabase/tests/database/240_team_crests_test.sql
+```
+
+Expected: FAIL because the normalized/database/UI fields do not exist.
+
+- [x] **Step 3: Implement synchronized crest storage and rendering**
+
+Parse `crest`, normalize only the approved host, include `crest_url` in the controlled sports ingestion payload/function, project it through fixture/event/dashboard DTOs, and render it with `loading="lazy"`, fixed dimensions, empty alt text beside the accessible team name, and `TeamMark` fallback after load failure.
+
+- [x] **Step 4: Run GREEN**
+
+Run the RED commands, `npm run db:types`, `npm run db:types:check`, and `npm run typecheck`. Expected: PASS.
+
+### Task 13: Workspace, membership, invitation, and event-form repairs
+
+**Files:**
+- Create: `supabase/migrations/20260831202000_group_direct_invites_member_removal.sql`
+- Create: `supabase/tests/database/250_group_direct_invites_member_removal_test.sql`
+- Modify: `features/workspaces/actions.ts`
+- Modify: `features/workspaces/components/workspace-switcher.tsx`
+- Modify: `features/workspaces/components/workspace-switcher.test.tsx`
+- Modify: `features/groups/membership-actions.ts`
+- Modify: `features/groups/components/group-management-controls.tsx`
+- Modify: `features/groups/components/group-share-dialog.tsx`
+- Modify: `features/groups/components/group-share-dialog.test.tsx`
+- Modify: `features/events/components/event-create-flow.tsx`
+- Modify: event-step components and tests
+- Modify: `types/database.generated.ts`
+
+**Interfaces:**
+- Produces server-directed workspace navigation, audited `remove_group_member`, recipient-bound in-app `group_invitations`, and two separate controls: `Invite a person` and `Create share link`.
+
+- [x] **Step 1: Write failing transition and UI tests**
+
+Assert Fan-to-Venue selection lands on `/venues/:slug/workspace`; removal ends active membership without creating a ban and permits a new application; only eligible owners/admins can invite/remove; direct invitations appear to exactly one recipient and can be accepted/declined/revoked; generic links have no person selector; event draft validation identifies description length and missing protected pin without a phantom marker.
+
+- [x] **Step 2: Run RED**
+
+```bash
+npm test -- features/workspaces/components/workspace-switcher.test.tsx features/groups/membership-actions.test.ts features/groups/components/group-management-controls.test.tsx features/groups/components/group-share-dialog.test.tsx features/events/components/event-create-flow.test.tsx
+supabase test db --local supabase/tests/database/250_group_direct_invites_member_removal_test.sql
+```
+
+Expected: FAIL on the missing transitions and misleading controls.
+
+- [x] **Step 3: Implement transactional membership boundaries**
+
+Add recipient-bound invitation rows with pending/accepted/declined/revoked states and uniqueness for one live invitation per group/recipient. Lock membership rows during removal/acceptance, audit the actor, enforce blocks/suspension/eligibility, and keep group-link tokens as the existing reusable application mechanism.
+
+- [x] **Step 4: Implement clear client flows**
+
+Navigate immediately after a successful workspace switch, separate direct invite from share link, surface recipient location copy in Home/My Huddle, label Remove and Ban distinctly, and render per-field event errors with the first invalid field focused. The protected map renders no marker until a pin is explicitly chosen.
+
+- [x] **Step 5: Run GREEN**
+
+Run the RED commands, related page tests, `npm run db:types`, and `npm run typecheck`. Expected: PASS.
+
+### Task 14: Integrated verification and bounded UX re-audit
+
+**Files:**
+- Modify: `docs/evidence/calm-explore/ACTION-MATRIX.md`
+- Modify: `docs/evidence/calm-explore/UX-AUDIT.md`
+- Modify: normative documentation, README, test plan, and traceability with current behavior/counts
+- Modify: deterministic E2E journeys only when new approved behavior needs coverage
+
+**Interfaces:**
+- Produces local evidence for address autocomplete, cross-city distance discovery, global groups, direct invites, member removal, crest fallback, workspace switching, and event-form recovery.
+
+- [x] **Step 1: Run focused integrated journeys**
+
+Use two local accounts to cover cross-city Explore, group create/find/apply/invite/remove/reapply, Fan/Venue switching, public-address selection, protected-home validation, and team crest fallback at 375px, 768px, and 1280px.
+
+- [x] **Step 2: Run one complete acceptance gate**
+
+```bash
+npm run format:check
+npm run lint
+npm run typecheck
+npm run db:types:check
+npm run build:local
+npm run test:acceptance
+```
+
+- [x] **Step 3: Perform one bounded correction pass**
+
+Fix only Critical/Important UX defects, approved-contract regressions, broken acceptance behavior, accessibility failures, or privacy/security/data-integrity defects. Add a failing regression first and rerun the affected focused suite plus the complete gate.
+
+- [x] **Step 4: Stop before external publication**
+
+Run `git diff --check`, inspect the full local diff for secrets/private locations/unrelated changes, and report exact evidence. Do not commit, push, update a PR, deploy, or mutate hosted Supabase without a new explicit user instruction.
+
+### Task 15: Reciprocal publication handoff
+
+**Issue:** #42 — UX: location-first discovery, global groups, and clearer member flows
+
+**Branch:** `codex/location-first-discovery-groups`
+
+**Status:** review
+
+- [x] **Step 1: Confirm publication authority and reciprocal participation**
+
+The project owner explicitly authorized the commit, push, PR creation, and review request. Guy remains the writer, and both Guy and Ohad genuinely participated; the local commit hook must add exactly one reciprocal Ohad co-author trailer.
+
+- [x] **Step 2: Publish one current-main review branch**
+
+Create the branch from the exact merged PR #41 tree on current `origin/main`, stage only the integrated Tasks 10–14 diff, commit once, push without rewriting history, open one PR closing #42, and request `ohadsho`.
+
+- [ ] **Step 3: Complete reciprocal second-clone review**
+
+Ohad must run `$huddle-review-merge` against the exact pushed head. The writer must not approve or merge this PR. Deployment and hosted Supabase migrations remain separately authorized B13 work.

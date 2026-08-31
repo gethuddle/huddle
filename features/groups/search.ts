@@ -17,7 +17,7 @@ const groupSearchRowSchema = z
     slug: z.string(),
     name: z.string(),
     description: z.string(),
-    city_name: z.string(),
+    city_name: z.string().nullable(),
     team_name: z.string().nullable(),
     active_member_count: z.number().int().nonnegative(),
     cursor_name: z.string(),
@@ -30,7 +30,7 @@ export type GroupSearchItem = Readonly<{
   slug: string;
   name: string;
   description: string;
-  cityName: string;
+  cityName: string | null;
   teamName: string | null;
   activeMemberCount: number;
 }>;
@@ -43,23 +43,7 @@ export type GroupSearchPage = Readonly<{
 
 export async function getGroupSearchPage(filters: GroupSearchFilters): Promise<GroupSearchPage> {
   const supabase = await createClient();
-  const [cityResult, authResult] = await Promise.all([
-    filters.citySlug === null
-      ? Promise.resolve({ data: null, error: null })
-      : supabase
-          .from("cities")
-          .select("id")
-          .eq("slug", filters.citySlug)
-          .eq("active", true)
-          .maybeSingle(),
-    supabase.auth.getUser(),
-  ]);
-
-  if (cityResult.error !== null)
-    throw new DomainError("INTERNAL_ERROR", { cause: cityResult.error });
-  if (filters.citySlug !== null && cityResult.data === null) {
-    throw new DomainError("VALIDATION_FAILED");
-  }
+  const authResult = await supabase.auth.getUser();
 
   const secret = getServerEnvironment().DISCOVERY_CURSOR_SECRET;
   const filterKey = cursorFilterKey(groupSearchFilterIdentity(filters));
@@ -70,7 +54,7 @@ export async function getGroupSearchPage(filters: GroupSearchFilters): Promise<G
 
   const { data, error } = await supabase.rpc("search_groups", {
     input_query: filters.query ?? undefined,
-    input_city_id: cityResult.data?.id,
+    input_city_id: undefined,
     input_team_id: filters.teamId ?? undefined,
     input_after_name: decodedCursor?.name,
     input_after_id: decodedCursor?.id,

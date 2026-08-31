@@ -2,7 +2,7 @@
 
 import { QueryClient, QueryClientProvider, useInfiniteQuery } from "@tanstack/react-query";
 import { LocateFixed, Map as MapIcon, MapPinOff, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { EmptyState } from "@/components/states/empty-state";
 import { Button } from "@/components/ui/button";
@@ -16,10 +16,14 @@ import {
 } from "@/features/discovery/schemas";
 import { TeamMark } from "@/features/sports/components/team-initials";
 import { formatIsraelKickoff } from "@/features/sports/time";
+import { AddressSearch } from "@/features/locations/components/address-search";
+import type { AddressSuggestion } from "@/features/locations/types";
 import type { DiscoveryApiPage, DiscoveryEvent, DiscoveryPage } from "@/features/discovery/types";
 
 type Coordinates = Readonly<{ lat: number; lng: number }>;
-type LocationState = "city" | "locating" | "browser" | "denied";
+type LocationState = "city" | "locating" | "browser" | "address" | "denied";
+
+const SESSION_ORIGIN_KEY = "huddle:discovery-origin";
 
 function groupEventsByMatch(events: readonly DiscoveryEvent[]) {
   const groups = new Map<string, DiscoveryEvent[]>();
@@ -36,15 +40,18 @@ async function fetchDiscoveryPage(
   coordinates: Coordinates | null,
   cursor: string | null,
 ): Promise<DiscoveryApiPage> {
-  const locatedFilters: DiscoveryFilters = {
-    ...filters,
-    lat: coordinates?.lat ?? null,
-    lng: coordinates?.lng ?? null,
-    cursor,
-  };
-  const response = await fetch(`/api/discovery?${discoverySearchParams(locatedFilters, cursor)}`, {
+  const body: Record<string, string | number> = Object.fromEntries(
+    discoverySearchParams(filters, cursor),
+  );
+  if (coordinates !== null) {
+    body.lat = coordinates.lat;
+    body.lng = coordinates.lng;
+  }
+  const response = await fetch("/api/discovery", {
+    method: "POST",
     credentials: "same-origin",
-    headers: { Accept: "application/json" },
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify(body),
   });
   if (!response.ok) throw new Error("Discovery request failed.");
   return (await response.json()) as DiscoveryApiPage;
@@ -53,9 +60,11 @@ async function fetchDiscoveryPage(
 function DiscoveryFeedInner({
   filters,
   initialPage,
-}: Readonly<{ filters: DiscoveryFilters; initialPage: DiscoveryPage }>) {
+  originCityName,
+}: Readonly<{ filters: DiscoveryFilters; initialPage: DiscoveryPage; originCityName: string }>) {
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
   const [locationState, setLocationState] = useState<LocationState>("city");
+  const [locationLabel, setLocationLabel] = useState(originCityName);
   const [mobileMapOpen, setMobileMapOpen] = useState(false);
   const query = useInfiniteQuery({
     queryKey: ["event-discovery", discoveryFilterIdentity(filters), coordinates],
@@ -80,6 +89,52 @@ function DiscoveryFeedInner({
     staleTime: 30_000,
   });
 
+  useEffect(() => {
+    try {
+      const stored = window.sessionStorage.getItem(SESSION_ORIGIN_KEY);
+      if (stored !== null) {
+        const parsed = JSON.parse(stored) as {
+          lat?: unknown;
+          lng?: unknown;
+          label?: unknown;
+          kind?: unknown;
+        };
+        if (
+          typeof parsed.lat === "number" &&
+          typeof parsed.lng === "number" &&
+          typeof parsed.label === "string" &&
+          (parsed.kind === "browser" || parsed.kind === "address")
+        ) {
+          const restoreTimer = window.setTimeout(() => {
+            setCoordinates({ lat: parsed.lat as number, lng: parsed.lng as number });
+            setLocationLabel(parsed.label as string);
+            setLocationState(parsed.kind as "browser" | "address");
+          }, 0);
+          return () => window.clearTimeout(restoreTimer);
+        }
+      }
+    } catch {
+      window.sessionStorage.removeItem(SESSION_ORIGIN_KEY);
+    }
+
+    if (!("permissions" in navigator) || !("geolocation" in navigator)) return;
+    void navigator.permissions
+      .query({ name: "geolocation" })
+      .then((permission) => {
+        if (permission.state === "granted") requestBrowserLocation();
+      })
+      .catch(() => undefined);
+    // This is an intentional one-time restore/permission check.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function rememberOrigin(next: Coordinates, label: string, kind: "browser" | "address") {
+    setCoordinates(next);
+    setLocationLabel(label);
+    setLocationState(kind);
+    window.sessionStorage.setItem(SESSION_ORIGIN_KEY, JSON.stringify({ ...next, label, kind }));
+  }
+
   function requestBrowserLocation() {
     if (!("geolocation" in navigator)) {
       setLocationState("denied");
@@ -89,20 +144,34 @@ function DiscoveryFeedInner({
     setLocationState("locating");
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setCoordinates({ lat: position.coords.latitude, lng: position.coords.longitude });
-        setLocationState("browser");
+        rememberOrigin(
+          { lat: position.coords.latitude, lng: position.coords.longitude },
+          "Current location",
+          "browser",
+        );
       },
       () => {
         setCoordinates(null);
         setLocationState("denied");
       },
-      { enableHighAccuracy: false, maximumAge: 0, timeout: 10_000 },
+      { enableHighAccuracy: false, maximumAge: 300_000, timeout: 10_000 },
     );
   }
 
   function useCityFallback() {
     setCoordinates(null);
     setLocationState("city");
+    setLocationLabel(originCityName);
+    window.sessionStorage.removeItem(SESSION_ORIGIN_KEY);
+  }
+
+  function useAddressOrigin(suggestion: AddressSuggestion | null) {
+    if (suggestion === null) return;
+    rememberOrigin(
+      { lat: suggestion.latitude, lng: suggestion.longitude },
+      suggestion.label,
+      "address",
+    );
   }
 
   const events = query.data?.pages.flatMap((page) => page.items) ?? [];
@@ -114,16 +183,20 @@ function DiscoveryFeedInner({
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
         <div>
           <p className="font-semibold text-foreground">
-            {locationState === "browser" ? "Using this browser location" : "Using city fallback"}
+            {locationState === "browser"
+              ? "Using this browser location"
+              : locationState === "address"
+                ? `Near ${locationLabel}`
+                : `Near ${locationLabel}`}
           </p>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Current location is optional, used once, and never saved.
+            Distance is calculated from this origin. Exact coordinates stay out of links and logs.
           </p>
         </div>
-        {locationState === "browser" ? (
+        {locationState === "browser" || locationState === "address" ? (
           <Button className="min-h-11" onClick={useCityFallback} type="button" variant="outline">
             <MapPinOff aria-hidden="true" />
-            Use city instead
+            Use profile area
           </Button>
         ) : (
           <Button
@@ -134,16 +207,30 @@ function DiscoveryFeedInner({
             variant="outline"
           >
             <LocateFixed aria-hidden="true" />
-            {locationState === "locating" ? "Requesting location…" : "Use my location once"}
+            {locationState === "locating" ? "Requesting location…" : "Use my location"}
           </Button>
         )}
       </div>
 
       {locationState === "denied" ? (
         <p className="mt-3 text-sm text-sand" role="status">
-          Location was unavailable or declined. Discovery is continuing from the selected city.
+          Location was unavailable or declined. Discovery is continuing from your profile area.
         </p>
       ) : null}
+
+      <details className="mt-4 rounded-2xl border border-border bg-card px-5 py-4">
+        <summary className="cursor-pointer font-semibold text-foreground">
+          Search a city or address
+        </summary>
+        <div className="mt-5 border-t border-border pt-5">
+          <AddressSearch
+            city={originCityName}
+            locationKind="public_place"
+            onConfirm={useAddressOrigin}
+            purpose="origin"
+          />
+        </div>
+      </details>
 
       {query.isPending ? (
         <div aria-busy="true" aria-label="Loading nearby events" className="mt-8 space-y-5">
@@ -293,12 +380,19 @@ function DiscoveryFeedInner({
 }
 
 export function DiscoveryFeed(
-  props: Readonly<{ filters: DiscoveryFilters; initialPage: DiscoveryPage }>,
+  props: Readonly<{
+    filters: DiscoveryFilters;
+    initialPage: DiscoveryPage;
+    originCityName?: string;
+  }>,
 ) {
   const [queryClient] = useState(() => new QueryClient());
   return (
     <QueryClientProvider client={queryClient}>
-      <DiscoveryFeedInner {...props} />
+      <DiscoveryFeedInner
+        {...props}
+        originCityName={props.originCityName ?? props.filters.citySlug.replaceAll("-", " ")}
+      />
     </QueryClientProvider>
   );
 }

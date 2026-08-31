@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 import { requireActor } from "@/features/auth/actor";
-import { createNominatimPublicGeocoder } from "@/features/locations/nominatim";
+import { createPhotonPublicGeocoder } from "@/features/locations/photon";
 import { searchPublicAddress } from "@/features/locations/provider";
 import {
   addressSuggestionsSchema,
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     if (!claim.claim_granted) throw new DomainError("RATE_LIMITED");
 
     const suggestions = addressSuggestionsSchema.parse(
-      await searchPublicAddress(createNominatimPublicGeocoder(), input.query, input.city),
+      await searchPublicAddress(createPhotonPublicGeocoder(), input.query, input.city),
     );
     const { error: storeError } = await database.rpc("store_public_address_search", {
       input_query_digest: claim.query_digest,

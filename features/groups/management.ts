@@ -89,6 +89,21 @@ const eventSubmissionRowSchema = z
   })
   .strict();
 
+const directInvitationRowSchema = z
+  .object({
+    invitation_id: z.uuid(),
+    invitee_id: z.uuid(),
+    invitee_handle: z.string(),
+    invitee_display_name: z.string(),
+    inviter_handle: z.string(),
+    invitation_status: z.enum(["pending", "accepted", "declined", "revoked"]),
+    created_at: z.string(),
+    responded_at: z.string().nullable(),
+    revoked_at: z.string().nullable(),
+    total_count: z.number().int().nonnegative(),
+  })
+  .strict();
+
 export type GroupApplication = Readonly<{
   userId: string;
   handle: string;
@@ -153,6 +168,18 @@ export type GroupEventSubmission = Readonly<{
   canWithdraw: boolean;
 }>;
 
+export type GroupDirectInvitation = Readonly<{
+  id: string;
+  inviteeId: string;
+  inviteeHandle: string;
+  inviteeDisplayName: string;
+  inviterHandle: string;
+  status: "pending" | "accepted" | "declined" | "revoked";
+  createdAt: string;
+  respondedAt: string | null;
+  revokedAt: string | null;
+}>;
+
 export type GroupOverviewAttention = Readonly<{
   applications: readonly GroupApplication[];
   events: readonly GroupEventSubmission[];
@@ -170,6 +197,7 @@ export type GroupSettings = Readonly<{
   members: SettingsPage<GroupAdminMember>;
   rules: readonly GroupManagedRule[];
   bans: SettingsPage<GroupBan>;
+  directInvitations: readonly GroupDirectInvitation[];
 }>;
 
 type ManagementBase = Readonly<{
@@ -266,6 +294,22 @@ function banItem(row: z.infer<typeof banRowSchema>): GroupBan {
   };
 }
 
+function directInvitationItem(
+  row: z.infer<typeof directInvitationRowSchema>,
+): GroupDirectInvitation {
+  return {
+    id: row.invitation_id,
+    inviteeId: row.invitee_id,
+    inviteeHandle: row.invitee_handle,
+    inviteeDisplayName: row.invitee_display_name,
+    inviterHandle: row.inviter_handle,
+    status: row.invitation_status,
+    createdAt: row.created_at,
+    respondedAt: row.responded_at,
+    revokedAt: row.revoked_at,
+  };
+}
+
 function settingsPage<T>(
   items: readonly T[],
   rows: readonly Readonly<{ total_count: number }>[],
@@ -309,7 +353,7 @@ export async function getGroupSettings(
   const safeMembersPage = Math.max(1, Math.trunc(membersPage));
   const safeBansPage = Math.max(1, Math.trunc(bansPage));
   const supabase = await createClient();
-  const [memberResult, ruleResult, banResult] = await Promise.all([
+  const [memberResult, ruleResult, banResult, directInvitationResult] = await Promise.all([
     supabase.rpc("list_group_admin_members", {
       input_group_id: group.id,
       input_offset: (safeMembersPage - 1) * GROUP_MANAGEMENT_PAGE_SIZE,
@@ -325,14 +369,23 @@ export async function getGroupSettings(
       input_offset: (safeBansPage - 1) * GROUP_MANAGEMENT_PAGE_SIZE,
       input_limit: GROUP_MANAGEMENT_PAGE_SIZE,
     }),
+    supabase.rpc("list_group_direct_invitations", {
+      input_group_id: group.id,
+      input_offset: 0,
+      input_limit: 50,
+    }),
   ]);
   if (memberResult.error !== null) throw domainErrorFromDatabase(memberResult.error);
   if (ruleResult.error !== null) throw domainErrorFromDatabase(ruleResult.error);
   if (banResult.error !== null) throw domainErrorFromDatabase(banResult.error);
+  if (directInvitationResult.error !== null) {
+    throw domainErrorFromDatabase(directInvitationResult.error);
+  }
 
   const memberRows = parseRows(memberRowSchema, memberResult.data);
   const ruleRows = parseRows(ruleRowSchema, ruleResult.data);
   const banRows = parseRows(banRowSchema, banResult.data);
+  const directInvitationRows = parseRows(directInvitationRowSchema, directInvitationResult.data);
   if (
     (memberRows.length === 0 && safeMembersPage > 1) ||
     (banRows.length === 0 && safeBansPage > 1)
@@ -349,6 +402,7 @@ export async function getGroupSettings(
     members: settingsPage(memberRows.map(memberItem), memberRows, safeMembersPage),
     rules: ruleRows.map(ruleItem),
     bans: settingsPage(banRows.map(banItem), banRows, safeBansPage),
+    directInvitations: directInvitationRows.map(directInvitationItem),
   };
 }
 

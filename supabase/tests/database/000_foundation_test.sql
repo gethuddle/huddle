@@ -76,7 +76,7 @@ select is(
     where namespace.nspname = 'public'
       and relation.relkind in ('r', 'p')
   ),
-  'cities,competition_teams,competitions,event_attendance,event_draft_private_locations,event_drafts,event_invitations,event_invite_tokens,event_private_locations,events,friendships,group_bans,group_invite_tokens,group_memberships,group_rules,groups,matches,moderation_actions,moderation_appeals,platform_roles,profiles,provider_sync_runs,reports,security_audit_events,sports,subscriptions,teams,user_blocks,venue_follows,venue_memberships,venue_spaces,venues',
+  'cities,competition_teams,competitions,event_attendance,event_draft_private_locations,event_drafts,event_invitations,event_invite_tokens,event_private_locations,events,friendships,group_bans,group_invitations,group_invite_tokens,group_memberships,group_rules,groups,matches,moderation_actions,moderation_appeals,platform_roles,profiles,provider_sync_runs,reports,security_audit_events,sports,subscriptions,teams,user_blocks,venue_follows,venue_memberships,venue_spaces,venues',
   'the public schema contains only the currently implemented product tables'
 );
 

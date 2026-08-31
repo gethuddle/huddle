@@ -73,6 +73,7 @@ export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCa
           }
         : {
             ...review.values,
+            cityId: review.values.cityId ?? "",
             teamId: review.values.teamId ?? "",
           };
 
@@ -100,7 +101,7 @@ export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCa
               slugInput.current.value = groupSlugFromName(event.target.value);
             }
           }}
-          placeholder="Haifa matchday crew"
+          placeholder="Matchday crew"
           required
         />
         <FieldError id="group-name-error" messages={fieldErrors?.name} />
@@ -111,7 +112,7 @@ export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCa
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <Label className="text-foreground" htmlFor="group-city">
-            City
+            Home area <span className="font-normal text-muted-foreground">(optional)</span>
           </Label>
           <NativeSelect
             aria-describedby="group-city-error"
@@ -120,9 +121,8 @@ export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCa
             defaultValue={values.cityId}
             id="group-city"
             name="cityId"
-            required
           >
-            <NativeSelectOption value="">Choose a city</NativeSelectOption>
+            <NativeSelectOption value="">No home area</NativeSelectOption>
             {catalog.cities.map((city) => (
               <NativeSelectOption key={city.id} value={city.id}>
                 {city.name}
@@ -238,7 +238,7 @@ function SimilarGroupReview({
                 <p className="font-semibold text-foreground">{group.name}</p>
               )}
               <p className="mt-1 text-xs text-muted-foreground">
-                {group.cityName} · {group.teamName ?? "Multi-team"}
+                {group.cityName ?? "Open to supporters anywhere"} · {group.teamName ?? "Multi-team"}
               </p>
             </div>
             <Badge variant="outline">

@@ -3,6 +3,20 @@ import { z } from "zod";
 const positiveProviderId = z.number().int().positive();
 const boundedName = z.string().trim().min(1).max(120);
 const providerDate = z.iso.date();
+const footballDataCrestUrl = z
+  .url()
+  .max(500)
+  .superRefine((value, context) => {
+    const url = new URL(value);
+    if (
+      url.protocol !== "https:" ||
+      url.hostname !== "crests.football-data.org" ||
+      url.username !== "" ||
+      url.password !== ""
+    ) {
+      context.addIssue({ code: "custom", message: "Unsafe football-data crest URL" });
+    }
+  });
 
 const areaSchema = z.object({
   name: z.string().trim().min(1).max(100),
@@ -24,6 +38,7 @@ const footballDataTeamSchema = z.object({
   name: boundedName,
   shortName: z.string().trim().min(1).max(80).nullish(),
   tla: z.string().trim().min(2).max(5).nullish(),
+  crest: footballDataCrestUrl.nullish(),
   area: areaSchema.nullish(),
 });
 

@@ -179,8 +179,11 @@ describe("MapPinPicker", () => {
       }),
     );
 
+    expect(maplibreMocks.Marker).not.toHaveBeenCalled();
+
     controller.setPin(privatePoint);
 
+    expect(maplibreMocks.Marker).toHaveBeenCalledOnce();
     expect(maplibreMocks.marker.setLngLat).toHaveBeenLastCalledWith([
       privatePoint.longitude,
       privatePoint.latitude,

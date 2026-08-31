@@ -108,12 +108,12 @@ select ok(
   'a 45-calendar-day Israel-time window survives the autumn DST fallback'
 );
 select ok(
-  not private.discovery_window_is_valid(
+  private.discovery_window_is_valid(
     make_timestamptz(2026, 9, 15, 0, 0, 0, 'Asia/Jerusalem'),
     make_timestamptz(2026, 10, 31, 0, 0, 0, 'Asia/Jerusalem'),
     make_timestamptz(2026, 9, 15, 12, 0, 0, 'Asia/Jerusalem')
   ),
-  'a 46-calendar-day Israel-time window remains rejected across the fallback'
+  'a 46-calendar-day Israel-time window remains valid inside the active football season'
 );
 select ok(
   private.discovery_window_is_valid(

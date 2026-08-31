@@ -23,6 +23,11 @@ type EventCreateFlowProps = Readonly<{
   initialProtectedLocation?: EventDraftProtectedLocation | null;
 }>;
 
+type ReviewIssue = Readonly<{
+  fieldId: string;
+  message: string;
+}>;
+
 const defaults: EventDraftPatch = {
   title: "",
   description: "",
@@ -45,29 +50,73 @@ function usefulPatch(values: EventDraftPatch): EventDraftPatch {
   return Object.fromEntries(entries) as EventDraftPatch;
 }
 
-function completeForReview(
+function reviewIssues(
   values: EventDraftPatch,
   protectedLocation: EventDraftProtectedLocation | null,
-) {
-  const common =
-    values.matchId != null &&
-    (values.title?.trim().length ?? 0) >= 3 &&
-    (values.description?.trim().length ?? 0) >= 10 &&
-    values.cityId != null &&
-    values.hostPresenceConfirmed === true &&
-    (values.capacity ?? 0) > 0 &&
-    values.audience != null;
-  if (!common) return false;
-  if (values.audience === "group" && values.audienceGroupId == null) return false;
-  if (values.placeKind === "home")
-    return protectedLocation !== null && (values.capacity ?? 0) <= 12;
-  return (
-    values.placeKind === "public_place" &&
-    (values.publicPlaceName?.trim().length ?? 0) > 0 &&
-    values.publicAddressText != null &&
-    values.publicLatitude != null &&
-    values.publicLongitude != null
-  );
+): readonly ReviewIssue[] {
+  const issues: ReviewIssue[] = [];
+  if (values.matchId == null) {
+    issues.push({ fieldId: "fixture-search", message: "Choose a future fixture." });
+  }
+  if ((values.title?.trim().length ?? 0) < 3) {
+    issues.push({
+      fieldId: "event-title",
+      message: "Use at least 3 characters for the event title.",
+    });
+  }
+  if ((values.description?.trim().length ?? 0) < 10) {
+    issues.push({
+      fieldId: "event-description",
+      message: "Use at least 10 characters for the description.",
+    });
+  }
+  if (values.cityId == null) {
+    issues.push({ fieldId: "event-city", message: "Choose the event city." });
+  }
+  if (values.placeKind === "home") {
+    if (protectedLocation === null) {
+      issues.push({
+        fieldId: "event-private-location",
+        message: "Choose the private address and pin.",
+      });
+    }
+    if ((values.capacity ?? 0) > 12) {
+      issues.push({
+        fieldId: "event-capacity",
+        message: "Home events can include at most 12 people.",
+      });
+    }
+  } else if (values.placeKind === "public_place") {
+    if ((values.publicPlaceName?.trim().length ?? 0) === 0) {
+      issues.push({ fieldId: "event-public-place", message: "Enter the public place name." });
+    }
+    if (
+      values.publicAddressText == null ||
+      values.publicLatitude == null ||
+      values.publicLongitude == null
+    ) {
+      issues.push({
+        fieldId: "event-public-address",
+        message: "Choose a suggested public address.",
+      });
+    }
+  }
+  if (values.audience == null) {
+    issues.push({ fieldId: "event-audience", message: "Choose who can see this event." });
+  }
+  if (values.audience === "group" && values.audienceGroupId == null) {
+    issues.push({ fieldId: "event-audience-group", message: "Choose the audience group." });
+  }
+  if ((values.capacity ?? 0) < 1) {
+    issues.push({ fieldId: "event-capacity", message: "Enter at least one person." });
+  }
+  if (values.hostPresenceConfirmed !== true) {
+    issues.push({
+      fieldId: "event-host-presence",
+      message: "Confirm that you will be present.",
+    });
+  }
+  return issues;
 }
 
 export function EventCreateFlow({
@@ -98,7 +147,12 @@ export function EventCreateFlow({
   const [protectedLocationChanged, setProtectedLocationChanged] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reviewAttempted, setReviewAttempted] = useState(false);
   const [saving, startSaving] = useTransition();
+  const activeReviewIssues = reviewAttempted ? reviewIssues(values, protectedLocation) : [];
+  const fieldErrors = Object.fromEntries(
+    activeReviewIssues.map((issue) => [issue.fieldId, issue.message]),
+  );
   const selectableMatches = useMemo(
     () =>
       selectedMatch === null || catalog.matches.some((match) => match.id === selectedMatch.id)
@@ -134,9 +188,14 @@ export function EventCreateFlow({
       setError("Choose a future fixture before continuing.");
       return null;
     }
-    if (nextPhase === 3 && !completeForReview(values, protectedLocation)) {
-      setError("Complete the required place, audience, capacity, and host details before review.");
-      return null;
+    if (nextPhase === 3) {
+      const issues = reviewIssues(values, protectedLocation);
+      if (issues.length > 0) {
+        setReviewAttempted(true);
+        document.getElementById(issues[0]?.fieldId ?? "")?.focus();
+        return null;
+      }
+      setReviewAttempted(false);
     }
 
     const result = await saveEventDraftStepAction({
@@ -265,6 +324,7 @@ export function EventCreateFlow({
                   protectedLocation={protectedLocation}
                   saving={saving}
                   values={values}
+                  fieldErrors={fieldErrors}
                 />
               </div>
             </section>
@@ -297,6 +357,22 @@ export function EventCreateFlow({
       {error === null ? null : (
         <Alert role="alert" variant="destructive">
           <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {activeReviewIssues.length === 0 ? null : (
+        <Alert role="alert" variant="destructive">
+          <AlertDescription>
+            <p className="font-semibold">
+              Fix {activeReviewIssues.length}{" "}
+              {activeReviewIssues.length === 1 ? "detail" : "details"} before review
+            </p>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              {activeReviewIssues.map((issue) => (
+                <li key={`${issue.fieldId}-${issue.message}`}>{issue.message}</li>
+              ))}
+            </ul>
+          </AlertDescription>
         </Alert>
       )}
 

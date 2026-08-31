@@ -16,12 +16,12 @@ const cityId = "50000000-0000-4000-8000-000000000101";
 const teamId = "50000000-0000-4000-8000-000000000201";
 const groupId = "50000000-0000-4000-8000-000000000301";
 
-function groupForm(intent: "check" | "create") {
+function groupForm(intent: "check" | "create", selectedCityId: string = cityId) {
   const formData = new FormData();
   formData.set("intent", intent);
   formData.set("name", "Haifa Arsenal Supporters");
   formData.set("slug", "haifa-arsenal-supporters");
-  formData.set("cityId", cityId);
+  formData.set("cityId", selectedCityId);
   formData.set("teamId", teamId);
   formData.set("visibility", "discoverable");
   formData.set("description", "Match-going supporters in Haifa.");
@@ -74,6 +74,24 @@ describe("createGroupAction", () => {
       data: { phase: "review", suggestions: [{ slug: "haifa-arsenal-fans" }] },
     });
     expect(JSON.stringify(result)).not.toContain("token");
+  });
+
+  it("checks similar groups globally when no home area is selected", async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: [], error: null });
+    mocks.requireActor.mockResolvedValue({ supabase: { rpc } });
+
+    const result = await createGroupAction(null, groupForm("check", ""));
+
+    expect(rpc).toHaveBeenCalledWith("suggest_similar_groups", {
+      input_name: "Haifa Arsenal Supporters",
+      input_city_id: null,
+      input_team_id: teamId,
+      input_limit: 5,
+    });
+    expect(result).toMatchObject({
+      ok: true,
+      data: { phase: "review", values: { cityId: null } },
+    });
   });
 
   it("refuses creation until the exact form values were reviewed", async () => {

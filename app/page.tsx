@@ -171,11 +171,21 @@ export default async function Home() {
                 <CardHeader>
                   <p className="text-sm text-muted-foreground">{suggestion.competition.name}</p>
                   <div className="mt-2 flex items-center gap-3">
-                    <TeamMark name={suggestion.homeTeam.name} size="sm" tla={null} />
+                    <TeamMark
+                      crestUrl={suggestion.homeTeam.crestUrl}
+                      name={suggestion.homeTeam.name}
+                      size="sm"
+                      tla={suggestion.homeTeam.tla}
+                    />
                     <h3 className="text-xl font-semibold text-foreground">
                       {suggestion.homeTeam.name} vs {suggestion.awayTeam.name}
                     </h3>
-                    <TeamMark name={suggestion.awayTeam.name} size="sm" tla={null} />
+                    <TeamMark
+                      crestUrl={suggestion.awayTeam.crestUrl}
+                      name={suggestion.awayTeam.name}
+                      size="sm"
+                      tla={suggestion.awayTeam.tla}
+                    />
                   </div>
                 </CardHeader>
                 <CardContent>
