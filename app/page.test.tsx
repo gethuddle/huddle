@@ -100,10 +100,11 @@ describe("Home", () => {
 
     expect(screen.getByRole("heading", { name: "Ready for your next match day?" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "Needs your attention" })).toBeVisible();
-    expect(screen.getByRole("link", { name: "Explore fixtures" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Find somewhere to watch" })).toHaveAttribute(
       "href",
-      "/matches",
+      "/discover",
     );
+    expect(screen.queryByText("Explore fixtures")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Plan a huddle" })).toHaveAttribute(
       "href",
       "/events/new",

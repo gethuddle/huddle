@@ -9,7 +9,7 @@ const friendshipTargetSchema = z.object({
 export const friendshipMutationSchema = z.discriminatedUnion("intent", [
   friendshipTargetSchema.extend({ intent: z.literal("request") }),
   friendshipTargetSchema.extend({
-    intent: z.enum(["accept", "decline", "remove"]),
+    intent: z.enum(["accept", "cancel", "decline", "remove"]),
     friendshipId: z.uuid(),
   }),
 ]);

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -115,6 +115,7 @@ describe("GroupPage", () => {
       `/events/new?group=${publicGroup.id}`,
     );
     expect(screen.getByRole("button", { name: "Share group" })).toBeVisible();
+    fireEvent.click(screen.getByText("Search and setup details"));
     expect(screen.getByText(/Members, rules, and events are optional/i)).toBeVisible();
     expect(screen.queryByRole("link", { name: "Invite people" })).not.toBeInTheDocument();
     expect(screen.getByText("Respect every supporter.")).toBeVisible();

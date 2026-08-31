@@ -45,8 +45,8 @@ export function SiteHeader({
     <>
       <header
         className={cn(
-          "sticky top-0 z-30 border-b border-border-dark bg-ink/95 backdrop-blur",
-          venueActive && "bg-surface-deep/95",
+          "sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur",
+          venueActive && "bg-card/95",
         )}
       >
         <div className="relative mx-auto grid min-h-[4.75rem] w-full max-w-7xl grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-5 sm:px-8 lg:px-10">
@@ -61,7 +61,7 @@ export function SiteHeader({
             </Link>
           </div>
 
-          <div className="hidden min-w-0 items-center justify-center md:flex">
+          <div className="hidden min-w-0 items-center justify-center lg:flex">
             {fanActive ? (
               <nav aria-label="Fan navigation" className="flex items-center gap-1.5">
                 {FAN_NAVIGATION.filter(({ href }) => href !== "/account").map(({ label, href }) => {
@@ -70,8 +70,9 @@ export function SiteHeader({
                     <Link
                       aria-current={current ? "page" : undefined}
                       className={cn(
-                        "inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold text-muted-dark transition hover:bg-surface-raised hover:text-linen focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring lg:px-5",
-                        current && "bg-court text-ink hover:bg-court-hover hover:text-ink",
+                        "relative inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring lg:px-5",
+                        current &&
+                          "text-forest after:absolute after:inset-x-4 after:bottom-0 after:h-0.5 after:rounded-full after:bg-forest",
                       )}
                       href={href}
                       key={href}
@@ -88,18 +89,14 @@ export function SiteHeader({
               />
             ) : displayContext.active === null && !isSignedIn ? (
               <nav aria-label="Public navigation" className="flex items-center gap-1.5">
-                <Link
-                  className="inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold text-muted-dark hover:bg-surface-raised hover:text-linen"
-                  href="/discover"
+                <Button
+                  asChild
+                  className="rounded-full border-border px-5"
+                  size="sm"
+                  variant="secondary"
                 >
-                  Explore
-                </Link>
-                <Link
-                  className="inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold text-muted-dark hover:bg-surface-raised hover:text-linen"
-                  href="/matches"
-                >
-                  Fixtures
-                </Link>
+                  <Link href="/discover">Explore</Link>
+                </Button>
               </nav>
             ) : null}
           </div>
@@ -120,7 +117,6 @@ export function SiteHeader({
                 <DropdownMenuContent align="end" aria-label="Public mobile navigation">
                   {[
                     ["Explore", "/discover"],
-                    ["Fixtures", "/matches"],
                     ["Sign up", "/auth/sign-up"],
                     ["Sign in", "/auth/sign-in"],
                   ].map(([label, href]) => (
@@ -138,7 +134,7 @@ export function SiteHeader({
               </Button>
             ) : null}
             {isSignedIn && fanActive && displayContext.available.length > 0 ? (
-              <div className="hidden max-w-[13rem] md:block">
+              <div className="hidden max-w-[13rem] lg:block">
                 <WorkspaceSwitcher
                   active={displayContext.active}
                   appearance="identity"

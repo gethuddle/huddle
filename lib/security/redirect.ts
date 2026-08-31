@@ -3,6 +3,7 @@ const INTERNAL_PREFIXES = [
   "/discover",
   "/events",
   "/groups",
+  "/join/",
   "/matches",
   "/moderation",
   "/people/",

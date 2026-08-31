@@ -16,6 +16,11 @@ const FAN_NAVIGATION = [
 
 function fanDestinationIsCurrent(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
+  if (href === "/discover") {
+    return ["/discover", "/groups", "/matches"].some(
+      (route) => pathname === route || pathname.startsWith(`${route}/`),
+    );
+  }
   if (href === "/account") {
     return (
       pathname === href ||
@@ -34,7 +39,7 @@ export function FanBottomNavigation() {
   return (
     <nav
       aria-label="Fan mobile navigation"
-      className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-border-dark bg-ink/98 px-1 pb-[max(env(safe-area-inset-bottom),0.25rem)] pt-1 md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-border bg-card/98 px-1 pb-[max(env(safe-area-inset-bottom),0.25rem)] pt-1 [box-shadow:var(--shadow-docked)] lg:hidden"
     >
       {FAN_NAVIGATION.map(({ label, href, icon: Icon }) => {
         const current = fanDestinationIsCurrent(pathname, href);
@@ -42,8 +47,8 @@ export function FanBottomNavigation() {
           <Link
             aria-current={current ? "page" : undefined}
             className={cn(
-              "flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[0.68rem] font-semibold text-muted-dark outline-none transition focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
-              current && "text-court",
+              "flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[0.68rem] font-semibold text-muted-foreground outline-none transition focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
+              current && "bg-muted text-forest",
             )}
             href={href}
             key={href}

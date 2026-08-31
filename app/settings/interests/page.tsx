@@ -41,7 +41,7 @@ function AccessState({ state }: Readonly<{ state: Exclude<InterestViewerState, "
       <ProfileAccessState
         actionHref="/auth/sign-in"
         actionLabel="Sign in"
-        description="Fixtures are public, but follows belong to a verified Huddle account."
+        description="Fixtures are public, but your followed teams belong to your signed-in account."
         eyebrow="Sign in required"
         title="Sign in to manage your interests."
       />
@@ -77,8 +77,8 @@ function InterestCard({ item, followed }: Readonly<{ item: InterestItem; followe
         <div className="flex min-w-0 items-center gap-3">
           {item.marker}
           <div className="min-w-0">
-            <p className="truncate font-semibold text-linen">{item.title}</p>
-            <p className="mt-1 text-sm text-muted-dark">{item.description}</p>
+            <p className="truncate font-semibold text-foreground">{item.title}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
           </div>
         </div>
         <FollowControl
@@ -108,10 +108,10 @@ function InterestSection({
 
   return (
     <section aria-labelledby={headingId}>
-      <h2 className="text-2xl font-semibold tracking-[-0.03em] text-linen" id={headingId}>
+      <h2 className="text-2xl font-semibold tracking-[-0.03em] text-foreground" id={headingId}>
         {title}
       </h2>
-      <p className="mt-2 text-base text-muted-dark">{description}</p>
+      <p className="mt-2 text-base text-muted-foreground">{description}</p>
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         {items.map((item) => (
           <InterestCard
@@ -183,17 +183,17 @@ export default async function InterestSettingsPage({ searchParams }: InterestSet
     <section className="py-12 sm:py-16">
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-court">Interests</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-[-0.04em] text-linen sm:text-5xl">
+          <p className="text-sm font-medium text-forest">Interests</p>
+          <h1 className="mt-3 text-4xl font-semibold tracking-[-0.04em] text-foreground sm:text-4xl">
             Follow what matters.
           </h1>
-          <p className="mt-4 max-w-2xl text-lg leading-8 text-muted-dark">
+          <p className="mt-4 max-w-2xl text-lg leading-8 text-muted-foreground">
             Shape fixture discovery around the sports, competitions, and teams you care about.
             Follows never reveal private events or addresses.
           </p>
         </div>
         <Button asChild variant="outline">
-          <Link href="/matches">Browse fixtures</Link>
+          <Link href="/discover">Explore watch options</Link>
         </Button>
       </div>
 
@@ -213,7 +213,7 @@ export default async function InterestSettingsPage({ searchParams }: InterestSet
           placeholder="Search teams and competitions"
           type="search"
         />
-        <label className="inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full border border-input px-4 text-sm font-semibold text-linen">
+        <label className="inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full border border-input px-4 text-sm font-semibold text-foreground">
           <input defaultChecked={followedOnly} name="followed" type="checkbox" />
           Followed only
         </label>

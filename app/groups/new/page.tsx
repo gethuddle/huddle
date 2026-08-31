@@ -6,7 +6,7 @@ import { GroupCreateForm } from "@/features/groups/components/group-create-form"
 import { getGroupCreationViewerState } from "@/features/groups/viewer";
 
 export const metadata: Metadata = {
-  title: "Create a supporter group — Huddle",
+  title: "Create a group — Huddle",
 };
 
 export default async function NewGroupPage() {
@@ -17,7 +17,7 @@ export default async function NewGroupPage() {
       <ProfileAccessState
         actionHref="/auth/sign-in"
         actionLabel="Sign in"
-        description="Group ownership belongs to a verified Huddle account."
+        description="Group ownership belongs to your signed-in Fan account."
         eyebrow="Sign in required"
         title="Sign in to create a group."
       />
@@ -51,20 +51,18 @@ export default async function NewGroupPage() {
     <section className="py-12 sm:py-16">
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,0.75fr)]">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-court">
-            Build your huddle
-          </p>
-          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-linen sm:text-6xl">
-            Create a supporter group.
+          <p className="text-sm font-medium text-forest">Build your huddle</p>
+          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-foreground sm:text-4xl">
+            Create a group.
           </h1>
-          <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-dark">
+          <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
             Name your group, choose whether people can find it, and review similar groups before you
             create it.
           </p>
         </div>
-        <div className="rounded-2xl border border-border bg-surface-deep p-6">
-          <p className="font-semibold text-linen">What happens now</p>
-          <ul className="mt-3 space-y-2 text-sm leading-6 text-muted-dark">
+        <div className="rounded-2xl border border-border bg-muted p-6">
+          <p className="font-semibold text-foreground">What happens now</p>
+          <ul className="mt-3 space-y-2 text-sm leading-6 text-muted-foreground">
             <li>Your group gets a page you can always find in My Huddle.</li>
             <li>Discoverable groups appear in search after their activity and safety setup.</li>
             <li>Unlisted groups stay invite-only.</li>

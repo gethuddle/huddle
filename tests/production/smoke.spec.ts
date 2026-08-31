@@ -33,10 +33,10 @@ test("@session-smoke anonymous production pages and provider attribution are pub
   await expect(page.getByRole("link", { name: "football-data.org" })).toBeVisible();
 
   await page.goto("/matches");
-  await expect(
-    page.getByRole("heading", { name: "Find the fixture. Then find your huddle." }),
-  ).toBeVisible();
-  await expect(page.getByRole("status")).toContainText("Fixtures available through");
+  await expect(page).toHaveURL(/\/discover$/);
+  await expect(page.getByRole("heading", { name: "Explore watch events" })).toBeVisible();
+  await page.getByRole("button", { name: "Change Explore search" }).click();
+  await expect(page.getByRole("searchbox", { name: "Specific fixture (optional)" })).toBeVisible();
 
   await page.goto("/discover?city=tel-aviv-yafo");
   await expect(page.getByRole("heading", { name: "Explore watch events" })).toBeVisible();
@@ -53,12 +53,11 @@ test("@session-smoke anonymous production pages and provider attribution are pub
   const firstEvent = page.getByRole("article").first();
   const eventTitle = await firstEvent.getByRole("heading").innerText();
   await firstEvent.getByRole("link", { name: "Open event" }).click();
-  const fixtureHref = await page
-    .getByRole("link", { name: "← Fixture details" })
-    .getAttribute("href");
-  expect(fixtureHref).toMatch(/^\/matches\/[0-9a-f-]{36}$/);
-  await page.goto(fixtureHref!);
-  await expect(page.getByRole("link", { name: eventTitle })).toBeVisible();
+  await expect(page.getByRole("heading", { name: eventTitle })).toBeVisible();
+  const backToExplore = page.getByRole("link", { name: "Back to Explore" });
+  await expect(backToExplore).toHaveAttribute("href", /\/discover[?]/);
+  await backToExplore.click();
+  await expect(page).toHaveURL(/\/discover[?]/);
 
   await page.goto("/groups");
   await expect(
@@ -103,9 +102,8 @@ test("@session-smoke two dedicated production accounts can read every redesigned
     await expect(attendee.getByRole("heading", { name: "People", exact: true })).toBeVisible();
 
     await attendee.goto("/matches");
-    await expect(
-      attendee.getByRole("heading", { name: "Find the fixture. Then find your huddle." }),
-    ).toBeVisible();
+    await expect(attendee).toHaveURL(/\/discover$/);
+    await expect(attendee.getByRole("heading", { name: "Explore watch events" })).toBeVisible();
 
     await host.goto(`/venues/${encodeURIComponent(venueSlug)}/workspace`);
     const venueNavigation = host.getByRole("navigation", { name: "Venue navigation" });

@@ -72,7 +72,7 @@ export function VenueCalendar({
         {surface === "calendar" ? (
           <div
             aria-label="Calendar view"
-            className="inline-flex rounded-full border border-border-dark p-1"
+            className="inline-flex rounded-full border border-border p-1"
             role="tablist"
           >
             {(["agenda", "month"] as const).map((candidate) => (
@@ -80,7 +80,9 @@ export function VenueCalendar({
                 aria-selected={view === candidate}
                 className={cn(
                   "min-h-11 rounded-full px-5 text-sm font-semibold outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                  view === candidate ? "bg-court text-ink" : "text-muted-dark hover:text-linen",
+                  view === candidate
+                    ? "bg-court text-ink"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
                 key={candidate}
                 onClick={() => setView(candidate)}
@@ -92,7 +94,7 @@ export function VenueCalendar({
             ))}
           </div>
         ) : (
-          <p className="text-sm font-semibold text-linen">All venue events</p>
+          <p className="text-sm font-semibold text-foreground">All venue events</p>
         )}
         <div aria-label="Event status" className="flex flex-wrap gap-2">
           {FILTERS.map((candidate) => (
@@ -112,13 +114,13 @@ export function VenueCalendar({
 
       {visible.length === 0 ? (
         <p
-          className="mt-8 rounded-[1.375rem] border border-border-dark bg-surface-raised p-6 text-muted-dark"
+          className="mt-8 rounded-[1.375rem] border border-border bg-card p-6 text-muted-foreground"
           role="status"
         >
           No events match this status. Choose another status or plan a future fixture.
         </p>
       ) : surface === "events" || view === "agenda" ? (
-        <ol className="mt-8 divide-y divide-border-dark overflow-hidden rounded-[1.375rem] border border-border-dark bg-surface-raised">
+        <ol className="mt-8 divide-y divide-border-dark overflow-hidden rounded-[1.375rem] border border-border bg-card">
           {visible.map((event) => (
             <CalendarRow event={event} key={event.id} />
           ))}
@@ -126,20 +128,17 @@ export function VenueCalendar({
       ) : (
         <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {groups.map(([day, dayEvents]) => (
-            <section
-              className="rounded-[1.375rem] border border-border-dark bg-surface-raised p-5"
-              key={day}
-            >
+            <section className="rounded-[1.375rem] border border-border bg-card p-5" key={day}>
               <h2 className="text-lg font-semibold">{day}</h2>
               <ol className="mt-4 space-y-2">
                 {dayEvents.map((event) => (
                   <li key={event.id}>
                     <Link
-                      className="block min-h-11 rounded-xl bg-surface-deep p-3 outline-none hover:ring-1 hover:ring-border-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                      className="block min-h-11 rounded-xl bg-muted p-3 outline-none hover:ring-1 hover:ring-border-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                       href={`/events/${event.id}`}
                     >
                       <span className="block font-semibold">{event.title}</span>
-                      <span className="mt-1 block text-sm text-muted-dark">
+                      <span className="mt-1 block text-sm text-muted-foreground">
                         {israelTime(event.startsAt)} · {event.venueSpace?.name ?? "No area"}
                       </span>
                     </Link>
@@ -159,19 +158,19 @@ function CalendarRow({ event }: Readonly<{ event: VenueCalendarEntry }>) {
   return (
     <li>
       <Link
-        className="grid min-h-20 gap-3 p-5 outline-none hover:bg-surface-deep focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+        className="grid min-h-20 gap-3 p-5 outline-none hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
         href={`/events/${event.id}`}
       >
         <span>
           <span className="block font-semibold">{event.title}</span>
-          <span className="mt-1 block text-sm text-muted-dark">
+          <span className="mt-1 block text-sm text-muted-foreground">
             {israelDate(event.startsAt)}, {israelTime(event.startsAt)} ·{" "}
             {event.venueSpace?.name ?? "No area"}
           </span>
         </span>
         <span className="flex items-center gap-3">
           <Badge variant={status === "Full" ? "secondary" : "outline"}>{status}</Badge>
-          <span className="text-sm text-muted-dark">
+          <span className="text-sm text-muted-foreground">
             {event.attendanceMode === "open_door"
               ? "Open door"
               : `${event.approvedAttendeeCount}/${event.capacity}`}

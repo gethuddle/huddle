@@ -3,7 +3,7 @@ import type { ActionResult } from "@/lib/errors";
 
 export type FriendshipActionData = Readonly<{
   message: string;
-  intent: "request" | "accept" | "decline" | "remove";
+  intent: "request" | "accept" | "cancel" | "decline" | "remove";
   targetHandle: string;
   friendship: PublicFriendshipDto | null;
 }>;

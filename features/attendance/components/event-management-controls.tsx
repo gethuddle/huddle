@@ -27,11 +27,16 @@ import {
   revokeEventInvitationAction,
 } from "@/features/attendance/actions";
 import { AttendanceActionFeedback } from "@/features/attendance/components/action-feedback";
+import { EventInviteLinkPanel } from "@/features/attendance/components/event-invite-link-panel";
 import {
   EventInvitationPicker,
   type EventInvitationCandidate,
 } from "@/features/attendance/components/event-invitation-picker";
-import type { EventAttendance, EventInvitation } from "@/features/attendance/queries";
+import type {
+  EventAttendance,
+  EventInvitation,
+  EventInviteLink,
+} from "@/features/attendance/queries";
 import type { AttendanceActionState } from "@/features/attendance/state";
 
 type MutationIntent = "revoke" | "review" | "remove" | "cancel";
@@ -40,16 +45,20 @@ function EventManagementControlsInner({
   attendance,
   attendanceMode,
   candidates,
+  eventAudience,
   eventId,
   eventStatus,
+  inviteLinks,
   invitations,
   remainingCapacity,
 }: Readonly<{
   attendance: EventAttendance[];
   attendanceMode: "open_door" | "reservations";
   candidates: readonly EventInvitationCandidate[];
+  eventAudience?: "public" | "team_followers" | "group" | "friends" | "invite_only";
   eventId: string;
   eventStatus: string;
+  inviteLinks: readonly EventInviteLink[];
   invitations: EventInvitation[];
   remainingCapacity: number;
 }>) {
@@ -77,17 +86,13 @@ function EventManagementControlsInner({
     return (
       <div className="space-y-8">
         <AttendanceActionFeedback state={mutation.data} />
-        <Card>
-          <CardHeader>
-            <h2 className="text-2xl font-semibold text-linen">Open-door event</h2>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm leading-6 text-muted-dark">
-              Fans simply come to the venue. Huddle does not collect invitations, requests,
-              approvals, a guest list, or a capacity count for this event.
-            </p>
-          </CardContent>
-        </Card>
+        <section className="rounded-xl bg-muted px-5 py-4">
+          <h2 className="text-xl font-semibold text-foreground">Open-door event</h2>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            Fans simply come to the venue. Huddle does not collect invitations, requests, approvals,
+            a guest list, or a capacity count for this event.
+          </p>
+        </section>
         {eventStatus === "published" ? (
           <CancelEventControl disabled={mutation.isPending} submit={submit} />
         ) : null}
@@ -101,151 +106,175 @@ function EventManagementControlsInner({
 
       <Card>
         <CardHeader>
-          <h2 className="text-2xl font-semibold text-linen">Invite people</h2>
-          <p className="mt-2 text-sm leading-6 text-muted-dark">
-            Search eligible registered supporters here. Invitations never add guests or plus-ones,
-            and acceptance rechecks capacity and current safety eligibility.
+          <h2 className="text-2xl font-semibold text-foreground">People and attendance</h2>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            Invite people, review requests, and manage the current guest list in one place.
           </p>
         </CardHeader>
-        <CardContent>
-          {eventStatus === "published" ? (
-            <EventInvitationPicker
-              candidates={candidates}
-              eventId={eventId}
-              remainingCapacity={remainingCapacity}
-            />
-          ) : (
-            <p className="text-sm text-muted-dark">Publish the event before inviting people.</p>
-          )}
-        </CardContent>
-      </Card>
+        <CardContent className="divide-y divide-border">
+          {eventAudience === "invite_only" && eventStatus === "published" ? (
+            <EventInviteLinkPanel eventId={eventId} links={inviteLinks} />
+          ) : null}
 
-      <Card>
-        <CardHeader>
-          <h2 className="text-2xl font-semibold text-linen">Invitations</h2>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {invitations.length === 0 ? (
-            <p className="text-sm text-muted-dark">No invitations yet.</p>
-          ) : (
-            invitations.map((invitation) => (
-              <div
-                className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border-dark bg-surface-deep p-4"
-                key={invitation.invitation_id}
-              >
-                <div>
-                  <Link
-                    className="font-semibold text-linen hover:text-court"
-                    href={`/people/${invitation.invitee_handle}`}
-                  >
-                    {invitation.invitee_display_name} · @{invitation.invitee_handle}
-                  </Link>
-                  <div className="mt-2">
-                    <Badge variant="outline">{invitation.status}</Badge>
-                  </div>
-                </div>
-                {invitation.status === "pending" ? (
-                  <Button
-                    disabled={mutation.isPending}
-                    onClick={() => {
-                      const data = new FormData();
-                      data.set("invitationId", invitation.invitation_id);
-                      submit("revoke", data);
-                    }}
-                    type="button"
-                    variant="outline"
-                  >
-                    Revoke pending invite
-                  </Button>
-                ) : null}
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+          <section className="py-6 first:pt-0">
+            <h2 className="text-xl font-semibold text-foreground">Invite a specific person</h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Choose an existing Huddle account. The invitation appears in that person&apos;s Home
+              and My Huddle; nothing is emailed automatically. They still need to accept before a
+              place is reserved.
+            </p>
+            <div className="mt-5">
+              {eventStatus === "published" ? (
+                <EventInvitationPicker
+                  candidates={candidates}
+                  eventId={eventId}
+                  remainingCapacity={remainingCapacity}
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Publish the event before inviting people.
+                </p>
+              )}
+            </div>
+          </section>
 
-      <Card>
-        <CardHeader>
-          <h2 className="text-2xl font-semibold text-linen">Attendance queue</h2>
-          <p className="mt-2 text-sm leading-6 text-muted-dark">
-            These are factual context signals, not a score. Capacity is checked again inside the
-            approval transaction; pending requests do not consume a place.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {attendance.length === 0 ? (
-            <p className="text-sm text-muted-dark">No attendance responses yet.</p>
-          ) : (
-            attendance.map((row) => (
-              <div
-                className="rounded-2xl border border-border-dark bg-surface-deep p-5"
-                key={row.attendance_id}
-              >
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <Link
-                      className="font-semibold text-linen hover:text-court"
-                      href={`/people/${row.requester_handle}`}
-                    >
-                      {row.requester_display_name} · @{row.requester_handle}
-                    </Link>
-                    <p className="mt-1 text-sm text-muted-dark">{row.requester_city_name}</p>
-                  </div>
-                  <Badge variant="outline">{row.status}</Badge>
-                </div>
-                <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-                  <Fact label="Verified" value={row.verified_account ? "Yes" : "No"} />
-                  <Fact label="Account age" value={`${row.account_age_days} days`} />
-                  <Fact label="Mutual friends" value={String(row.mutual_friend_count)} />
-                  <Fact
-                    label="Shared active groups"
-                    value={String(row.shared_active_group_count)}
-                  />
-                  <Fact label="Follows sport" value={yesNo(row.follows_sport)} />
-                  <Fact label="Follows competition" value={yesNo(row.follows_competition)} />
-                  <Fact label="Follows home team" value={yesNo(row.follows_home_team)} />
-                  <Fact label="Follows away team" value={yesNo(row.follows_away_team)} />
-                </dl>
-                {row.status === "requested" && row.review_reason !== null ? (
-                  <p className="mt-4 rounded-xl border border-sand/30 bg-sand/10 p-3 text-sm leading-6 text-sand">
-                    {row.review_reason}
-                  </p>
-                ) : null}
-                <div className="mt-5 flex flex-wrap gap-2">
-                  {row.status === "requested" ? (
-                    <>
-                      {row.can_approve ? (
-                        <DecisionButton
-                          attendanceId={row.attendance_id}
-                          decision="approve"
-                          disabled={mutation.isPending}
-                          submit={submit}
-                        >
-                          Approve
-                        </DecisionButton>
-                      ) : null}
-                      <DecisionButton
-                        attendanceId={row.attendance_id}
-                        decision="decline"
+          <section className="py-6">
+            <h2 className="text-xl font-semibold text-foreground">Invitations</h2>
+            <div className="mt-4 space-y-3">
+              {invitations.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No invitations yet.</p>
+              ) : (
+                invitations.map((invitation) => (
+                  <div
+                    className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-muted p-4"
+                    key={invitation.invitation_id}
+                  >
+                    <div>
+                      <Link
+                        className="font-semibold text-foreground hover:text-forest"
+                        href={`/people/${invitation.invitee_handle}`}
+                      >
+                        {invitation.invitee_display_name} · @{invitation.invitee_handle}
+                      </Link>
+                      <p className="mt-1 text-xs text-muted-foreground">{invitation.status}</p>
+                    </div>
+                    {invitation.status === "pending" ? (
+                      <Button
                         disabled={mutation.isPending}
-                        submit={submit}
+                        onClick={() => {
+                          const data = new FormData();
+                          data.set("invitationId", invitation.invitation_id);
+                          submit("revoke", data);
+                        }}
+                        type="button"
                         variant="outline"
                       >
-                        Decline
-                      </DecisionButton>
-                    </>
-                  ) : null}
-                  {row.status === "approved" ? (
-                    <RemoveAttendeeControl
-                      attendanceId={row.attendance_id}
-                      disabled={mutation.isPending}
-                      submit={submit}
-                    />
-                  ) : null}
-                </div>
-              </div>
-            ))
-          )}
+                        Revoke pending invite
+                      </Button>
+                    ) : null}
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+
+          <section className="py-6">
+            <h2 className="text-xl font-semibold text-foreground">Attendance requests</h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Capacity is checked again when you approve. Pending requests do not take a place.
+            </p>
+            <div className="mt-4 space-y-4">
+              {attendance.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No attendance responses yet.</p>
+              ) : (
+                attendance.map((row) => (
+                  <div
+                    className="rounded-2xl border border-border bg-muted p-5"
+                    key={row.attendance_id}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div>
+                        <Link
+                          className="font-semibold text-foreground hover:text-forest"
+                          href={`/people/${row.requester_handle}`}
+                        >
+                          {row.requester_display_name} · @{row.requester_handle}
+                        </Link>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {row.requester_city_name}
+                        </p>
+                      </div>
+                      <Badge variant="outline">{row.status}</Badge>
+                    </div>
+                    {row.status === "requested" ? (
+                      <details className="mt-4 rounded-xl border border-border bg-card p-4">
+                        <summary className="cursor-pointer font-semibold text-foreground">
+                          Why this request is eligible
+                        </summary>
+                        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                          These are context signals only. They are not a score or identity check.
+                        </p>
+                        <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                          <Fact label="Account age" value={`${row.account_age_days} days`} />
+                          <Fact label="Mutual friends" value={String(row.mutual_friend_count)} />
+                          <Fact
+                            label="Shared groups"
+                            value={String(row.shared_active_group_count)}
+                          />
+                          <Fact label="Follows this sport" value={yesNo(row.follows_sport)} />
+                          <Fact
+                            label="Follows this competition"
+                            value={yesNo(row.follows_competition)}
+                          />
+                          <Fact
+                            label="Follows either team"
+                            value={yesNo(row.follows_home_team || row.follows_away_team)}
+                          />
+                        </dl>
+                      </details>
+                    ) : null}
+                    {row.status === "requested" && row.review_reason !== null ? (
+                      <p className="mt-4 rounded-xl border border-sand/30 bg-sand/10 p-3 text-sm leading-6 text-sand">
+                        {row.review_reason}
+                      </p>
+                    ) : null}
+                    <div className="mt-5 flex flex-wrap gap-2">
+                      {row.status === "requested" ? (
+                        <>
+                          {row.can_approve ? (
+                            <DecisionButton
+                              attendanceId={row.attendance_id}
+                              decision="approve"
+                              disabled={mutation.isPending}
+                              submit={submit}
+                            >
+                              Approve
+                            </DecisionButton>
+                          ) : null}
+                          <DecisionButton
+                            attendanceId={row.attendance_id}
+                            decision="decline"
+                            disabled={mutation.isPending}
+                            submit={submit}
+                            variant="outline"
+                          >
+                            Decline
+                          </DecisionButton>
+                        </>
+                      ) : null}
+                      {row.status === "approved" ? (
+                        <RemoveAttendeeControl
+                          attendanceId={row.attendance_id}
+                          disabled={mutation.isPending}
+                          submit={submit}
+                        />
+                      ) : null}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
         </CardContent>
       </Card>
 
@@ -259,8 +288,8 @@ function EventManagementControlsInner({
 function Fact({ label, value }: Readonly<{ label: string; value: string }>) {
   return (
     <div>
-      <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-dark">{label}</dt>
-      <dd className="mt-1 text-linen">{value}</dd>
+      <dt className="text-sm font-medium text-muted-foreground">{label}</dt>
+      <dd className="mt-1 text-foreground">{value}</dd>
     </div>
   );
 }
@@ -365,14 +394,14 @@ function CancelEventControl({
     setOpen(false);
   }
   return (
-    <Card className="border-destructive/40">
-      <CardHeader>
-        <h2 className="text-xl font-semibold text-linen">Cancel event</h2>
-        <p className="mt-2 text-sm text-muted-dark">
+    <section className="border-t border-border pt-8">
+      <div>
+        <h2 className="text-xl font-semibold text-foreground">Cancel event</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
           Cancellation is final for this listing. Invitation and attendance history remains.
         </p>
-      </CardHeader>
-      <CardContent>
+      </div>
+      <div className="mt-4">
         <AlertDialog onOpenChange={setOpen} open={open}>
           <AlertDialogTrigger asChild>
             <Button disabled={disabled} type="button" variant="destructive">
@@ -401,8 +430,8 @@ function CancelEventControl({
             </form>
           </AlertDialogContent>
         </AlertDialog>
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }
 
@@ -411,8 +440,10 @@ export function EventManagementControls(
     attendance: EventAttendance[];
     attendanceMode?: "open_door" | "reservations";
     candidates?: readonly EventInvitationCandidate[];
+    eventAudience?: "public" | "team_followers" | "group" | "friends" | "invite_only";
     eventId: string;
     eventStatus: string;
+    inviteLinks?: readonly EventInviteLink[];
     invitations: EventInvitation[];
     remainingCapacity?: number;
   }>,
@@ -424,6 +455,7 @@ export function EventManagementControls(
         {...props}
         attendanceMode={props.attendanceMode ?? "reservations"}
         candidates={props.candidates ?? []}
+        inviteLinks={props.inviteLinks ?? []}
         remainingCapacity={props.remainingCapacity ?? 0}
       />
     </QueryClientProvider>

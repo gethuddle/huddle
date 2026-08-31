@@ -10,7 +10,7 @@ export default defineConfig({
   projects: [
     {
       name: "acceptance",
-      testIgnore: /ux-redesign\.spec\.ts/,
+      testIgnore: /(?:ux-redesign|layout-regression)\.spec\.ts/,
     },
     {
       name: "ux-desktop-1280",
@@ -26,6 +26,11 @@ export default defineConfig({
       name: "ux-mobile-375",
       testMatch: /ux-redesign\.spec\.ts/,
       use: { viewport: { width: 375, height: 812 } },
+    },
+    {
+      name: "layout-desktop-1364",
+      testMatch: /layout-regression\.spec\.ts/,
+      use: { viewport: { width: 1364, height: 1440 } },
     },
   ],
   use: {

@@ -4,8 +4,8 @@ import { BrandMark } from "@/components/brand/brand-mark";
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-border-dark">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-5 py-6 text-sm text-muted-dark sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-10">
+    <footer className="border-t border-border">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-5 py-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-10">
         <p className="flex items-center gap-2">
           <BrandMark decorative size={18} tone="linen" />
           <span>Huddle · Israel pilot · One account, one attendee.</span>
@@ -13,7 +13,7 @@ export function SiteFooter() {
         <p>
           Fixtures by{" "}
           <a
-            className="text-linen underline underline-offset-4"
+            className="text-foreground underline underline-offset-4"
             href="https://www.football-data.org/"
             rel="noreferrer"
             target="_blank"
@@ -21,7 +21,7 @@ export function SiteFooter() {
             football-data.org
           </a>
           {" · "}
-          <Link className="text-linen underline underline-offset-4" href="/data-sources">
+          <Link className="text-foreground underline underline-offset-4" href="/data-sources">
             Data sources
           </Link>
         </p>

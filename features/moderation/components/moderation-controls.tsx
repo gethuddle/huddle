@@ -291,7 +291,7 @@ export function ModerationReversalControl({
 
   return (
     <details className="mt-5 rounded-xl border border-border p-4">
-      <summary className="cursor-pointer text-sm font-semibold text-linen">
+      <summary className="cursor-pointer text-sm font-semibold text-foreground">
         Reverse with audit evidence
       </summary>
       <form action={action} className="mt-4 space-y-4" noValidate>

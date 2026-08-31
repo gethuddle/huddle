@@ -17,7 +17,7 @@ export function FixtureFilters({ filters, competitions, teams }: FixtureFiltersP
   return (
     <form
       action="/matches"
-      className="grid gap-4 rounded-[1.375rem] border border-border-dark bg-surface-raised p-5 sm:grid-cols-2 lg:grid-cols-[0.8fr_1fr_1fr_auto] lg:items-end"
+      className="grid gap-4 rounded-[1.375rem] border border-border bg-card p-5 sm:grid-cols-2 lg:grid-cols-[0.8fr_1fr_1fr_auto] lg:items-end"
       method="get"
     >
       <div>

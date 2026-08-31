@@ -18,7 +18,7 @@ export function AppealControl({ moderationActionId }: Readonly<{ moderationActio
 
   return (
     <details className="mt-5 rounded-xl border border-border p-4">
-      <summary className="cursor-pointer text-sm font-semibold text-linen">
+      <summary className="cursor-pointer text-sm font-semibold text-foreground">
         Appeal this action
       </summary>
       <form action={action} className="mt-4 space-y-4" noValidate>
@@ -40,7 +40,7 @@ export function AppealControl({ moderationActionId }: Readonly<{ moderationActio
               {reasonError}
             </p>
           )}
-          <p className="mt-2 text-xs leading-5 text-muted-dark" id={`${fieldId}-help`}>
+          <p className="mt-2 text-xs leading-5 text-muted-foreground" id={`${fieldId}-help`}>
             A different moderator reviews the appeal where practical. One active appeal is allowed
             for each action.
           </p>

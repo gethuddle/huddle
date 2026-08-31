@@ -186,7 +186,10 @@ function parseSaved(value: unknown): readonly SavedItem[] {
     kind: row.kind,
     label: row.label,
     detail: row.detail,
-    href: row.href,
+    href:
+      (row.kind === "team" || row.kind === "competition") && row.href.startsWith("/matches?")
+        ? `/discover?${row.href.slice("/matches?".length)}`
+        : row.href,
     createdAt: row.created_at,
     totalCount: row.total_count,
   }));

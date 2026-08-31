@@ -13,6 +13,7 @@ vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 import { CURRENT_COMMUNITY_RULES_VERSION } from "@/content/community-rules";
 
 import {
+  archiveVenueAction,
   createVenueWorkspaceAction,
   planVenueEventsAction,
   saveVenueSpaceAction,
@@ -252,5 +253,46 @@ describe("Venue workspace actions", () => {
       input_default_requires_approval: true,
       audit_request_id: requestId,
     });
+  });
+
+  it("closes a Venue only after the exact current name is confirmed", async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: true, error: null });
+    mocks.requireActor.mockResolvedValue({ supabase: { rpc } });
+
+    await expect(
+      archiveVenueAction(null, {
+        venueId,
+        venueSlug: "match-corner",
+        venueName: "Match Corner",
+        confirmation: "Match Corner",
+      }),
+    ).resolves.toEqual({
+      ok: true,
+      data: {
+        message: "Venue closed. Future events were cancelled and history was retained.",
+      },
+    });
+
+    expect(mocks.requireActor).toHaveBeenCalledWith({ venueId });
+    expect(rpc).toHaveBeenCalledWith("archive_venue", {
+      input_venue_id: venueId,
+      input_confirmation: "Match Corner",
+      audit_request_id: requestId,
+    });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/", "layout");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/dashboard");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/venues/match-corner");
+  });
+
+  it("does not call the database when the Venue confirmation does not match", async () => {
+    const result = await archiveVenueAction(null, {
+      venueId,
+      venueSlug: "match-corner",
+      venueName: "Match Corner",
+      confirmation: "match corner",
+    });
+
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
+    expect(mocks.requireActor).not.toHaveBeenCalled();
   });
 });

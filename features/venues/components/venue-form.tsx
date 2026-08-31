@@ -44,13 +44,13 @@ export function VenueForm({ mode, catalog, initialValues = EMPTY_VALUES }: Venue
     return (
       <Card className="border-court/30 bg-court/10">
         <CardHeader>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-court">Saved</p>
-          <CardTitle className="mt-2 text-2xl text-linen">
+          <p className="text-sm font-medium text-forest">Saved</p>
+          <CardTitle className="mt-2 text-2xl text-foreground">
             <h2>{mode === "create" ? "Your venue profile is live." : "Venue updated."}</h2>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="leading-7 text-muted-dark">{state.data.message}</p>
+          <p className="leading-7 text-muted-foreground">{state.data.message}</p>
           <p className="mt-3 text-sm font-semibold text-sand">
             Unverified remains visible until a platform moderator changes the status.
           </p>
@@ -103,7 +103,7 @@ export function VenueForm({ mode, catalog, initialValues = EMPTY_VALUES }: Venue
             placeholder="the-match-corner"
             required
           />
-          <span className="mt-2 block text-xs text-muted-dark" id="venue-slug-help">
+          <span className="mt-2 block text-xs text-muted-foreground" id="venue-slug-help">
             Lowercase words separated by hyphens.
           </span>
         </Field>
@@ -142,8 +142,8 @@ export function VenueForm({ mode, catalog, initialValues = EMPTY_VALUES }: Venue
       </div>
 
       <fieldset>
-        <legend className="font-semibold text-linen">Public map coordinate</legend>
-        <p className="mt-1 text-sm leading-6 text-muted-dark">
+        <legend className="font-semibold text-foreground">Public map coordinate</legend>
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">
           Enter the public map point for this venue.
         </p>
         <div className="mt-4 grid gap-5 sm:grid-cols-2">
@@ -260,7 +260,7 @@ function Field({
 }>) {
   return (
     <div>
-      <Label className="text-linen" htmlFor={id}>
+      <Label className="text-foreground" htmlFor={id}>
         {label}
       </Label>
       <div className="mt-2">{children}</div>

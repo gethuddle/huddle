@@ -3,9 +3,7 @@
 import { CircleCheck, CircleDashed } from "lucide-react";
 import { useActionState } from "react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { GroupActionFeedback } from "@/features/groups/components/action-feedback";
@@ -28,21 +26,16 @@ function GateFact({
 }: Readonly<{ complete: boolean; label: string; detail: string }>) {
   const Icon = complete ? CircleCheck : CircleDashed;
   return (
-    <li className="flex gap-3 rounded-xl border border-border-dark bg-surface-deep p-4">
+    <li className="flex gap-3 py-3">
       <Icon
         aria-hidden="true"
         className={
-          complete ? "mt-0.5 size-5 shrink-0 text-court" : "mt-0.5 size-5 shrink-0 text-sand"
+          complete ? "mt-0.5 size-5 shrink-0 text-forest" : "mt-0.5 size-5 shrink-0 text-sand"
         }
       />
       <div>
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="font-semibold text-linen">{label}</p>
-          <Badge variant={complete ? "default" : "secondary"}>
-            {complete ? "Completed" : "Incomplete"}
-          </Badge>
-        </div>
-        <p className="mt-1 text-sm leading-6 text-muted-dark">{detail}</p>
+        <p className="font-semibold text-foreground">{label}</p>
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">{detail}</p>
       </div>
     </li>
   );
@@ -60,41 +53,31 @@ export function GroupDiscoveryProgress({
     INITIAL_GROUP_MEMBERSHIP_ACTION_STATE,
   );
 
-  const statusLabel =
-    visibility === "unlisted"
-      ? "Invitation only"
-      : progress.gateSatisfied
-        ? "Visible in search"
-        : "Description needed";
-
   return (
-    <Card className="mt-10 border-court/25 bg-court/5">
-      <CardHeader className="gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-court">
-            Search visibility
-          </p>
-          <CardTitle className="mt-2 text-2xl text-linen">
-            Help supporters find this group
-          </CardTitle>
-        </div>
-        <Badge variant={progress.gateSatisfied ? "default" : "secondary"}>{statusLabel}</Badge>
-      </CardHeader>
-      <CardContent>
+    <details
+      className="mt-8 rounded-xl border border-border bg-card px-5 py-4"
+      open={!progress.gateSatisfied}
+    >
+      <summary className="cursor-pointer font-semibold text-foreground">
+        {progress.gateSatisfied
+          ? "Search and setup details"
+          : "Finish making this group searchable"}
+      </summary>
+      <div className="mt-5 border-t border-border pt-5">
         {visibility === "unlisted" ? (
-          <p className="mb-5 max-w-3xl text-sm leading-6 text-muted-dark">
-            This group will not appear in search. These setup tasks still make it ready for invited
-            supporters.
+          <p className="mb-5 max-w-3xl text-sm leading-6 text-muted-foreground">
+            This group will not appear in search. These setup tasks still make it ready for the
+            people you invite.
           </p>
         ) : null}
-        <p className="mb-5 max-w-3xl text-sm leading-6 text-muted-dark">
+        <p className="mb-5 max-w-3xl text-sm leading-6 text-muted-foreground">
           Add a clear description and keep an active owner. Members, rules, and events are optional
           and never block search.
         </p>
-        <ul className="grid gap-3 md:grid-cols-2">
+        <ul className="grid divide-y divide-border md:grid-cols-2 md:divide-x md:divide-y-0">
           <GateFact
             complete={progress.hasDescription}
-            detail="Tell supporters who the group is for."
+            detail="Tell people who the group is for."
             label={progress.hasDescription ? "Description added" : "Add a short description"}
           />
           <GateFact
@@ -114,17 +97,19 @@ export function GroupDiscoveryProgress({
             id="group-discovery-description"
             maxLength={2000}
             name="description"
-            placeholder="What brings this supporter group together?"
+            placeholder="What brings this group together?"
           />
           <div className="flex flex-wrap items-center gap-3">
             <Button disabled={pending} type="submit">
               {pending ? "Saving…" : "Save description"}
             </Button>
-            <span className="text-xs text-muted-dark">Plain text · up to 2,000 characters</span>
+            <span className="text-xs text-muted-foreground">
+              Plain text · up to 2,000 characters
+            </span>
           </div>
           <GroupActionFeedback state={state} />
         </form>
-      </CardContent>
-    </Card>
+      </div>
+    </details>
   );
 }

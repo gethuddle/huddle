@@ -318,6 +318,7 @@ export type Database = {
           created_at: string
           event_id: string
           id: string
+          invite_token_id: string | null
           invited_by: string
           invitee_id: string
           responded_at: string | null
@@ -328,6 +329,7 @@ export type Database = {
           created_at?: string
           event_id: string
           id?: string
+          invite_token_id?: string | null
           invited_by: string
           invitee_id: string
           responded_at?: string | null
@@ -338,6 +340,7 @@ export type Database = {
           created_at?: string
           event_id?: string
           id?: string
+          invite_token_id?: string | null
           invited_by?: string
           invitee_id?: string
           responded_at?: string | null
@@ -353,6 +356,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "event_invitations_invite_token_id_fkey"
+            columns: ["invite_token_id"]
+            isOneToOne: false
+            referencedRelation: "event_invite_tokens"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "event_invitations_invited_by_fkey"
             columns: ["invited_by"]
             isOneToOne: false
@@ -362,6 +372,70 @@ export type Database = {
           {
             foreignKeyName: "event_invitations_invitee_id_fkey"
             columns: ["invitee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_invite_tokens: {
+        Row: {
+          created_at: string
+          created_by: string
+          event_id: string
+          expires_at: string
+          id: string
+          max_uses: number
+          revoked_at: string | null
+          revoked_by: string | null
+          token_hash: string
+          updated_at: string
+          use_count: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          event_id: string
+          expires_at: string
+          id?: string
+          max_uses: number
+          revoked_at?: string | null
+          revoked_by?: string | null
+          token_hash: string
+          updated_at?: string
+          use_count?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          event_id?: string
+          expires_at?: string
+          id?: string
+          max_uses?: number
+          revoked_at?: string | null
+          revoked_by?: string | null
+          token_hash?: string
+          updated_at?: string
+          use_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_invite_tokens_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_invite_tokens_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_invite_tokens_revoked_by_fkey"
+            columns: ["revoked_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -1855,6 +1929,8 @@ export type Database = {
       venues: {
         Row: {
           address_text: string
+          archived_at: string | null
+          archived_by: string | null
           business_representation_attested_at: string | null
           business_representation_attested_by: string | null
           city_id: string
@@ -1877,6 +1953,8 @@ export type Database = {
         }
         Insert: {
           address_text: string
+          archived_at?: string | null
+          archived_by?: string | null
           business_representation_attested_at?: string | null
           business_representation_attested_by?: string | null
           city_id: string
@@ -1899,6 +1977,8 @@ export type Database = {
         }
         Update: {
           address_text?: string
+          archived_at?: string | null
+          archived_by?: string | null
           business_representation_attested_at?: string | null
           business_representation_attested_by?: string | null
           city_id?: string
@@ -1920,6 +2000,13 @@ export type Database = {
           verification_status?: Database["public"]["Enums"]["venue_verification_status"]
         }
         Relationships: [
+          {
+            foreignKeyName: "venues_archived_by_fkey"
+            columns: ["archived_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "venues_business_representation_attested_by_fkey"
             columns: ["business_representation_attested_by"]
@@ -2021,6 +2108,14 @@ export type Database = {
       }
       archive_group: {
         Args: { audit_request_id?: string; input_group_id: string }
+        Returns: boolean
+      }
+      archive_venue: {
+        Args: {
+          audit_request_id?: string
+          input_confirmation: string
+          input_venue_id: string
+        }
         Returns: boolean
       }
       assign_report: {
@@ -2143,6 +2238,22 @@ export type Database = {
           event_id: string
           invitation_id: string
           status: string
+        }[]
+      }
+      create_event_invite_token: {
+        Args: {
+          audit_request_id?: string
+          input_event_id: string
+          input_expires_at: string
+          input_max_uses: number
+        }
+        Returns: {
+          created_at: string
+          expires_at: string
+          invite_token: string
+          invite_token_id: string
+          max_uses: number
+          use_count: number
         }[]
       }
       create_group: {
@@ -2814,6 +2925,19 @@ export type Database = {
           total_count: number
         }[]
       }
+      list_event_invite_tokens: {
+        Args: { input_event_id: string }
+        Returns: {
+          created_at: string
+          creator_handle: string
+          expires_at: string
+          invite_status: string
+          invite_token_id: string
+          max_uses: number
+          revoked_at: string
+          use_count: number
+        }[]
+      }
       list_friendships: {
         Args: {
           input_bucket: string
@@ -2889,6 +3013,8 @@ export type Database = {
           audience: string
           audience_group_name: string
           away_team_name: string
+          can_review: boolean
+          can_withdraw: boolean
           competition_name: string
           event_id: string
           home_team_name: string
@@ -3321,6 +3447,14 @@ export type Database = {
         Args: { audit_request_id: string }
         Returns: undefined
       }
+      redeem_event_invite_token: {
+        Args: { audit_request_id?: string; input_invite_token: string }
+        Returns: {
+          event_id: string
+          invitation_id: string
+          invitation_status: string
+        }[]
+      }
       remove_attendee: {
         Args: {
           audit_request_id?: string
@@ -3444,6 +3578,10 @@ export type Database = {
       }
       revoke_event_invitation: {
         Args: { audit_request_id?: string; input_invitation_id: string }
+        Returns: boolean
+      }
+      revoke_event_invite_token: {
+        Args: { audit_request_id?: string; input_invite_token_id: string }
         Returns: boolean
       }
       revoke_group_invite: {
@@ -3698,6 +3836,10 @@ export type Database = {
         }[]
       }
       viewer_is_platform_moderator: { Args: never; Returns: boolean }
+      withdraw_group_event_submission: {
+        Args: { audit_request_id?: string; input_event_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       appeal_status: "open" | "reviewing" | "upheld" | "modified" | "reversed"

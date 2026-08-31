@@ -67,6 +67,58 @@ describe("FriendshipControl", () => {
     expect(screen.getByRole("button", { name: "Remove friend" })).toBeVisible();
   });
 
+  it("cancels an outgoing request and returns to the add-friend state", async () => {
+    mocks.updateFriendshipAction.mockResolvedValue({
+      ok: true,
+      data: {
+        message: "Friend request cancelled.",
+        intent: "remove",
+        targetHandle: "fan_two",
+        friendship: null,
+      },
+    });
+    const user = userEvent.setup();
+    render(
+      <FriendshipControl
+        initialFriendship={{ id: friendshipId, status: "pending", direction: "outgoing" }}
+        targetHandle="fan_two"
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Cancel request" }));
+
+    await waitFor(() => expect(mocks.updateFriendshipAction).toHaveBeenCalledOnce());
+    expect(screen.getByRole("button", { name: "Add friend" })).toBeVisible();
+    const submitted = mocks.updateFriendshipAction.mock.calls[0]?.[1] as FormData;
+    expect(submitted.get("intent")).toBe("cancel");
+    expect(submitted.get("friendshipId")).toBe(friendshipId);
+  });
+
+  it("declines an incoming request without leaving friendship residue", async () => {
+    mocks.updateFriendshipAction.mockResolvedValue({
+      ok: true,
+      data: {
+        message: "Friend request declined.",
+        intent: "decline",
+        targetHandle: "fan_two",
+        friendship: null,
+      },
+    });
+    const user = userEvent.setup();
+    render(
+      <FriendshipControl
+        initialFriendship={{ id: friendshipId, status: "pending", direction: "incoming" }}
+        targetHandle="fan_two"
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Decline" }));
+
+    await waitFor(() => expect(mocks.updateFriendshipAction).toHaveBeenCalledOnce());
+    expect(screen.getByRole("button", { name: "Add friend" })).toBeVisible();
+    expect(screen.queryByText(/sent you a friend request/i)).not.toBeInTheDocument();
+  });
+
   it("does not offer a request while the viewer's own block is active", () => {
     render(
       <FriendshipControl disabledByOwnBlock initialFriendship={null} targetHandle="fan_two" />,

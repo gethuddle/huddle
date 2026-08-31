@@ -108,7 +108,7 @@ describe("listMyGroupsForViewer", () => {
     ).resolves.toMatchObject({
       events: [{ id: eventId, bucket: "upcoming", relationshipLabel: "You are going" }],
       groups: [{ id: groupId, role: "owner" }],
-      saved: [{ id: teamId, kind: "team" }],
+      saved: [{ id: teamId, kind: "team", href: `/discover?team=${teamId}` }],
       pages: { events: 2, groups: 1, saved: 1 },
     });
 

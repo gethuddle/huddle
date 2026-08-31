@@ -67,7 +67,14 @@ export function EventReviewStep({
             }
           />
           <Detail label="Capacity" value={String(values.capacity ?? "Not set")} />
-          <Detail label="Organized by" value={organizer?.name ?? "You"} />
+          <Detail
+            label="Organized by"
+            value={
+              values.audience === "group"
+                ? (group?.name ?? "Group not selected")
+                : (organizer?.name ?? "You")
+            }
+          />
         </dl>
         <p className="mt-5 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
           {values.description}

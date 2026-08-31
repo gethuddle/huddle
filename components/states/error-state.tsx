@@ -18,17 +18,15 @@ export function ErrorState({ title, description, onRetry, reference }: ErrorStat
       role="alert"
     >
       <CardHeader>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sand">
-          Unable to continue
-        </p>
-        <CardTitle className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-linen">
+        <p className="text-sm font-medium text-sand">Unable to continue</p>
+        <CardTitle className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-foreground">
           <h1 id="error-state-title">{title}</h1>
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="mx-auto max-w-xl leading-7 text-muted-dark">{description}</p>
+        <p className="mx-auto max-w-xl leading-7 text-muted-foreground">{description}</p>
         {reference === undefined ? null : (
-          <p className="mt-4 text-xs text-muted-dark">Reference: {reference}</p>
+          <p className="mt-4 text-xs text-muted-foreground">Reference: {reference}</p>
         )}
         {onRetry === undefined ? null : (
           <Button className="mt-7" onClick={onRetry} size="lg" type="button">

@@ -40,9 +40,11 @@ describe("ManageEventPage pagination", () => {
       id: eventId,
       title: "Bounded event",
       status: "published",
+      audience: "friends",
       attendanceMode: "reservations",
       remainingCapacity: 12,
       canManage: true,
+      host: { kind: "person" },
     });
     mocks.listEventAttendance.mockResolvedValue([]);
     mocks.listEventInvitations.mockResolvedValue([]);
@@ -107,9 +109,11 @@ describe("ManageEventPage pagination", () => {
       id: eventId,
       title: "Walk-in match",
       status: "published",
+      audience: "public",
       attendanceMode: "open_door",
       remainingCapacity: null,
       canManage: true,
+      host: { kind: "venue" },
     });
 
     render(

@@ -25,8 +25,8 @@ export function FormFeedback({ state }: Readonly<{ state: AuthActionState }>) {
 
   if (state.ok) {
     return (
-      <Alert className="border-court/30 bg-court/10 text-court-hover" role="status">
-        <AlertDescription className="text-court-hover">{state.data.message}</AlertDescription>
+      <Alert className="border-court/30 bg-court/10 text-forest-hover" role="status">
+        <AlertDescription className="text-forest-hover">{state.data.message}</AlertDescription>
       </Alert>
     );
   }

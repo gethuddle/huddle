@@ -2,19 +2,19 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { EmptyState } from "@/components/states/empty-state";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { listMyGroupsForViewer } from "@/features/dashboard/queries";
 import { getDiscoveryCatalog } from "@/features/discovery/catalog";
+import { ExploreTabs } from "@/features/discovery/components/explore-tabs";
 import { GroupCard } from "@/features/groups/components/group-card";
 import { GroupSearchFilters } from "@/features/groups/components/group-search-filters";
 import { getGroupSearchPage } from "@/features/groups/search";
 import { groupSearchParams, parseGroupSearchFilters } from "@/features/groups/search-schemas";
 
 export const metadata: Metadata = {
-  title: "Supporter groups — Huddle",
-  description: "Find active, discoverable supporter groups by name, city, or team.",
+  title: "Groups — Huddle",
+  description: "Find active, discoverable groups by name, city, or team.",
 };
 
 type GroupsPageProps = Readonly<{
@@ -31,27 +31,16 @@ export default async function GroupsPage({ searchParams }: GroupsPageProps) {
 
   return (
     <section className="py-12 sm:py-16">
-      <nav aria-label="Explore" className="mb-8 flex flex-wrap justify-center gap-2">
-        <Button asChild size="sm" variant="outline">
-          <Link href="/discover">Watch events</Link>
-        </Button>
-        <Button asChild size="sm">
-          <Link aria-current="page" href="/groups">
-            Supporter groups
-          </Link>
-        </Button>
-      </nav>
+      <ExploreTabs current="groups" />
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-court">
-            Find your people
-          </p>
-          <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-[-0.05em] text-linen sm:text-6xl">
-            Support together, beyond match day.
+          <p className="text-sm font-medium text-forest">Find your people</p>
+          <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-[-0.05em] text-foreground sm:text-4xl">
+            Find a group that fits.
           </h1>
-          <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-dark">
-            Search supporter groups by name, city, or team. Unlisted groups stay out of these
-            results.
+          <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
+            Search groups by name or city, and narrow by team when a group follows one. Unlisted
+            groups stay out of these results.
           </p>
         </div>
         <Button asChild>
@@ -60,19 +49,14 @@ export default async function GroupsPage({ searchParams }: GroupsPageProps) {
       </div>
 
       {myGroups.length > 0 ? (
-        <section
-          aria-labelledby="my-groups-heading"
-          className="mt-10 rounded-[2rem] border border-court/30 bg-court/5 p-6 sm:p-8"
-        >
+        <section aria-labelledby="my-groups-heading" className="mt-10 border-t border-border pt-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-court">
-                Your groups
-              </p>
-              <h2 className="mt-2 text-2xl font-semibold text-linen" id="my-groups-heading">
+              <p className="text-sm font-medium text-forest">Your groups</p>
+              <h2 className="mt-2 text-2xl font-semibold text-foreground" id="my-groups-heading">
                 Pick up where you left off
               </h2>
-              <p className="mt-2 text-sm text-muted-dark">
+              <p className="mt-2 text-sm text-muted-foreground">
                 Groups you are setting up and unlisted groups appear here even though they stay out
                 of public search.
               </p>
@@ -85,25 +69,23 @@ export default async function GroupsPage({ searchParams }: GroupsPageProps) {
             {myGroups.map((group) => (
               <Card className="h-full" key={group.group_id} size="sm">
                 <CardHeader>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge>{group.member_role}</Badge>
-                    <Badge variant="outline">{group.visibility}</Badge>
-                    <Badge variant="outline">
-                      {group.lifecycle === "active" ? "Ready" : "Setting up"}
-                    </Badge>
-                  </div>
-                  <h3 className="mt-2 text-xl font-semibold text-linen">{group.name}</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {group.member_role} ·{" "}
+                    {group.visibility === "unlisted" ? "Private" : "Discoverable"} ·{" "}
+                    {group.lifecycle === "active" ? "Ready" : "Setting up"}
+                  </p>
+                  <h3 className="mt-2 text-xl font-semibold text-foreground">{group.name}</h3>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-dark">
+                  <p className="text-sm text-muted-foreground">
                     {group.city_name} · {group.active_member_count} active members
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <Button asChild size="sm">
+                    <Button asChild size="sm" variant="outline">
                       <Link href={`/groups/${group.slug}`}>Open group</Link>
                     </Button>
                     {group.can_manage ? (
-                      <Button asChild size="sm" variant="outline">
+                      <Button asChild size="sm" variant="ghost">
                         <Link href={`/groups/${group.slug}/manage`}>Manage</Link>
                       </Button>
                     ) : null}
@@ -135,10 +117,8 @@ export default async function GroupsPage({ searchParams }: GroupsPageProps) {
           <>
             <div className="mt-10 flex items-end justify-between gap-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-dark">
-                  Active and discoverable
-                </p>
-                <h2 className="mt-2 text-2xl font-semibold text-linen">Supporter groups</h2>
+                <p className="text-sm font-medium text-muted-foreground">Active and discoverable</p>
+                <h2 className="mt-2 text-2xl font-semibold text-foreground">Groups</h2>
               </div>
             </div>
             <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -148,7 +128,7 @@ export default async function GroupsPage({ searchParams }: GroupsPageProps) {
             </div>
             <div className="mt-8 flex justify-end">
               {page.nextCursor === null ? (
-                <p className="text-sm text-muted-dark">You reached the end of the list.</p>
+                <p className="text-sm text-muted-foreground">You reached the end of the list.</p>
               ) : (
                 <Button asChild variant="outline">
                   <Link href={`/groups?${groupSearchParams(filters, page.nextCursor)}`}>

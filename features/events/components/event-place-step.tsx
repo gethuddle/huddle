@@ -213,7 +213,7 @@ export function EventPlaceStep({
         <div className="grid gap-3 sm:grid-cols-3">
           <Choice
             checked={audience === "invite_only"}
-            description="Only people you invite directly."
+            description="Only people you invite by name or secure link. It stays out of Explore."
             label="Invite only"
             name="audience"
             onChange={() => onValuesChange({ audience: "invite_only", audienceGroupId: null })}
@@ -223,7 +223,7 @@ export function EventPlaceStep({
             checked={audience === "friends"}
             description={
               catalog.acceptedFriendCount > 0
-                ? "Accepted direct friends."
+                ? "Appears in Explore only to your accepted friends."
                 : "Add a first friend before choosing this audience."
             }
             disabled={catalog.acceptedFriendCount === 0}
@@ -234,11 +234,14 @@ export function EventPlaceStep({
           />
           <Choice
             checked={audience === "group"}
-            description="Active members of one supporter group."
+            description="Appears in Explore only to active members of one group."
             disabled={catalog.groups.length === 0}
-            label="Supporter group"
+            label="Group"
             name="audience"
-            onChange={() => onValuesChange({ audience: "group" })}
+            onChange={() => {
+              onValuesChange({ audience: "group" });
+              onOrganizingGroupChange(values.audienceGroupId ?? null);
+            }}
             value="group"
           />
         </div>
@@ -253,9 +256,11 @@ export function EventPlaceStep({
         <Field id="event-audience-group" label="Audience group">
           <NativeSelect
             id="event-audience-group"
-            onChange={(event) =>
-              onValuesChange({ audienceGroupId: event.currentTarget.value || null })
-            }
+            onChange={(event) => {
+              const groupId = event.currentTarget.value || null;
+              onValuesChange({ audienceGroupId: groupId });
+              onOrganizingGroupChange(groupId);
+            }}
             required
             value={values.audienceGroupId ?? ""}
           >
@@ -269,20 +274,33 @@ export function EventPlaceStep({
         </Field>
       ) : null}
 
-      <Field id="event-organizer" label="Organizing group (optional)">
-        <NativeSelect
-          id="event-organizer"
-          onChange={(event) => onOrganizingGroupChange(event.currentTarget.value || null)}
-          value={organizingGroupId ?? ""}
-        >
-          <NativeSelectOption value="">No organizing group</NativeSelectOption>
-          {catalog.groups.map((group) => (
-            <NativeSelectOption key={group.id} value={group.id}>
-              {group.name}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-      </Field>
+      {audience === "group" || catalog.groups.length === 0 ? null : (
+        <details className="rounded-2xl border border-border p-4">
+          <summary className="cursor-pointer font-semibold text-foreground">
+            Submit through a group (optional)
+          </summary>
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">
+            Use this only when the event should belong to one of your groups. Another owner or admin
+            reviews it before it is published.
+          </p>
+          <div className="mt-4">
+            <Field id="event-organizer" label="Group">
+              <NativeSelect
+                id="event-organizer"
+                onChange={(event) => onOrganizingGroupChange(event.currentTarget.value || null)}
+                value={organizingGroupId ?? ""}
+              >
+                <NativeSelectOption value="">Not a group event</NativeSelectOption>
+                {catalog.groups.map((group) => (
+                  <NativeSelectOption key={group.id} value={group.id}>
+                    {group.name}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </Field>
+          </div>
+        </details>
+      )}
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field id="event-capacity" label="Maximum people">

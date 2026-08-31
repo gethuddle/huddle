@@ -95,36 +95,30 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
 
   return (
     <section className="mx-auto my-12 w-full max-w-4xl sm:my-20">
-      <div className="overflow-hidden rounded-[2rem] border border-border-dark bg-surface-raised shadow-2xl shadow-black/20">
+      <div className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-none">
         <div className="h-2 bg-court" />
         <div className="grid gap-10 p-7 sm:p-10 lg:grid-cols-[1fr_18rem]">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-court">
-              Huddle community
-            </p>
-            <h1 className="mt-4 text-4xl font-semibold tracking-[-0.045em] text-linen sm:text-5xl">
+            <p className="text-sm font-medium text-forest">Huddle community</p>
+            <h1 className="mt-4 text-4xl font-semibold tracking-[-0.045em] text-foreground sm:text-4xl">
               {profile.displayName}
             </h1>
-            <p className="mt-2 text-lg text-muted-dark">@{profile.handle}</p>
+            <p className="mt-2 text-lg text-muted-foreground">@{profile.handle}</p>
 
-            <dl className="mt-8 grid gap-5 border-y border-border-dark py-6 sm:grid-cols-2">
+            <dl className="mt-8 grid gap-5 border-y border-border py-6 sm:grid-cols-2">
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-dark">
-                  City
-                </dt>
-                <dd className="mt-2 font-semibold text-linen">{profile.cityName}</dd>
+                <dt className="text-sm font-medium text-muted-foreground">City</dt>
+                <dd className="mt-2 font-semibold text-foreground">{profile.cityName}</dd>
               </div>
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-dark">
-                  Member since
-                </dt>
-                <dd className="mt-2 font-semibold text-linen">{memberSince}</dd>
+                <dt className="text-sm font-medium text-muted-foreground">Member since</dt>
+                <dd className="mt-2 font-semibold text-foreground">{memberSince}</dd>
               </div>
             </dl>
 
             <div className="mt-7">
-              <h2 className="text-sm font-semibold text-linen">About</h2>
-              <p className="mt-3 whitespace-pre-wrap leading-7 text-muted-dark">
+              <h2 className="text-sm font-semibold text-foreground">About</h2>
+              <p className="mt-3 whitespace-pre-wrap leading-7 text-muted-foreground">
                 {profile.bio ?? "No bio added yet."}
               </p>
             </div>
@@ -137,7 +131,7 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
               viewerHasBlocked={profile.viewerHasBlocked}
               viewerState={viewerState}
             />
-            <p className="mt-4 px-1 text-xs leading-5 text-muted-dark">
+            <p className="mt-4 px-1 text-xs leading-5 text-muted-foreground">
               Public profiles never include email, private memberships, or attendance history.
             </p>
             {viewerState === "self" ? null : (

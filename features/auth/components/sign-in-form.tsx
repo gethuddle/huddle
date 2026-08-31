@@ -9,7 +9,7 @@ import { signInAction } from "@/features/auth/actions";
 import { FieldError, FormFeedback } from "@/features/auth/components/form-feedback";
 import { INITIAL_AUTH_ACTION_STATE } from "@/features/auth/state";
 
-export function SignInForm() {
+export function SignInForm({ nextPath = null }: Readonly<{ nextPath?: string | null }>) {
   const [state, formAction, pending] = useActionState(signInAction, INITIAL_AUTH_ACTION_STATE);
   const fieldErrors = state?.ok === false ? state.error.fields : undefined;
 
@@ -22,8 +22,9 @@ export function SignInForm() {
 
   return (
     <form action={formAction} className="space-y-5" noValidate>
+      {nextPath === null ? null : <input name="next" type="hidden" value={nextPath} />}
       <div>
-        <Label className="text-linen" htmlFor="sign-in-email">
+        <Label className="text-foreground" htmlFor="sign-in-email">
           Email address
         </Label>
         <Input
@@ -42,7 +43,7 @@ export function SignInForm() {
       </div>
 
       <div>
-        <Label className="text-linen" htmlFor="sign-in-password">
+        <Label className="text-foreground" htmlFor="sign-in-password">
           Password
         </Label>
         <Input

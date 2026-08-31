@@ -145,7 +145,7 @@ export default async function PeoplePage({ searchParams }: PeoplePageProps) {
         <ProfileAccessState
           actionHref="/auth/sign-in"
           actionLabel="Sign in"
-          description="People is available to verified Huddle members."
+          description="People is available after you sign in and complete your Fan profile."
           eyebrow="Sign in required"
           title="Sign in to find people."
         />
@@ -187,11 +187,11 @@ export default async function PeoplePage({ searchParams }: PeoplePageProps) {
   return (
     <section className="py-12 sm:py-16">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-court">Community</p>
-        <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-linen sm:text-5xl">
+        <p className="text-sm font-medium text-forest">Community</p>
+        <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-foreground sm:text-4xl">
           People
         </h1>
-        <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-dark">
+        <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
           Find someone by name, discover a useful connection, and handle requests without leaving
           this page.
         </p>
@@ -199,7 +199,7 @@ export default async function PeoplePage({ searchParams }: PeoplePageProps) {
 
       <form
         action="/people"
-        className="mt-10 rounded-[1.375rem] border border-border-dark bg-surface-raised p-5"
+        className="mt-10 rounded-[1.375rem] border border-border bg-card p-5"
         method="get"
       >
         <Label htmlFor="people-query">Name or Huddle handle</Label>
@@ -225,7 +225,7 @@ export default async function PeoplePage({ searchParams }: PeoplePageProps) {
         {attemptedQuery.length > 0 && !parsedSearch.success ? (
           <p className="mt-3 text-sm text-sand">Enter at least two characters.</p>
         ) : (
-          <p className="mt-3 text-xs text-muted-dark">
+          <p className="mt-3 text-xs text-muted-foreground">
             Two characters search handle prefixes. For display names, every word must contain at
             least three letters or numbers.
           </p>
@@ -305,17 +305,17 @@ function PeopleSection({
 }>) {
   const id = `people-${bucket}`;
   return (
-    <section aria-labelledby={id} className="border-t border-border-dark py-10">
+    <section aria-labelledby={id} className="border-t border-border py-10">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <h2 className="text-2xl font-semibold text-linen" id={id}>
+        <h2 className="text-2xl font-semibold text-foreground" id={id}>
           {title}
         </h2>
-        <p className="text-sm text-muted-dark">
+        <p className="text-sm text-muted-foreground">
           {page.totalCount} {page.totalCount === 1 ? "person" : "people"}
         </p>
       </div>
       {page.hasMoreBeyondWindow ? (
-        <p className="mt-2 text-sm text-muted-dark">
+        <p className="mt-2 text-sm text-muted-foreground">
           Showing the first {page.totalCount.toLocaleString("en-US")} people. Refine your search or
           filters to narrow the list.
         </p>
@@ -324,7 +324,7 @@ function PeopleSection({
       {items.length === 0 ? (
         <Card className="mt-5 border-dashed" size="sm">
           <CardContent>
-            <p className="text-sm leading-6 text-muted-dark">{emptyCopy(bucket)}</p>
+            <p className="text-sm leading-6 text-muted-foreground">{emptyCopy(bucket)}</p>
           </CardContent>
         </Card>
       ) : (
@@ -335,16 +335,16 @@ function PeopleSection({
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <Link
-                      className="inline-flex min-h-11 items-center text-lg font-semibold text-linen hover:text-court"
+                      className="inline-flex min-h-11 items-center text-lg font-semibold text-foreground hover:text-forest"
                       href={`/people/${person.handle}`}
                     >
                       {person.displayName}
                     </Link>
                     <Badge variant="outline">{person.cityName}</Badge>
                   </div>
-                  <p className="mt-1 text-sm text-muted-dark">@{person.handle}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">@{person.handle}</p>
                   {person.reason === null ? null : (
-                    <p className="mt-3 text-sm text-muted-dark">{person.reason}</p>
+                    <p className="mt-3 text-sm text-muted-foreground">{person.reason}</p>
                   )}
                 </div>
                 <FriendshipControl
@@ -395,7 +395,7 @@ function PeoplePagination({
           <PaginationPrevious href={page.page <= 1 ? undefined : href(page.page - 1)} />
         </PaginationItem>
         <PaginationItem>
-          <span className="px-4 text-sm text-muted-dark">
+          <span className="px-4 text-sm text-muted-foreground">
             Page {page.page} of {page.pageCount}
           </span>
         </PaginationItem>

@@ -50,11 +50,11 @@ export default async function GroupManagementPage({
     <section className="py-12 sm:py-16">
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div>
-          <p className="text-sm font-semibold text-court">Group settings</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-linen sm:text-5xl">
+          <p className="text-sm font-semibold text-forest">Group settings</p>
+          <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-foreground sm:text-4xl">
             {settings.group.name}
           </h1>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-muted-dark">
+          <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">
             Keep members, rules, and sharing choices in one place. New applications and event
             submissions stay on the group overview where they can be handled in context.
           </p>
@@ -112,7 +112,7 @@ export default async function GroupManagementPage({
 
       {settings.bans.items.length === 0 ? null : (
         <SettingsSection id="bans" title="Bans">
-          <p className="mb-5 text-sm leading-6 text-muted-dark">
+          <p className="mb-5 text-sm leading-6 text-muted-foreground">
             Bans are explicit safety state. Revoking one does not restore membership; the supporter
             must apply again.
           </p>
@@ -130,7 +130,7 @@ export default async function GroupManagementPage({
       {settings.group.viewerRole === "owner" ? (
         <SettingsSection id="delete-group" title="Delete group">
           <div className="rounded-2xl border border-destructive/35 bg-destructive/5 p-5">
-            <p className="max-w-3xl text-sm leading-6 text-muted-dark">
+            <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
               Delete this group when it should no longer appear or accept activity. Upcoming events
               and usable invite links will close; Huddle retains historical safety records.
             </p>
@@ -155,7 +155,7 @@ function SettingsSection({
 }: Readonly<{ children: React.ReactNode; id: string; title: string }>) {
   return (
     <section aria-labelledby={`${id}-heading`} className="mt-10 scroll-mt-24" id={id}>
-      <h2 className="text-2xl font-semibold text-linen" id={`${id}-heading`}>
+      <h2 className="text-2xl font-semibold text-foreground" id={`${id}-heading`}>
         {title}
       </h2>
       <div className="mt-5">{children}</div>
@@ -178,10 +178,10 @@ function MemberSettings({ settings }: Readonly<{ settings: GroupSettings }>) {
             key={member.userId}
           >
             <div>
-              <Link className="font-semibold text-linen" href={`/people/${member.handle}`}>
+              <Link className="font-semibold text-foreground" href={`/people/${member.handle}`}>
                 {member.displayName}
               </Link>
-              <p className="mt-1 text-sm text-muted-dark">
+              <p className="mt-1 text-sm text-muted-foreground">
                 @{member.handle} · member since {formatDate(member.memberSince)}
               </p>
               <Badge className="mt-2" variant="outline">
@@ -221,7 +221,7 @@ function RuleSettings({ settings }: Readonly<{ settings: GroupSettings }>) {
     <div className="space-y-5">
       <RuleCreateControl groupId={settings.group.id} groupSlug={settings.group.slug} />
       {settings.rules.length === 0 ? (
-        <p className="rounded-xl border border-border p-4 text-sm text-muted-dark">
+        <p className="rounded-xl border border-border p-4 text-sm text-muted-foreground">
           Add one clear rule for members and applicants.
         </p>
       ) : (
@@ -277,13 +277,13 @@ function BanSettings({ settings }: Readonly<{ settings: GroupSettings }>) {
           key={ban.userId}
         >
           <div>
-            <Link className="font-semibold text-linen" href={`/people/${ban.handle}`}>
+            <Link className="font-semibold text-foreground" href={`/people/${ban.handle}`}>
               {ban.displayName}
             </Link>
-            <p className="mt-1 text-sm text-muted-dark">
+            <p className="mt-1 text-sm text-muted-foreground">
               @{ban.handle} · banned {formatDate(ban.bannedAt)}
             </p>
-            <p className="mt-2 text-sm text-muted-dark">{ban.reason}</p>
+            <p className="mt-2 text-sm text-muted-foreground">{ban.reason}</p>
           </div>
           <UnbanMemberControl
             groupId={settings.group.id}
@@ -322,7 +322,7 @@ function SettingsPagination({
           />
         </PaginationItem>
         <PaginationItem>
-          <span className="px-3 text-sm text-muted-dark">
+          <span className="px-3 text-sm text-muted-foreground">
             {page}/{pageCount}
           </span>
         </PaginationItem>

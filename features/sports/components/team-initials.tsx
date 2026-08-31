@@ -4,6 +4,7 @@ type TeamInitialsProps = Readonly<{
   name: string;
   tla: string | null;
   className?: string;
+  size?: "sm" | "md" | "lg";
 }>;
 
 export function teamInitials(name: string, tla: string | null): string {
@@ -20,19 +21,27 @@ export function teamInitials(name: string, tla: string | null): string {
     .join("")
     .toUpperCase();
 
-  return initials.length >= 2 ? initials : name.trim().slice(0, 3).toUpperCase();
+  if (initials.length >= 2) return initials;
+  const cleanedName = words.join(" ").trim();
+  return (cleanedName || name.trim()).slice(0, 3).toUpperCase();
 }
 
-export function TeamInitials({ name, tla, className }: TeamInitialsProps) {
+export function TeamMark({ name, tla, className, size = "md" }: TeamInitialsProps) {
   return (
     <span
-      aria-hidden="true"
+      aria-label={name}
       className={cn(
-        "inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-border-strong bg-surface-deep text-xs font-bold tracking-[0.08em] text-linen",
+        "inline-flex shrink-0 items-center justify-center rounded-full border border-border bg-muted font-bold tracking-[0.06em] text-forest",
+        size === "sm" && "size-8 text-[0.65rem]",
+        size === "md" && "size-11 text-xs",
+        size === "lg" && "size-14 text-sm",
         className,
       )}
+      role="img"
     >
       {teamInitials(name, tla)}
     </span>
   );
 }
+
+export const TeamInitials = TeamMark;

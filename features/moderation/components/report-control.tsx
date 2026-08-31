@@ -43,16 +43,16 @@ export function ReportControl({
 
   if (state?.ok === true) {
     return (
-      <Alert className="border-court/30 bg-court/10 text-court-hover" role="status">
+      <Alert className="border-court/30 bg-court/10 text-forest-hover" role="status">
         <AlertTitle>Report received</AlertTitle>
-        <AlertDescription className="text-court-hover">{state.data.message}</AlertDescription>
+        <AlertDescription className="text-forest-hover">{state.data.message}</AlertDescription>
       </Alert>
     );
   }
 
   return (
-    <details className="rounded-2xl border border-border bg-surface-deep p-4">
-      <summary className="cursor-pointer text-sm font-semibold text-linen marker:text-sand">
+    <details className="rounded-2xl border border-border bg-muted p-4">
+      <summary className="cursor-pointer text-sm font-semibold text-foreground marker:text-sand">
         Report {targetLabel}
       </summary>
       <form action={formAction} className="mt-5 space-y-5" noValidate>
@@ -60,7 +60,7 @@ export function ReportControl({
         <input name="targetId" type="hidden" value={targetId} />
         <input name="targetHandle" type="hidden" value={targetHandle} />
 
-        <p className="text-sm leading-6 text-muted-dark">
+        <p className="text-sm leading-6 text-muted-foreground">
           Reports are confidential. The reported person and group administrators cannot see who
           submitted one or read its details. Blocking is separate and never requires a report.
         </p>
@@ -114,7 +114,7 @@ export function ReportControl({
               {detailsError}
             </p>
           )}
-          <p className="mt-2 text-xs leading-5 text-muted-dark" id={sensitiveWarningId}>
+          <p className="mt-2 text-xs leading-5 text-muted-foreground" id={sensitiveWarningId}>
             Explain what happened without adding passwords, payment data, invite links, or another
             person&apos;s exact home address.
           </p>

@@ -25,8 +25,9 @@ export function GroupApplicationForm({
       <input name="groupId" type="hidden" value={groupId} />
       <input name="groupSlug" type="hidden" value={groupSlug} />
       <div>
-        <Label className="text-linen" htmlFor="group-application-message">
-          Note to the administrators <span className="font-normal text-muted-dark">(optional)</span>
+        <Label className="text-foreground" htmlFor="group-application-message">
+          Note to the administrators{" "}
+          <span className="font-normal text-muted-foreground">(optional)</span>
         </Label>
         <Textarea
           aria-describedby="group-application-message-help group-application-message-error"
@@ -37,7 +38,10 @@ export function GroupApplicationForm({
           name="message"
           placeholder="Introduce yourself and your connection to the group."
         />
-        <span className="mt-2 block text-xs text-muted-dark" id="group-application-message-help">
+        <span
+          className="mt-2 block text-xs text-muted-foreground"
+          id="group-application-message-help"
+        >
           Only this group&apos;s active owner and admins can read this note. Do not include a home
           address, phone number, financial or health information, sexual orientation, or full legal
           identity.

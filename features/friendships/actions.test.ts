@@ -69,6 +69,22 @@ describe("updateFriendshipAction", () => {
     expect(result).toMatchObject({ ok: true, data: { intent } });
   });
 
+  it.each([
+    ["cancel", "Friend request cancelled."],
+    ["remove", "Friend removed."],
+  ] as const)("uses the shared removal boundary with truthful %s copy", async (intent, message) => {
+    const rpc = vi.fn().mockResolvedValue({ data: true, error: null });
+    mocks.requireActor.mockResolvedValue({ supabase: { rpc } });
+
+    const result = await updateFriendshipAction(null, friendshipForm(intent));
+
+    expect(rpc).toHaveBeenCalledWith("remove_friendship", {
+      input_friendship_id: friendshipId,
+      audit_request_id: "10000000-0000-4000-8000-000000000099",
+    });
+    expect(result).toMatchObject({ ok: true, data: { intent, message, friendship: null } });
+  });
+
   it("maps reviewed database tokens without exposing SQL detail", async () => {
     const rpc = vi.fn().mockResolvedValue({
       data: null,

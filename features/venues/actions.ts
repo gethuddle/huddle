@@ -130,8 +130,7 @@ async function mutateVenue(
     return {
       ok: true,
       data: {
-        message:
-          mode === "create" ? "Venue created as visibly unverified." : "Venue details updated.",
+        message: mode === "create" ? "Venue created." : "Venue details updated.",
         venue: {
           id: row.venue_id,
           slug: row.slug,

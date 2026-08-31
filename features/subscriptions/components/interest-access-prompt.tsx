@@ -16,7 +16,7 @@ export function InterestAccessPrompt({ state }: Readonly<{ state: InterestViewer
     },
     "complete-profile": {
       title: "Complete your profile to follow.",
-      description: "Verified email, 18+ attestation, and the current rules are required.",
+      description: "Confirmed email, 18+ attestation, and the current rules are required.",
       href: "/settings/profile",
       label: "Complete profile",
     },
@@ -29,10 +29,10 @@ export function InterestAccessPrompt({ state }: Readonly<{ state: InterestViewer
   }[state];
 
   return (
-    <Card className="bg-surface-deep" size="sm">
+    <Card className="bg-muted" size="sm">
       <CardContent>
-        <p className="font-semibold text-linen">{content.title}</p>
-        <p className="mt-1 text-sm text-muted-dark">{content.description}</p>
+        <p className="font-semibold text-foreground">{content.title}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{content.description}</p>
         {content.href === null || content.label === null ? null : (
           <Button asChild className="mt-4" size="sm" variant="outline">
             <Link href={content.href}>{content.label}</Link>

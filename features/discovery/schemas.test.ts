@@ -5,6 +5,7 @@ import {
   discoverySearchParams,
   discoveryUtcRange,
   parseDiscoveryFilters,
+  parseDiscoveryFiltersResult,
 } from "./schemas";
 
 const now = new Date("2026-08-27T10:00:00.000Z");
@@ -67,6 +68,19 @@ describe("discovery filter schemas", () => {
     expect(() =>
       parseDiscoveryFilters({ city: "haifa", from: "2026-08-27", to: "2026-10-10" }, now),
     ).not.toThrow();
+  });
+
+  it("returns field recovery data instead of throwing for an inverted date range", () => {
+    const result = parseDiscoveryFiltersResult(
+      { city: "haifa", from: "2026-09-14", to: "2026-08-31" },
+      now,
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      values: { citySlug: "haifa", from: "2026-09-14", to: "2026-08-31" },
+      fieldErrors: { to: "Choose an end date on or after the start date." },
+    });
   });
 
   it("preserves a 45-day Israel-time window across the autumn DST fallback", () => {

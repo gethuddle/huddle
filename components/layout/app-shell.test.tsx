@@ -39,25 +39,17 @@ describe("AppShell", () => {
     );
     expect(screen.getByRole("link", { name: "Huddle home" })).toHaveAttribute("href", "/");
     const navigation = screen.getByRole("navigation", { name: "Public navigation" });
-    expect(within(navigation).getByRole("link", { name: "Explore" })).toHaveAttribute(
-      "href",
-      "/discover",
-    );
-    expect(within(navigation).getByRole("link", { name: "Fixtures" })).toHaveAttribute(
-      "href",
-      "/matches",
-    );
+    const publicExplore = within(navigation).getByRole("link", { name: "Explore" });
+    expect(publicExplore).toHaveAttribute("href", "/discover");
+    expect(publicExplore).toHaveAttribute("data-variant", "secondary");
+    expect(publicExplore).toHaveClass("rounded-full", "border-border", "bg-secondary");
     await user.click(screen.getByRole("button", { name: "Open public navigation" }));
     const mobileNavigation = await screen.findByRole("menu");
     const mobileLinks = within(mobileNavigation).getAllByRole("menuitem");
-    expect(mobileLinks).toHaveLength(4);
+    expect(mobileLinks).toHaveLength(3);
     expect(within(mobileNavigation).getByRole("menuitem", { name: "Explore" })).toHaveAttribute(
       "href",
       "/discover",
-    );
-    expect(within(mobileNavigation).getByRole("menuitem", { name: "Fixtures" })).toHaveAttribute(
-      "href",
-      "/matches",
     );
     expect(within(mobileNavigation).getByRole("menuitem", { name: "Sign up" })).toHaveAttribute(
       "href",
@@ -101,11 +93,8 @@ describe("AppShell", () => {
       "aria-current",
       "page",
     );
-    expect(within(navigation).getByRole("link", { name: "My Huddle" })).toHaveClass(
-      "rounded-full",
-      "bg-court",
-      "text-ink",
-    );
+    expect(within(navigation).getByRole("link", { name: "My Huddle" })).toHaveClass("text-forest");
+    expect(within(navigation).getByRole("link", { name: "My Huddle" })).not.toHaveClass("bg-court");
     expect(screen.getByRole("button", { name: "Switch workspace" })).toBeVisible();
     expect(screen.queryByRole("link", { name: "Create venue" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Host event" })).not.toBeInTheDocument();
@@ -158,10 +147,9 @@ describe("AppShell", () => {
       "aria-current",
       "page",
     );
-    expect(within(navigation).getByRole("link", { name: "Calendar" })).toHaveClass(
-      "rounded-full",
+    expect(within(navigation).getByRole("link", { name: "Calendar" })).toHaveClass("text-forest");
+    expect(within(navigation).getByRole("link", { name: "Calendar" })).not.toHaveClass(
       "bg-border-dark",
-      "text-linen",
     );
     expect(screen.queryByRole("link", { name: "Plan events" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Switch workspace" })).toHaveTextContent(

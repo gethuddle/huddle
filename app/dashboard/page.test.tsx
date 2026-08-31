@@ -44,6 +44,18 @@ describe("DashboardPage", () => {
     expect(screen.getByText(/Completed and cancelled events stay out of sight/i)).toBeVisible();
   });
 
+  it("confirms a declined invitation without leaving a dead event route", async () => {
+    render(
+      await DashboardPage({
+        searchParams: Promise.resolve({ notice: "invitation-declined" }),
+      }),
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Invitation declined. It has been removed from your active plans.",
+    );
+  });
+
   it("uses bounded validated filters instead of treating them as route navigation", async () => {
     mocks.getMyHuddleOverview.mockResolvedValue({
       events: [],

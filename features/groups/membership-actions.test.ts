@@ -25,6 +25,7 @@ import {
   leaveGroupAction,
   reviewGroupApplicationAction,
   reviewGroupEventAction,
+  withdrawGroupEventAction,
   submitGroupApplicationAction,
   updateGroupDescriptionAction,
 } from "./membership-actions";
@@ -102,20 +103,31 @@ describe("B06 group membership actions", () => {
     formData.set("eventId", "52000000-0000-4000-8000-000000000203");
     formData.set("decision", "approve");
 
-    const result = await reviewGroupEventAction(null, formData);
+    await expect(reviewGroupEventAction(null, formData)).rejects.toThrow("NEXT_REDIRECT");
 
     expect(rpc).toHaveBeenCalledWith("publish_group_event", {
       input_event_id: "52000000-0000-4000-8000-000000000203",
       input_decision: "approve",
       audit_request_id: requestId,
     });
-    expect(result).toMatchObject({
-      ok: true,
-      data: { message: "Group event approved and published." },
-    });
     expect(mocks.revalidatePath).toHaveBeenCalledWith(
       "/events/52000000-0000-4000-8000-000000000203",
     );
+    expect(mocks.redirect).toHaveBeenCalledWith(`/groups/${groupSlug}?notice=event-approved`);
+  });
+
+  it("lets the original submitter withdraw without attempting self-review", async () => {
+    const formData = groupForm();
+    formData.set("eventId", "52000000-0000-4000-8000-000000000203");
+
+    await expect(withdrawGroupEventAction(null, formData)).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(mocks.requireActor).toHaveBeenCalledWith("authenticated");
+    expect(rpc).toHaveBeenCalledWith("withdraw_group_event_submission", {
+      input_event_id: "52000000-0000-4000-8000-000000000203",
+      audit_request_id: requestId,
+    });
+    expect(mocks.redirect).toHaveBeenCalledWith(`/groups/${groupSlug}?notice=event-withdrawn`);
   });
 
   it("uses the authenticated gate for a retained-history leave", async () => {

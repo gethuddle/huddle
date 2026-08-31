@@ -6,6 +6,7 @@ import { VenueVerificationBadge } from "@/features/venues/components/venue-verif
 import { getVenueCatalog } from "@/features/venues/catalog";
 import { venueRouteSlugSchema } from "@/features/venues/schemas";
 import { VenueSettingsForm } from "@/features/venues/workspace/components/venue-settings-form";
+import { VenueClosureControl } from "@/features/venues/workspace/components/venue-closure-control";
 import { VenueSpaceEditor } from "@/features/venues/workspace/components/venue-space-editor";
 import { getVenueSettings } from "@/features/venues/workspace/queries";
 import { getAuthorizedVenueWorkspaceBySlug } from "@/features/workspaces/queries";
@@ -29,13 +30,11 @@ export default async function VenueSettingsPage({ params }: VenueSettingsPagePro
     <section className="py-10 sm:py-14">
       <div className="flex flex-wrap items-start justify-between gap-5">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sand">
-            Venue workspace
-          </p>
-          <h1 className="mt-2 text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">
+          <p className="text-sm font-medium text-forest">Venue workspace</p>
+          <h1 className="mt-2 text-4xl font-semibold tracking-[-0.04em] sm:text-4xl">
             Venue profile
           </h1>
-          <p className="mt-3 max-w-2xl text-lg text-muted-dark">
+          <p className="mt-3 max-w-2xl text-lg text-muted-foreground">
             The reusable public details and defaults behind every event you plan.
           </p>
         </div>
@@ -65,34 +64,32 @@ export default async function VenueSettingsPage({ params }: VenueSettingsPagePro
           }}
         />
 
-        <aside className="sticky top-28 overflow-hidden rounded-3xl border border-border-strong bg-surface-raised">
-          <div className="flex h-40 items-center justify-center bg-gradient-to-br from-border-dark to-ink">
-            <span className="text-5xl font-semibold tracking-[-0.08em] text-linen/70">
+        <aside className="sticky top-28 overflow-hidden rounded-3xl border border-input bg-card">
+          <div className="flex h-40 items-center justify-center bg-muted">
+            <span className="text-4xl font-semibold tracking-[-0.06em] text-forest/70">
               {initials(settings.name)}
             </span>
           </div>
           <div className="p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-sand">
-              How fans see you
-            </p>
+            <p className="text-sm font-medium text-muted-foreground">How fans see you</p>
             <h2 className="mt-3 text-xl font-semibold">{settings.name}</h2>
-            <p className="mt-2 text-sm leading-6 text-muted-dark">
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
               {settings.addressText} · {settings.cityName}
             </p>
-            <p className="mt-4 line-clamp-4 text-sm leading-6 text-muted-dark">
+            <p className="mt-4 line-clamp-4 text-sm leading-6 text-muted-foreground">
               {settings.description}
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               {settings.facilities.slice(0, 4).map((facility) => (
                 <span
-                  className="rounded-full border border-border-dark px-3 py-1.5 text-xs text-muted-dark"
+                  className="rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground"
                   key={facility}
                 >
                   {humanFacility(facility)}
                 </span>
               ))}
             </div>
-            <p className="mt-5 border-t border-border-dark pt-5 text-sm font-semibold text-linen">
+            <p className="mt-5 border-t border-border pt-5 text-sm font-semibold text-foreground">
               {settings.defaultAttendanceMode === "open_door"
                 ? "Open door by default · no reservation"
                 : settings.defaultRequiresApproval
@@ -107,7 +104,7 @@ export default async function VenueSettingsPage({ params }: VenueSettingsPagePro
         <h2 className="text-2xl font-semibold" id="venue-spaces-heading">
           Viewing areas
         </h2>
-        <p className="mt-2 text-muted-dark">
+        <p className="mt-2 text-muted-foreground">
           Reservation events snapshot the chosen capacity. Open-door events need only an active
           area; later changes affect only newly planned events.
         </p>
@@ -123,6 +120,14 @@ export default async function VenueSettingsPage({ params }: VenueSettingsPagePro
           <VenueSpaceEditor sortOrder={settings.spaces.length} venueId={settings.id} />
         </div>
       </section>
+
+      {workspace.role === "owner" ? (
+        <VenueClosureControl
+          venueId={settings.id}
+          venueName={settings.name}
+          venueSlug={settings.slug}
+        />
+      ) : null}
     </section>
   );
 }

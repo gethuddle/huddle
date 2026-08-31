@@ -34,7 +34,7 @@ export function VenueWorkspaceHeader({ slug, venueName }: VenueWorkspaceHeaderPr
   const root = navigation[0].href;
 
   return (
-    <div className="hidden min-w-0 items-center md:flex" title={venueName}>
+    <div className="hidden min-w-0 items-center lg:flex" title={venueName}>
       <nav aria-label="Venue navigation" className="flex items-center gap-1.5">
         {navigation.map(({ label, href }) => {
           const current = isCurrent(pathname, href, root);
@@ -42,8 +42,9 @@ export function VenueWorkspaceHeader({ slug, venueName }: VenueWorkspaceHeaderPr
             <Link
               aria-current={current ? "page" : undefined}
               className={cn(
-                "inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold text-muted-dark transition hover:bg-surface-raised hover:text-linen focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                current && "bg-border-dark text-linen",
+                "relative inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                current &&
+                  "text-forest after:absolute after:inset-x-4 after:bottom-0 after:h-0.5 after:rounded-full after:bg-forest",
               )}
               href={href}
               key={href}
@@ -65,7 +66,7 @@ export function VenueMobileNavigation({ slug }: Pick<VenueWorkspaceHeaderProps, 
   return (
     <nav
       aria-label="Venue mobile navigation"
-      className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-border-dark bg-ink/98 px-1 pb-[max(env(safe-area-inset-bottom),0.25rem)] pt-1 md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-border bg-card/98 px-1 pb-[max(env(safe-area-inset-bottom),0.25rem)] pt-1 [box-shadow:var(--shadow-docked)] lg:hidden"
     >
       {navigation.map(({ label, href, icon: Icon }) => {
         const current = isCurrent(pathname, href, root);
@@ -73,8 +74,8 @@ export function VenueMobileNavigation({ slug }: Pick<VenueWorkspaceHeaderProps, 
           <Link
             aria-current={current ? "page" : undefined}
             className={cn(
-              "flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[0.68rem] font-semibold text-muted-dark outline-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
-              current && "text-court",
+              "flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[0.68rem] font-semibold text-muted-foreground outline-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
+              current && "bg-muted text-forest",
             )}
             href={href}
             key={href}

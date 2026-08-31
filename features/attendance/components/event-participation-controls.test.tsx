@@ -8,10 +8,13 @@ const mocks = vi.hoisted(() => ({
   leaveEventAction: vi.fn(),
   requestOrJoinEventAction: vi.fn(),
   respondToEventInvitationAction: vi.fn(),
+  push: vi.fn(),
   refresh: vi.fn(),
 }));
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mocks.refresh }) }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: mocks.push, refresh: mocks.refresh }),
+}));
 vi.mock("@/features/attendance/actions", () => mocks);
 
 import { EventParticipationControls } from "./event-participation-controls";
@@ -93,6 +96,28 @@ describe("EventParticipationControls", () => {
     const formData = mocks.respondToEventInvitationAction.mock.calls[0]?.[0] as FormData;
     expect(formData.get("invitationId")).toBe("90000000-0000-4000-8000-000000000501");
     expect(formData.get("decision")).toBe("accept");
+  });
+
+  it("returns a declined invitee to My Huddle with a durable confirmation", async () => {
+    mocks.respondToEventInvitationAction.mockResolvedValue({
+      ok: true,
+      data: { message: "Invitation declined." },
+    });
+    const user = userEvent.setup();
+    render(
+      <EventParticipationControls
+        {...baseProps}
+        viewerInvitationId="90000000-0000-4000-8000-000000000501"
+        viewerInvitationStatus="pending"
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Decline" }));
+
+    await waitFor(() =>
+      expect(mocks.push).toHaveBeenCalledWith("/dashboard?notice=invitation-declined"),
+    );
+    expect(mocks.refresh).not.toHaveBeenCalled();
   });
 
   it("uses the accessible confirmation dialog and explains retained history before leaving", async () => {

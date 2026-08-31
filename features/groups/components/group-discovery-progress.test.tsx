@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ updateGroupDescriptionAction: vi.fn() }));
@@ -38,7 +38,7 @@ describe("GroupDiscoveryProgress", () => {
     expect(screen.queryByText(/Add one rule/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Publish one upcoming event/i)).not.toBeInTheDocument();
     expect(screen.getByText(/Members, rules, and events are optional/i)).toBeVisible();
-    expect(screen.getByText("Description needed")).toBeVisible();
+    expect(screen.getByText("Finish making this group searchable")).toBeVisible();
     expect(document.body).not.toHaveTextContent(/lifecycle|synchronized|published rule/i);
     expect(screen.getByRole("textbox", { name: "Group description" })).toHaveValue("");
     expect(screen.getByRole("button", { name: "Save description" })).toBeVisible();
@@ -64,7 +64,7 @@ describe("GroupDiscoveryProgress", () => {
       />,
     );
 
-    expect(screen.getByText("Invitation only")).toBeVisible();
+    fireEvent.click(screen.getByText("Search and setup details"));
     expect(screen.getByText(/will not appear in search/i)).toBeVisible();
   });
 });

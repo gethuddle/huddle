@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function GroupsLoading() {
   return (
-    <section aria-busy="true" aria-label="Loading supporter groups" className="py-12 sm:py-16">
+    <section aria-busy="true" aria-label="Loading groups" className="py-12 sm:py-16">
       <Skeleton className="h-4 w-40" />
       <Skeleton className="mt-5 h-16 max-w-3xl" />
       <Skeleton className="mt-8 h-28 w-full rounded-2xl" />

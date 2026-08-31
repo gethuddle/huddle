@@ -82,8 +82,8 @@ export function GroupShareDialog({
           <DialogTitle>Share {groupName}</DialogTitle>
           <DialogDescription>
             {visibility === "discoverable"
-              ? "Share the group page where eligible supporters can read the summary and apply."
-              : "Create a controlled invitation link for a registered supporter without leaving this group."}
+              ? "Share the group page where people can read the summary and apply."
+              : "Create a controlled invitation link for a Huddle member without leaving this group."}
           </DialogDescription>
         </DialogHeader>
 
@@ -102,7 +102,7 @@ export function GroupShareDialog({
         ) : canManage ? (
           <div className="space-y-6">
             <div>
-              <Label htmlFor="group-share-person-search">Find a registered supporter</Label>
+              <Label htmlFor="group-share-person-search">Find a Huddle member</Label>
               <Input
                 className="mt-2 rounded-full"
                 id="group-share-person-search"
@@ -113,8 +113,8 @@ export function GroupShareDialog({
               <div className="mt-3 max-h-48 space-y-2 overflow-y-auto">
                 {visibleCandidates.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    No authorized supporter matches this search. You can still create a link and
-                    share it privately.
+                    No eligible person matches this search. You can still create a link and share it
+                    privately.
                   </p>
                 ) : (
                   visibleCandidates.map((candidate) => (

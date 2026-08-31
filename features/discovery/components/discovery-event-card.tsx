@@ -5,7 +5,10 @@ import { Button } from "@/components/ui/button";
 import type { DiscoveryEvent } from "@/features/discovery/types";
 import { formatIsraelKickoff } from "@/features/sports/time";
 
-export function DiscoveryEventCard({ event }: Readonly<{ event: DiscoveryEvent }>) {
+export function DiscoveryEventCard({
+  event,
+  returnTo,
+}: Readonly<{ event: DiscoveryEvent; returnTo: string }>) {
   const joining =
     event.attendanceMode === "open_door"
       ? "Open door · no reservation"
@@ -16,47 +19,33 @@ export function DiscoveryEventCard({ event }: Readonly<{ event: DiscoveryEvent }
     event.attendanceMode === "open_door"
       ? "Just come along"
       : `${event.remainingCapacity} place${event.remainingCapacity === 1 ? "" : "s"} left`;
+  const href = `/events/${event.id}?returnTo=${encodeURIComponent(returnTo)}`;
 
   return (
-    <article className="group grid gap-4 rounded-3xl border border-border-dark bg-surface-raised p-3 transition hover:border-border-strong sm:grid-cols-[10rem_minmax(0,1fr)_auto] sm:items-stretch sm:gap-5 sm:rounded-none sm:border-x-0 sm:border-t-0 sm:bg-transparent sm:p-0 sm:pb-5">
-      <div className="relative flex min-h-32 items-center justify-center overflow-hidden rounded-2xl border border-border-dark bg-[radial-gradient(circle_at_25%_20%,rgba(44,224,123,0.18),transparent_38%),linear-gradient(145deg,#16241c,#0e1512)] sm:min-h-36">
-        <span className="text-center text-2xl font-semibold tracking-[-0.05em] text-linen/70">
-          {initials(event.match.homeTeamName)}
-          <span className="mx-2 text-court">·</span>
-          {initials(event.match.awayTeamName)}
-        </span>
-        <span className="absolute bottom-3 left-3 rounded-full border border-border-strong bg-surface-deep/90 px-3 py-1 text-xs font-semibold text-linen">
-          {event.match.competitionName}
-        </span>
-      </div>
-
-      <div className="min-w-0 py-1">
-        <h2 className="text-xl font-semibold tracking-[-0.025em] text-linen">
-          <Link
-            className="outline-none hover:text-court focus-visible:text-court"
-            href={`/events/${event.id}`}
-          >
-            {event.match.homeTeamName} vs {event.match.awayTeamName}
+    <article className="group grid gap-4 rounded-2xl border border-border bg-card p-5 transition hover:border-input sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+      <div className="min-w-0">
+        <h4 className="text-lg font-semibold tracking-[-0.02em] text-foreground">
+          <Link className="outline-none hover:text-forest focus-visible:text-forest" href={href}>
+            {event.title}
           </Link>
-        </h2>
-        <p className="mt-1 text-sm text-muted-dark">{formatIsraelKickoff(event.startsAt)}</p>
-        <p className="mt-3 font-medium text-linen">{event.title}</p>
-        <p className="mt-1 text-sm text-muted-dark">Hosted by {event.host.displayName}</p>
-        <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-dark">
+        </h4>
+        <p className="mt-1 text-sm text-muted-foreground">{formatIsraelKickoff(event.startsAt)}</p>
+        <p className="mt-1 text-sm text-muted-foreground">Hosted by {event.host.displayName}</p>
+        <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
           <MapPin aria-hidden="true" className="size-4 shrink-0" />
           {event.cityName} · {event.locationSummary}
         </p>
-        <p className="mt-3 text-sm text-muted-dark">
+        <p className="mt-3 text-sm text-muted-foreground">
           {joining} <span aria-hidden="true">·</span>{" "}
-          <span className={event.attendanceMode === "open_door" ? "text-court" : "text-sand"}>
+          <span className={event.attendanceMode === "open_door" ? "text-forest" : "text-sand"}>
             {availability}
           </span>
         </p>
       </div>
 
-      <div className="flex items-end sm:pb-1">
+      <div className="flex items-end">
         <Button asChild className="min-h-11 w-full rounded-full sm:w-auto" variant="outline">
-          <Link href={`/events/${event.id}`}>
+          <Link href={href}>
             Open event
             <ArrowRight aria-hidden="true" className="size-4" />
           </Link>
@@ -64,13 +53,4 @@ export function DiscoveryEventCard({ event }: Readonly<{ event: DiscoveryEvent }
       </div>
     </article>
   );
-}
-
-function initials(label: string) {
-  return label
-    .split(/\s+/u)
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 3)
-    .toUpperCase();
 }

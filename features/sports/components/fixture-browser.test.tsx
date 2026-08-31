@@ -49,7 +49,8 @@ describe("fixture browser components", () => {
       "href",
       `/matches/${match.id}`,
     );
-    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Arsenal FC" })).toHaveTextContent("ARS");
+    expect(screen.getByRole("img", { name: "Chelsea FC" })).toHaveTextContent("CHE");
   });
 
   it("renders labelled shareable filters with their selected values", () => {

@@ -67,7 +67,7 @@ export function FollowControl({
           role={result.ok ? "status" : "alert"}
           variant={result.ok ? "default" : "destructive"}
         >
-          <AlertDescription className={result.ok ? "text-court-hover" : "text-sand"}>
+          <AlertDescription className={result.ok ? "text-forest-hover" : "text-sand"}>
             {result.ok ? result.data.message : result.error.message}
           </AlertDescription>
         </Alert>

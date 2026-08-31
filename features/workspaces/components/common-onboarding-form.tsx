@@ -24,9 +24,9 @@ export function CommonOnboardingForm({
 
   return (
     <form action={action} className="space-y-6" noValidate>
-      <div className="rounded-2xl border border-border-dark bg-surface-deep p-5">
-        <h2 className="text-lg font-semibold text-linen">A safe account comes first</h2>
-        <p className="mt-2 text-sm leading-6 text-muted-dark">
+      <div className="rounded-2xl border border-border bg-muted p-5">
+        <h2 className="text-lg font-semibold text-foreground">A safe account comes first</h2>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
           This records the shared safety requirements for your account. It does not create a Fan
           profile or publish a venue.
         </p>
@@ -44,11 +44,11 @@ export function CommonOnboardingForm({
           <h2 className="font-semibold" id="common-rules-title">
             {CURRENT_COMMUNITY_RULES.title}
           </h2>
-          <p className="mt-1 text-sm leading-6 text-muted-dark">
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">
             {CURRENT_COMMUNITY_RULES.introduction}
           </p>
         </div>
-        <ul className="grid gap-3 text-sm leading-6 text-muted-dark sm:grid-cols-2">
+        <ul className="grid gap-3 text-sm leading-6 text-muted-foreground sm:grid-cols-2">
           {CURRENT_COMMUNITY_RULES.sections.flatMap((section) =>
             section.points.map((point) => <li key={`${section.title}:${point}`}>• {point}</li>),
           )}

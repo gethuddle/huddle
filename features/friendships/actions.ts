@@ -71,8 +71,8 @@ export async function updateFriendshipAction(
 
     revalidateFriendshipViews(parsed.data.targetHandle);
     return actionSuccess({
-      message: "Friendship removed.",
-      intent: "remove",
+      message: parsed.data.intent === "cancel" ? "Friend request cancelled." : "Friend removed.",
+      intent: parsed.data.intent,
       targetHandle: parsed.data.targetHandle,
       friendship: null,
     });

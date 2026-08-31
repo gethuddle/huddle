@@ -137,7 +137,7 @@ export function VenueOnboardingForm({
             placeholder="match-corner"
             required
           />
-          <p className="mt-2 text-xs text-muted-dark" id="venue-slug-help">
+          <p className="mt-2 text-xs text-muted-foreground" id="venue-slug-help">
             Lowercase letters, numbers, and hyphens.
           </p>
         </div>
@@ -165,7 +165,7 @@ export function VenueOnboardingForm({
       </div>
 
       {city === null ? (
-        <p className="rounded-2xl border border-border-dark bg-surface-deep p-5 text-sm text-muted-dark">
+        <p className="rounded-2xl border border-border bg-muted p-5 text-sm text-muted-foreground">
           Choose the venue city before searching for its public address.
         </p>
       ) : (
@@ -174,10 +174,8 @@ export function VenueOnboardingForm({
 
       {address === null ? null : (
         <div className="rounded-2xl border border-court/30 bg-court/10 p-5" role="status">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-court">
-            Confirmed public address
-          </p>
-          <p className="mt-2 text-sm text-linen">{address.label}</p>
+          <p className="text-sm font-medium text-forest">Confirmed public address</p>
+          <p className="mt-2 text-sm text-foreground">{address.label}</p>
         </div>
       )}
 
@@ -193,10 +191,10 @@ export function VenueOnboardingForm({
         />
       </div>
 
-      <fieldset className="rounded-2xl border border-border-dark p-5">
+      <fieldset className="rounded-2xl border border-border p-5">
         <legend className="px-2 font-semibold">How fans attend your usual events</legend>
         <div className="mt-1 grid gap-3 sm:grid-cols-2">
-          <label className="flex min-h-20 cursor-pointer items-start gap-3 rounded-2xl border border-border-dark bg-surface-deep p-4 has-[:checked]:border-court">
+          <label className="flex min-h-20 cursor-pointer items-start gap-3 rounded-2xl border border-border bg-muted p-4 has-[:checked]:border-court">
             <input
               checked={attendanceMode === "open_door"}
               className="mt-1 size-4 accent-court"
@@ -206,13 +204,13 @@ export function VenueOnboardingForm({
               value="open_door"
             />
             <span>
-              <span className="block font-semibold text-linen">Open door</span>
-              <span className="mt-1 block text-sm leading-5 text-muted-dark">
+              <span className="block font-semibold text-foreground">Open door</span>
+              <span className="mt-1 block text-sm leading-5 text-muted-foreground">
                 No RSVP, guest list, approval, or capacity claim. Fans simply come along.
               </span>
             </span>
           </label>
-          <label className="flex min-h-20 cursor-pointer items-start gap-3 rounded-2xl border border-border-dark bg-surface-deep p-4 has-[:checked]:border-court">
+          <label className="flex min-h-20 cursor-pointer items-start gap-3 rounded-2xl border border-border bg-muted p-4 has-[:checked]:border-court">
             <input
               checked={attendanceMode === "reservations"}
               className="mt-1 size-4 accent-court"
@@ -222,8 +220,8 @@ export function VenueOnboardingForm({
               value="reservations"
             />
             <span>
-              <span className="block font-semibold text-linen">Reservations</span>
-              <span className="mt-1 block text-sm leading-5 text-muted-dark">
+              <span className="block font-semibold text-foreground">Reservations</span>
+              <span className="mt-1 block text-sm leading-5 text-muted-foreground">
                 Track registered attendees with a real capacity and optional staff approval.
               </span>
             </span>
@@ -231,7 +229,7 @@ export function VenueOnboardingForm({
         </div>
       </fieldset>
 
-      <fieldset className="grid gap-5 rounded-2xl border border-border-dark p-5 sm:grid-cols-2">
+      <fieldset className="grid gap-5 rounded-2xl border border-border p-5 sm:grid-cols-2">
         <legend className="px-2 font-semibold">First viewing area</legend>
         <div>
           <Label htmlFor="venue-space-name">Area name</Label>
@@ -249,13 +247,13 @@ export function VenueOnboardingForm({
             />
           </div>
         ) : (
-          <p className="self-end text-sm leading-6 text-muted-dark">
+          <p className="self-end text-sm leading-6 text-muted-foreground">
             Open-door areas do not need a capacity. You can add a reservable area later.
           </p>
         )}
       </fieldset>
 
-      <fieldset className="rounded-2xl border border-border-dark p-5">
+      <fieldset className="rounded-2xl border border-border p-5">
         <legend className="px-2 font-semibold">Facilities</legend>
         <div className="grid gap-3 sm:grid-cols-2">
           {FACILITIES.map(([value, label]) => (
@@ -292,7 +290,7 @@ export function VenueOnboardingForm({
         <Checkbox id="venue-representation" name="representationAttested" value="on" />
         <Label className="cursor-pointer text-sm leading-6" htmlFor="venue-representation">
           I truthfully represent this business and am authorized to manage its Huddle listing. I
-          understand that “Unverified” means Huddle has not verified the business or this claim.
+          understand that “Self-listed” means Huddle has not checked the business or this claim.
         </Label>
       </div>
 

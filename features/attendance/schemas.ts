@@ -6,6 +6,7 @@ import { boundedPageSchema } from "@/lib/pagination";
 const eventId = z.uuid("Choose a valid event.");
 const invitationId = z.uuid("Choose a valid invitation.");
 const attendanceId = z.uuid("Choose a valid attendance record.");
+const inviteTokenId = z.uuid("Choose a valid invite link.");
 
 export const eventParticipationSchema = z.object({ eventId });
 
@@ -32,6 +33,18 @@ export const invitationResponseSchema = z.object({
 });
 
 export const invitationRevocationSchema = z.object({ eventId, invitationId });
+
+export const eventInviteLinkCreationSchema = z.object({
+  eventId,
+  durationDays: z.coerce.number().int().min(1).max(30),
+  maxUses: z.coerce.number().int().min(1).max(100),
+});
+
+export const eventInviteLinkRevocationSchema = z.object({ eventId, inviteTokenId });
+
+export const eventInviteLinkRedemptionSchema = z.object({
+  token: z.string().regex(/^[A-Za-z0-9_-]{43}$/u, "Use a valid event invitation link."),
+});
 
 export const attendanceReviewSchema = z.object({
   eventId,

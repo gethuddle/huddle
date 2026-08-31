@@ -12,9 +12,12 @@ vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 
 import {
   createEventInvitationAction,
+  createEventInviteLinkAction,
   createEventInvitationsAction,
   leaveEventAction,
+  redeemEventInviteLinkAction,
   requestOrJoinEventAction,
+  revokeEventInviteLinkAction,
   reviewAttendanceAction,
 } from "./actions";
 
@@ -133,6 +136,96 @@ describe("attendance server actions", () => {
     expect(mocks.requireActor).toHaveBeenCalledWith("authenticated");
     expect(rpc).toHaveBeenCalledWith("leave_event", {
       input_attendance_id: attendanceId,
+      audit_request_id: "90000000-0000-4000-8000-000000000999",
+    });
+    expect(result).toMatchObject({ ok: true });
+  });
+
+  it("creates a bounded event invite link and exposes the raw path only in that response", async () => {
+    const inviteTokenId = "90000000-0000-4000-8000-000000000601";
+    const inviteToken = "a".repeat(43);
+    const rpc = vi.fn().mockResolvedValue({
+      data: [
+        {
+          invite_token_id: inviteTokenId,
+          invite_token: inviteToken,
+          expires_at: "2026-09-07T12:00:00.000Z",
+          max_uses: 10,
+          use_count: 0,
+          created_at: "2026-08-31T12:00:00.000Z",
+        },
+      ],
+      error: null,
+    });
+    mocks.requireActor.mockResolvedValue({ supabase: { rpc } });
+
+    const result = await createEventInviteLinkAction(
+      null,
+      form({ eventId, durationDays: "7", maxUses: "10" }),
+    );
+
+    expect(mocks.requireActor).toHaveBeenCalledWith("fan");
+    expect(rpc).toHaveBeenCalledWith("create_event_invite_token", {
+      input_event_id: eventId,
+      input_expires_at: expect.any(String),
+      input_max_uses: 10,
+      audit_request_id: "90000000-0000-4000-8000-000000000999",
+    });
+    expect(result).toMatchObject({
+      ok: true,
+      data: {
+        invitePath: `/join/event/${inviteToken}`,
+        message: expect.stringContaining("Copy this link now"),
+      },
+    });
+  });
+
+  it("redeems a valid link into an invitation without accepting attendance", async () => {
+    const token = "b".repeat(43);
+    const rpc = vi.fn().mockResolvedValue({
+      data: [
+        {
+          event_id: eventId,
+          invitation_id: "90000000-0000-4000-8000-000000000602",
+          invitation_status: "pending",
+        },
+      ],
+      error: null,
+    });
+    mocks.requireActor.mockResolvedValue({ supabase: { rpc } });
+
+    const result = await redeemEventInviteLinkAction(null, form({ token }));
+
+    expect(mocks.requireActor).toHaveBeenCalledWith("fan");
+    expect(rpc).toHaveBeenCalledWith("redeem_event_invite_token", {
+      input_invite_token: token,
+      audit_request_id: "90000000-0000-4000-8000-000000000999",
+    });
+    expect(result).toEqual({
+      ok: true,
+      data: {
+        eventId,
+        message: "Invitation added. Open the event to accept or decline it.",
+      },
+    });
+  });
+
+  it("rejects malformed invite tokens before actor or database access", async () => {
+    const result = await redeemEventInviteLinkAction(null, form({ token: "guessable" }));
+
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_FAILED" } });
+    expect(mocks.requireActor).not.toHaveBeenCalled();
+  });
+
+  it("revokes an invite link through its non-secret identifier", async () => {
+    const inviteTokenId = "90000000-0000-4000-8000-000000000601";
+    const rpc = vi.fn().mockResolvedValue({ data: true, error: null });
+    mocks.requireActor.mockResolvedValue({ supabase: { rpc } });
+
+    const result = await revokeEventInviteLinkAction(form({ eventId, inviteTokenId }));
+
+    expect(rpc).toHaveBeenCalledWith("revoke_event_invite_token", {
+      input_invite_token_id: inviteTokenId,
       audit_request_id: "90000000-0000-4000-8000-000000000999",
     });
     expect(result).toMatchObject({ ok: true });

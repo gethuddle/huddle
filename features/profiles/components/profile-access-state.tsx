@@ -27,20 +27,16 @@ export function ProfileAccessState({
     >
       <CardHeader className="px-8 sm:px-12">
         <p
-          className={
-            warning
-              ? "text-xs font-semibold uppercase tracking-[0.2em] text-sand"
-              : "text-xs font-semibold uppercase tracking-[0.2em] text-court"
-          }
+          className={warning ? "text-sm font-medium text-sand" : "text-sm font-medium text-forest"}
         >
           {eyebrow}
         </p>
-        <CardTitle className="mt-3 text-4xl font-semibold tracking-[-0.045em] text-linen">
+        <CardTitle className="mt-3 text-4xl font-semibold tracking-[-0.045em] text-foreground">
           <h1>{title}</h1>
         </CardTitle>
       </CardHeader>
       <CardContent className="px-8 sm:px-12">
-        <p className="mx-auto max-w-xl leading-7 text-muted-dark">{description}</p>
+        <p className="mx-auto max-w-xl leading-7 text-muted-foreground">{description}</p>
         {actionHref === undefined || actionLabel === undefined ? null : (
           <Button asChild className="mt-8" size="lg">
             <Link href={actionHref}>{actionLabel}</Link>

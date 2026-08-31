@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { fanRecovery } from "@/features/auth/fan-recovery";
 import { MyHuddleOverview } from "@/features/dashboard/components/my-huddle-overview";
@@ -28,6 +29,7 @@ type DashboardPageProps = Readonly<{
 const eventBucketSchema = z.enum(eventBuckets).catch("upcoming");
 const groupBucketSchema = z.enum(groupBuckets).catch("owner");
 const savedBucketSchema = z.enum(savedBuckets).catch("all");
+const noticeSchema = z.enum(["invitation-declined"]).nullable().catch(null);
 
 function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -35,6 +37,7 @@ function first(value: string | string[] | undefined): string | undefined {
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const raw = await searchParams;
+  const notice = noticeSchema.parse(first(raw.notice));
   const eventBucket = eventBucketSchema.parse(first(raw.eventBucket));
   const eventPageInput = collectionPageInput(first(raw.eventsPage));
   const eventPage = eventPageInput.page;
@@ -118,13 +121,20 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   return (
     <section className="py-12 sm:py-16">
+      {notice === "invitation-declined" ? (
+        <Alert className="mb-7 border-court/25 bg-court/10" role="status">
+          <AlertDescription className="text-forest-hover">
+            Invitation declined. It has been removed from your active plans.
+          </AlertDescription>
+        </Alert>
+      ) : null}
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-court">My Huddle</p>
-          <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-[-0.05em] text-linen sm:text-6xl">
+          <p className="text-sm font-medium text-forest">My Huddle</p>
+          <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-[-0.05em] text-foreground sm:text-4xl">
             Your events, groups and saved places.
           </h1>
-          <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-dark">
+          <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
             Pick up active plans without digging through admin screens. Invitations and requests
             appear on Home only while they need your attention.
           </p>

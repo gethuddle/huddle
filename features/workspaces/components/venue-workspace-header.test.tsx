@@ -23,10 +23,9 @@ describe("VenueWorkspaceHeader", () => {
       "aria-current",
       "page",
     );
-    expect(within(navigation).getByRole("link", { name: "Calendar" })).toHaveClass(
-      "rounded-full",
+    expect(within(navigation).getByRole("link", { name: "Calendar" })).toHaveClass("text-forest");
+    expect(within(navigation).getByRole("link", { name: "Calendar" })).not.toHaveClass(
       "bg-border-dark",
-      "text-linen",
     );
     expect(screen.queryByText(/friends|groups|host event/i)).not.toBeInTheDocument();
   });

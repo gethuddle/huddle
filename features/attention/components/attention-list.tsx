@@ -18,10 +18,8 @@ export function AttentionList({ items }: Readonly<{ items: readonly AttentionIte
   return (
     <section aria-labelledby="attention-heading">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-court">
-          Current tasks
-        </p>
-        <h2 className="mt-2 text-2xl font-semibold text-linen" id="attention-heading">
+        <p className="text-sm font-medium text-forest">Current tasks</p>
+        <h2 className="mt-2 text-2xl font-semibold text-foreground" id="attention-heading">
           Needs your attention
         </h2>
       </div>
@@ -29,10 +27,10 @@ export function AttentionList({ items }: Readonly<{ items: readonly AttentionIte
       {items.length === 0 ? (
         <Card className="mt-5 border-dashed" size="sm">
           <CardContent className="flex items-center gap-3">
-            <CheckCircle2 aria-hidden="true" className="size-5 shrink-0 text-court" />
+            <CheckCircle2 aria-hidden="true" className="size-5 shrink-0 text-forest" />
             <div>
-              <p className="font-semibold text-linen">You’re all caught up.</p>
-              <p className="mt-1 text-sm text-muted-dark">
+              <p className="font-semibold text-foreground">You’re all caught up.</p>
+              <p className="mt-1 text-sm text-muted-foreground">
                 New invitations and requests will appear here only while they need a decision.
               </p>
             </div>
@@ -44,8 +42,8 @@ export function AttentionList({ items }: Readonly<{ items: readonly AttentionIte
             <Card key={item.key} size="sm">
               <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
-                  <h3 className="font-semibold text-linen">{item.title}</h3>
-                  <p className="mt-1 text-sm leading-6 text-muted-dark">{item.description}</p>
+                  <h3 className="font-semibold text-foreground">{item.title}</h3>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.description}</p>
                 </div>
                 <Button asChild className="min-h-11 shrink-0" size="sm" variant="outline">
                   <Link href={item.href}>

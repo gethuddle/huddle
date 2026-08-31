@@ -56,9 +56,16 @@ function EventParticipationControlsInner(props: Props) {
       if (intent === "leave") return leaveEventAction(formData);
       return requestOrJoinEventAction(formData);
     },
-    onSuccess: (result) => {
+    onSuccess: (result, formData) => {
       if (result.ok) {
         setConfirmingLeave(false);
+        if (
+          formData.get("mutationIntent") === "respond" &&
+          formData.get("decision") === "decline"
+        ) {
+          router.push("/dashboard?notice=invitation-declined");
+          return;
+        }
         router.refresh();
       }
     },
@@ -89,7 +96,7 @@ function EventParticipationControlsInner(props: Props) {
   }
 
   if (props.eventStatus !== "published") {
-    return <p className="text-sm text-muted-dark">Participation is closed for this event.</p>;
+    return <p className="text-sm text-muted-foreground">Participation is closed for this event.</p>;
   }
 
   if (!props.viewerIsAuthenticated) {
@@ -187,7 +194,7 @@ function EventParticipationControlsInner(props: Props) {
         </AlertDialog>
       ) : props.viewerAttendanceStatus === "declined" ||
         props.viewerAttendanceStatus === "removed" ? (
-        <p className="text-sm text-muted-dark">This attendance response is closed.</p>
+        <p className="text-sm text-muted-foreground">This attendance response is closed.</p>
       ) : (
         <Button
           className="w-full"

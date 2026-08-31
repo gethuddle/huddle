@@ -104,7 +104,7 @@ export function WorkspaceSwitcher({
                     </span>
                   </span>
                   {active?.kind === workspace.kind && active.id === workspace.id ? (
-                    <Check aria-label="Current workspace" className="size-4 text-court" />
+                    <Check aria-label="Current workspace" className="size-4 text-forest" />
                   ) : null}
                 </button>
               </DropdownMenuItem>

@@ -5,9 +5,16 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/dashboard" }));
 
-import { FanBottomNavigation } from "./fan-bottom-navigation";
+import { FanBottomNavigation, fanDestinationIsCurrent } from "./fan-bottom-navigation";
 
 describe("FanBottomNavigation", () => {
+  it("treats event, group, and fixture discovery as one Explore route family", () => {
+    expect(fanDestinationIsCurrent("/discover", "/discover")).toBe(true);
+    expect(fanDestinationIsCurrent("/groups", "/discover")).toBe(true);
+    expect(fanDestinationIsCurrent("/matches/fixture-id", "/discover")).toBe(true);
+    expect(fanDestinationIsCurrent("/dashboard", "/discover")).toBe(false);
+  });
+
   it("contains exactly the five approved destinations with current-route semantics", () => {
     render(<FanBottomNavigation />);
 

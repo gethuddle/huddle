@@ -150,7 +150,7 @@ export function FixturePlanner({
     return (
       <div className="rounded-[1.375rem] border border-court/30 bg-court/10 p-6" role="status">
         <h2 className="text-2xl font-semibold">Batch saved</h2>
-        <p className="mt-2 text-muted-dark">{result.data.message}</p>
+        <p className="mt-2 text-muted-foreground">{result.data.message}</p>
         <Button asChild className="mt-5">
           <Link href={`/venues/${venue.slug}/workspace/calendar`}>Open calendar</Link>
         </Button>
@@ -161,14 +161,18 @@ export function FixturePlanner({
   return (
     <section
       aria-labelledby="venue-planner-phase-heading"
-      className="space-y-8 rounded-[1.75rem] border border-border-dark bg-surface-deep p-5 sm:p-7"
+      className="space-y-8 rounded-[1.75rem] border border-border bg-muted p-5 sm:p-7"
     >
       <div className="flex items-center gap-3" aria-label="Planning progress">
-        <span className={phase === "select" ? "font-semibold text-court" : "text-muted-dark"}>
+        <span
+          className={phase === "select" ? "font-semibold text-forest" : "text-muted-foreground"}
+        >
           1. Fixtures and areas
         </span>
         <span aria-hidden="true">→</span>
-        <span className={phase === "review" ? "font-semibold text-court" : "text-muted-dark"}>
+        <span
+          className={phase === "review" ? "font-semibold text-forest" : "text-muted-foreground"}
+        >
           2. Review
         </span>
       </div>
@@ -179,7 +183,7 @@ export function FixturePlanner({
             <h2 className="text-2xl font-semibold" id="venue-planner-phase-heading">
               Pick the fixtures you will show
             </h2>
-            <p className="mt-2 text-muted-dark">
+            <p className="mt-2 text-muted-foreground">
               Dates and kickoff times come with each fixture. Choose up to 20 and use your usual
               venue defaults.
             </p>
@@ -215,21 +219,21 @@ export function FixturePlanner({
               <h3 className="text-lg font-semibold" id="planner-area-heading">
                 Assign viewing areas
               </h3>
-              <p className="mt-1 text-sm text-muted-dark">
+              <p className="mt-1 text-sm text-muted-foreground">
                 Huddle uses your default area unless you choose another one.
               </p>
-              <ol className="mt-4 overflow-hidden rounded-2xl border border-border-dark">
+              <ol className="mt-4 overflow-hidden rounded-2xl border border-border">
                 {items.map((item, index) => {
                   const match = matches.get(item.matchId);
                   if (match === undefined) return null;
                   return (
                     <li
-                      className="grid gap-3 border-b border-border-dark bg-surface-raised p-4 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_minmax(13rem,0.45fr)] sm:items-center"
+                      className="grid gap-3 border-b border-border bg-card p-4 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_minmax(13rem,0.45fr)] sm:items-center"
                       key={item.matchId}
                     >
                       <div className="min-w-0">
                         <p className="truncate font-semibold">{match.label}</p>
-                        <p className="mt-1 text-sm text-muted-dark">
+                        <p className="mt-1 text-sm text-muted-foreground">
                           {formatIsraelKickoff(match.startsAt)}
                         </p>
                       </div>
@@ -272,8 +276,8 @@ export function FixturePlanner({
             </Alert>
           ) : null}
 
-          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border-dark pt-6">
-            <p className="text-sm text-muted-dark">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
+            <p className="text-sm text-muted-foreground">
               {items.length === 0
                 ? "Choose at least one fixture."
                 : `${items.length} ${items.length === 1 ? "fixture" : "fixtures"} selected`}
@@ -289,16 +293,16 @@ export function FixturePlanner({
             <h2 className="text-2xl font-semibold" id="venue-planner-phase-heading">
               Review inherited details
             </h2>
-            <p className="mt-2 text-muted-dark">
+            <p className="mt-2 text-muted-foreground">
               Venue defaults remain reusable. Only add an override when this event truly differs.
             </p>
           </div>
 
-          <div className="rounded-[1.375rem] border border-border-dark bg-surface-raised p-5">
+          <div className="rounded-[1.375rem] border border-border bg-card p-5">
             <p className="font-semibold">{venue.name}</p>
-            <p className="mt-1 text-sm text-muted-dark">{venue.addressText}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{venue.addressText}</p>
             {venue.houseInformation === "" ? null : (
-              <p className="mt-3 text-sm text-muted-dark">{venue.houseInformation}</p>
+              <p className="mt-3 text-sm text-muted-foreground">{venue.houseInformation}</p>
             )}
           </div>
 
@@ -309,11 +313,11 @@ export function FixturePlanner({
               if (match === undefined || space === undefined) return null;
               return (
                 <li
-                  className="rounded-[1.375rem] border border-border-dark bg-surface-raised p-5"
+                  className="rounded-[1.375rem] border border-border bg-card p-5"
                   key={item.matchId}
                 >
                   <h3 className="text-xl font-semibold">{match.label}</h3>
-                  <p className="mt-2 text-sm text-muted-dark">
+                  <p className="mt-2 text-sm text-muted-foreground">
                     {formatIsraelKickoff(match.startsAt)} · {space.name}
                   </p>
                   <div className="mt-5">
@@ -339,7 +343,7 @@ export function FixturePlanner({
                         Reservations and guest list
                       </NativeSelectOption>
                     </NativeSelect>
-                    <p className="mt-2 text-sm text-muted-dark">
+                    <p className="mt-2 text-sm text-muted-foreground">
                       {item.attendanceMode === "open_door"
                         ? "Open door — no RSVP, invitations, approval queue, or capacity claim."
                         : `${space.capacity} registered accounts · ${venue.defaultRequiresApproval ? "Staff approval required" : "Immediate joining"}`}

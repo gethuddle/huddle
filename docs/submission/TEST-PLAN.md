@@ -24,14 +24,13 @@ The 2026-08-29 B12 run passed 90 Vitest files / 403 tests (78.7% statements,
 and all 17 Playwright journeys. The PR/main CI run and second-computer reproduction
 remain separate evidence.
 
-The current UX-redesign inventory contains 147 Vitest files / 724 tests,
-29 ordered migrations, 35 pgTAP files / 1585 assertions, and 22 Playwright scenarios.
-The current Vitest and full pgTAP runs pass this inventory; the complete acceptance command
-records the final combined gate. The B12 numbers above are
+The current Calm Explore inventory contains 151 Vitest files / 757 tests,
+30 ordered migrations, 36 pgTAP files / 1624 assertions, and 28 Playwright scenarios.
+The complete acceptance command passes this combined inventory. The B12 numbers above are
 retained as historical accepted evidence rather than presented as the current repository
 inventory. Hosted migration and production acceptance remain separately evidenced operations.
 
-## Twenty-two deterministic Playwright scenarios
+## Twenty-eight deterministic Playwright scenarios
 
 All numbered journeys are in `tests/e2e/auth.spec.ts`. Provider input is a saved,
 normalized fixture inserted through the real sync transaction; identifiers are
@@ -59,8 +58,12 @@ depend on execution order, wall-clock equality, a provider network, or hosted da
 | 17 | Provider failure preserves last-good fixtures and exposes stale state | sync transaction and freshness projection |
 
 The 17 numbered contract journeys plus two supporting unnumbered journeys run once
-in the acceptance project. One complete Fan/Venue journey runs independently at
-1280, 768, and 375 px, producing 22 Playwright scenarios in total. The supporting
+in the acceptance project. Five focused Calm Explore journeys add exact-fixture return
+context; friendship cancellation, decline, acceptance, and removal; secure event-link
+redemption/revocation; group submission withdrawal/rejection; and Venue closure. One
+complete Fan/Venue journey runs independently at 1280, 768, and 375 px. A final
+anonymous 1364×1440 regression verifies full-width shell geometry, centring, overflow,
+and shadow treatment, producing 28 Playwright scenarios in total. The supporting
 journeys exercise reversible blocking and both venue/private event creation paths.
 Production smoke tests are deliberately separate under
 `tests/production/`: `npm run test:production:session` creates only ordinary Auth
@@ -70,13 +73,13 @@ accounts and a fresh event.
 
 ## Database coverage
 
-The 35 pgTAP files under `supabase/tests/database/` cover all exposed-table RLS
+The 36 pgTAP files under `supabase/tests/database/` cover all exposed-table RLS
 inventory, CHECK/unique/FK invariants, minimum grants, safe reads, denied reads and
 mutations, lifecycle transitions, cooldowns, exact-address authorization, capacity,
 moderation, workspace membership, protected drafts, current-state projections,
 public-address caching, fixture coverage, open-door venue events, the public map
-projection, managed-Venue discovery continuity, fixture/event consistency, and audited group
-archive. Dedicated two-connection regressions cover friendship/block,
+projection, managed-Venue discovery continuity, fixture/event consistency, secure event
+invite links, audited group archive, and audited Venue closure. Dedicated two-connection regressions cover friendship/block,
 application/block, group invite, event creation, group review/block, attendance,
 onboarding/workspace activation, protected drafts, and suspension/mutation races.
 

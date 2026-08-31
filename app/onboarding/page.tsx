@@ -25,7 +25,7 @@ export default async function OnboardingPage() {
       <ProfileAccessState
         actionHref="/auth/sign-in"
         actionLabel="Sign in"
-        description="Sign in through your verified Huddle account to choose a setup."
+        description="Sign in to choose a Fan or Venue setup."
         eyebrow="Sign in required"
         title="Continue with your account."
       />
@@ -49,15 +49,15 @@ export default async function OnboardingPage() {
   if (recoverable.length > 0 && state.workspace.available.length === 0) {
     return (
       <section className="mx-auto my-12 w-full max-w-3xl sm:my-20">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-court">Rules update</p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">
+        <p className="text-sm font-medium text-forest">Rules update</p>
+        <h1 className="mt-3 text-4xl font-semibold tracking-[-0.04em] sm:text-4xl">
           Update the rules, then continue.
         </h1>
-        <p className="mt-4 max-w-2xl text-lg leading-8 text-muted-dark">
+        <p className="mt-4 max-w-2xl text-lg leading-8 text-muted-foreground">
           Your existing {recoverable.length === 1 ? "workspace is" : "workspaces are"} still here.
           Reaccept the current safety rules to return to your last available workspace.
         </p>
-        <div className="mt-8 rounded-[1.375rem] border border-border-dark bg-surface-raised p-6 sm:p-9">
+        <div className="mt-8 rounded-[1.375rem] border border-border bg-card p-6 sm:p-9">
           <CommonOnboardingForm submitLabel="Reaccept rules and continue" />
         </div>
       </section>
@@ -82,11 +82,11 @@ export default async function OnboardingPage() {
   return (
     <section className="mx-auto my-12 w-full max-w-4xl sm:my-20">
       <div className="max-w-2xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-court">First setup</p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">
+        <p className="text-sm font-medium text-forest">First setup</p>
+        <h1 className="mt-3 text-4xl font-semibold tracking-[-0.04em] sm:text-4xl">
           How will you use Huddle?
         </h1>
-        <p className="mt-4 text-lg leading-8 text-muted-dark">
+        <p className="mt-4 text-lg leading-8 text-muted-foreground">
           Fan and Venue are separate workspaces. You can enable the other one later from Account.
         </p>
       </div>
@@ -102,13 +102,13 @@ export default async function OnboardingPage() {
           </CardHeader>
           <CardContent>
             {hasFan ? (
-              <p className="text-sm font-semibold text-court">Your Fan workspace is ready.</p>
+              <p className="text-sm font-semibold text-forest">Your Fan workspace is ready.</p>
             ) : setupAvailability.canStartFan ? (
               <Button asChild size="lg">
                 <Link href="/onboarding/fan">Set up Fan</Link>
               </Button>
             ) : (
-              <p className="text-sm text-muted-dark">Fan setup is unavailable.</p>
+              <p className="text-sm text-muted-foreground">Fan setup is unavailable.</p>
             )}
           </CardContent>
         </Card>
@@ -129,7 +129,7 @@ export default async function OnboardingPage() {
                 </Link>
               </Button>
             ) : (
-              <p className="text-sm text-muted-dark">Venue setup is unavailable.</p>
+              <p className="text-sm text-muted-foreground">Venue setup is unavailable.</p>
             )}
           </CardContent>
         </Card>

@@ -37,13 +37,13 @@ export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCa
     return (
       <Card className="border-court/30 bg-court/10">
         <CardHeader>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-court">Created</p>
-          <CardTitle className="mt-2 text-2xl text-linen">
+          <p className="text-sm font-medium text-forest">Created</p>
+          <CardTitle className="mt-2 text-2xl text-foreground">
             <h2>Your group is ready.</h2>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="leading-7 text-muted-dark">
+          <p className="leading-7 text-muted-foreground">
             {state.data.message}{" "}
             {state.data.visibility === "discoverable"
               ? "Opening it now so you can share the application link and review requests."
@@ -84,7 +84,7 @@ export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCa
       noValidate
     >
       <div>
-        <Label className="text-linen" htmlFor="group-name">
+        <Label className="text-foreground" htmlFor="group-name">
           Group name
         </Label>
         <Input
@@ -100,7 +100,7 @@ export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCa
               slugInput.current.value = groupSlugFromName(event.target.value);
             }
           }}
-          placeholder="Haifa matchday supporters"
+          placeholder="Haifa matchday crew"
           required
         />
         <FieldError id="group-name-error" messages={fieldErrors?.name} />
@@ -110,7 +110,7 @@ export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCa
 
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
-          <Label className="text-linen" htmlFor="group-city">
+          <Label className="text-foreground" htmlFor="group-city">
             City
           </Label>
           <NativeSelect
@@ -133,8 +133,8 @@ export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCa
         </div>
 
         <div>
-          <Label className="text-linen" htmlFor="group-team">
-            Team <span className="font-normal text-muted-dark">(optional)</span>
+          <Label className="text-foreground" htmlFor="group-team">
+            Team <span className="font-normal text-muted-foreground">(optional)</span>
           </Label>
           <NativeSelect className="mt-2" defaultValue={values.teamId} id="group-team" name="teamId">
             <NativeSelectOption value="">No single team</NativeSelectOption>
@@ -150,7 +150,7 @@ export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCa
       <VisibilityChoice defaultValue={values.visibility as "discoverable" | "unlisted"} />
 
       <div>
-        <Label className="text-linen" htmlFor="group-description">
+        <Label className="text-foreground" htmlFor="group-description">
           Short description
         </Label>
         <Textarea
@@ -163,7 +163,7 @@ export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCa
           name="description"
           placeholder="Who the group is for and how you watch together"
         />
-        <span className="mt-2 block text-xs text-muted-dark" id="group-description-help">
+        <span className="mt-2 block text-xs text-muted-foreground" id="group-description-help">
           Tell people who the group is for and what you watch together.
         </span>
         <FieldError id="group-description-error" messages={fieldErrors?.description} />
@@ -177,7 +177,7 @@ export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCa
           role={state.ok ? "status" : "alert"}
           variant={state.ok ? "default" : "destructive"}
         >
-          <AlertDescription className={state.ok ? "text-court-hover" : "text-sand"}>
+          <AlertDescription className={state.ok ? "text-forest-hover" : "text-sand"}>
             {state.ok ? state.data.message : state.error.message}
           </AlertDescription>
         </Alert>
@@ -209,7 +209,7 @@ function SimilarGroupReview({
 }>) {
   if (review.suggestions.length === 0) {
     return (
-      <div className="rounded-xl border border-court/30 bg-court/10 p-4 text-sm text-court-hover">
+      <div className="rounded-xl border border-court/30 bg-court/10 p-4 text-sm text-forest-hover">
         No similar public group was found. You can create this one.
       </div>
     );
@@ -217,10 +217,10 @@ function SimilarGroupReview({
 
   return (
     <div aria-labelledby="similar-groups-heading" className="space-y-3">
-      <h2 className="font-semibold text-linen" id="similar-groups-heading">
+      <h2 className="font-semibold text-foreground" id="similar-groups-heading">
         Similar discoverable groups
       </h2>
-      <p className="text-sm leading-6 text-muted-dark">
+      <p className="text-sm leading-6 text-muted-foreground">
         These may be close to what you are creating. You can still continue with your own group.
       </p>
       {review.suggestions.map((group) => (
@@ -229,15 +229,15 @@ function SimilarGroupReview({
             <div>
               {group.lifecycle === "active" ? (
                 <Link
-                  className="font-semibold text-linen hover:text-court"
+                  className="font-semibold text-foreground hover:text-forest"
                   href={`/groups/${group.slug}`}
                 >
                   {group.name}
                 </Link>
               ) : (
-                <p className="font-semibold text-linen">{group.name}</p>
+                <p className="font-semibold text-foreground">{group.name}</p>
               )}
-              <p className="mt-1 text-xs text-muted-dark">
+              <p className="mt-1 text-xs text-muted-foreground">
                 {group.cityName} · {group.teamName ?? "Multi-team"}
               </p>
             </div>
@@ -266,7 +266,7 @@ function VisibilityChoice({
   const [visibility, setVisibility] = useState(defaultValue);
   return (
     <div>
-      <Label className="text-linen" htmlFor="group-visibility">
+      <Label className="text-foreground" htmlFor="group-visibility">
         Visibility
       </Label>
       <NativeSelect
@@ -281,12 +281,12 @@ function VisibilityChoice({
         <NativeSelectOption value="discoverable">Discoverable</NativeSelectOption>
         <NativeSelectOption value="unlisted">Unlisted</NativeSelectOption>
       </NativeSelect>
-      <div className="mt-3 rounded-xl border border-border bg-surface-deep p-4">
-        <p className="font-semibold text-linen">What happens next</p>
-        <p className="mt-1 text-sm leading-6 text-muted-dark">
+      <div className="mt-3 rounded-xl border border-border bg-muted p-4">
+        <p className="font-semibold text-foreground">What happens next</p>
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">
           {visibility === "discoverable"
             ? "People can find it and apply once the group is ready. An owner or admin reviews each application before anyone joins."
-            : "The group stays out of search. An owner or admin creates invitation links for registered supporters, and every request is still reviewed."}
+            : "The group stays out of search. An owner or admin creates invitation links for the people they choose, and every request is still reviewed."}
         </p>
       </div>
     </div>

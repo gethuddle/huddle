@@ -14,7 +14,7 @@ export function GroupSearchFilters({
   return (
     <form
       action="/groups"
-      className="grid gap-4 rounded-[1.375rem] border border-border-dark bg-surface-raised p-5 md:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr_auto] lg:items-end"
+      className="grid gap-4 rounded-[1.375rem] border border-border bg-card p-5 md:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr_auto] lg:items-end"
       method="get"
     >
       <div>
@@ -26,7 +26,7 @@ export function GroupSearchFilters({
           maxLength={80}
           minLength={2}
           name="q"
-          placeholder="Search supporter groups"
+          placeholder="Search groups"
           type="search"
         />
       </div>

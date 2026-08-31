@@ -9,11 +9,11 @@ export const metadata: Metadata = {
 export default function DataSourcesPage() {
   return (
     <section className="mx-auto w-full max-w-4xl py-12 sm:py-20">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-court">Transparency</p>
-      <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-linen sm:text-6xl">
+      <p className="text-sm font-medium text-forest">Transparency</p>
+      <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-foreground sm:text-4xl">
         Where fixture data comes from.
       </h1>
-      <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-dark">
+      <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
         Fixture information is refreshed regularly. If an update is delayed, Huddle keeps the most
         recent available fixture list.
       </p>
@@ -25,11 +25,11 @@ export default function DataSourcesPage() {
               <h2>Football fixtures</h2>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 leading-7 text-muted-dark">
+          <CardContent className="space-y-4 leading-7 text-muted-foreground">
             <p>
               Football competition, team, and fixture data is supplied by{" "}
               <a
-                className="font-semibold text-linen underline underline-offset-4"
+                className="font-semibold text-foreground underline underline-offset-4"
                 href="https://www.football-data.org/"
                 rel="noreferrer"
                 target="_blank"
@@ -50,7 +50,7 @@ export default function DataSourcesPage() {
               <h2>Freshness and availability</h2>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 leading-7 text-muted-dark">
+          <CardContent className="space-y-4 leading-7 text-muted-foreground">
             <p>
               Fixture pages show when information was updated and how far the available schedule
               currently reaches.

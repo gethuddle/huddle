@@ -31,11 +31,11 @@ export default async function AccountPage() {
   return (
     <section className="mx-auto my-12 w-full max-w-5xl sm:my-16">
       <div className="max-w-2xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-court">Account</p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">
+        <p className="text-sm font-medium text-forest">Account</p>
+        <h1 className="mt-3 text-4xl font-semibold tracking-[-0.04em] sm:text-4xl">
           Your Huddle, in one place.
         </h1>
-        <p className="mt-4 text-lg leading-8 text-muted-dark">
+        <p className="mt-4 text-lg leading-8 text-muted-foreground">
           Switch workspaces, update identity and interests, or reach safety controls.
         </p>
       </div>
@@ -52,7 +52,7 @@ export default async function AccountPage() {
                 <Link href="/onboarding">Choose your first setup</Link>
               </Button>
             ) : (
-              <p className="text-sm text-muted-dark">
+              <p className="text-sm text-muted-foreground">
                 Workspace setup is unavailable for this account. Safety controls remain below.
               </p>
             )
@@ -83,7 +83,7 @@ export default async function AccountPage() {
                   <Link href="/onboarding/fan">Set up Fan</Link>
                 </Button>
               ) : (
-                <p className="text-sm text-muted-dark">
+                <p className="text-sm text-muted-foreground">
                   Fan setup is unavailable for this account.
                 </p>
               )
@@ -104,7 +104,7 @@ export default async function AccountPage() {
           <CardHeader>
             <CardTitle className="text-xl font-semibold">Venue account</CardTitle>
             <CardDescription>
-              Create a dedicated Unverified business workspace without changing your Fan identity.
+              Create a dedicated self-listed business workspace without changing your Fan identity.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -113,7 +113,7 @@ export default async function AccountPage() {
                 <Link href="/onboarding/venue">Set up a venue</Link>
               </Button>
             ) : (
-              <p className="text-sm text-muted-dark">
+              <p className="text-sm text-muted-foreground">
                 Venue setup is unavailable for this account.
               </p>
             )}
@@ -151,7 +151,7 @@ export default async function AccountPage() {
         ) : null}
       </div>
 
-      <div className="mt-8 border-t border-border-dark pt-8">
+      <div className="mt-8 border-t border-border pt-8">
         <SignOutButton />
       </div>
     </section>
