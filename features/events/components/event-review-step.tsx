@@ -27,14 +27,13 @@ export function EventReviewStep({
     selectedMatch !== null && selectedMatch.id === values.matchId
       ? selectedMatch
       : catalog.matches.find((candidate) => candidate.id === values.matchId);
-  const city = catalog.cities.find((candidate) => candidate.id === values.cityId);
   const group = catalog.groups.find((candidate) => candidate.id === values.audienceGroupId);
   const organizer = catalog.groups.find((candidate) => candidate.id === organizingGroupId);
   const place =
     values.placeKind === "home"
       ? protectedLocation === null
         ? "Protected home location not set"
-        : `Protected home location in ${city?.name ?? "the selected city"}`
+        : "Protected home address confirmed"
       : (values.publicAddressText ?? "Public address not set");
 
   return (
@@ -54,7 +53,6 @@ export function EventReviewStep({
       <ReviewSection title="Place and audience">
         <dl className="grid gap-4 text-sm sm:grid-cols-2">
           <Detail label="Title" value={values.title ?? "Not set"} />
-          <Detail label="City" value={city?.name ?? "Not set"} />
           <Detail label="Place" value={place} />
           <Detail
             label="Audience"

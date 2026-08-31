@@ -59,8 +59,6 @@ export type VenueSettings = Readonly<{
   name: string;
   role: "owner" | "admin";
   verificationStatus: "unverified" | "verified" | "suspended";
-  cityId: string;
-  cityName: string;
   addressText: string;
   longitude: number;
   latitude: number;

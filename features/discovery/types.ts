@@ -11,11 +11,14 @@ export type DiscoveryEvent = Readonly<{
     id: string;
     competitionName: string;
     homeTeamName: string;
+    homeTeamTla: string | null;
+    homeTeamCrestUrl: string | null;
     awayTeamName: string;
+    awayTeamTla: string | null;
+    awayTeamCrestUrl: string | null;
   }>;
   startsAt: string;
   endsAt: string;
-  cityName: string;
   placeKind: "home" | "venue" | "public_place";
   locationSummary: string;
   mapPoint: Readonly<{ placeName: string; latitude: number; longitude: number }> | null;
@@ -33,7 +36,7 @@ export type DiscoveryEvent = Readonly<{
 export type DiscoveryPage = Readonly<{
   items: readonly DiscoveryEvent[];
   nextCursor: string | null;
-  locationMode: "browser" | "city";
+  locationMode: "browser";
   generatedAt: string;
   requiresPrivateCache: boolean;
 }>;

@@ -5,11 +5,11 @@ set local search_path = extensions, public, pg_catalog;
 
 select no_plan();
 
-select col_is_null(
+select hasnt_column(
   'public',
   'groups',
   'city_id',
-  'A supporter group may have an optional home area instead of a city eligibility boundary'
+  'Groups have no locality field or city eligibility boundary'
 );
 
 select ok(
@@ -54,11 +54,6 @@ set
     when 'fb000000-0000-4000-8000-000000000101' then 'Global Owner'
     else 'Cross City Applicant'
   end,
-  city_id = case id
-    when 'fb000000-0000-4000-8000-000000000101'
-      then (select id from public.cities where slug = 'haifa')
-    else (select id from public.cities where slug = 'tel-aviv-yafo')
-  end,
   adult_attested_at = statement_timestamp(),
   rules_version = 1,
   rules_accepted_at = statement_timestamp(),
@@ -79,7 +74,6 @@ select lives_ok(
       'Global Match Friends',
       'global-match-friends',
       null,
-      null,
       'discoverable',
       'A group that welcomes supporters regardless of where they live.',
       'fb000000-0000-4000-8000-000000000199'
@@ -90,20 +84,10 @@ select lives_ok(
 
 select is(
   (
-    select city_id
-    from public.groups
-    where slug = 'global-match-friends'
-  ),
-  null::uuid,
-  'the optional home area remains null rather than inheriting the profile city'
-);
-
-select is(
-  (
     select count(*)
     from public.search_groups(
       'Global Match',
-      (select id from public.cities where slug = 'haifa'),
+      null,
       null,
       null,
       null,
@@ -112,7 +96,7 @@ select is(
     where slug = 'global-match-friends'
   ),
   1::bigint,
-  'legacy city input cannot exclude a globally discoverable group'
+  'global group search returns the discoverable group without locality input'
 );
 
 select is(
@@ -136,7 +120,7 @@ select lives_ok(
       'fb000000-0000-4000-8000-000000000198'
     )
   $$,
-  'a Fan in another profile city can apply to a discoverable group'
+  'any eligible Fan can apply to a discoverable group'
 );
 
 select is(
@@ -147,7 +131,7 @@ select is(
       and user_id = 'fb000000-0000-4000-8000-000000000102'
   ),
   'pending'::text,
-  'the cross-city application is retained as pending for review'
+  'the application is retained as pending for review'
 );
 
 reset role;

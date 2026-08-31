@@ -41,7 +41,6 @@ function submittedVenueValues(formData: FormData): VenueFormValues {
     venueId: formString(formData.get("venueId")),
     name: formString(formData.get("name")),
     slug: formString(formData.get("slug")),
-    cityId: formString(formData.get("cityId")),
     addressText: formString(formData.get("addressText")),
     longitude: formString(formData.get("longitude")),
     latitude: formString(formData.get("latitude")),
@@ -56,7 +55,6 @@ function venueInput(formData: FormData) {
     venueId: formData.get("venueId"),
     name: formData.get("name"),
     slug: formData.get("slug"),
-    cityId: formData.get("cityId"),
     addressText: formData.get("addressText"),
     longitude: formData.get("longitude"),
     latitude: formData.get("latitude"),
@@ -103,7 +101,6 @@ async function mutateVenue(
     const sharedArgs = {
       input_name: parsed.data.name,
       input_slug: parsed.data.slug,
-      input_city_id: parsed.data.cityId,
       input_address_text: parsed.data.addressText,
       input_longitude: parsed.data.longitude,
       input_latitude: parsed.data.latitude,

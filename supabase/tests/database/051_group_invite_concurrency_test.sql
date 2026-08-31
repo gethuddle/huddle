@@ -96,7 +96,6 @@ begin
           when '52100000-0000-4000-8000-000000000102' then 'B06 Race A'
           when '52100000-0000-4000-8000-000000000103' then 'B06 Race B'
         end,
-        city_id = (select id from public.cities where slug = 'haifa'),
         adult_attested_at = statement_timestamp(),
         rules_version = 1,
         rules_accepted_at = statement_timestamp(),
@@ -113,7 +112,6 @@ begin
         slug,
         name,
         owner_id,
-        city_id,
         visibility,
         lifecycle,
         activated_at
@@ -123,7 +121,6 @@ begin
         'b06-race-unlisted',
         'B06 Race Unlisted',
         '52100000-0000-4000-8000-000000000101',
-        (select id from public.cities where slug = 'haifa'),
         'unlisted',
         'active',
         statement_timestamp()

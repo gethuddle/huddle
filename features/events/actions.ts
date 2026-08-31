@@ -45,7 +45,6 @@ const mutationRowSchema = z
 
 const managedVenueIdentitySchema = z.object({
   venue_id: z.uuid(),
-  city_id: z.uuid(),
   verification_status: z.enum(["unverified", "verified", "suspended"]),
   suspended_at: z.string().nullable(),
 });
@@ -137,7 +136,6 @@ function submittedValues(formData: FormData): PrivateEventFormValues {
     eventRules: formString(formData.get("eventRules")),
     commercialAffiliation: formString(formData.get("commercialAffiliation")),
     hostPresenceConfirmed: formData.get("hostPresenceConfirmed") === "on",
-    cityId: formString(formData.get("cityId")),
     placeKind: formString(formData.get("placeKind")),
     publicPlaceName: formString(formData.get("publicPlaceName")),
     publicAddressText: formString(formData.get("publicAddressText")),
@@ -221,7 +219,6 @@ export async function savePrivateEventAction(
       input_host_presence_confirmed: parsed.data.hostPresenceConfirmed,
       input_starts_at: startsAt.toISOString(),
       input_ends_at: endsAt.toISOString(),
-      input_city_id: parsed.data.cityId,
       input_place_kind: parsed.data.placeKind,
       input_public_place_name: (home ? null : parsed.data.publicPlaceName) as string,
       input_public_address_text: (home ? null : parsed.data.publicAddressText) as string,
@@ -373,7 +370,6 @@ export async function saveVenueEventAction(
       input_host_presence_confirmed: parsed.data.hostPresenceConfirmed,
       input_starts_at: startsAt.toISOString(),
       input_ends_at: endsAt.toISOString(),
-      input_city_id: venue.city_id,
       input_place_kind: "venue",
       input_venue_id: parsed.data.venueId,
       input_public_place_name: null as unknown as string,

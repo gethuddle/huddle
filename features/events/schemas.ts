@@ -27,7 +27,6 @@ const eventDraftValueShape = {
   eventRules: z.string().trim().min(3).max(1000),
   commercialAffiliation: z.string().trim().min(2).max(300),
   hostPresenceConfirmed: z.boolean(),
-  cityId: z.uuid(),
   placeKind: z.enum(["home", "public_place"]),
   publicPlaceName: z.string().trim().min(1).max(120),
   publicAddressText: z.string().trim().min(1).max(300),
@@ -50,7 +49,6 @@ export const eventDraftPatchSchema = z
     eventRules: eventDraftValueShape.eventRules.nullable().optional(),
     commercialAffiliation: eventDraftValueShape.commercialAffiliation.nullable().optional(),
     hostPresenceConfirmed: eventDraftValueShape.hostPresenceConfirmed.nullable().optional(),
-    cityId: eventDraftValueShape.cityId.nullable().optional(),
     placeKind: eventDraftValueShape.placeKind.nullable().optional(),
     publicPlaceName: eventDraftValueShape.publicPlaceName.nullable().optional(),
     publicAddressText: eventDraftValueShape.publicAddressText.nullable().optional(),
@@ -156,7 +154,6 @@ export const privateEventFormSchema = z
       .min(2, "State any commercial connection, including none.")
       .max(300),
     hostPresenceConfirmed: z.boolean().refine(Boolean, "Confirm that the host will be present."),
-    cityId: z.uuid("Choose the event city."),
     placeKind: z.enum(["home", "public_place"]),
     publicPlaceName: optionalText(120),
     publicAddressText: optionalText(300),

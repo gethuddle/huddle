@@ -53,13 +53,11 @@ select ok(
 
 select has_index('public', 'venues', 'venues_slug_lower_uidx', 'venue slugs are unique');
 select has_index('public', 'venues', 'venues_location_gist_idx', 'venue distance queries are spatially indexed');
-select has_index('public', 'venues', 'venues_city_verification_idx', 'venue city/status queries are indexed');
 select has_index('public', 'venues', 'venues_owner_idx', 'venue ownership is indexed');
 select has_index('public', 'venue_follows', 'venue_follows_pkey', 'one user follows a venue once');
 select has_index('public', 'venue_follows', 'venue_follows_venue_created_idx', 'venue follower lookup is indexed');
 select has_index('public', 'events', 'events_status_starts_idx', 'event lifecycle/time queries are indexed');
 select has_index('public', 'events', 'events_match_status_idx', 'fixture event lookup is indexed');
-select has_index('public', 'events', 'events_city_status_starts_idx', 'city discovery is indexed');
 select has_index('public', 'events', 'events_host_user_status_idx', 'personal host management is indexed');
 select has_index('public', 'events', 'events_host_venue_status_idx', 'venue host management is indexed');
 select has_index('public', 'events', 'events_organizing_group_status_idx', 'group review lookup is indexed');
@@ -86,11 +84,11 @@ select ok(has_table_privilege('authenticated', 'public.venue_follows', 'insert')
 select ok(not has_table_privilege('authenticated', 'public.event_invitations', 'insert'), 'invitations cannot be forged directly');
 select ok(not has_table_privilege('authenticated', 'public.event_attendance', 'insert'), 'attendance cannot be forged directly');
 
-select ok(not has_function_privilege('authenticated', 'public.create_venue(text,text,uuid,text,double precision,double precision,text,integer,integer,uuid)', 'execute'), 'the legacy venue creation RPC cannot bypass workspace activation attestations');
-select ok(not has_function_privilege('anon', 'public.create_venue(text,text,uuid,text,double precision,double precision,text,integer,integer,uuid)', 'execute'), 'anonymous callers cannot create venues');
+select ok(not has_function_privilege('authenticated', 'public.create_venue(text,text,text,double precision,double precision,text,integer,integer,uuid)', 'execute'), 'the legacy venue creation RPC cannot bypass workspace activation attestations');
+select ok(not has_function_privilege('anon', 'public.create_venue(text,text,text,double precision,double precision,text,integer,integer,uuid)', 'execute'), 'anonymous callers cannot create venues');
 select ok(has_function_privilege('anon', 'public.get_venue_by_slug(text)', 'execute'), 'public venue details use a safe projection');
-select ok(has_function_privilege('authenticated', 'public.create_or_update_event(uuid,uuid,uuid,uuid,text,text,text,text,text,text,boolean,timestamptz,timestamptz,uuid,text,uuid,text,text,double precision,double precision,text,uuid,uuid,integer,boolean,text,text,double precision,double precision,text,uuid)', 'execute'), 'eligible hosts use one controlled event transaction');
-select ok(not has_function_privilege('anon', 'public.create_or_update_event(uuid,uuid,uuid,uuid,text,text,text,text,text,text,boolean,timestamptz,timestamptz,uuid,text,uuid,text,text,double precision,double precision,text,uuid,uuid,integer,boolean,text,text,double precision,double precision,text,uuid)', 'execute'), 'anonymous callers cannot create events');
+select ok(has_function_privilege('authenticated', 'public.create_or_update_event(uuid,uuid,uuid,uuid,text,text,text,text,text,text,boolean,timestamptz,timestamptz,text,uuid,text,text,double precision,double precision,text,uuid,uuid,integer,boolean,text,text,double precision,double precision,text,uuid)', 'execute'), 'eligible hosts use one controlled event transaction');
+select ok(not has_function_privilege('anon', 'public.create_or_update_event(uuid,uuid,uuid,uuid,text,text,text,text,text,text,boolean,timestamptz,timestamptz,text,uuid,text,text,double precision,double precision,text,uuid,uuid,integer,boolean,text,text,double precision,double precision,text,uuid)', 'execute'), 'anonymous callers cannot create events');
 select isnt(
   to_regprocedure('public.get_private_event_location(uuid,uuid)'),
   null::regprocedure,
@@ -144,7 +142,6 @@ set
     else 'b07_group_viewer'
   end,
   display_name = 'B07 Fan ' || right(id::text, 3),
-  city_id = (select id from public.cities where slug = 'haifa'),
   adult_attested_at = statement_timestamp(),
   rules_version = 1,
   rules_accepted_at = statement_timestamp(),
@@ -226,14 +223,13 @@ values (
 );
 
 insert into public.groups (
-  id, slug, name, owner_id, city_id, visibility, lifecycle, description, activated_at
+  id, slug, name, owner_id, visibility, lifecycle, description, activated_at
 )
 values (
   '61000000-0000-4000-8000-000000000205',
   'b07-supporters',
   'B07 Supporters',
   '61000000-0000-4000-8000-000000000101',
-  (select id from public.cities where slug = 'haifa'),
   'unlisted',
   'active',
   'A reviewed B07 supporter group.',
@@ -262,7 +258,6 @@ insert into public.venues (
   owner_id,
   slug,
   name,
-  city_id,
   address_text,
   location,
   description,
@@ -275,7 +270,6 @@ values
     '61000000-0000-4000-8000-000000000101',
     'b07-match-corner',
     'B07 Match Corner',
-    (select id from public.cities where slug = 'haifa'),
     '12 Public Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(34.99928, 32.81303), 4326)::extensions.geography,
     'A public venue profile for B07 tests.',
@@ -287,7 +281,6 @@ values
     '61000000-0000-4000-8000-000000000102',
     'b07-friend-bar',
     'B07 Friend Bar',
-    (select id from public.cities where slug = 'haifa'),
     '14 Public Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(35.00000, 32.81400), 4326)::extensions.geography,
     'Another public venue profile for B07 tests.',
@@ -328,16 +321,12 @@ select throws_ok(
   '23514', null, 'venue suspension status requires timestamp evidence'
 );
 select throws_ok(
-  $$insert into public.venues (owner_id,slug,name,city_id,address_text,location,description) values ('61000000-0000-4000-8000-000000000102','b07-match-corner','Duplicate Venue',(select id from public.cities where slug='haifa'),'16 Public Street, Haifa',extensions.st_setsrid(extensions.st_makepoint(35,32.8),4326)::extensions.geography,'A duplicate venue slug test.')$$,
+  $$insert into public.venues (owner_id,slug,name,address_text,location,description) values ('61000000-0000-4000-8000-000000000102','b07-match-corner','Duplicate Venue','16 Public Street, Haifa',extensions.st_setsrid(extensions.st_makepoint(35,32.8),4326)::extensions.geography,'A duplicate venue slug test.')$$,
   '23505', null, 'venue slugs are case-insensitively unique'
 );
 select throws_ok(
   $$update public.venues set owner_id = '61000000-0000-4000-8000-000000000999' where id = '61000000-0000-4000-8000-000000000301'$$,
   '23503', null, 'venue owner references a profile'
-);
-select throws_ok(
-  $$update public.venues set city_id = '61000000-0000-4000-8000-000000000999' where id = '61000000-0000-4000-8000-000000000301'$$,
-  '23503', null, 'venue city references the reviewed catalog'
 );
 
 insert into public.events (
@@ -354,7 +343,6 @@ insert into public.events (
   host_presence_confirmed_at,
   starts_at,
   ends_at,
-  city_id,
   place_kind,
   audience,
   capacity,
@@ -375,7 +363,6 @@ values (
   statement_timestamp(),
   statement_timestamp() + interval '7 days',
   statement_timestamp() + interval '7 days 3 hours',
-  (select id from public.cities where slug = 'haifa'),
   'home',
   'friends',
   6,
@@ -394,7 +381,7 @@ values (
 insert into public.events (
   id, created_by, host_user_id, match_id, title, description, expected_activity,
   cost_description, event_rules, commercial_affiliation, host_presence_confirmed_at,
-  starts_at, ends_at, city_id, place_kind, public_place_name, public_address_text,
+  starts_at, ends_at, place_kind, public_place_name, public_address_text,
   public_location, audience, capacity, requires_approval, status
 )
 values (
@@ -411,7 +398,6 @@ values (
   statement_timestamp(),
   statement_timestamp() + interval '7 days',
   statement_timestamp() + interval '7 days 3 hours',
-  (select id from public.cities where slug = 'haifa'),
   'public_place',
   'Community Hall',
   '20 Public Street, Haifa',
@@ -425,7 +411,7 @@ values (
 insert into public.events (
   id, created_by, host_venue_id, match_id, title, description, expected_activity,
   cost_description, event_rules, commercial_affiliation, host_presence_confirmed_at,
-  starts_at, ends_at, city_id, place_kind, venue_id, audience, capacity,
+  starts_at, ends_at, place_kind, venue_id, audience, capacity,
   requires_approval, status
 )
 values (
@@ -442,7 +428,6 @@ values (
   statement_timestamp(),
   statement_timestamp() + interval '7 days',
   statement_timestamp() + interval '7 days 3 hours',
-  (select id from public.cities where slug = 'haifa'),
   'venue',
   '61000000-0000-4000-8000-000000000301',
   'public',
@@ -477,7 +462,6 @@ select throws_ok($$update public.events set created_by = '61000000-0000-4000-800
 select throws_ok($$update public.events set host_user_id = '61000000-0000-4000-8000-000000000999' where id = '61000000-0000-4000-8000-000000000401'$$, '23503', null, 'personal host references a profile');
 select throws_ok($$update public.events set organizing_group_id = '61000000-0000-4000-8000-000000000999' where id = '61000000-0000-4000-8000-000000000401'$$, '23503', null, 'organizing group references a group');
 select throws_ok($$update public.events set match_id = '61000000-0000-4000-8000-000000000999' where id = '61000000-0000-4000-8000-000000000401'$$, '23503', null, 'event fixture references the sports catalog');
-select throws_ok($$update public.events set city_id = '61000000-0000-4000-8000-000000000999' where id = '61000000-0000-4000-8000-000000000401'$$, '23503', null, 'event city references the city catalog');
 select throws_ok($$update public.events set audience = 'group', audience_group_id = '61000000-0000-4000-8000-000000000999' where id = '61000000-0000-4000-8000-000000000401'$$, '23503', null, 'group audience target references a group');
 select throws_ok($$update public.events set audience = 'team_followers', audience_team_id = '61000000-0000-4000-8000-000000000999' where id = '61000000-0000-4000-8000-000000000403'$$, '23503', null, 'team audience target references a team');
 
@@ -513,7 +497,7 @@ set local role authenticated;
 set local "request.jwt.claim.sub" = '61000000-0000-4000-8000-000000000101';
 
 select throws_ok(
-  $$select * from public.create_venue('B07 New Venue','b07-new-venue',(select id from public.cities where slug='haifa'),'30 Public Street, Haifa',35.01,32.82,'A safely created unverified venue.',3,60,null)$$,
+  $$select * from public.create_venue('B07 New Venue','b07-new-venue','30 Public Street, Haifa',35.01,32.82,'A safely created unverified venue.',3,60,null)$$,
   '42501', 'permission denied for function create_venue',
   'legacy venue creation is denied in favor of attested workspace activation'
 );
@@ -527,8 +511,9 @@ select throws_ok(
   'P0001', 'NOT_ALLOWED', 'a venue owner cannot self-verify'
 );
 select throws_ok(
-  $$select * from public.update_venue('61000000-0000-4000-8000-000000000302','Stolen Venue','stolen-venue',(select id from public.cities where slug='haifa'),'14 Public Street, Haifa',35,32.814,'A crafted cross-owner venue edit.',2,40,null)$$,
-  'P0001', 'NOT_ALLOWED', 'cross-owner venue edits are denied'
+  $$select * from public.update_venue('61000000-0000-4000-8000-000000000302','Stolen Venue','stolen-venue','14 Public Street, Haifa',35,32.814,'A crafted cross-owner venue edit.',2,40,null)$$,
+  'P0001', 'NOT_ALLOWED',
+  'the cityless venue update boundary rejects a crafted cross-owner edit'
 );
 
 insert into public.venue_follows (user_id, venue_id)
@@ -588,7 +573,7 @@ set local role authenticated;
 set local "request.jwt.claim.sub" = '61000000-0000-4000-8000-000000000101';
 
 select throws_ok(
-  $$select * from public.create_or_update_event(null,null,null,'61000000-0000-4000-8000-000000000204','Crafted public event','A crafted private-host public event.','Watch the full match','Free','Respect everyone.','None',true,statement_timestamp()+interval '7 days',statement_timestamp()+interval '7 days 3 hours',(select id from public.cities where slug='haifa'),'home',null,null,null,null,null,'public',null,null,6,true,'Secret address',null,34.998,32.812,'publish',null)$$,
+  $$select * from public.create_or_update_event(null,null,null,'61000000-0000-4000-8000-000000000204','Crafted public event','A crafted private-host public event.','Watch the full match','Free','Respect everyone.','None',true,statement_timestamp()+interval '7 days',statement_timestamp()+interval '7 days 3 hours','home',null,null,null,null,null,'public',null,null,6,true,'Secret address',null,34.998,32.812,'publish',null)$$,
   'P0001', 'NOT_ALLOWED', 'a crafted private host cannot publish to the public audience'
 );
 
@@ -612,7 +597,6 @@ select is(
       true,
       statement_timestamp()+interval '7 days',
       statement_timestamp()+interval '7 days 3 hours',
-      (select id from public.cities where slug='haifa'),
       'home',null,null,null,null,null,'group',null,
       '61000000-0000-4000-8000-000000000205',6,true,
       '88 Protected Group Home',null,34.997,32.811,'publish',null
@@ -686,7 +670,7 @@ select is(
   'an uninvited user cannot see an invite-only event'
 );
 select throws_ok(
-  $$select * from public.create_or_update_event('61000000-0000-4000-8000-000000000401',null,null,'61000000-0000-4000-8000-000000000204','Crafted cross-user edit','A crafted cross-user private event edit.','Watch the full match','Free','Respect everyone.','None',true,statement_timestamp()+interval '7 days',statement_timestamp()+interval '7 days 3 hours',(select id from public.cities where slug='haifa'),'home',null,null,null,null,null,'invite_only',null,null,6,true,'99 Protected Home, Haifa','Ring apartment 4.',34.998,32.812,'publish',null)$$,
+  $$select * from public.create_or_update_event('61000000-0000-4000-8000-000000000401',null,null,'61000000-0000-4000-8000-000000000204','Crafted cross-user edit','A crafted cross-user private event edit.','Watch the full match','Free','Respect everyone.','None',true,statement_timestamp()+interval '7 days',statement_timestamp()+interval '7 days 3 hours','home',null,null,null,null,null,'invite_only',null,null,6,true,'99 Protected Home, Haifa','Ring apartment 4.',34.998,32.812,'publish',null)$$,
   'P0001', 'NOT_ALLOWED', 'a crafted cross-user event update is denied'
 );
 

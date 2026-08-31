@@ -71,14 +71,12 @@ export default async function GroupsPage({ searchParams }: GroupsPageProps) {
                 <CardHeader>
                   <p className="text-xs text-muted-foreground">
                     {group.member_role} ·{" "}
-                    {group.visibility === "unlisted" ? "Private" : "Discoverable"} ·{" "}
-                    {group.lifecycle === "active" ? "Ready" : "Setting up"}
+                    {group.visibility === "unlisted" ? "Private" : "Discoverable"} · Ready
                   </p>
                   <h3 className="mt-2 text-xl font-semibold text-foreground">{group.name}</h3>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">
-                    {group.city_name === null ? null : `${group.city_name} · `}
                     {group.active_member_count} active members
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2">
@@ -110,7 +108,7 @@ export default async function GroupsPage({ searchParams }: GroupsPageProps) {
                 <Link href="/groups">Clear filters</Link>
               </Button>
             }
-            description="Try another team or group name. A discoverable group appears after its owner adds a clear description."
+            description="Try another team or group name. Unlisted groups appear only through invitation links."
             headingLevel="h2"
             title="No active groups match these filters."
           />
@@ -118,7 +116,7 @@ export default async function GroupsPage({ searchParams }: GroupsPageProps) {
           <>
             <div className="mt-10 flex items-end justify-between gap-4">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Active and discoverable</p>
+                <p className="text-sm font-medium text-muted-foreground">Discoverable</p>
                 <h2 className="mt-2 text-2xl font-semibold text-foreground">Groups</h2>
               </div>
             </div>

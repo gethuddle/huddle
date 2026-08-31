@@ -147,7 +147,6 @@ set
     when 'fa000000-0000-4000-8000-000000000103' then 'Link Outsider'
     else 'Venue Admin'
   end,
-  city_id = (select id from public.cities where slug = 'haifa'),
   adult_attested_at = statement_timestamp(),
   rules_version = 1,
   rules_accepted_at = statement_timestamp(),
@@ -203,14 +202,13 @@ values (
 );
 
 insert into public.groups (
-  id, slug, name, owner_id, city_id, visibility, lifecycle, description, activated_at
+  id, slug, name, owner_id, visibility, lifecycle, description, activated_at
 )
 values (
   'fa000000-0000-4000-8000-000000000205',
   'withdrawal-test-group',
   'Withdrawal Test Group',
   'fa000000-0000-4000-8000-000000000101',
-  (select id from public.cities where slug = 'haifa'),
   'unlisted',
   'active',
   'A private group used to verify that creators withdraw instead of reviewing themselves.',
@@ -234,14 +232,13 @@ values
   );
 
 insert into public.venues (
-  id, owner_id, slug, name, city_id, address_text, location, description,
+  id, owner_id, slug, name, address_text, location, description,
   stated_capacity, verification_status
 )
 values (
   'fa000000-0000-4000-8000-000000000301',
   'fa000000-0000-4000-8000-000000000101',
   'archive-me-venue', 'Archive Me Venue',
-  (select id from public.cities where slug = 'haifa'),
   '42 Fixture Street, Haifa',
   extensions.st_setsrid(extensions.st_makepoint(35.000, 32.813), 4326)::extensions.geography,
   'A test Venue that will be closed without deleting its history.',
@@ -260,7 +257,7 @@ values (
 insert into public.events (
   id, created_by, host_user_id, match_id, title, description,
   expected_activity, cost_description, event_rules, commercial_affiliation,
-  host_presence_confirmed_at, starts_at, ends_at, city_id, place_kind,
+  host_presence_confirmed_at, starts_at, ends_at, place_kind,
   audience, capacity, requires_approval, status, published_at
 )
 values (
@@ -273,14 +270,13 @@ values (
   'Watch together', 'Free entry', 'Respect the host.', 'None',
   statement_timestamp(), statement_timestamp() + interval '8 days',
   statement_timestamp() + interval '8 days 3 hours',
-  (select id from public.cities where slug = 'haifa'),
   'home', 'invite_only', 8, true, 'published', statement_timestamp()
 );
 
 insert into public.events (
   id, created_by, host_user_id, organizing_group_id, match_id, title, description,
   expected_activity, cost_description, event_rules, commercial_affiliation,
-  host_presence_confirmed_at, starts_at, ends_at, city_id, place_kind,
+  host_presence_confirmed_at, starts_at, ends_at, place_kind,
   audience, capacity, requires_approval, status
 )
 values (
@@ -294,14 +290,13 @@ values (
   'Watch together', 'Free entry', 'Respect the group.', 'None',
   statement_timestamp(), statement_timestamp() + interval '8 days 10 minutes',
   statement_timestamp() + interval '8 days 3 hours 10 minutes',
-  (select id from public.cities where slug = 'haifa'),
   'home', 'invite_only', 8, true, 'pending_group_review'
 );
 
 insert into public.events (
   id, created_by, host_venue_id, match_id, title, description,
   expected_activity, cost_description, event_rules, commercial_affiliation,
-  host_presence_confirmed_at, starts_at, ends_at, city_id, place_kind, venue_id,
+  host_presence_confirmed_at, starts_at, ends_at, place_kind, venue_id,
   audience, capacity, requires_approval, status, published_at
 )
 values (
@@ -314,7 +309,6 @@ values (
   'Watch together', 'Free entry', 'Respect the Venue.', 'Venue-hosted',
   statement_timestamp(), statement_timestamp() + interval '8 days 5 minutes',
   statement_timestamp() + interval '8 days 3 hours 5 minutes',
-  (select id from public.cities where slug = 'haifa'),
   'venue', 'fa000000-0000-4000-8000-000000000301',
   'public', 50, true, 'published', statement_timestamp()
 );

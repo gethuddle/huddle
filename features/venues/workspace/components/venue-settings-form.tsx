@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { AddressSearch } from "@/features/locations/components/address-search";
 import type { AddressSuggestion } from "@/features/locations/types";
@@ -31,8 +30,6 @@ type VenueSettingsView = Readonly<{
   id: string;
   slug: string;
   name: string;
-  cityId: string;
-  cityName: string;
   addressText: string;
   description: string;
   facilities: readonly VenueFacility[];
@@ -41,21 +38,12 @@ type VenueSettingsView = Readonly<{
   defaultRequiresApproval: boolean;
 }>;
 
-export function VenueSettingsForm({
-  cities,
-  venue,
-}: Readonly<{
-  cities: readonly Readonly<{ id: string; name: string; slug?: string }>[];
-  venue: VenueSettingsView;
-}>) {
-  const [cityId, setCityId] = useState(venue.cityId);
+export function VenueSettingsForm({ venue }: Readonly<{ venue: VenueSettingsView }>) {
   const [changingAddress, setChangingAddress] = useState(false);
   const [address, setAddress] = useState<AddressSuggestion | null>(null);
   const [attendanceMode, setAttendanceMode] = useState(venue.defaultAttendanceMode);
   const [state, setState] = useState<VenueWorkspaceMutationState>(null);
   const [pending, startTransition] = useTransition();
-  const city = cities.find((candidate) => candidate.id === cityId) ?? null;
-  const cityChanged = cityId !== venue.cityId;
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -65,7 +53,6 @@ export function VenueSettingsForm({
         venueId: venue.id,
         name: formData.get("name"),
         slug: formData.get("slug"),
-        cityId: formData.get("cityId"),
         description: formData.get("description"),
         facilities: formData.getAll("facilities"),
         houseInformation: formData.get("houseInformation"),
@@ -103,27 +90,6 @@ export function VenueSettingsForm({
         </div>
       </div>
 
-      <div>
-        <Label htmlFor="venue-settings-city">City</Label>
-        <NativeSelect
-          id="venue-settings-city"
-          name="cityId"
-          onChange={(event) => {
-            setCityId(event.currentTarget.value);
-            setAddress(null);
-            if (event.currentTarget.value !== venue.cityId) setChangingAddress(true);
-          }}
-          required
-          value={cityId}
-        >
-          {cities.map((option) => (
-            <NativeSelectOption key={option.id} value={option.id}>
-              {option.name}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-      </div>
-
       <section
         className="rounded-[1.375rem] border border-border p-5"
         aria-labelledby="current-venue-address"
@@ -133,15 +99,9 @@ export function VenueSettingsForm({
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">{address?.label ?? venue.addressText}</p>
         {changingAddress ? (
-          city === null ? (
-            <p className="mt-4 text-sm text-sand">
-              Choose a supported city before replacing the address.
-            </p>
-          ) : (
-            <div className="mt-5">
-              <AddressSearch city={city.name} locationKind="venue" onConfirm={setAddress} />
-            </div>
-          )
+          <div className="mt-5">
+            <AddressSearch onConfirm={setAddress} purpose="public_address" />
+          </div>
         ) : (
           <Button
             className="mt-4"
@@ -246,9 +206,9 @@ export function VenueSettingsForm({
         </div>
       ) : null}
 
-      {cityChanged && address === null ? (
+      {changingAddress && address === null ? (
         <p className="text-sm text-sand" role="alert">
-          Confirm a public address in the newly selected city before saving.
+          Confirm the replacement public address before saving.
         </p>
       ) : null}
       {state === null ? null : state.ok ? (
@@ -261,7 +221,7 @@ export function VenueSettingsForm({
         </Alert>
       )}
 
-      <Button disabled={pending || (cityChanged && address === null)} size="lg" type="submit">
+      <Button disabled={pending || (changingAddress && address === null)} size="lg" type="submit">
         {pending ? "Saving venue…" : "Save venue"}
       </Button>
     </form>

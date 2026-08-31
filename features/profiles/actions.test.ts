@@ -17,7 +17,6 @@ function validFormData() {
   const formData = new FormData();
   formData.set("handle", "Fan_One");
   formData.set("displayName", "Fan One");
-  formData.set("citySlug", "haifa");
   formData.set("bio", "Football and friends.");
   formData.set("adultAttested", "on");
   formData.set("rulesAccepted", "on");
@@ -57,7 +56,6 @@ describe("activateFanWorkspaceAction", () => {
     expect(rpc).toHaveBeenCalledWith("activate_fan_workspace", {
       input_handle: "fan_one",
       input_display_name: "Fan One",
-      input_city_slug: "haifa",
       input_bio: "Football and friends.",
       input_adult_attested: true,
       input_rules_version: 1,
@@ -139,7 +137,6 @@ describe("activateFanWorkspaceAction", () => {
       values: {
         handle: "Fan_One",
         displayName: "Fan One",
-        citySlug: "haifa",
       },
     });
     expect(JSON.stringify(result)).not.toContain("profiles_handle_lower_uidx");

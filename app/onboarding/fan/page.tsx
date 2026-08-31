@@ -3,11 +3,9 @@ import { redirect } from "next/navigation";
 import { CURRENT_COMMUNITY_RULES_VERSION } from "@/content/community-rules";
 import {
   ProfileForm,
-  type CityOption,
   type ProfileFormInitialValue,
 } from "@/features/profiles/components/profile-form";
 import { ProfileAccessState } from "@/features/profiles/components/profile-access-state";
-import { createAnonymousServerClient } from "@/lib/supabase/anonymous";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Set up Fan — Huddle" };
@@ -38,19 +36,15 @@ export default async function FanOnboardingPage() {
     );
   }
 
-  const publicCatalog = createAnonymousServerClient();
-  const [profileResult, cityResult] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select(
-        "handle, display_name, city_id, bio, adult_attested_at, rules_version, rules_accepted_at, profile_completed_at, fan_enabled_at, suspended_at, community_restricted_at",
-      )
-      .eq("id", user.id)
-      .maybeSingle(),
-    publicCatalog.from("cities").select("id, slug, name_en").eq("active", true).order("name_en"),
-  ]);
+  const profileResult = await supabase
+    .from("profiles")
+    .select(
+      "handle, display_name, bio, adult_attested_at, rules_version, rules_accepted_at, profile_completed_at, fan_enabled_at, suspended_at, community_restricted_at",
+    )
+    .eq("id", user.id)
+    .maybeSingle();
   const profile = profileResult.data;
-  if (profileResult.error !== null || cityResult.error !== null || profile === null) {
+  if (profileResult.error !== null || profile === null) {
     return (
       <ProfileAccessState
         description="Fan setup could not load. Your account is safe and no changes were made."
@@ -77,26 +71,9 @@ export default async function FanOnboardingPage() {
       profile.rules_accepted_at !== null;
     redirect(commonEligible ? "/" : "/onboarding");
   }
-  if (cityResult.data.length === 0) {
-    return (
-      <ProfileAccessState
-        description="No active Israel cities are configured. No Fan profile was published."
-        eyebrow="Setup temporarily unavailable"
-        title="We couldn’t load the city list."
-        warning
-      />
-    );
-  }
-
-  const cities: CityOption[] = cityResult.data.map((city) => ({
-    id: city.id,
-    slug: city.slug,
-    name: city.name_en,
-  }));
   const initialValue: ProfileFormInitialValue = {
     handle: profile.handle ?? "",
     displayName: profile.display_name ?? "",
-    citySlug: cities.find((city) => city.id === profile.city_id)?.slug ?? "",
     bio: profile.bio ?? "",
     adultAttested: profile.adult_attested_at !== null,
     currentRulesAccepted:
@@ -117,12 +94,7 @@ export default async function FanOnboardingPage() {
         </p>
       </div>
       <div className="rounded-[1.375rem] border border-border bg-card p-6 sm:p-9">
-        <ProfileForm
-          cities={cities}
-          draftOwnerId={user.id}
-          initialValue={initialValue}
-          mode="onboarding"
-        />
+        <ProfileForm draftOwnerId={user.id} initialValue={initialValue} mode="onboarding" />
       </div>
     </section>
   );

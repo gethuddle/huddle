@@ -16,7 +16,6 @@ import {
 import { EventCard } from "@/features/events/components/event-card";
 import { listGroupEvents } from "@/features/events/queries";
 import { GroupApplicationForm } from "@/features/groups/components/group-application-form";
-import { GroupDiscoveryProgress } from "@/features/groups/components/group-discovery-progress";
 import {
   ApplicationReviewControl,
   EventReviewControl,
@@ -28,7 +27,6 @@ import {
 } from "@/features/groups/components/group-share-dialog";
 import { ReportControl } from "@/features/moderation/components/report-control";
 import { getGroupDetail } from "@/features/groups/detail";
-import { getGroupDiscoveryProgress } from "@/features/groups/discovery";
 import { getGroupOverviewAttention } from "@/features/groups/management";
 import { groupMemberListQuerySchema, groupRouteSlugSchema } from "@/features/groups/schemas";
 import { listPeopleHub } from "@/features/people/search";
@@ -67,9 +65,8 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
   const group = await getGroupDetail(parsedSlug.data, query.membersPage);
   if (group === null) notFound();
   const canManage = group.viewerRole === "owner" || group.viewerRole === "admin";
-  const [events, progress, attention, shareCandidates] = await Promise.all([
+  const [events, attention, shareCandidates] = await Promise.all([
     listGroupEvents(group.id),
-    canManage ? getGroupDiscoveryProgress(group.id) : Promise.resolve(null),
     getGroupOverviewAttention(group),
     canManage ? loadShareCandidates() : Promise.resolve<GroupShareCandidate[]>([]),
   ]);
@@ -115,13 +112,7 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
               {group.description ?? "This group has not added a description yet."}
             </p>
 
-            <dl className="mt-8 grid gap-5 border-y border-border py-6 sm:grid-cols-3">
-              <div>
-                <dt className="text-sm font-medium text-muted-foreground">City</dt>
-                <dd className="mt-2 font-semibold text-foreground">
-                  {group.cityName ?? "Open to supporters anywhere"}
-                </dd>
-              </div>
+            <dl className="mt-8 grid gap-5 border-y border-border py-6 sm:grid-cols-2">
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">Team</dt>
                 <dd className="mt-2 font-semibold text-foreground">
@@ -148,13 +139,11 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
           <aside aria-label="Group status" className="self-start">
             <Card className="bg-muted" size="sm">
               <CardHeader>
-                <CardTitle className="text-foreground">
-                  {statusTitle(group.visibility, group.lifecycle)}
-                </CardTitle>
+                <CardTitle className="text-foreground">{statusTitle(group.visibility)}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  {statusDescription(group.visibility, group.lifecycle)}
+                  {statusDescription(group.visibility)}
                 </p>
                 {group.viewerMembershipStatus === "pending" ? (
                   <p className="mt-4 text-sm font-semibold leading-6 text-forest-hover">
@@ -196,16 +185,6 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
           </aside>
         </div>
       </div>
-
-      {progress === null ? null : (
-        <GroupDiscoveryProgress
-          description={group.description}
-          groupId={group.id}
-          groupSlug={group.slug}
-          progress={progress}
-          visibility={group.visibility}
-        />
-      )}
 
       {attention.applications.length === 0 ? null : (
         <section aria-labelledby="group-applications-heading" className="mt-10">
@@ -408,17 +387,14 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
   );
 }
 
-function statusTitle(visibility: "discoverable" | "unlisted", lifecycle: string): string {
+function statusTitle(visibility: "discoverable" | "unlisted"): string {
   if (visibility === "unlisted") return "Shared by invitation";
-  return lifecycle === "forming" ? "Not listed yet" : "Open for applications";
+  return "Open for applications";
 }
 
-function statusDescription(visibility: "discoverable" | "unlisted", lifecycle: string): string {
+function statusDescription(visibility: "discoverable" | "unlisted"): string {
   if (visibility === "unlisted") {
     return "This group stays out of search. Owners and admins share controlled invitation links.";
-  }
-  if (lifecycle === "forming") {
-    return "Add a clear description to make this group searchable. Until then, only active members can open it.";
   }
   return "People can find this page and apply. Member-only content stays protected.";
 }
@@ -435,9 +411,7 @@ async function loadShareCandidates(): Promise<GroupShareCandidate[]> {
       handle: person.handle,
       displayName: person.displayName,
       context:
-        person.friendship?.status === "accepted"
-          ? `Friend · ${person.cityName}`
-          : `${person.reason ?? "Suggested person"} · ${person.cityName}`,
+        person.friendship?.status === "accepted" ? "Friend" : (person.reason ?? "Suggested person"),
     });
   }
   return [...candidates.values()];

@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
-  cityMaybeSingle: vi.fn(),
   getUser: vi.fn(),
+  loadTeamVisualsByName: vi.fn(),
   rpc: vi.fn(),
 }));
 
@@ -13,14 +13,16 @@ vi.mock("@/lib/env/server", () => ({
   }),
 }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
+vi.mock("@/features/sports/team-visuals", () => ({
+  loadTeamVisualsByName: mocks.loadTeamVisualsByName,
+}));
 
 import type { DiscoveryFilters } from "./schemas";
 import { getDiscoveryPage } from "./query";
 
 const filters: DiscoveryFilters = {
-  citySlug: "haifa",
-  lat: null,
-  lng: null,
+  lat: 32.794,
+  lng: 34.989,
   radiusKm: 15,
   from: "2026-08-27",
   to: "2026-09-10",
@@ -45,7 +47,6 @@ function safeRow() {
     away_team_name: "Liverpool",
     starts_at: "2026-08-30T17:30:00Z",
     ends_at: "2026-08-30T20:30:00Z",
-    city_name: "Haifa",
     place_kind: "venue",
     location_summary: "1–5 km away",
     audience: "public",
@@ -64,14 +65,16 @@ function safeRow() {
 describe("event discovery query", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.cityMaybeSingle.mockResolvedValue({
-      data: { id: "00000000-0000-4000-8000-000000000003" },
-      error: null,
-    });
     mocks.getUser.mockResolvedValue({
       data: { user: { id: "52000000-0000-4000-8000-000000000403" } },
       error: null,
     });
+    mocks.loadTeamVisualsByName.mockResolvedValue(
+      new Map([
+        ["Arsenal", { tla: "ARS", crestUrl: "https://crests.football-data.org/57.png" }],
+        ["Liverpool", { tla: "LIV", crestUrl: null }],
+      ]),
+    );
     mocks.rpc.mockImplementation(async (name: string) => ({
       data:
         name === "discover_events"
@@ -90,16 +93,6 @@ describe("event discovery query", () => {
     }));
     mocks.createClient.mockResolvedValue({
       auth: { getUser: mocks.getUser },
-      from: vi.fn(() => {
-        const builder = {
-          select: vi.fn(),
-          eq: vi.fn(),
-          maybeSingle: mocks.cityMaybeSingle,
-        };
-        builder.select.mockReturnValue(builder);
-        builder.eq.mockReturnValue(builder);
-        return builder;
-      }),
       rpc: mocks.rpc,
     });
   });
@@ -111,7 +104,8 @@ describe("event discovery query", () => {
     expect(mocks.rpc).toHaveBeenCalledWith(
       "discover_events",
       expect.objectContaining({
-        input_city_id: "00000000-0000-4000-8000-000000000003",
+        input_lat: 32.794,
+        input_lng: 34.989,
         input_radius_km: 15,
         input_limit: 20,
       }),
@@ -129,11 +123,17 @@ describe("event discovery query", () => {
     });
     expect(result).toMatchObject({
       requiresPrivateCache: true,
-      locationMode: "city",
+      locationMode: "browser",
       items: [
         {
           title: "North stand watch",
           locationSummary: "1–5 km away",
+          match: {
+            homeTeamCrestUrl: "https://crests.football-data.org/57.png",
+            homeTeamTla: "ARS",
+            awayTeamCrestUrl: null,
+            awayTeamTla: "LIV",
+          },
           mapPoint: { placeName: "The Corner", latitude: 32.812, longitude: 34.998 },
           matchesFollows: true,
         },

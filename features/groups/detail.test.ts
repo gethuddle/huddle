@@ -13,7 +13,6 @@ const groupRow = {
   description: "A supporter group.",
   visibility: "discoverable",
   lifecycle: "active",
-  city_name: "Haifa",
   team_name: null,
   owner_handle: "group_owner",
   active_member_count: 45,

@@ -7,7 +7,6 @@ import { discardEventDraft, finalizeEventDraft, getEventDraft, saveEventDraft } 
 const draftId = "66000000-0000-4000-8000-000000000101";
 const groupId = "66000000-0000-4000-8000-000000000102";
 const matchId = "66000000-0000-4000-8000-000000000103";
-const cityId = "66000000-0000-4000-8000-000000000104";
 const eventId = "66000000-0000-4000-8000-000000000105";
 
 function draftRow() {
@@ -16,7 +15,6 @@ function draftRow() {
     step: 2,
     draft_values: {
       matchId,
-      cityId,
       title: "Protected Fan draft",
       placeKind: "home",
       audience: "group",
@@ -48,7 +46,6 @@ describe("event draft adapter", () => {
       step: 2,
       values: {
         matchId,
-        cityId,
         title: "Protected Fan draft",
         placeKind: "home",
         audience: "group",
@@ -72,7 +69,6 @@ describe("event draft adapter", () => {
       input_step: 2,
       input_values: {
         matchId,
-        cityId,
         title: "Protected Fan draft",
         placeKind: "home",
         audience: "group",

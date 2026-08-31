@@ -13,7 +13,6 @@ vi.mock("@/features/locations/components/address-search", () => ({
         onConfirm({
           id: "replacement",
           label: "14 New Street, Haifa",
-          city: "Haifa",
           latitude: 32.81,
           longitude: 34.99,
         })
@@ -35,8 +34,6 @@ const venue = {
   id: "e4000000-0000-4000-8000-000000000101",
   slug: "match-corner",
   name: "Match Corner",
-  cityId: "e4000000-0000-4000-8000-000000000102",
-  cityName: "Haifa",
   addressText: "12 Stadium Street, Haifa",
   description: "A welcoming venue for watching the full match together.",
   facilities: ["food", "drinks"] as const,
@@ -59,14 +56,10 @@ describe("VenueSettingsForm", () => {
 
   it("reuses public-address search without rendering raw coordinate controls", async () => {
     const user = userEvent.setup();
-    render(
-      <VenueSettingsForm
-        cities={[{ id: venue.cityId, name: "Haifa", slug: "haifa" }]}
-        venue={venue}
-      />,
-    );
+    render(<VenueSettingsForm venue={venue} />);
 
     expect(screen.getByText("12 Stadium Street, Haifa")).toBeVisible();
+    expect(screen.queryByRole("combobox", { name: "City" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/latitude|longitude/i)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Change public address" }));
     await user.click(screen.getByRole("button", { name: "Confirm replacement address" }));

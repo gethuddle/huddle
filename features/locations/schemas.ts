@@ -4,14 +4,12 @@ const boundedText = (minimum: number, maximum: number) =>
   z.string().trim().min(minimum).max(maximum);
 
 export const publicAddressQuerySchema = boundedText(3, 160);
-export const publicAddressCitySchema = boundedText(2, 80);
-export const publicLocationKindSchema = z.enum(["venue", "public_place"]);
+export const locationSearchPurposeSchema = z.enum(["origin", "public_address", "private_home"]);
 
-export const publicAddressSearchRequestSchema = z
+export const locationSearchRequestSchema = z
   .object({
     query: publicAddressQuerySchema,
-    city: publicAddressCitySchema,
-    locationKind: publicLocationKindSchema,
+    purpose: locationSearchPurposeSchema,
   })
   .strict();
 
@@ -19,7 +17,6 @@ export const addressSuggestionSchema = z
   .object({
     id: z.string().min(1).max(80),
     label: z.string().min(1).max(500),
-    city: z.string().min(1).max(120),
     latitude: z.number().finite().min(29.3).max(33.5),
     longitude: z.number().finite().min(34.2).max(35.9),
   })
@@ -95,4 +92,4 @@ export const photonSearchResponseSchema = z
   })
   .passthrough();
 
-export type PublicAddressSearchRequest = z.infer<typeof publicAddressSearchRequestSchema>;
+export type LocationSearchRequest = z.infer<typeof locationSearchRequestSchema>;

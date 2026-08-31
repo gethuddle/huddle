@@ -41,7 +41,6 @@ export type PrivateEventFormValues = Readonly<{
   eventRules: string;
   commercialAffiliation: string;
   hostPresenceConfirmed: boolean;
-  cityId: string;
   placeKind: string;
   publicPlaceName: string;
   publicAddressText: string;

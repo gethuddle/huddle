@@ -84,7 +84,6 @@ update public.profiles
 set
   handle = 'b11_user_' || right(id::text, 3),
   display_name = 'B11 User ' || right(id::text, 3),
-  city_id = (select id from public.cities where slug = 'haifa'),
   adult_attested_at = statement_timestamp(),
   rules_version = 1,
   rules_accepted_at = statement_timestamp(),
@@ -143,12 +142,11 @@ values
   );
 
 insert into public.groups (
-  id, slug, name, owner_id, city_id, visibility, lifecycle, description, activated_at
+  id, slug, name, owner_id, visibility, lifecycle, description, activated_at
 )
 values (
   'b1100000-0000-4000-8000-000000000201',
   'b11-group', 'B11 Supporters', 'b1100000-0000-4000-8000-000000000103',
-  (select id from public.cities where slug = 'haifa'),
   'discoverable', 'active', 'A discoverable group for B11 confidentiality tests.',
   statement_timestamp()
 );
@@ -167,14 +165,13 @@ values
   );
 
 insert into public.venues (
-  id, owner_id, slug, name, city_id, address_text, location,
+  id, owner_id, slug, name, address_text, location,
   description, screen_count, stated_capacity
 )
 values (
   'b1100000-0000-4000-8000-000000000301',
   'b1100000-0000-4000-8000-000000000102',
   'b11-venue', 'B11 Match Corner',
-  (select id from public.cities where slug = 'haifa'),
   '11 Public Street, Haifa',
   extensions.st_setsrid(extensions.st_makepoint(34.999, 32.813), 4326)::extensions.geography,
   'A public business venue for B11 reporting and suspension tests.', 4, 80
@@ -183,7 +180,7 @@ values (
 insert into public.events (
   id, created_by, host_venue_id, match_id, title, description,
   expected_activity, cost_description, event_rules, commercial_affiliation,
-  host_presence_confirmed_at, starts_at, ends_at, city_id, place_kind,
+  host_presence_confirmed_at, starts_at, ends_at, place_kind,
   venue_id, audience, capacity, requires_approval, status, published_at
 )
 values
@@ -196,7 +193,6 @@ values
     'Watch together', 'Free', 'Follow the community rules.', 'Venue-hosted',
     statement_timestamp(), statement_timestamp() + interval '7 days',
     statement_timestamp() + interval '7 days 3 hours',
-    (select id from public.cities where slug = 'haifa'),
     'venue', 'b1100000-0000-4000-8000-000000000301',
     'public', 30, false, 'published', statement_timestamp()
   ),
@@ -209,7 +205,6 @@ values
     'Watched together', 'Free', 'Follow the community rules.', 'Venue-hosted',
     statement_timestamp() - interval '7 days', statement_timestamp() - interval '7 days',
     statement_timestamp() - interval '6 days 21 hours',
-    (select id from public.cities where slug = 'haifa'),
     'venue', 'b1100000-0000-4000-8000-000000000301',
     'public', 30, false, 'completed', statement_timestamp() - interval '8 days'
   );
@@ -227,7 +222,7 @@ values (
 insert into public.events (
   id, created_by, host_user_id, match_id, title, description,
   expected_activity, cost_description, event_rules, commercial_affiliation,
-  host_presence_confirmed_at, starts_at, ends_at, city_id, place_kind,
+  host_presence_confirmed_at, starts_at, ends_at, place_kind,
   audience, capacity, requires_approval, status, published_at
 )
 values (
@@ -239,7 +234,6 @@ values (
   'Watch together', 'Free', 'Follow the community rules.', 'None',
   statement_timestamp(), statement_timestamp() + interval '7 days',
   statement_timestamp() + interval '7 days 3 hours',
-  (select id from public.cities where slug = 'haifa'),
   'home', 'friends', 6, true, 'published', statement_timestamp()
 );
 

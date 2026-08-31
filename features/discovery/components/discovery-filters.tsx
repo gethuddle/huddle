@@ -40,8 +40,6 @@ export function DiscoveryFiltersForm({
 }>) {
   const [dateErrors, setDateErrors] = useState<DiscoveryFilterFieldErrors>(fieldErrors);
 
-  const cityName =
-    catalog.cities.find((city) => city.slug === filters.citySlug)?.name ?? filters.citySlug;
   const competitionName =
     catalog.competitions.find((competition) => competition.id === filters.competitionId)?.name ??
     null;
@@ -75,9 +73,8 @@ export function DiscoveryFiltersForm({
             type="button"
           >
             <Search aria-hidden="true" className="ml-3 size-5 shrink-0 text-foreground sm:hidden" />
-            <span className="min-w-0 flex-1 px-3 sm:grid sm:grid-cols-3 sm:px-0">
-              <SearchSegment label="Where" value={cityName} />
-              <SearchSegment bordered label="When" value={dateSummary(filters.from, filters.to)} />
+            <span className="min-w-0 flex-1 px-3 sm:grid sm:grid-cols-2 sm:px-0">
+              <SearchSegment label="When" value={dateSummary(filters.from, filters.to)} />
               <SearchSegment label="Match" value={matchSummary} />
               <span className="mt-0.5 block truncate text-xs text-muted-foreground sm:hidden">
                 {dateSummary(filters.from, filters.to)} · {matchSummary}
@@ -95,30 +92,15 @@ export function DiscoveryFiltersForm({
               <DialogHeader>
                 <DialogTitle>Change Explore search</DialogTitle>
                 <DialogDescription>
-                  Choose an area and date range, then narrow the map to a competition or team if you
-                  want.
+                  Choose a distance and date range, then narrow results to a competition, team, or
+                  fixture. Your location stays in this browser session.
                 </DialogDescription>
               </DialogHeader>
 
               <div className="mt-7 grid gap-7 lg:grid-cols-3">
                 <fieldset className="border-0 p-0">
-                  <legend className="px-1 text-sm font-semibold text-foreground">Where</legend>
-                  <div className="mt-2 grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-                    <div>
-                      <Label htmlFor="discovery-city">City</Label>
-                      <NativeSelect
-                        className="mt-2 [&_select]:rounded-full"
-                        defaultValue={filters.citySlug}
-                        id="discovery-city"
-                        name="city"
-                      >
-                        {catalog.cities.map((city) => (
-                          <NativeSelectOption key={city.id} value={city.slug}>
-                            {city.name}
-                          </NativeSelectOption>
-                        ))}
-                      </NativeSelect>
-                    </div>
+                  <legend className="px-1 text-sm font-semibold text-foreground">Distance</legend>
+                  <div className="mt-2">
                     <div>
                       <Label htmlFor="discovery-radius">Distance</Label>
                       <NativeSelect
@@ -231,7 +213,7 @@ export function DiscoveryFiltersForm({
 
             <DialogFooter className="border-t border-border px-6 py-5 sm:px-8">
               <Button asChild className="min-h-11 rounded-full" variant="ghost">
-                <Link href={`/discover?city=${filters.citySlug}`}>Clear</Link>
+                <Link href="/discover">Clear</Link>
               </Button>
               <Button className="min-h-11 rounded-full" type="submit">
                 Show events
@@ -244,13 +226,9 @@ export function DiscoveryFiltersForm({
   );
 }
 
-function SearchSegment({
-  bordered = false,
-  label,
-  value,
-}: Readonly<{ bordered?: boolean; label: string; value: string }>) {
+function SearchSegment({ label, value }: Readonly<{ label: string; value: string }>) {
   return (
-    <span className={`hidden min-w-0 px-6 sm:block ${bordered ? "border-x border-border" : ""}`}>
+    <span className="hidden min-w-0 border-r border-border px-6 last:border-r-0 sm:block">
       <span className="block text-xs font-medium text-muted-foreground">{label}</span>
       <span className="mt-1 block truncate font-semibold text-foreground">{value}</span>
     </span>

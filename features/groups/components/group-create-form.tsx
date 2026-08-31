@@ -66,14 +66,12 @@ export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCa
         ? {
             name: "",
             slug: "",
-            cityId: "",
             teamId: "",
             visibility: "discoverable",
             description: "",
           }
         : {
             ...review.values,
-            cityId: review.values.cityId ?? "",
             teamId: review.values.teamId ?? "",
           };
 
@@ -109,30 +107,8 @@ export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCa
         <FieldError id="group-slug-error" messages={fieldErrors?.slug} />
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2">
-        <div>
-          <Label className="text-foreground" htmlFor="group-city">
-            Home area <span className="font-normal text-muted-foreground">(optional)</span>
-          </Label>
-          <NativeSelect
-            aria-describedby="group-city-error"
-            aria-invalid={fieldErrors?.cityId === undefined ? undefined : true}
-            className="mt-2"
-            defaultValue={values.cityId}
-            id="group-city"
-            name="cityId"
-          >
-            <NativeSelectOption value="">No home area</NativeSelectOption>
-            {catalog.cities.map((city) => (
-              <NativeSelectOption key={city.id} value={city.id}>
-                {city.name}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-          <FieldError id="group-city-error" messages={fieldErrors?.cityId} />
-        </div>
-
-        <div>
+      <div>
+        <div className="max-w-md">
           <Label className="text-foreground" htmlFor="group-team">
             Team <span className="font-normal text-muted-foreground">(optional)</span>
           </Label>
@@ -237,9 +213,7 @@ function SimilarGroupReview({
               ) : (
                 <p className="font-semibold text-foreground">{group.name}</p>
               )}
-              <p className="mt-1 text-xs text-muted-foreground">
-                {group.cityName ?? "Open to supporters anywhere"} · {group.teamName ?? "Multi-team"}
-              </p>
+              <p className="mt-1 text-xs text-muted-foreground">{group.teamName ?? "Multi-team"}</p>
             </div>
             <Badge variant="outline">
               {group.lifecycle === "active" ? "Open for applications" : "Setting up"}

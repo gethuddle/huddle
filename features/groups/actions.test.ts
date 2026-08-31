@@ -12,16 +12,14 @@ vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 
 import { createGroupAction } from "./actions";
 
-const cityId = "50000000-0000-4000-8000-000000000101";
 const teamId = "50000000-0000-4000-8000-000000000201";
 const groupId = "50000000-0000-4000-8000-000000000301";
 
-function groupForm(intent: "check" | "create", selectedCityId: string = cityId) {
+function groupForm(intent: "check" | "create") {
   const formData = new FormData();
   formData.set("intent", intent);
   formData.set("name", "Haifa Arsenal Supporters");
   formData.set("slug", "haifa-arsenal-supporters");
-  formData.set("cityId", selectedCityId);
   formData.set("teamId", teamId);
   formData.set("visibility", "discoverable");
   formData.set("description", "Match-going supporters in Haifa.");
@@ -52,7 +50,6 @@ describe("createGroupAction", () => {
           slug: "haifa-arsenal-fans",
           name: "Haifa Arsenal Fans",
           lifecycle: "active",
-          city_name: "Haifa",
           team_name: "Arsenal FC",
           similarity_score: 0.8,
         },
@@ -65,7 +62,6 @@ describe("createGroupAction", () => {
 
     expect(rpc).toHaveBeenCalledWith("suggest_similar_groups", {
       input_name: "Haifa Arsenal Supporters",
-      input_city_id: cityId,
       input_team_id: teamId,
       input_limit: 5,
     });
@@ -74,24 +70,6 @@ describe("createGroupAction", () => {
       data: { phase: "review", suggestions: [{ slug: "haifa-arsenal-fans" }] },
     });
     expect(JSON.stringify(result)).not.toContain("token");
-  });
-
-  it("checks similar groups globally when no home area is selected", async () => {
-    const rpc = vi.fn().mockResolvedValue({ data: [], error: null });
-    mocks.requireActor.mockResolvedValue({ supabase: { rpc } });
-
-    const result = await createGroupAction(null, groupForm("check", ""));
-
-    expect(rpc).toHaveBeenCalledWith("suggest_similar_groups", {
-      input_name: "Haifa Arsenal Supporters",
-      input_city_id: null,
-      input_team_id: teamId,
-      input_limit: 5,
-    });
-    expect(result).toMatchObject({
-      ok: true,
-      data: { phase: "review", values: { cityId: null } },
-    });
   });
 
   it("refuses creation until the exact form values were reviewed", async () => {
@@ -106,7 +84,7 @@ describe("createGroupAction", () => {
 
   it("creates the reviewed group through the atomic RPC", async () => {
     const rpc = vi.fn().mockResolvedValue({
-      data: [{ group_id: groupId, slug: "haifa-arsenal-supporters", lifecycle: "forming" }],
+      data: [{ group_id: groupId, slug: "haifa-arsenal-supporters", lifecycle: "active" }],
       error: null,
     });
     mocks.requireActor.mockResolvedValue({ supabase: { rpc } });
@@ -118,7 +96,6 @@ describe("createGroupAction", () => {
         values: {
           name: "Haifa Arsenal Supporters",
           slug: "haifa-arsenal-supporters",
-          cityId,
           teamId,
           visibility: "discoverable" as const,
           description: "Match-going supporters in Haifa.",
@@ -133,12 +110,12 @@ describe("createGroupAction", () => {
     expect(rpc).toHaveBeenCalledWith("create_group", {
       input_name: "Haifa Arsenal Supporters",
       input_slug: "haifa-arsenal-supporters",
-      input_city_id: cityId,
       input_team_id: teamId,
       input_visibility: "discoverable",
       input_description: "Match-going supporters in Haifa.",
       audit_request_id: "10000000-0000-4000-8000-000000000099",
     });
     expect(result).toMatchObject({ ok: true, data: { phase: "created", group: { id: groupId } } });
+    expect(JSON.stringify(rpc.mock.calls)).not.toContain("city");
   });
 });

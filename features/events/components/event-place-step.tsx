@@ -11,7 +11,7 @@ import type { PrivateEventCatalog } from "@/features/events/catalog";
 import type { EventDraftPatch, EventDraftProtectedLocation } from "@/features/events/schemas";
 import { AddressSearch } from "@/features/locations/components/address-search";
 import { MapPinPicker } from "@/features/locations/components/map-pin-picker";
-import type { AddressSuggestion, PrivateLocationSelection } from "@/features/locations/types";
+import type { AddressSuggestion, PrivatePoint } from "@/features/locations/types";
 
 type EventPlaceStepProps = Readonly<{
   catalog: PrivateEventCatalog;
@@ -39,7 +39,6 @@ export function EventPlaceStep({
   fieldErrors = {},
 }: EventPlaceStepProps) {
   const [replacePrivateLocation, setReplacePrivateLocation] = useState(protectedLocation === null);
-  const city = catalog.cities.find((candidate) => candidate.id === values.cityId) ?? null;
   const placeKind = values.placeKind ?? "home";
   const audience = values.audience ?? "invite_only";
 
@@ -59,29 +58,27 @@ export function EventPlaceStep({
     );
   }
 
-  function updatePrivateLocation(selection: PrivateLocationSelection) {
-    onProtectedLocationChange(
-      selection.point === null || selection.addressText.trim().length < 5
-        ? null
-        : {
-            addressText: selection.addressText,
-            directionsText: null,
-            latitude: selection.point.latitude,
-            longitude: selection.point.longitude,
-          },
-    );
+  function updatePrivateAddress(suggestion: AddressSuggestion | null) {
+    if (suggestion === null) {
+      onProtectedLocationChange(null);
+      return;
+    }
+    onProtectedLocationChange({
+      addressText: suggestion.label,
+      directionsText: null,
+      latitude: suggestion.latitude,
+      longitude: suggestion.longitude,
+    });
+    setReplacePrivateLocation(false);
   }
 
-  function changeCity(cityId: string) {
-    onValuesChange({
-      cityId,
-      publicPlaceName: null,
-      publicAddressText: null,
-      publicLatitude: null,
-      publicLongitude: null,
+  function updatePrivatePoint(point: PrivatePoint | null) {
+    if (point === null || protectedLocation === null) return;
+    onProtectedLocationChange({
+      ...protectedLocation,
+      latitude: point.latitude,
+      longitude: point.longitude,
     });
-    onProtectedLocationChange(null);
-    setReplacePrivateLocation(true);
   }
 
   function changePlaceKind(nextPlaceKind: "home" | "public_place") {
@@ -99,7 +96,7 @@ export function EventPlaceStep({
 
   return (
     <div className="space-y-7">
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div>
         <Field error={fieldErrors["event-title"]} id="event-title" label="Event title">
           <Input
             aria-describedby={fieldErrors["event-title"] ? "event-title-error" : undefined}
@@ -110,23 +107,6 @@ export function EventPlaceStep({
             required
             value={values.title ?? ""}
           />
-        </Field>
-        <Field error={fieldErrors["event-city"]} id="event-city" label="City">
-          <NativeSelect
-            aria-describedby={fieldErrors["event-city"] ? "event-city-error" : undefined}
-            aria-invalid={fieldErrors["event-city"] ? true : undefined}
-            id="event-city"
-            onChange={(event) => changeCity(event.currentTarget.value)}
-            required
-            value={values.cityId ?? ""}
-          >
-            <NativeSelectOption value="">Choose a city</NativeSelectOption>
-            {catalog.cities.map((option) => (
-              <NativeSelectOption key={option.id} value={option.id}>
-                {option.name}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
         </Field>
       </div>
 
@@ -167,34 +147,36 @@ export function EventPlaceStep({
         </div>
       </fieldset>
 
-      {city === null ? (
-        <p
-          className="rounded-2xl border border-sand/40 bg-sand/10 p-4 text-sm text-sand"
-          role="status"
-        >
-          Choose a city before setting the location.
-        </p>
-      ) : placeKind === "home" ? (
+      {placeKind === "home" ? (
         <div
           className="space-y-4 rounded-[1.375rem] border border-border bg-secondary p-5"
           id="event-private-location"
           tabIndex={-1}
         >
           {protectedLocation !== null && !replacePrivateLocation ? (
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-muted-foreground">
-                A protected home address and pin are saved for this draft.
-              </p>
-              <Button
-                onClick={() => setReplacePrivateLocation(true)}
-                type="button"
-                variant="outline"
-              >
-                Replace protected location
-              </Button>
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-muted-foreground">
+                  A protected home address and pin are saved for this draft.
+                </p>
+                <Button
+                  onClick={() => setReplacePrivateLocation(true)}
+                  type="button"
+                  variant="outline"
+                >
+                  Replace protected location
+                </Button>
+              </div>
+              <MapPinPicker
+                initialPoint={{
+                  latitude: protectedLocation.latitude,
+                  longitude: protectedLocation.longitude,
+                }}
+                onChange={updatePrivatePoint}
+              />
             </div>
           ) : (
-            <MapPinPicker citySlug={city.slug} onChange={updatePrivateLocation} />
+            <AddressSearch onConfirm={updatePrivateAddress} purpose="private_home" />
           )}
           {fieldErrors["event-private-location"] ? (
             <p className="text-sm text-destructive" id="event-private-location-error">
@@ -228,11 +210,7 @@ export function EventPlaceStep({
             </p>
           )}
           <div id="event-public-address" tabIndex={-1}>
-            <AddressSearch
-              city={city.name}
-              locationKind="public_place"
-              onConfirm={updatePublicAddress}
-            />
+            <AddressSearch onConfirm={updatePublicAddress} purpose="public_address" />
             {fieldErrors["event-public-address"] ? (
               <p className="mt-2 text-sm text-destructive">{fieldErrors["event-public-address"]}</p>
             ) : null}

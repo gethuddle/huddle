@@ -2,6 +2,7 @@ import "server-only";
 
 import { z } from "zod";
 
+import { loadTeamVisualsByName, type TeamVisual } from "@/features/sports/team-visuals";
 import { DomainError, domainErrorFromDatabase } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
 
@@ -26,7 +27,6 @@ const eventSummaryRowSchema = z
     away_team_name: z.string(),
     starts_at: z.string(),
     ends_at: z.string(),
-    city_name: z.string(),
     place_kind: z.enum(["home", "venue", "public_place"]),
     public_place_name: z.string().nullable(),
     public_address_text: z.string().nullable(),
@@ -72,11 +72,14 @@ export type EventSummary = Readonly<{
     id: string;
     competitionName: string;
     homeTeamName: string;
+    homeTeamTla: string | null;
+    homeTeamCrestUrl: string | null;
     awayTeamName: string;
+    awayTeamTla: string | null;
+    awayTeamCrestUrl: string | null;
   }>;
   startsAt: string;
   endsAt: string;
-  cityName: string;
   placeKind: "home" | "venue" | "public_place";
   publicPlaceName: string | null;
   publicAddressText: string | null;
@@ -109,6 +112,9 @@ export async function getEventSummary(eventId: string): Promise<EventSummary | n
 
   try {
     const row = eventSummaryRowSchema.parse(raw);
+    const visuals = await loadTeamVisualsByName(supabase, [row.home_team_name, row.away_team_name]);
+    const homeVisual = visuals.get(row.home_team_name) ?? emptyTeamVisual;
+    const awayVisual = visuals.get(row.away_team_name) ?? emptyTeamVisual;
     return {
       id: row.event_id,
       status: row.status,
@@ -129,11 +135,14 @@ export async function getEventSummary(eventId: string): Promise<EventSummary | n
         id: row.match_id,
         competitionName: row.competition_name,
         homeTeamName: row.home_team_name,
+        homeTeamTla: homeVisual.tla,
+        homeTeamCrestUrl: homeVisual.crestUrl,
         awayTeamName: row.away_team_name,
+        awayTeamTla: awayVisual.tla,
+        awayTeamCrestUrl: awayVisual.crestUrl,
       },
       startsAt: row.starts_at,
       endsAt: row.ends_at,
-      cityName: row.city_name,
       placeKind: row.place_kind,
       publicPlaceName: row.public_place_name,
       publicAddressText: row.public_address_text,
@@ -189,7 +198,11 @@ export type EventListItem = Readonly<{
   title: string;
   match: Readonly<{
     homeTeamName: string;
+    homeTeamTla: string | null;
+    homeTeamCrestUrl: string | null;
     awayTeamName: string;
+    awayTeamTla: string | null;
+    awayTeamCrestUrl: string | null;
     competitionName: string;
   }>;
   startsAt: string;
@@ -202,16 +215,25 @@ export type EventListItem = Readonly<{
   status: "draft" | "pending_group_review" | "published" | "cancelled" | "completed";
 }>;
 
+const emptyTeamVisual: TeamVisual = { tla: null, crestUrl: null };
+
 function eventListItem(
   row: z.infer<typeof publicEventListRowSchema> &
     Readonly<{ audience_team_name?: string | null; status?: EventListItem["status"] }>,
+  visuals: ReadonlyMap<string, TeamVisual>,
 ): EventListItem {
+  const homeVisual = visuals.get(row.home_team_name) ?? emptyTeamVisual;
+  const awayVisual = visuals.get(row.away_team_name) ?? emptyTeamVisual;
   return {
     id: row.event_id,
     title: row.title,
     match: {
       homeTeamName: row.home_team_name,
+      homeTeamTla: homeVisual.tla,
+      homeTeamCrestUrl: homeVisual.crestUrl,
       awayTeamName: row.away_team_name,
+      awayTeamTla: awayVisual.tla,
+      awayTeamCrestUrl: awayVisual.crestUrl,
       competitionName: row.competition_name,
     },
     startsAt: row.starts_at,
@@ -233,6 +255,17 @@ function parseEventList<T>(schema: z.ZodType<T>, value: unknown): T[] {
   }
 }
 
+async function addTeamVisuals<T extends z.infer<typeof publicEventListRowSchema>>(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  rows: readonly T[],
+): Promise<EventListItem[]> {
+  const visuals = await loadTeamVisualsByName(
+    supabase,
+    rows.flatMap((row) => [row.home_team_name, row.away_team_name]),
+  );
+  return rows.map((row) => eventListItem(row, visuals));
+}
+
 export async function listVenueEvents(venueSlug: string): Promise<EventListItem[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("list_venue_events", {
@@ -240,7 +273,7 @@ export async function listVenueEvents(venueSlug: string): Promise<EventListItem[
     input_limit: 12,
   });
   if (error !== null) throw domainErrorFromDatabase(error);
-  return parseEventList(venueEventListRowSchema, data).map(eventListItem);
+  return addTeamVisuals(supabase, parseEventList(venueEventListRowSchema, data));
 }
 
 export async function listManagedVenueEvents(venueId: string): Promise<EventListItem[]> {
@@ -250,7 +283,7 @@ export async function listManagedVenueEvents(venueId: string): Promise<EventList
     input_limit: 20,
   });
   if (error !== null) throw domainErrorFromDatabase(error);
-  return parseEventList(managedVenueEventListRowSchema, data).map(eventListItem);
+  return addTeamVisuals(supabase, parseEventList(managedVenueEventListRowSchema, data));
 }
 
 export async function listGroupEvents(groupId: string): Promise<EventListItem[]> {
@@ -260,7 +293,7 @@ export async function listGroupEvents(groupId: string): Promise<EventListItem[]>
     input_limit: 12,
   });
   if (error !== null) throw domainErrorFromDatabase(error);
-  return parseEventList(publicEventListRowSchema, data).map(eventListItem);
+  return addTeamVisuals(supabase, parseEventList(publicEventListRowSchema, data));
 }
 
 export async function listMatchEvents(matchId: string): Promise<EventListItem[]> {
@@ -270,5 +303,5 @@ export async function listMatchEvents(matchId: string): Promise<EventListItem[]>
     input_limit: 20,
   });
   if (error !== null) throw domainErrorFromDatabase(error);
-  return parseEventList(venueEventListRowSchema, data).map(eventListItem);
+  return addTeamVisuals(supabase, parseEventList(venueEventListRowSchema, data));
 }

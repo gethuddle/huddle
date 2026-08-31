@@ -183,7 +183,6 @@ set
     when '65000000-0000-4000-8000-000000000101' then 'Task Seven Owner'
     else 'Task Seven Other'
   end,
-  city_id = (select id from public.cities where slug = 'haifa'),
   adult_attested_at = statement_timestamp(),
   rules_version = 1,
   rules_accepted_at = statement_timestamp(),
@@ -211,7 +210,6 @@ select lives_ok(
       2,
       jsonb_build_object(
         'matchId', '65000000-0000-4000-8000-000000000204',
-        'cityId', (select id::text from public.cities where slug = 'haifa'),
         'placeKind', 'home',
         'audience', 'friends',
         'title', 'Protected draft',
@@ -434,7 +432,6 @@ set
     else 'task7_group_finalizer'
   end,
   display_name = 'Task Seven Fan ' || right(id::text, 3),
-  city_id = (select id from public.cities where slug = 'haifa'),
   adult_attested_at = statement_timestamp(),
   rules_version = 1,
   rules_accepted_at = statement_timestamp(),
@@ -538,7 +535,7 @@ values (
 );
 
 insert into public.groups (
-  id, slug, name, owner_id, city_id, visibility, lifecycle, description
+  id, slug, name, owner_id, visibility, lifecycle, description
 )
 values
   (
@@ -546,7 +543,6 @@ values
     'task-seven-supporters',
     'Task Seven Supporters',
     '65000000-0000-4000-8000-000000000104',
-    (select id from public.cities where slug = 'haifa'),
     'unlisted',
     'forming',
     'A private supporter group for atomic publication tests.'
@@ -556,7 +552,6 @@ values
     'task-seven-audience',
     'Task Seven Audience',
     '65000000-0000-4000-8000-000000000104',
-    (select id from public.cities where slug = 'haifa'),
     'unlisted',
     'forming',
     'A distinct audience group for organizer independence tests.'
@@ -903,7 +898,6 @@ update public.profiles
 set
   handle = 'task7_recovery',
   display_name = 'Task Seven Recovery',
-  city_id = (select id from public.cities where slug = 'haifa'),
   adult_attested_at = statement_timestamp(),
   rules_version = 1,
   rules_accepted_at = statement_timestamp(),
@@ -1058,7 +1052,6 @@ select lives_ok(
         'eventRules', 'Respect the host and one another.',
         'commercialAffiliation', 'None.',
         'hostPresenceConfirmed', true,
-        'cityId', (select id::text from public.cities where slug = 'haifa'),
         'placeKind', 'public_place',
         'publicPlaceName', 'Task Seven Public Square',
         'publicAddressText', '1 Public Square, Haifa',
@@ -1214,7 +1207,6 @@ select lives_ok(
         'eventRules', 'Only accepted registered invitees attend.',
         'commercialAffiliation', 'None.',
         'hostPresenceConfirmed', true,
-        'cityId', (select id::text from public.cities where slug = 'haifa'),
         'placeKind', 'home',
         'audience', 'invite_only',
         'capacity', 5
@@ -1290,7 +1282,6 @@ select lives_ok(
         'eventRules', 'Respect everyone.',
         'commercialAffiliation', 'None.',
         'hostPresenceConfirmed', true,
-        'cityId', (select id::text from public.cities where slug = 'haifa'),
         'placeKind', 'home',
         'audience', 'invite_only',
         'capacity', 5
@@ -1380,7 +1371,6 @@ as $function$
     true,
     (select starts_at from public.matches where id = '65000000-0000-4000-8000-000000000204'),
     (select starts_at + interval '3 hours' from public.matches where id = '65000000-0000-4000-8000-000000000204'),
-    (select id from public.cities where slug = 'haifa'),
     'public_place',
     null,
     'Task Seven Direct Square',
@@ -1423,7 +1413,6 @@ as $function$
     true,
     (select starts_at from public.matches where id = '65000000-0000-4000-8000-000000000204'),
     (select starts_at + interval '3 hours' from public.matches where id = '65000000-0000-4000-8000-000000000204'),
-    (select id from public.cities where slug = 'haifa'),
     'public_place',
     null,
     'Task Seven Direct Square',
@@ -1466,7 +1455,6 @@ as $function$
     true,
     (select starts_at from public.matches where id = '65000000-0000-4000-8000-000000000204'),
     (select starts_at + interval '3 hours' from public.matches where id = '65000000-0000-4000-8000-000000000204'),
-    (select id from public.cities where slug = 'haifa'),
     'public_place',
     null,
     'Task Seven Direct Square',
@@ -1669,7 +1657,6 @@ as $function$
     true,
     (select starts_at from public.matches where id = '65000000-0000-4000-8000-000000000204'),
     (select starts_at + interval '3 hours' from public.matches where id = '65000000-0000-4000-8000-000000000204'),
-    (select id from public.cities where slug = 'haifa'),
     'public_place',
     'Task Seven Group Square',
     '12 Group Square, Haifa',
@@ -1932,7 +1919,6 @@ select lives_ok(
         'eventRules', 'Respect the group and the host.',
         'commercialAffiliation', 'None.',
         'hostPresenceConfirmed', true,
-        'cityId', (select id::text from public.cities where slug = 'haifa'),
         'placeKind', 'home',
         'audience', 'group',
         'audienceGroupId', '65000000-0000-4000-8000-000000000207',

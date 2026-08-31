@@ -6,6 +6,7 @@ import { parseAttentionItems } from "@/features/attention/queries";
 import type { AttentionItem } from "@/features/attention/types";
 import { requireActor } from "@/features/auth/actor";
 import { toPublicMatchDto, type PublicMatchDto } from "@/features/sports/dto";
+import { loadTeamVisualsByName } from "@/features/sports/team-visuals";
 import { DomainError, domainErrorFromDatabase } from "@/lib/errors";
 import {
   boundedPage,
@@ -31,7 +32,6 @@ const myEventRowSchema = z
     away_team_name: z.string(),
     competition_name: z.string(),
     starts_at: z.iso.datetime({ offset: true }),
-    city_name: z.string().nullable(),
     place_kind: z.enum(["home", "venue", "public_place"]),
     audience: z.enum(["public", "team_followers", "group", "friends", "invite_only"]),
     status: z.enum(["draft", "pending_group_review", "published", "cancelled", "completed"]),
@@ -50,7 +50,6 @@ const myGroupRelationshipRowSchema = z
     description: z.string().nullable(),
     visibility: z.enum(["discoverable", "unlisted"]),
     lifecycle: z.enum(["forming", "active", "suspended", "archived"]),
-    city_name: z.string().nullable(),
     team_name: z.string().nullable(),
     member_role: z.enum(["owner", "admin", "member"]).nullable(),
     membership_status: z.enum(["pending", "active"]),
@@ -91,7 +90,6 @@ const compatibilityGroupRowSchema = z
     description: z.string().nullable(),
     visibility: z.enum(["discoverable", "unlisted"]),
     lifecycle: z.enum(["forming", "active", "suspended", "archived"]),
-    city_name: z.string().nullable(),
     team_name: z.string().nullable(),
     member_role: z.enum(["owner", "admin", "member"]),
     membership_status: z.literal("active"),
@@ -105,10 +103,13 @@ export type MyEvent = Readonly<{
   id: string;
   title: string;
   homeTeamName: string;
+  homeTeamTla: string | null;
+  homeTeamCrestUrl: string | null;
   awayTeamName: string;
+  awayTeamTla: string | null;
+  awayTeamCrestUrl: string | null;
   competitionName: string;
   startsAt: string;
-  cityName: string | null;
   placeKind: "home" | "venue" | "public_place";
   audience: "public" | "team_followers" | "group" | "friends" | "invite_only";
   status: "draft" | "pending_group_review" | "published" | "cancelled" | "completed";
@@ -125,7 +126,6 @@ export type MyGroupRelationship = Readonly<{
   description: string | null;
   visibility: "discoverable" | "unlisted";
   lifecycle: "forming" | "active" | "suspended" | "archived";
-  cityName: string | null;
   teamName: string | null;
   role: "owner" | "admin" | "member" | null;
   membershipStatus: "pending" | "active";
@@ -140,6 +140,8 @@ export type SavedItem = Readonly<{
   label: string;
   detail: string | null;
   href: string;
+  tla: string | null;
+  crestUrl: string | null;
   createdAt: string;
   totalCount: number;
 }>;
@@ -163,15 +165,23 @@ function parseRows<T>(schema: z.ZodType<T>, value: unknown): T[] {
   }
 }
 
-function parseEvents(value: unknown): readonly MyEvent[] {
-  return parseRows(myEventRowSchema, value).map((row) => ({
+async function parseEvents(supabase: ServerClient, value: unknown): Promise<readonly MyEvent[]> {
+  const rows = parseRows(myEventRowSchema, value);
+  const visuals = await loadTeamVisualsByName(
+    supabase,
+    rows.flatMap((row) => [row.home_team_name, row.away_team_name]),
+  );
+  return rows.map((row) => ({
     id: row.event_id,
     title: row.title,
     homeTeamName: row.home_team_name,
+    homeTeamTla: visuals.get(row.home_team_name)?.tla ?? null,
+    homeTeamCrestUrl: visuals.get(row.home_team_name)?.crestUrl ?? null,
     awayTeamName: row.away_team_name,
+    awayTeamTla: visuals.get(row.away_team_name)?.tla ?? null,
+    awayTeamCrestUrl: visuals.get(row.away_team_name)?.crestUrl ?? null,
     competitionName: row.competition_name,
     startsAt: row.starts_at,
-    cityName: row.city_name,
     placeKind: row.place_kind,
     audience: row.audience,
     status: row.status,
@@ -190,7 +200,6 @@ function parseGroups(value: unknown): readonly MyGroupRelationship[] {
     description: row.description,
     visibility: row.visibility,
     lifecycle: row.lifecycle,
-    cityName: row.city_name,
     teamName: row.team_name,
     role: row.member_role,
     membershipStatus: row.membership_status,
@@ -200,8 +209,13 @@ function parseGroups(value: unknown): readonly MyGroupRelationship[] {
   }));
 }
 
-function parseSaved(value: unknown): readonly SavedItem[] {
-  return parseRows(savedItemRowSchema, value).map((row) => ({
+async function parseSaved(supabase: ServerClient, value: unknown): Promise<readonly SavedItem[]> {
+  const rows = parseRows(savedItemRowSchema, value);
+  const visuals = await loadTeamVisualsByName(
+    supabase,
+    rows.filter((row) => row.kind === "team").map((row) => row.label),
+  );
+  return rows.map((row) => ({
     id: row.item_id,
     kind: row.kind,
     label: row.label,
@@ -210,6 +224,8 @@ function parseSaved(value: unknown): readonly SavedItem[] {
       (row.kind === "team" || row.kind === "competition") && row.href.startsWith("/matches?")
         ? `/discover?${row.href.slice("/matches?".length)}`
         : row.href,
+    tla: row.kind === "team" ? (visuals.get(row.label)?.tla ?? null) : null,
+    crestUrl: row.kind === "team" ? (visuals.get(row.label)?.crestUrl ?? null) : null,
     createdAt: row.created_at,
     totalCount: row.total_count,
   }));
@@ -259,7 +275,7 @@ async function loadEventPage(
       input_offset: collectionOffset(targetPage),
     });
     if (error !== null) throw domainErrorFromDatabase(error);
-    return parseEvents(data);
+    return parseEvents(supabase, data);
   };
   return canonicalizeRpcPage(page, await requestPage(page), requestPage);
 }
@@ -295,7 +311,7 @@ async function loadSavedPage(
       input_offset: collectionOffset(targetPage),
     });
     if (error !== null) throw domainErrorFromDatabase(error);
-    return parseSaved(data);
+    return parseSaved(supabase, data);
   };
   return canonicalizeRpcPage(page, await requestPage(page), requestPage);
 }
@@ -424,9 +440,11 @@ export async function getFanHome(): Promise<
     upcomingResult.error ?? attentionResult.error ?? teamsResult.error ?? competitionsResult.error;
   if (firstError !== null) throw domainErrorFromDatabase(firstError);
 
-  const events = parseEvents(upcomingResult.data);
-  const teamFollows = parseSaved(teamsResult.data);
-  const competitionFollows = parseSaved(competitionsResult.data);
+  const [events, teamFollows, competitionFollows] = await Promise.all([
+    parseEvents(supabase, upcomingResult.data),
+    parseSaved(supabase, teamsResult.data),
+    parseSaved(supabase, competitionsResult.data),
+  ]);
 
   return {
     nextEvent: events.at(0) ?? null,

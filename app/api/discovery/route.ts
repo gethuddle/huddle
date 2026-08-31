@@ -8,7 +8,6 @@ import { elapsedMilliseconds, safeLog } from "@/lib/observability/server";
 import { REQUEST_ID_HEADER, resolveRequestId } from "@/lib/request-id";
 
 const NO_STORE = "private, no-cache, no-store, must-revalidate, max-age=0";
-const PUBLIC_CITY_CACHE = "public, max-age=0, s-maxage=60, stale-while-revalidate=300";
 
 function responseHeaders(cacheControl: string, requestId: string) {
   return {
@@ -31,11 +30,14 @@ function acquisitionItemDto(item: DiscoveryEvent): DiscoveryEvent {
       id: item.match.id,
       competitionName: item.match.competitionName,
       homeTeamName: item.match.homeTeamName,
+      homeTeamTla: item.match.homeTeamTla,
+      homeTeamCrestUrl: item.match.homeTeamCrestUrl,
       awayTeamName: item.match.awayTeamName,
+      awayTeamTla: item.match.awayTeamTla,
+      awayTeamCrestUrl: item.match.awayTeamCrestUrl,
     },
     startsAt: item.startsAt,
     endsAt: item.endsAt,
-    cityName: item.cityName,
     placeKind: item.placeKind,
     locationSummary: item.locationSummary,
     mapPoint: item.mapPoint,
@@ -55,13 +57,9 @@ async function discoveryResponse(
   filters: ReturnType<typeof parseDiscoveryFilters>,
   requestId: string,
   startedAt: number,
-  forcePrivate = false,
 ) {
   const page = await getDiscoveryPage(filters);
-  const cacheControl =
-    forcePrivate || page.requiresPrivateCache || page.locationMode === "browser"
-      ? NO_STORE
-      : PUBLIC_CITY_CACHE;
+  const cacheControl = NO_STORE;
 
   safeLog("info", "route.completed", {
     requestId,
@@ -104,11 +102,7 @@ export async function GET(request: NextRequest) {
   const startedAt = performance.now();
 
   try {
-    if (request.nextUrl.searchParams.has("lat") || request.nextUrl.searchParams.has("lng")) {
-      throw new DomainError("VALIDATION_FAILED");
-    }
-    const filters = parseDiscoveryFilters(Object.fromEntries(request.nextUrl.searchParams));
-    return await discoveryResponse(filters, requestId, startedAt);
+    throw new DomainError("VALIDATION_FAILED");
   } catch (error) {
     return discoveryFailure(error, requestId, startedAt);
   }
@@ -128,7 +122,7 @@ export async function POST(request: NextRequest) {
       throw new DomainError("VALIDATION_FAILED");
     }
     const filters = parseDiscoveryFilters(parsedBody);
-    return await discoveryResponse(filters, requestId, startedAt, true);
+    return await discoveryResponse(filters, requestId, startedAt);
   } catch (error) {
     return discoveryFailure(error, requestId, startedAt);
   }

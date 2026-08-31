@@ -48,10 +48,6 @@ export default async function VenuePage({ params }: VenuePageProps) {
             </p>
             <dl className="mt-8 grid gap-5 border-y border-border py-6 sm:grid-cols-3">
               <div>
-                <dt className="text-sm font-medium text-muted-foreground">City</dt>
-                <dd className="mt-2 font-semibold text-foreground">{venue.cityName}</dd>
-              </div>
-              <div>
                 <dt className="text-sm font-medium text-muted-foreground">Screens</dt>
                 <dd className="mt-2 font-semibold text-foreground">
                   {venue.screenCount ?? "Not stated"}

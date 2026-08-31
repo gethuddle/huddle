@@ -12,7 +12,6 @@ const validHomeEvent = {
   eventRules: "Respect the host and every attendee.",
   commercialAffiliation: "None",
   hostPresenceConfirmed: true,
-  cityId: "60000000-0000-4000-8000-000000000102",
   placeKind: "home",
   publicPlaceName: "",
   publicAddressText: "",

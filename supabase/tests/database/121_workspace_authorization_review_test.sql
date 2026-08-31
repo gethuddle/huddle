@@ -53,7 +53,6 @@ set
     else 'review_stale_fan'
   end,
   display_name = 'Review Fan ' || right(id::text, 3),
-  city_id = (select id from public.cities where slug = 'haifa'),
   profile_completed_at = statement_timestamp(),
   fan_enabled_at = statement_timestamp()
 where id between
@@ -110,14 +109,13 @@ values (
 );
 
 insert into public.venues (
-  id, owner_id, slug, name, city_id, address_text, location,
+  id, owner_id, slug, name, address_text, location,
   description, screen_count, stated_capacity
 )
 values (
   'c2100000-0000-4000-8000-000000000301',
   'c2100000-0000-4000-8000-000000000101',
   'workspace-review-venue', 'Workspace Review Venue',
-  (select id from public.cities where slug = 'haifa'),
   '21 Review Street, Haifa',
   extensions.st_setsrid(extensions.st_makepoint(34.999, 32.813), 4326)::extensions.geography,
   'A venue for the workspace authorization review regression matrix.',
@@ -140,7 +138,7 @@ values
 insert into public.events (
   id, created_by, host_venue_id, match_id, title, description,
   expected_activity, cost_description, event_rules, commercial_affiliation,
-  host_presence_confirmed_at, starts_at, ends_at, city_id, place_kind,
+  host_presence_confirmed_at, starts_at, ends_at, place_kind,
   venue_id, audience, capacity, requires_approval, status, published_at
 )
 values
@@ -155,7 +153,6 @@ values
     'Respect staff and every guest.', 'Hosted by Workspace Review Venue',
     statement_timestamp(), statement_timestamp() + interval '14 days',
     statement_timestamp() + interval '14 days 3 hours',
-    (select id from public.cities where slug = 'haifa'),
     'venue', 'c2100000-0000-4000-8000-000000000301',
     'public', 40, false, 'published', statement_timestamp()
   ),
@@ -170,7 +167,6 @@ values
     'Respect staff and every guest.', 'Hosted by Workspace Review Venue',
     statement_timestamp(), statement_timestamp() + interval '15 days',
     statement_timestamp() + interval '15 days 3 hours',
-    (select id from public.cities where slug = 'haifa'),
     'venue', 'c2100000-0000-4000-8000-000000000301',
     'public', 40, true, 'published', statement_timestamp()
   );
@@ -179,7 +175,7 @@ set local role authenticated;
 set local "request.jwt.claim.sub" = 'c2100000-0000-4000-8000-000000000109';
 
 select throws_ok(
-  $$select * from public.activate_fan_workspace('review_null_fan','Review Null Fan','haifa','',null,1)$$,
+  $$select * from public.activate_fan_workspace('review_null_fan','Review Null Fan','',null,1,null)$$,
   'P0001', 'ADULT_ATTESTATION_REQUIRED',
   'raw Fan activation rejects a NULL adult attestation'
 );
@@ -196,14 +192,14 @@ select lives_ok(
 );
 
 select lives_ok(
-  $$select * from public.create_or_update_event(null,'c2100000-0000-4000-8000-000000000301',null,'c2100000-0000-4000-8000-000000000204','Venue-only owner event','A commercial event created by a venue-only owner account.','Watch the full match together','Food and drinks available','Respect staff and every guest.','Hosted by Workspace Review Venue',true,statement_timestamp()+interval '14 days',statement_timestamp()+interval '14 days 3 hours',(select id from public.cities where slug='haifa'),'venue','c2100000-0000-4000-8000-000000000301',null,null,null,null,'public',null,null,40,false,null,null,null,null,'publish',null)$$,
+  $$select * from public.create_or_update_event(null,'c2100000-0000-4000-8000-000000000301',null,'c2100000-0000-4000-8000-000000000204','Venue-only owner event','A commercial event created by a venue-only owner account.','Watch the full match together','Food and drinks available','Respect staff and every guest.','Hosted by Workspace Review Venue',true,statement_timestamp()+interval '14 days',statement_timestamp()+interval '14 days 3 hours','venue','c2100000-0000-4000-8000-000000000301',null,null,null,null,'public',null,null,40,false,null,null,null,null,'publish',null)$$,
   'a venue-only owner creates a published commercial event through the raw RPC'
 );
 
 set local "request.jwt.claim.sub" = 'c2100000-0000-4000-8000-000000000102';
 
 select lives_ok(
-  $$select * from public.create_or_update_event(null,'c2100000-0000-4000-8000-000000000301',null,'c2100000-0000-4000-8000-000000000204','Venue admin event','A commercial event created by an active venue administrator.','Watch the full match together','Food and drinks available','Respect staff and every guest.','Hosted by Workspace Review Venue',true,statement_timestamp()+interval '15 days',statement_timestamp()+interval '15 days 3 hours',(select id from public.cities where slug='haifa'),'venue','c2100000-0000-4000-8000-000000000301',null,null,null,null,'public',null,null,40,true,null,null,null,null,'publish',null)$$,
+  $$select * from public.create_or_update_event(null,'c2100000-0000-4000-8000-000000000301',null,'c2100000-0000-4000-8000-000000000204','Venue admin event','A commercial event created by an active venue administrator.','Watch the full match together','Food and drinks available','Respect staff and every guest.','Hosted by Workspace Review Venue',true,statement_timestamp()+interval '15 days',statement_timestamp()+interval '15 days 3 hours','venue','c2100000-0000-4000-8000-000000000301',null,null,null,null,'public',null,null,40,true,null,null,null,null,'publish',null)$$,
   'an active venue admin creates a published commercial event through the raw RPC'
 );
 
@@ -222,7 +218,6 @@ select lives_ok(
       true,
       statement_timestamp() + interval '15 days',
       statement_timestamp() + interval '15 days 3 hours',
-      (select id from public.cities where slug = 'haifa'),
       'venue',
       'c2100000-0000-4000-8000-000000000301',
       null, null, null, null,
@@ -271,13 +266,12 @@ values (
 );
 
 insert into public.groups (
-  id, slug, name, owner_id, city_id, visibility, lifecycle, description, activated_at
+  id, slug, name, owner_id, visibility, lifecycle, description, activated_at
 )
 values (
   'c2100000-0000-4000-8000-000000000401',
   'workspace-review-group', 'Workspace Review Group',
   'c2100000-0000-4000-8000-000000000104',
-  (select id from public.cities where slug = 'haifa'),
   'unlisted', 'active', 'A group for safe exit authorization regression tests.',
   statement_timestamp()
 );
@@ -302,19 +296,14 @@ select lives_ok(
   $$select * from public.list_managed_venue_events('c2100000-0000-4000-8000-000000000301',20)$$,
   'an active venue admin lists the concrete venue managed events'
 );
-select lives_ok(
-  $$select * from public.list_my_huddle_events(20,0)$$,
-  'a venue-only active admin can use the mixed managed-event dashboard projection'
-);
 select is(
   (
     select count(*)
-    from public.list_my_huddle_events(20, 0)
+    from public.list_managed_venue_events('c2100000-0000-4000-8000-000000000301',20)
     where event_id = 'c2100000-0000-4000-8000-000000000502'
-      and can_manage
   ),
   1::bigint,
-  'an active non-Fan admin sees and can manage its concrete Venue event'
+  'an active non-Fan admin sees its concrete Venue event in the Venue workspace'
 );
 select is(
   (
@@ -351,14 +340,10 @@ where venue_id = 'c2100000-0000-4000-8000-000000000301'
 
 set local role authenticated;
 set local "request.jwt.claim.sub" = 'c2100000-0000-4000-8000-000000000102';
-select is(
-  (
-    select count(*)
-    from public.list_my_huddle_events(20, 0)
-    where event_id = 'c2100000-0000-4000-8000-000000000502'
-  ),
-  0::bigint,
-  'a revoked non-Fan admin cannot retain commercial event access through created_by'
+select throws_ok(
+  $$select * from public.list_managed_venue_events('c2100000-0000-4000-8000-000000000301',20)$$,
+  'P0001', 'NOT_FOUND',
+  'a revoked non-Fan admin cannot retain Venue workspace access through created_by'
 );
 
 reset role;
@@ -366,7 +351,6 @@ update public.profiles
 set
   handle = 'review_revoked_admin_fan',
   display_name = 'Review Revoked Admin Fan',
-  city_id = (select id from public.cities where slug = 'haifa'),
   profile_completed_at = statement_timestamp(),
   fan_enabled_at = statement_timestamp()
 where id = 'c2100000-0000-4000-8000-000000000102';
@@ -376,7 +360,7 @@ set local "request.jwt.claim.sub" = 'c2100000-0000-4000-8000-000000000102';
 select is(
   (
     select count(*)
-    from public.list_my_huddle_events(20, 0)
+    from public.list_my_events('upcoming', 20, 0)
     where event_id = 'c2100000-0000-4000-8000-000000000502'
   ),
   0::bigint,
@@ -397,36 +381,27 @@ set local "request.jwt.claim.sub" = 'c2100000-0000-4000-8000-000000000102';
 select is(
   (
     select count(*)
-    from public.list_my_huddle_events(20, 0)
-    where event_id = 'c2100000-0000-4000-8000-000000000502'
+    from public.list_attention_items(20)
+    where kind = 'event_invitation'
+      and resource_id = 'c2100000-0000-4000-8000-000000000502'
   ),
   1::bigint,
-  'a revoked Fan admin sees the commercial event only through a separate current invitation'
+  'a revoked Fan admin sees the commercial event only as a separate current invitation'
 );
 select is(
   (
-    select can_manage
-    from public.list_my_huddle_events(20, 0)
-    where event_id = 'c2100000-0000-4000-8000-000000000502'
+    select viewer_is_owner
+    from public.get_venue_by_slug('workspace-review-venue')
   ),
   false,
   'a separate Fan invitation never restores revoked Venue management authority'
-);
-select is(
-  (
-    select involvement
-    from public.list_my_huddle_events(20, 0)
-    where event_id = 'c2100000-0000-4000-8000-000000000502'
-  ),
-  'invited',
-  'the revoked Fan admin commercial row is bucketed by its genuine invitation relationship'
 );
 
 set local role authenticated;
 set local "request.jwt.claim.sub" = 'c2100000-0000-4000-8000-000000000103';
 
 select throws_ok(
-  $$select * from public.create_or_update_event(null,'c2100000-0000-4000-8000-000000000301',null,'c2100000-0000-4000-8000-000000000204','Suspended venue event','A commercial event denied to a suspended venue administrator.','Watch the full match together','Food and drinks available','Respect staff and every guest.','Hosted by Workspace Review Venue',true,statement_timestamp()+interval '16 days',statement_timestamp()+interval '16 days 3 hours',(select id from public.cities where slug='haifa'),'venue','c2100000-0000-4000-8000-000000000301',null,null,null,null,'public',null,null,40,false,null,null,null,null,'publish',null)$$,
+  $$select * from public.create_or_update_event(null,'c2100000-0000-4000-8000-000000000301',null,'c2100000-0000-4000-8000-000000000204','Suspended venue event','A commercial event denied to a suspended venue administrator.','Watch the full match together','Food and drinks available','Respect staff and every guest.','Hosted by Workspace Review Venue',true,statement_timestamp()+interval '16 days',statement_timestamp()+interval '16 days 3 hours','venue','c2100000-0000-4000-8000-000000000301',null,null,null,null,'public',null,null,40,false,null,null,null,null,'publish',null)$$,
   'P0001', 'ACCOUNT_SUSPENDED',
   'a suspended venue member cannot create a commercial event'
 );

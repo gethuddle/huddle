@@ -13,6 +13,7 @@ const groupCursorPayloadSchema = z
     version: z.literal(CURSOR_VERSION),
     kind: z.literal("groups"),
     filterKey: z.string().length(FILTER_KEY_LENGTH),
+    memberCount: z.number().int().nonnegative(),
     name: z.string().min(1).max(80),
     id: z.uuid(),
   })

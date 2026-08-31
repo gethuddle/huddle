@@ -18,6 +18,7 @@ describe("signed discovery cursors", () => {
     const cursor = encodeGroupCursor(
       {
         filterKey,
+        memberCount: 42,
         name: "haifa supporters",
         id: "70000000-0000-4000-8000-000000000001",
       },
@@ -28,6 +29,7 @@ describe("signed discovery cursors", () => {
     expect(decodeGroupCursor(cursor, secret)).toMatchObject({
       kind: "groups",
       filterKey,
+      memberCount: 42,
       name: "haifa supporters",
     });
   });
@@ -59,6 +61,7 @@ describe("signed discovery cursors", () => {
     const cursor = encodeGroupCursor(
       {
         filterKey,
+        memberCount: 3,
         name: "group name",
         id: "70000000-0000-4000-8000-000000000003",
       },

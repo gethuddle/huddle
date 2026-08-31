@@ -28,11 +28,10 @@ describe("NominatimPublicGeocoder", () => {
   it("sends one bounded Israel-only request with a descriptive Huddle user agent", async () => {
     const geocoder = new NominatimPublicGeocoder({ fetch: fetchMock });
 
-    await expect(geocoder.search("10 Herzl Street", "Haifa")).resolves.toEqual([
+    await expect(geocoder.search("10 Herzl Street")).resolves.toEqual([
       {
         id: "101",
         label: "10 Herzl Street, Haifa, Israel",
-        city: "Haifa",
         latitude: 32.815,
         longitude: 34.989,
       },
@@ -41,7 +40,7 @@ describe("NominatimPublicGeocoder", () => {
     expect(fetchMock).toHaveBeenCalledOnce();
     const [request, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
     expect(request.origin + request.pathname).toBe("https://nominatim.openstreetmap.org/search");
-    expect(request.searchParams.get("q")).toBe("10 Herzl Street, Haifa, Israel");
+    expect(request.searchParams.get("q")).toBe("10 Herzl Street, Israel");
     expect(request.searchParams.get("countrycodes")).toBe("il");
     expect(request.searchParams.get("format")).toBe("jsonv2");
     expect(request.searchParams.get("addressdetails")).toBe("1");
@@ -72,23 +71,18 @@ describe("NominatimPublicGeocoder", () => {
       ),
     );
 
-    const results = await new NominatimPublicGeocoder({ fetch: fetchMock }).search(
-      "Herzl Street",
-      "Haifa",
-    );
+    const results = await new NominatimPublicGeocoder({ fetch: fetchMock }).search("Herzl Street");
 
     expect(results).toHaveLength(5);
     expect(results.map((result) => result.id)).toEqual(["1", "2", "3", "4", "5"]);
-    expect(results).not.toContainEqual(expect.objectContaining({ city: "Amman" }));
+    expect(results).not.toContainEqual(expect.objectContaining({ label: "Outside Israel" }));
   });
 
-  it("validates query and city bounds before making an upstream request", async () => {
+  it("validates query bounds before making an upstream request", async () => {
     const geocoder = new NominatimPublicGeocoder({ fetch: fetchMock });
 
-    await expect(geocoder.search("a", "Haifa")).rejects.toBeInstanceOf(DomainError);
-    await expect(geocoder.search("Valid address", "x".repeat(81))).rejects.toBeInstanceOf(
-      DomainError,
-    );
+    await expect(geocoder.search("a")).rejects.toBeInstanceOf(DomainError);
+    await expect(geocoder.search("x".repeat(161))).rejects.toBeInstanceOf(DomainError);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -100,7 +94,7 @@ describe("NominatimPublicGeocoder", () => {
     );
 
     await expect(
-      new NominatimPublicGeocoder({ fetch: fetchMock }).search("Herzl Street", "Haifa"),
+      new NominatimPublicGeocoder({ fetch: fetchMock }).search("Herzl Street"),
     ).rejects.toMatchObject({ code: "UPSTREAM_UNAVAILABLE" });
   });
 
@@ -111,7 +105,7 @@ describe("NominatimPublicGeocoder", () => {
     fetchMock.mockResolvedValue(new Response("provider detail that must stay private", { status }));
 
     await expect(
-      new NominatimPublicGeocoder({ fetch: fetchMock }).search("Herzl Street", "Haifa"),
+      new NominatimPublicGeocoder({ fetch: fetchMock }).search("Herzl Street"),
     ).rejects.toMatchObject({ code });
   });
 
@@ -121,10 +115,7 @@ describe("NominatimPublicGeocoder", () => {
     );
 
     try {
-      await new NominatimPublicGeocoder({ fetch: fetchMock, timeoutMs: 10 }).search(
-        "Herzl Street",
-        "Haifa",
-      );
+      await new NominatimPublicGeocoder({ fetch: fetchMock, timeoutMs: 10 }).search("Herzl Street");
       expect.unreachable("the timeout should fail");
     } catch (error) {
       expect(error).toMatchObject({ code: "UPSTREAM_UNAVAILABLE" });

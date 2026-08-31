@@ -79,7 +79,6 @@ function sharedVenueInput(formData: FormData) {
   return {
     name: formValue(formData, "name"),
     slug: formValue(formData, "slug"),
-    cityId: formValue(formData, "cityId"),
     addressText: formValue(formData, "addressText"),
     longitude: formValue(formData, "longitude"),
     latitude: formValue(formData, "latitude"),
@@ -114,7 +113,6 @@ export async function createVenueWorkspaceAction(
     const { data, error } = await supabase.rpc("create_venue_workspace_v2", {
       input_name: parsed.data.name,
       input_slug: parsed.data.slug,
-      input_city_id: parsed.data.cityId,
       input_address_text: parsed.data.addressText,
       input_longitude: parsed.data.longitude,
       input_latitude: parsed.data.latitude,
@@ -171,7 +169,6 @@ export async function updateVenueWorkspaceAction(
       input_venue_id: parsed.data.venueId,
       input_name: parsed.data.name,
       input_slug: parsed.data.slug,
-      input_city_id: parsed.data.cityId,
       input_address_text: parsed.data.addressText,
       input_longitude: parsed.data.longitude,
       input_latitude: parsed.data.latitude,
@@ -324,7 +321,6 @@ export async function updateVenueSettingsAction(
       input_venue_id: parsed.data.venueId,
       input_name: parsed.data.name,
       input_slug: parsed.data.slug,
-      input_city_id: parsed.data.cityId,
       input_address_text: address?.label ?? current.address_text,
       input_longitude: address?.longitude ?? current.longitude,
       input_latitude: address?.latitude ?? current.latitude,

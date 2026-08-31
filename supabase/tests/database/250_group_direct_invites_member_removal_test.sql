@@ -74,7 +74,6 @@ update public.profiles
 set
   handle = 'direct_' || right(id::text, 3),
   display_name = 'Direct Fan ' || right(id::text, 3),
-  city_id = (select id from public.cities where slug = 'haifa'),
   adult_attested_at = statement_timestamp(),
   rules_version = 1,
   rules_accepted_at = statement_timestamp(),
@@ -83,14 +82,13 @@ set
 where id::text like 'fc000000-0000-4000-8000-0000000001%';
 
 insert into public.groups (
-  id, slug, name, owner_id, city_id, visibility, lifecycle, description, activated_at
+  id, slug, name, owner_id, visibility, lifecycle, description, activated_at
 )
 values (
   'fc000000-0000-4000-8000-000000000201',
   'direct-invite-group',
   'Direct Invite Group',
   'fc000000-0000-4000-8000-000000000101',
-  null,
   'discoverable',
   'active',
   'A group used to verify clear direct invitation and removal transitions.',

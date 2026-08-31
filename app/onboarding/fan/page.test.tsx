@@ -38,7 +38,6 @@ describe("FanOnboardingPage", () => {
               data: {
                 handle: "existing_fan",
                 display_name: "Existing Fan",
-                city_id: "e4000000-0000-4000-8000-000000000201",
                 bio: "",
                 adult_attested_at: "2026-08-01T08:00:00Z",
                 rules_version: 2,

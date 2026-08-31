@@ -153,7 +153,6 @@ export async function activateVenueOnboardingAction(
     const { data, error } = await supabase.rpc("create_venue_workspace_v2", {
       input_name: input.name,
       input_slug: input.slug,
-      input_city_id: input.cityId,
       input_address_text: input.address.label,
       input_longitude: input.address.longitude,
       input_latitude: input.address.latitude,

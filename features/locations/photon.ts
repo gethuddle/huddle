@@ -45,10 +45,10 @@ export class PhotonPublicGeocoder implements PublicGeocoder {
     this.#timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   }
 
-  async search(query: string, city: string): Promise<readonly AddressSuggestion[]> {
-    const normalized = normalizePublicAddressInput(query, city);
+  async search(query: string): Promise<readonly AddressSuggestion[]> {
+    const normalized = normalizePublicAddressInput(query);
     const requestUrl = new URL(PHOTON_ENDPOINT);
-    requestUrl.searchParams.set("q", `${normalized.query}, ${normalized.city}, Israel`);
+    requestUrl.searchParams.set("q", `${normalized}, Israel`);
     requestUrl.searchParams.set("limit", "5");
     requestUrl.searchParams.set("lang", "en");
     requestUrl.searchParams.set("bbox", ISRAEL_BBOX);
@@ -73,16 +73,9 @@ export class PhotonPublicGeocoder implements PublicGeocoder {
         .filter((feature) => feature.properties.countrycode?.toLowerCase() === "il")
         .map((feature) => {
           const [longitude, latitude] = feature.geometry.coordinates;
-          const cityName =
-            feature.properties.city ??
-            feature.properties.town ??
-            feature.properties.district ??
-            feature.properties.state ??
-            normalized.city;
           return {
             id: `${feature.properties.osm_type}:${feature.properties.osm_id}`,
             label: suggestionLabel(feature.properties),
-            city: cityName,
             latitude,
             longitude,
           } satisfies AddressSuggestion;

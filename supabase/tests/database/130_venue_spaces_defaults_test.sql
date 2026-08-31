@@ -28,7 +28,7 @@ select is(
 );
 select isnt(
   to_regprocedure(
-    'public.create_venue_workspace(text,text,uuid,text,numeric,numeric,text,text,integer,text[],text,boolean,boolean,boolean,integer,uuid)'
+    'public.create_venue_workspace(text,text,text,numeric,numeric,text,text,integer,text[],text,boolean,boolean,boolean,integer,uuid)'
   ),
   null::regprocedure,
   'Venue activation exposes the exact controlled signature'
@@ -40,11 +40,11 @@ select is(
     join pg_namespace as namespace on namespace.oid = procedure.pronamespace
     where namespace.nspname = 'public'
       and procedure.oid = to_regprocedure(
-        'public.create_venue_workspace(text,text,uuid,text,numeric,numeric,text,text,integer,text[],text,boolean,boolean,boolean,integer,uuid)'
+        'public.create_venue_workspace(text,text,text,numeric,numeric,text,text,integer,text[],text,boolean,boolean,boolean,integer,uuid)'
       )
   ),
   array[
-    'input_name', 'input_slug', 'input_city_id', 'input_address_text',
+    'input_name', 'input_slug', 'input_address_text',
     'input_longitude', 'input_latitude', 'input_description',
     'input_main_space_name', 'input_main_space_capacity', 'input_facilities',
     'input_house_information', 'input_default_requires_approval',
@@ -66,7 +66,7 @@ select isnt(
 );
 select isnt(
   to_regprocedure(
-    'public.update_venue_workspace(uuid,text,text,uuid,text,numeric,numeric,text,text[],text,boolean,uuid)'
+    'public.update_venue_workspace(uuid,text,text,text,numeric,numeric,text,text[],text,boolean,uuid)'
   ),
   null::regprocedure,
   'Venue profile defaults update through a controlled RPC'
@@ -104,7 +104,7 @@ select ok(
 select ok(
   has_function_privilege(
     'authenticated',
-    'public.create_venue_workspace(text,text,uuid,text,numeric,numeric,text,text,integer,text[],text,boolean,boolean,boolean,integer,uuid)',
+    'public.create_venue_workspace(text,text,text,numeric,numeric,text,text,integer,text[],text,boolean,boolean,boolean,integer,uuid)',
     'execute'
   ),
   'authenticated actors may call controlled Venue activation'
@@ -112,7 +112,7 @@ select ok(
 select ok(
   not has_function_privilege(
     'anon',
-    'public.create_venue_workspace(text,text,uuid,text,numeric,numeric,text,text,integer,text[],text,boolean,boolean,boolean,integer,uuid)',
+    'public.create_venue_workspace(text,text,text,numeric,numeric,text,text,integer,text[],text,boolean,boolean,boolean,integer,uuid)',
     'execute'
   ),
   'anonymous actors cannot activate a Venue workspace'
@@ -120,7 +120,7 @@ select ok(
 select ok(
   not has_function_privilege(
     'authenticated',
-    'public.create_venue(text,text,uuid,text,double precision,double precision,text,integer,integer,uuid)',
+    'public.create_venue(text,text,text,double precision,double precision,text,integer,integer,uuid)',
     'execute'
   ),
   'the legacy create_venue RPC cannot bypass explicit activation attestations'
@@ -134,7 +134,7 @@ select ok(
   )
   and has_function_privilege(
     'authenticated',
-    'public.update_venue_workspace(uuid,text,text,uuid,text,numeric,numeric,text,text[],text,boolean,uuid)',
+    'public.update_venue_workspace(uuid,text,text,text,numeric,numeric,text,text[],text,boolean,uuid)',
     'execute'
   )
   and has_function_privilege(
@@ -151,7 +151,7 @@ select ok(
   )
   and not has_function_privilege(
     'anon',
-    'public.update_venue_workspace(uuid,text,text,uuid,text,numeric,numeric,text,text[],text,boolean,uuid)',
+    'public.update_venue_workspace(uuid,text,text,text,numeric,numeric,text,text[],text,boolean,uuid)',
     'execute'
   )
   and not has_function_privilege(
@@ -240,13 +240,12 @@ update public.profiles
 set
   handle = 'venue_event_fan',
   display_name = 'Venue Event Fan',
-  city_id = (select id from public.cities where slug = 'haifa'),
   profile_completed_at = statement_timestamp(),
   fan_enabled_at = statement_timestamp()
 where id = 'd3000000-0000-4000-8000-000000000108';
 
 insert into public.venues (
-  id, owner_id, slug, name, city_id, address_text, location,
+  id, owner_id, slug, name, address_text, location,
   description, screen_count, stated_capacity
 )
 values
@@ -254,7 +253,6 @@ values
     'd3000000-0000-4000-8000-000000000201',
     'd3000000-0000-4000-8000-000000000101',
     'legacy-four-screen-venue', 'Legacy Four Screen Venue',
-    (select id from public.cities where slug = 'haifa'),
     '20 Legacy Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(34.999, 32.813), 4326)::extensions.geography,
     'A legacy Venue with an unstructured screen count and stated capacity.',
@@ -264,7 +262,6 @@ values
     'd3000000-0000-4000-8000-000000000202',
     'd3000000-0000-4000-8000-000000000101',
     'legacy-unknown-capacity', 'Legacy Unknown Capacity',
-    (select id from public.cities where slug = 'haifa'),
     '21 Legacy Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(34.998, 32.812), 4326)::extensions.geography,
     'A legacy Venue whose one known area still needs a capacity.',
@@ -396,7 +393,7 @@ select throws_ok(
 set local "request.jwt.claim.sub" = 'd3000000-0000-4000-8000-000000000106';
 select lives_ok(
   $$select * from public.create_venue_workspace(
-    'Activated Venue','activated-venue',(select id from public.cities where slug='haifa'),
+    'Activated Venue','activated-venue',
     '30 Activation Street, Haifa',34.997,32.811,
     'A self-serve Venue workspace with one truthfully named initial area.',
     'Front room',55,array['wheelchair_accessible','food'],'Ask staff for the accessible entrance.',
@@ -436,17 +433,17 @@ select results_eq(
 set local role authenticated;
 set local "request.jwt.claim.sub" = 'd3000000-0000-4000-8000-000000000107';
 select throws_ok(
-  $$select * from public.create_venue_workspace('Null Adult','null-adult',(select id from public.cities where slug='haifa'),'31 Activation Street, Haifa',34.997,32.811,'A Venue activation that must reject a missing adult confirmation.','Main screen',20,array[]::text[],'',true,null,true,1,null)$$,
+  $$select * from public.create_venue_workspace('Null Adult','null-adult','31 Activation Street, Haifa',34.997,32.811,'A Venue activation that must reject a missing adult confirmation.','Main screen',20,array[]::text[],'',true,null,true,1,null)$$,
   'P0001', 'ADULT_ATTESTATION_REQUIRED',
   'raw activation rejects NULL adult attestation with IS DISTINCT FROM TRUE semantics'
 );
 select throws_ok(
-  $$select * from public.create_venue_workspace('False Representation','false-representation',(select id from public.cities where slug='haifa'),'32 Activation Street, Haifa',34.997,32.811,'A Venue activation that must reject false representation.','Main screen',20,array[]::text[],'',true,true,false,1,null)$$,
+  $$select * from public.create_venue_workspace('False Representation','false-representation','32 Activation Street, Haifa',34.997,32.811,'A Venue activation that must reject false representation.','Main screen',20,array[]::text[],'',true,true,false,1,null)$$,
   'P0001', 'REPRESENTATION_ATTESTATION_REQUIRED',
   'raw activation rejects false business representation attestation'
 );
 select throws_ok(
-  $$select * from public.create_venue_workspace('Stale Rules','stale-rules',(select id from public.cities where slug='haifa'),'33 Activation Street, Haifa',34.997,32.811,'A Venue activation that must reject a stale rules version.','Main screen',20,array[]::text[],'',true,true,true,2,null)$$,
+  $$select * from public.create_venue_workspace('Stale Rules','stale-rules','33 Activation Street, Haifa',34.997,32.811,'A Venue activation that must reject a stale rules version.','Main screen',20,array[]::text[],'',true,true,true,2,null)$$,
   'P0001', 'RULES_ACCEPTANCE_REQUIRED',
   'raw activation rejects a non-current rules version'
 );
@@ -508,7 +505,7 @@ values (
 insert into public.events (
   id, created_by, host_venue_id, match_id, title, description,
   expected_activity, cost_description, event_rules, commercial_affiliation,
-  host_presence_confirmed_at, starts_at, ends_at, city_id, place_kind,
+  host_presence_confirmed_at, starts_at, ends_at, place_kind,
   venue_id, venue_space_id, audience, capacity, requires_approval, status, published_at
 )
 values (
@@ -522,7 +519,6 @@ values (
   'Respect staff and every guest.', 'Hosted by Legacy Four Screen Venue',
   statement_timestamp(), statement_timestamp() + interval '30 days',
   statement_timestamp() + interval '30 days 3 hours',
-  (select id from public.cities where slug = 'haifa'),
   'venue', 'd3000000-0000-4000-8000-000000000201',
   (select id from public.venue_spaces where venue_id='d3000000-0000-4000-8000-000000000201' and name='Main screen'),
   'public', 40, false, 'published', statement_timestamp()

@@ -11,14 +11,26 @@ import {
 import type { StyleSpecification } from "maplibre-gl";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  findReviewedPilotCity,
-  isPointWithinReviewedPilotCity,
-  type ReviewedPilotCity,
-} from "@/features/locations/pilot-cities";
-import type { PrivateLocationSelection, PrivatePoint } from "@/features/locations/types";
+import type { PrivatePoint } from "@/features/locations/types";
+
+const ISRAEL_CENTER: PrivatePoint = { latitude: 31.8, longitude: 34.9 };
+const ISRAEL_BOUNDS = {
+  south: 29.3,
+  west: 34.2,
+  north: 33.4,
+  east: 35.95,
+} as const;
+
+export function isPointWithinIsrael(point: PrivatePoint): boolean {
+  return (
+    Number.isFinite(point.latitude) &&
+    Number.isFinite(point.longitude) &&
+    point.latitude >= ISRAEL_BOUNDS.south &&
+    point.latitude <= ISRAEL_BOUNDS.north &&
+    point.longitude >= ISRAEL_BOUNDS.west &&
+    point.longitude <= ISRAEL_BOUNDS.east
+  );
+}
 
 export type PrivatePinMapController = Readonly<{
   destroy: () => void;
@@ -28,16 +40,15 @@ export type PrivatePinMapController = Readonly<{
 export type PrivatePinMapFactory = (
   container: HTMLDivElement,
   options: Readonly<{
-    city: ReviewedPilotCity;
+    initialPoint: PrivatePoint | null;
     onPinMoved: (point: PrivatePoint) => void;
     onPinRejected: () => void;
   }>,
 ) => PrivatePinMapController | Promise<PrivatePinMapController>;
 
 type MapPinPickerProps = Readonly<{
-  /** Active public catalog slug; camera coordinates are resolved internally. */
-  citySlug: string;
-  onChange: (selection: PrivateLocationSelection) => void;
+  initialPoint?: PrivatePoint | null;
+  onChange: (point: PrivatePoint | null) => void;
   mapFactory?: PrivatePinMapFactory;
 }>;
 
@@ -57,28 +68,20 @@ const osmStyle: StyleSpecification = {
 
 export const createMapLibrePrivatePinMap: PrivatePinMapFactory = async (
   container,
-  { city, onPinMoved, onPinRejected },
+  { initialPoint, onPinMoved, onPinRejected },
 ) => {
   const maplibre = await import("maplibre-gl");
-  const publicCityCenter = city.center;
   const map = new maplibre.Map({
     container,
     style: osmStyle,
-    center: [publicCityCenter.longitude, publicCityCenter.latitude],
-    zoom: 11,
-    minZoom: 11,
-    maxZoom: 11,
-    bearing: 0,
-    pitch: 0,
-    boxZoom: false,
-    doubleClickZoom: false,
-    dragPan: false,
-    dragRotate: false,
-    keyboard: false,
-    scrollZoom: false,
-    touchPitch: false,
-    touchZoomRotate: false,
-    pitchWithRotate: false,
+    center: [ISRAEL_CENTER.longitude, ISRAEL_CENTER.latitude],
+    zoom: 7,
+    minZoom: 7,
+    maxZoom: 18,
+    maxBounds: [
+      [ISRAEL_BOUNDS.west, ISRAEL_BOUNDS.south],
+      [ISRAEL_BOUNDS.east, ISRAEL_BOUNDS.north],
+    ],
     renderWorldCopies: false,
     attributionControl: false,
   });
@@ -88,30 +91,27 @@ export const createMapLibrePrivatePinMap: PrivatePinMapFactory = async (
   function ensureMarker(point: PrivatePoint) {
     if (marker !== null) {
       marker.setLngLat([point.longitude, point.latitude]);
-      return marker;
+      return;
     }
-
     marker = new maplibre.Marker({ draggable: true })
       .setLngLat([point.longitude, point.latitude])
       .addTo(map);
     marker.on("dragend", () => {
       if (marker === null) return;
-      const point = marker.getLngLat();
-      const selection = { latitude: point.lat, longitude: point.lng };
-      if (moveMarker(selection)) onPinMoved(selection);
+      const location = marker.getLngLat();
+      const point = { latitude: location.lat, longitude: location.lng };
+      if (moveMarker(point)) onPinMoved(point);
     });
-    return marker;
   }
 
   function moveMarker(point: PrivatePoint) {
-    if (!isPointWithinReviewedPilotCity(city, point)) {
+    if (!isPointWithinIsrael(point)) {
       if (marker !== null && lastAcceptedPoint !== null) {
         marker.setLngLat([lastAcceptedPoint.longitude, lastAcceptedPoint.latitude]);
       }
       onPinRejected();
       return false;
     }
-
     lastAcceptedPoint = point;
     ensureMarker(point);
     return true;
@@ -122,77 +122,26 @@ export const createMapLibrePrivatePinMap: PrivatePinMapFactory = async (
     if (moveMarker(point)) onPinMoved(point);
   });
 
-  return {
-    destroy: () => map.remove(),
-    setPin: moveMarker,
-  };
+  if (initialPoint !== null) moveMarker(initialPoint);
+
+  return { destroy: () => map.remove(), setPin: moveMarker };
 };
 
 export function MapPinPicker({
-  citySlug,
+  initialPoint = null,
   onChange,
   mapFactory = createMapLibrePrivatePinMap,
 }: MapPinPickerProps) {
-  const unavailableId = useId();
-  const previousCitySlug = useRef<string | null | undefined>(undefined);
-  const city = findReviewedPilotCity(citySlug);
-  const activeCitySlug = city?.slug ?? null;
-
-  useEffect(() => {
-    const previous = previousCitySlug.current;
-    if (previous !== undefined && previous !== null && previous !== activeCitySlug) {
-      onChange({ addressText: "", point: null });
-    }
-    previousCitySlug.current = activeCitySlug;
-  }, [activeCitySlug, onChange]);
-
-  if (city === null) {
-    return (
-      <section aria-labelledby={`${unavailableId}-title`} className="space-y-2">
-        <h2 className="text-lg font-semibold" id={`${unavailableId}-title`}>
-          Set the private meeting point
-        </h2>
-        <p className="text-sm text-destructive" role="alert">
-          Private location selection is not available for this city.
-        </p>
-      </section>
-    );
-  }
-
-  return (
-    <CityScopedMapPinPicker
-      city={city}
-      key={city.slug}
-      mapFactory={mapFactory}
-      onChange={onChange}
-    />
-  );
-}
-
-type CityScopedMapPinPickerProps = Readonly<{
-  city: ReviewedPilotCity;
-  onChange: (selection: PrivateLocationSelection) => void;
-  mapFactory: PrivatePinMapFactory;
-}>;
-
-function CityScopedMapPinPicker({ city, onChange, mapFactory }: CityScopedMapPinPickerProps) {
   const inputId = useId();
   const mapInstructionsId = `${inputId}-map-instructions`;
   const mapContainer = useRef<HTMLDivElement>(null);
   const controller = useRef<PrivatePinMapController | null>(null);
   const onChangeRef = useRef(onChange);
-  const addressText = useRef("");
-  const selectedPoint = useRef<PrivatePoint | null>(null);
+  const selectedPoint = useRef<PrivatePoint | null>(initialPoint);
   const geolocationGeneration = useRef(0);
-  const [hasPin, setHasPin] = useState(false);
+  const [hasPin, setHasPin] = useState(initialPoint !== null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [mapError, setMapError] = useState(false);
-
-  const publishSelection = useCallback((nextAddress: string, nextPoint: PrivatePoint | null) => {
-    addressText.current = nextAddress;
-    selectedPoint.current = nextPoint;
-    onChangeRef.current({ addressText: nextAddress, point: nextPoint });
-  }, []);
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -205,38 +154,36 @@ function CityScopedMapPinPicker({ city, onChange, mapFactory }: CityScopedMapPin
     [],
   );
 
-  const rejectSelectedPoint = useCallback(() => {
-    const hadSelectedPoint = selectedPoint.current !== null;
-    selectedPoint.current = null;
-    setHasPin(false);
-    setLocationError(
-      `That point is outside ${city.label}. Choose the matching city or move within the fixed map.`,
-    );
-    if (hadSelectedPoint) publishSelection(addressText.current, null);
-  }, [city.label, publishSelection]);
+  const rejectPoint = useCallback(() => {
+    setLocationError("Choose a point in Israel.");
+  }, []);
+
+  const publishPoint = useCallback((point: PrivatePoint) => {
+    selectedPoint.current = point;
+    setHasPin(true);
+    setLocationError(null);
+    onChangeRef.current(point);
+  }, []);
 
   useEffect(() => {
     const container = mapContainer.current;
     if (container === null) return;
-
     let active = true;
     let createdController: PrivatePinMapController | null = null;
+
     Promise.resolve(
       mapFactory(container, {
-        city,
+        initialPoint: selectedPoint.current,
         onPinMoved: (point) => {
           if (!active) return;
-          if (!isPointWithinReviewedPilotCity(city, point)) {
-            rejectSelectedPoint();
+          if (!isPointWithinIsrael(point)) {
+            rejectPoint();
             return;
           }
-          setHasPin(true);
-          setLocationError(null);
-          publishSelection(addressText.current, point);
+          publishPoint(point);
         },
         onPinRejected: () => {
-          if (!active) return;
-          rejectSelectedPoint();
+          if (active) rejectPoint();
         },
       }),
     )
@@ -247,10 +194,6 @@ function CityScopedMapPinPicker({ city, onChange, mapFactory }: CityScopedMapPin
         }
         createdController = mapController;
         controller.current = mapController;
-        const queuedPoint = selectedPoint.current;
-        if (queuedPoint !== null && mapController.setPin(queuedPoint) === false) {
-          if (selectedPoint.current !== null) rejectSelectedPoint();
-        }
       })
       .catch(() => {
         if (active) setMapError(true);
@@ -261,53 +204,44 @@ function CityScopedMapPinPicker({ city, onChange, mapFactory }: CityScopedMapPin
       createdController?.destroy();
       controller.current = null;
     };
-  }, [city, mapFactory, publishSelection, rejectSelectedPoint]);
+  }, [mapFactory, publishPoint, rejectPoint]);
 
-  function selectProtectedPoint(point: PrivatePoint) {
-    if (!isPointWithinReviewedPilotCity(city, point)) {
-      rejectSelectedPoint();
+  function selectPoint(point: PrivatePoint) {
+    if (!isPointWithinIsrael(point) || controller.current?.setPin(point) === false) {
+      rejectPoint();
       return;
     }
-
-    if (controller.current?.setPin(point) === false) {
-      if (selectedPoint.current !== null) rejectSelectedPoint();
-      return;
-    }
-    setHasPin(true);
-    setLocationError(null);
-    publishSelection(addressText.current, point);
+    publishPoint(point);
   }
 
   function useBrowserLocation() {
-    const requestGeneration = geolocationGeneration.current + 1;
-    geolocationGeneration.current = requestGeneration;
+    const generation = geolocationGeneration.current + 1;
+    geolocationGeneration.current = generation;
     setLocationError(null);
     if (!("geolocation" in navigator)) {
-      setLocationError("Browser location is not available. Move the pin on the map instead.");
+      setLocationError("Browser location is unavailable. Choose a point on the map instead.");
       return;
     }
-
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        if (geolocationGeneration.current !== requestGeneration) return;
-        selectProtectedPoint({
+        if (geolocationGeneration.current !== generation) return;
+        selectPoint({
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
         });
       },
       () => {
-        if (geolocationGeneration.current !== requestGeneration) return;
-        setLocationError("Location permission was not available. Move the pin on the map instead.");
+        if (geolocationGeneration.current !== generation) return;
+        setLocationError("Location permission was unavailable. Choose a point on the map instead.");
       },
       { enableHighAccuracy: false, maximumAge: 60_000, timeout: 10_000 },
     );
   }
 
   function movePinWithKeyboard(event: ReactKeyboardEvent<HTMLDivElement>) {
+    const current = selectedPoint.current ?? ISRAEL_CENTER;
     const delta = 0.001;
-    const current = selectedPoint.current ?? city.center;
-    let next: PrivatePoint | null = null;
-
+    let next: PrivatePoint;
     switch (event.key) {
       case "ArrowUp":
         next = { latitude: current.latitude + delta, longitude: current.longitude };
@@ -324,35 +258,22 @@ function CityScopedMapPinPicker({ city, onChange, mapFactory }: CityScopedMapPin
       default:
         return;
     }
-
     event.preventDefault();
-    selectProtectedPoint({
+    selectPoint({
       latitude: Number(next.latitude.toFixed(6)),
       longitude: Number(next.longitude.toFixed(6)),
     });
   }
 
   return (
-    <section className="space-y-4" aria-labelledby={`${inputId}-title`}>
+    <section aria-labelledby={`${inputId}-title`} className="space-y-4">
       <div>
         <h2 className="text-lg font-semibold" id={`${inputId}-title`}>
-          Set the private meeting point
+          Adjust the meeting point
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Huddle does not send this private address or pin through public address search.
+          Use the confirmed address, your current location, or move the pin anywhere in Israel.
         </p>
-      </div>
-
-      <div>
-        <Label htmlFor={inputId}>Private address</Label>
-        <Input
-          autoComplete="street-address"
-          className="mt-2"
-          id={inputId}
-          maxLength={300}
-          onChange={(event) => publishSelection(event.currentTarget.value, selectedPoint.current)}
-          required
-        />
       </div>
 
       <Button onClick={useBrowserLocation} type="button" variant="outline">
@@ -366,32 +287,25 @@ function CityScopedMapPinPicker({ city, onChange, mapFactory }: CityScopedMapPin
       )}
       {mapError ? (
         <p className="text-sm text-destructive" role="alert">
-          The map could not load. You can still use your current location, or try again later.
+          The map could not load. Use your current location or try again later.
         </p>
       ) : null}
 
       <div
         aria-describedby={mapInstructionsId}
-        aria-label="Map for choosing a private location"
+        aria-label="Map for choosing a meeting point"
         className="relative h-72 overflow-hidden rounded-2xl border border-border bg-secondary [&_.maplibregl-canvas]:absolute [&_.maplibregl-canvas]:inset-0 [&_.maplibregl-marker]:absolute [&_.maplibregl-marker]:left-0 [&_.maplibregl-marker]:top-0"
         onKeyDown={movePinWithKeyboard}
         ref={mapContainer}
         role="region"
         tabIndex={0}
       />
-
       <p className="text-sm text-muted-foreground" id={mapInstructionsId}>
-        Focus the map and use the arrow keys to move the private pin in small steps.
+        Click the map or use the arrow keys to move the pin in small steps.
       </p>
-
       <p className="text-sm text-muted-foreground" role="status">
-        {locationError !== null
-          ? `Choose the matching city or move within the fixed ${city.label} map.`
-          : hasPin
-            ? `Private pin selected in ${city.label}. Exact details stay protected.`
-            : `Click within the fixed ${city.label} map to place a pin, use the arrow keys, or use your current location.`}
+        {hasPin ? "Meeting point selected. Exact home details stay protected." : "Choose a point."}
       </p>
-
       <p className="text-xs text-muted-foreground">
         Map data ©{" "}
         <a

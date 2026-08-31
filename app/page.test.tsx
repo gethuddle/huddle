@@ -128,7 +128,6 @@ describe("Home", () => {
         awayTeamName: "Chelsea FC",
         competitionName: "Premier League",
         startsAt: "2026-09-01T17:00:00Z",
-        cityName: "Haifa",
         placeKind: "home",
         audience: "invite_only",
         status: "published",

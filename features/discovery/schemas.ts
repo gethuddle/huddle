@@ -19,15 +19,6 @@ function addUtcDays(dateValue: string, days: number): string {
   ].join("-");
 }
 
-function fixtureSeasonEnd(dateValue: string): string {
-  const [year, month] = dateValue.split("-").map(Number);
-  return `${month <= 5 ? year : year + 1}-05-31`;
-}
-
-function earlierDate(first: string, second: string): string {
-  return first < second ? first : second;
-}
-
 const optionalCoordinate = z.preprocess(
   firstSearchParam,
   z.union([z.literal(""), z.coerce.number().finite()]).optional(),
@@ -40,16 +31,6 @@ const optionalDate = z.preprocess(
 
 const rawDiscoveryFiltersSchema = z
   .object({
-    city: z.preprocess(
-      firstSearchParam,
-      z
-        .string()
-        .trim()
-        .toLowerCase()
-        .min(2)
-        .max(60)
-        .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-    ),
     lat: optionalCoordinate,
     lng: optionalCoordinate,
     radiusKm: z.preprocess(
@@ -91,7 +72,6 @@ const rawDiscoveryFiltersSchema = z
   });
 
 export type DiscoveryFilters = Readonly<{
-  citySlug: string;
   lat: number | null;
   lng: number | null;
   radiusKm: (typeof DISCOVERY_RADIUS_OPTIONS)[number];
@@ -121,13 +101,9 @@ function parsedDiscoveryFilters(
 ): DiscoveryFilters {
   const today = formatIsraelDateValue(now);
   const from = raw.from === undefined || raw.from === "" ? today : raw.from;
-  const to =
-    raw.to === undefined || raw.to === ""
-      ? earlierDate(addUtcDays(from, 14), fixtureSeasonEnd(today))
-      : raw.to;
+  const to = raw.to === undefined || raw.to === "" ? addUtcDays(from, 14) : raw.to;
 
   return {
-    citySlug: raw.city,
     lat: raw.lat === undefined || raw.lat === "" ? null : raw.lat,
     lng: raw.lng === undefined || raw.lng === "" ? null : raw.lng,
     radiusKm: raw.radiusKm,
@@ -143,8 +119,6 @@ function parsedDiscoveryFilters(
 
 function discoveryDateIssues(filters: DiscoveryFilters, now: Date) {
   const today = formatIsraelDateValue(now);
-  const seasonEnd = fixtureSeasonEnd(today);
-
   if (filters.from < today) {
     return [
       {
@@ -154,30 +128,12 @@ function discoveryDateIssues(filters: DiscoveryFilters, now: Date) {
       },
     ];
   }
-  if (filters.from > seasonEnd) {
-    return [
-      {
-        code: "custom" as const,
-        path: ["from"],
-        message: `Choose a date on or before ${seasonEnd}.`,
-      },
-    ];
-  }
   if (filters.to < filters.from) {
     return [
       {
         code: "custom" as const,
         path: ["to"],
         message: "Choose an end date on or after the start date.",
-      },
-    ];
-  }
-  if (filters.to > seasonEnd) {
-    return [
-      {
-        code: "custom" as const,
-        path: ["to"],
-        message: `Choose an end date on or before ${seasonEnd}.`,
       },
     ];
   }
@@ -210,14 +166,11 @@ function recoveryValues(input: unknown, now: Date): DiscoveryFilters {
     : 15;
 
   return {
-    citySlug: value("city").trim().toLowerCase(),
     lat: null,
     lng: null,
     radiusKm,
     from,
-    to: /^\d{4}-\d{2}-\d{2}$/.test(value("to"))
-      ? value("to")
-      : earlierDate(addUtcDays(from, 14), fixtureSeasonEnd(today)),
+    to: /^\d{4}-\d{2}-\d{2}$/.test(value("to")) ? value("to") : addUtcDays(from, 14),
     teamId: null,
     competitionId: null,
     matchId: null,
@@ -268,7 +221,6 @@ export function discoveryUtcRange(filters: DiscoveryFilters): Readonly<{
 
 export function discoveryFilterIdentity(filters: DiscoveryFilters) {
   return {
-    city: filters.citySlug,
     lat: filters.lat,
     lng: filters.lng,
     radiusKm: filters.radiusKm,
@@ -285,7 +237,6 @@ export function discoverySearchParams(
   cursor: string | null = filters.cursor,
 ): URLSearchParams {
   const search = new URLSearchParams({
-    city: filters.citySlug,
     radiusKm: String(filters.radiusKm),
     from: filters.from,
     to: filters.to,

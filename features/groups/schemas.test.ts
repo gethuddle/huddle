@@ -15,7 +15,6 @@ const validInput = {
   intent: "check",
   name: "Haifa Arsenal Supporters",
   slug: "Haifa-Arsenal-Supporters",
-  cityId: "50000000-0000-4000-8000-000000000101",
   teamId: "",
   visibility: "discoverable",
   description: " Match-going supporters. ",
@@ -31,11 +30,10 @@ describe("group schemas", () => {
     });
   });
 
-  it("treats a group home area as optional context", () => {
-    expect(groupCreationSchema.parse({ ...validInput, cityId: "" })).toMatchObject({
-      cityId: null,
-      teamId: null,
-    });
+  it("rejects the removed group-location field", () => {
+    expect(groupCreationSchema.safeParse({ ...validInput, cityId: "legacy-city" }).success).toBe(
+      false,
+    );
   });
 
   it("rejects crafted visibility and unbounded content", () => {

@@ -50,7 +50,7 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
     const ownProfileResult = await supabase
       .from("profiles")
       .select(
-        "handle, display_name, city_id, adult_attested_at, rules_version, rules_accepted_at, profile_completed_at, fan_enabled_at, suspended_at, suspension_expires_at, community_restricted_at, community_restricted_until",
+        "handle, display_name, adult_attested_at, rules_version, rules_accepted_at, profile_completed_at, fan_enabled_at, suspended_at, suspension_expires_at, community_restricted_at, community_restricted_until",
       )
       .eq("id", user.id)
       .maybeSingle();
@@ -74,8 +74,7 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
           ownProfile?.profile_completed_at !== null &&
           ownProfile?.profile_completed_at !== undefined &&
           ownProfile.handle !== null &&
-          ownProfile.display_name !== null &&
-          ownProfile.city_id !== null,
+          ownProfile.display_name !== null,
         fanEnabled: ownProfile?.fan_enabled_at !== null && ownProfile?.fan_enabled_at !== undefined,
         suspended: ownProfile?.suspended_at !== null && ownProfile?.suspended_at !== undefined,
         restricted:
@@ -105,11 +104,7 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
             </h1>
             <p className="mt-2 text-lg text-muted-foreground">@{profile.handle}</p>
 
-            <dl className="mt-8 grid gap-5 border-y border-border py-6 sm:grid-cols-2">
-              <div>
-                <dt className="text-sm font-medium text-muted-foreground">City</dt>
-                <dd className="mt-2 font-semibold text-foreground">{profile.cityName}</dd>
-              </div>
+            <dl className="mt-8 border-y border-border py-6">
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">Member since</dt>
                 <dd className="mt-2 font-semibold text-foreground">{memberSince}</dd>

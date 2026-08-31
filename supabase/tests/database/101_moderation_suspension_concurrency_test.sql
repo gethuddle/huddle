@@ -109,7 +109,6 @@ begin
           when 'b1110000-0000-4000-8000-000000000112' then 'B11 Race Target'
           when 'b1110000-0000-4000-8000-000000000113' then 'B11 Race Moderator'
         end,
-        city_id = (select id from public.cities where slug = 'tel-aviv-yafo'),
         adult_attested_at = statement_timestamp(),
         rules_version = 1,
         rules_accepted_at = statement_timestamp(),

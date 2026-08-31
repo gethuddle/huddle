@@ -17,9 +17,9 @@ const groupSearchRowSchema = z
     slug: z.string(),
     name: z.string(),
     description: z.string(),
-    city_name: z.string().nullable(),
     team_name: z.string().nullable(),
     active_member_count: z.number().int().nonnegative(),
+    cursor_member_count: z.number().int().nonnegative(),
     cursor_name: z.string(),
     has_more: z.boolean(),
   })
@@ -30,7 +30,6 @@ export type GroupSearchItem = Readonly<{
   slug: string;
   name: string;
   description: string;
-  cityName: string | null;
   teamName: string | null;
   activeMemberCount: number;
 }>;
@@ -54,8 +53,8 @@ export async function getGroupSearchPage(filters: GroupSearchFilters): Promise<G
 
   const { data, error } = await supabase.rpc("search_groups", {
     input_query: filters.query ?? undefined,
-    input_city_id: undefined,
     input_team_id: filters.teamId ?? undefined,
+    input_after_member_count: decodedCursor?.memberCount,
     input_after_name: decodedCursor?.name,
     input_after_id: decodedCursor?.id,
     input_limit: filters.limit,
@@ -72,7 +71,15 @@ export async function getGroupSearchPage(filters: GroupSearchFilters): Promise<G
   const last = rows.at(-1);
   const nextCursor =
     last?.has_more === true
-      ? encodeGroupCursor({ filterKey, name: last.cursor_name, id: last.group_id }, secret)
+      ? encodeGroupCursor(
+          {
+            filterKey,
+            memberCount: last.cursor_member_count,
+            name: last.cursor_name,
+            id: last.group_id,
+          },
+          secret,
+        )
       : null;
 
   // The request JWT can still personalize the RPC when getUser cannot confirm identity.
@@ -85,7 +92,6 @@ export async function getGroupSearchPage(filters: GroupSearchFilters): Promise<G
       slug: row.slug,
       name: row.name,
       description: row.description,
-      cityName: row.city_name,
       teamName: row.team_name,
       activeMemberCount: row.active_member_count,
     })),

@@ -14,7 +14,7 @@
 
 **Approved discovery consistency revision:** 31 August 2026. Searchable groups need an active owner and a useful description, not manufactured membership/activity quotas. Eligible signed-in Fans can discover public-place events from those groups and then apply before attending; home events stay member-only. Fan Explore includes public listings from Venues the same person manages, fixture pages list every event visible to the current viewer, and owner-facing group deletion is an audited archive that retains safety history.
 
-**Approved location and catalog revision:** 31 August 2026. Public discovery starts from a browser coordinate or OpenStreetMap-backed address suggestion and ranks eligible results across city borders; profile city is only a fallback. Groups may keep an optional home area but are global communities. Scheduled football-data synchronization may retain a strictly allowlisted provider crest URL, while Huddle initials remain the resilient accessible fallback.
+**Approved cityless location and catalog revision:** 31 August 2026. Public discovery starts from a browser coordinate or OpenStreetMap-backed address suggestion and ranks eligible results by distance across municipal borders. Profiles and groups store no location; groups are global communities ordered by active-member count. Events and venues use confirmed addresses and coordinates, including protected home coordinates. Scheduled football-data synchronization may retain a strictly allowlisted provider crest URL, while Huddle initials remain the resilient accessible fallback.
 
 The source of truth for the course deliverables is the [official project brief](<../course-roadmap/project instructions.pdf>). The [course roadmap](../course-roadmap/ROADMAP.md) is a wider technology menu, not a requirement to use every tool mentioned in the lectures.
 
@@ -70,7 +70,7 @@ Promotion must never bypass distance, audience, privacy, moderation, or match re
 - Group applications, roles, bans, invite links, atomic owner/admin-authored event publication, and review of ordinary-member submissions by a different current owner/admin.
 - Fan-hosted events restricted to group, friend, or invite-only audiences.
 - Venue-hosted events using public or team-follower audiences; public listings may be open-door with no Huddle reservation or guest list.
-- City and optional browser-location discovery using PostGIS.
+- Session-origin discovery from browser location or a confirmed address using PostGIS distance ranking.
 - Attendance request, approval, decline, host removal, leave, and capacity flows; no unregistered plus-one guests.
 - A standards-based `.ics` calendar download.
 - Minimal reports and platform moderation.
@@ -158,7 +158,7 @@ There is no second Express application. Next.js is both the web frontend and the
 
 Supabase Auth owns passwords, email verification, and cookie-based sessions. Huddle owns the one-to-one human trust record: adult attestation, community-rules acceptance, suspension state, and optional public Fan identity. The course MVP is 18+; it records the attestation time rather than collecting a full birth date.
 
-Common safety eligibility means verified email, adult attestation, current community-rules acceptance, and a non-suspended account. Fan activation is optional and adds a public display name, unique handle, and pilot city. Following, attendance, friendships, groups, and private hosting require Fan activation. Venue-only onboarding may satisfy common safety eligibility while leaving Fan identity fields incomplete and non-public; commercial venue mutations require active Venue membership instead of an invented Fan identity.
+Common safety eligibility means verified email, adult attestation, current community-rules acceptance, and a non-suspended account. Fan activation is optional and adds a public display name and unique handle; it stores no city or default location. Following, attendance, friendships, groups, and private hosting require Fan activation. Venue-only onboarding may satisfy common safety eligibility while leaving Fan identity fields incomplete and non-public; commercial venue mutations require active Venue membership instead of an invented Fan identity.
 
 This is the first trust layer. It is deliberately simple: no social login in the MVP and no application-managed password table.
 
@@ -189,7 +189,7 @@ Groups are stronger community boundaries than friendships. A group may optionall
 - **discoverable** — eventually appears in search, but joining always needs an application and admin review;
 - **unlisted** — does not appear in global search and is reached using a revocable invite link; the link still does not bypass admin approval.
 
-A new discoverable group begins in `forming`. It enters search as soon as its owner remains active and it has a clear description. Members, additional admins, rules, events, and a home-area city enrich the community but do not gate search or membership. During creation, Huddle shows similar optional team/home-area groups to discourage duplicates without giving the platform a routine approval bottleneck.
+A new discoverable group begins in `forming`. It enters global search as soon as its owner remains active and it has a clear description. Members, additional admins, rules, events, and an optional team association enrich the community but do not gate search or membership. During creation, Huddle shows similar optional team-linked groups to discourage duplicates without giving the platform a routine approval bottleneck. Groups carry no city, address, coordinate, locality mode, or geographic membership boundary.
 
 Roles are `owner`, `admin`, and `member`. An event authored by a current owner/admin publishes atomically without self-review. An ordinary member may submit an event, but it remains pending until a current owner/admin whose user ID differs from the creator publishes or rejects it. Promoting the author after submission never permits self-approval or self-rejection. Admins may remove a member without banning them, or use the separate durable Ban action for a safety boundary. They may also invite one registered Fan directly; only that recipient can accept or decline. A reusable unlisted-group link remains a separate expiring, revocable application route. The owner may delete the live group through an audited archival transition that cancels future live group events and revokes usable invites without erasing membership or attendance history. Platform staff step in for reports and suspensions rather than operating every group.
 
@@ -223,7 +223,7 @@ Fixtures are catalog data inside **Explore**, not a competing primary destinatio
 
 ### 5.8 Home-location safety
 
-An exact home address and coordinate are stored separately from the public event row. Before approval, an eligible person can see the city and a coarse distance band, not the address or coordinate. Friendship or group membership alone never reveals the address. Home events have a hard MVP capacity limit of 12 registered Huddle attendees; there are no unregistered guests or plus-ones.
+An exact home address and coordinate are stored separately from the public event row. Before approval, an eligible person can see only a safe coarse distance summary, not the address or coordinate. Friendship or group membership alone never reveals the address. Home events have a hard MVP capacity limit of 12 registered Huddle attendees; there are no unregistered guests or plus-ones.
 
 For a normal home-event request, the host must approve attendance before a protected database function returns the exact location. A directly invited user is pre-approved when they accept the invitation. Leaving, host removal, blocking, event cancellation, account suspension, or a group ban that removes eligibility revokes future address reads. Access to a private location is logged, but Huddle clearly warns that it cannot make a person forget or delete an address already viewed.
 
@@ -241,7 +241,7 @@ Open-door venue listings deliberately do not use that RSVP state machine. Databa
 
 ### 5.10 Location-aware discovery
 
-Fan onboarding keeps a profile city as useful fallback context, but Explore is not fenced to it. Huddle first reuses an already-granted browser coordinate when available, otherwise a session-scoped public origin or profile-city fallback; a permission prompt occurs only after “Use my location.” The user may search a city, neighborhood, street, or public address through an OpenStreetMap-backed suggestion service. Only the selected public coordinate reaches discovery, in a no-store request body rather than the URL. Protected-home text never enters that geocoder. PostGIS filters and ranks eligible events across city borders without returning a home coordinate.
+Fan onboarding stores no location. Explore first requests a browser coordinate and, when that is denied or unwanted, accepts a session-scoped confirmed Israel address from the OpenStreetMap-backed suggestion service. The same confirmed-address interaction is reused for public places, venues, and protected home meeting points. Only the selected origin coordinate reaches discovery, in a private no-store request body rather than the URL or profile. PostGIS filters and ranks eligible events across municipal borders without returning a protected home coordinate or address.
 
 The feed combines location, future time, followed interests, audience eligibility, match, and event status. It also merges and deduplicates public listings from Venues managed by the current Fan account, so switching workspaces does not make the person's own published event disappear. Fixture details use the same visibility boundary to list the watch events attached to that match. Results use cursor pagination so a larger catalog does not require loading or re-counting every earlier row.
 
@@ -340,7 +340,7 @@ Each phase should finish with working tests and updated documentation before the
 
 ### Phase 2 — Authentication and onboarding
 
-- Implement email/password signup, verification, sign-in/out, SSR sessions, common safety eligibility, optional Fan activation, city selection, self-serve Venue activation, and protected actions.
+- Implement email/password signup, verification, sign-in/out, SSR sessions, common safety eligibility, optional Fan activation without a saved location, self-serve Venue activation with a confirmed public address, and protected actions.
 - Add safe public profile projection, account blocks, and authorization tests.
 
 **Exit:** a verified user can complete common safety setup and activate either workspace; anonymous, ineligible, and workspace-unauthorized users are correctly limited.

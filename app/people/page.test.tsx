@@ -63,7 +63,6 @@ describe("PeoplePage", () => {
           id: "c5000000-0000-4000-8000-000000000104",
           handle: "state_team",
           displayName: "Team Person",
-          cityName: "Haifa",
           reason: null,
           friendship: null,
         },
@@ -99,7 +98,6 @@ describe("PeoplePage", () => {
       id: "c5000000-0000-4000-8000-000000000104",
       handle: "state_team",
       displayName: "Team Person",
-      cityName: "Haifa",
       reason: null,
       friendship: {
         id: "c5000000-0000-4000-8000-000000000601",

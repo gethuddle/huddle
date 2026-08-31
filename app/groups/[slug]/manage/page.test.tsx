@@ -25,7 +25,6 @@ const group = {
   description: "A group",
   visibility: "discoverable" as const,
   lifecycle: "active" as const,
-  cityName: "Haifa",
   teamName: null,
   ownerHandle: "owner",
   activeMemberCount: 3,

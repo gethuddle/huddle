@@ -6,7 +6,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import ProfileSettingsPage from "./page";
 
 const mocks = vi.hoisted(() => ({
-  cityOrder: vi.fn(),
   getUser: vi.fn(),
   profileMaybeSingle: vi.fn(),
 }));
@@ -17,16 +16,6 @@ vi.mock("@/lib/supabase/server", () => ({
     from: () => ({
       select: () => ({
         eq: () => ({ maybeSingle: mocks.profileMaybeSingle }),
-      }),
-    }),
-  }),
-}));
-
-vi.mock("@/lib/supabase/anonymous", () => ({
-  createAnonymousServerClient: () => ({
-    from: () => ({
-      select: () => ({
-        eq: () => ({ order: mocks.cityOrder }),
       }),
     }),
   }),
@@ -47,7 +36,6 @@ describe("ProfileSettingsPage", () => {
       data: {
         adult_attested_at: null,
         bio: null,
-        city_id: null,
         display_name: null,
         handle: null,
         profile_completed_at: null,
@@ -57,14 +45,12 @@ describe("ProfileSettingsPage", () => {
       },
       error: null,
     });
-    mocks.cityOrder.mockResolvedValue({ data: [], error: null });
   });
 
-  it("does not render an unusable city select when the catalog is empty", async () => {
+  it("renders profile settings without a city catalog or selector", async () => {
     render(await ProfileSettingsPage());
 
-    expect(screen.getByRole("heading", { name: "We couldn’t load the city list." })).toBeVisible();
-    expect(screen.getByRole("alert")).toHaveTextContent("No active Israel cities");
-    expect(screen.queryByRole("combobox", { name: "City" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Complete your Fan profile" })).toBeVisible();
+    expect(screen.queryByRole("combobox", { name: /city/i })).not.toBeInTheDocument();
   });
 });

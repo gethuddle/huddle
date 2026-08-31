@@ -9,7 +9,7 @@ select has_function(
   'public',
   'discover_owned_venue_events',
   array[
-    'uuid', 'double precision', 'double precision', 'integer', 'timestamp with time zone',
+    'double precision', 'double precision', 'integer', 'timestamp with time zone',
     'timestamp with time zone', 'uuid', 'uuid', 'uuid', 'integer', 'integer',
     'timestamp with time zone', 'uuid', 'integer'
   ],
@@ -30,7 +30,7 @@ select has_function(
 select ok(
   has_function_privilege(
     'authenticated',
-    'public.discover_owned_venue_events(uuid,double precision,double precision,integer,timestamptz,timestamptz,uuid,uuid,uuid,integer,integer,timestamptz,uuid,integer)',
+    'public.discover_owned_venue_events(double precision,double precision,integer,timestamptz,timestamptz,uuid,uuid,uuid,integer,integer,timestamptz,uuid,integer)',
     'execute'
   ),
   'authenticated Fans may load managed-Venue events into Fan discovery'
@@ -71,7 +71,6 @@ set
     when 'f6000000-0000-4000-8000-000000000101' then 'Consistency Owner'
     else 'Consistency Viewer'
   end,
-  city_id = (select id from public.cities where slug = 'haifa'),
   adult_attested_at = statement_timestamp(),
   rules_version = 1,
   rules_accepted_at = statement_timestamp(),
@@ -132,14 +131,13 @@ values (
 );
 
 insert into public.venues (
-  id, owner_id, slug, name, city_id, address_text, location, description,
+  id, owner_id, slug, name, address_text, location, description,
   stated_capacity, verification_status
 )
 values (
   'f6000000-0000-4000-8000-000000000301',
   'f6000000-0000-4000-8000-000000000101',
   'consistency-venue', 'Consistency Venue',
-  (select id from public.cities where slug = 'haifa'),
   '31 Stadium Street, Haifa',
   extensions.st_setsrid(extensions.st_makepoint(35.000, 32.813), 4326)::extensions.geography,
   'A public Venue managed by a Fan workspace owner.',
@@ -148,14 +146,13 @@ values (
 );
 
 insert into public.groups (
-  id, slug, name, owner_id, team_id, city_id, visibility, lifecycle, description
+  id, slug, name, owner_id, team_id, visibility, lifecycle, description
 )
 values (
   'f6000000-0000-4000-8000-000000000401',
   'consistency-supporters', 'Consistency Supporters',
   'f6000000-0000-4000-8000-000000000101',
   'f6000000-0000-4000-8000-000000000202',
-  (select id from public.cities where slug = 'haifa'),
   'discoverable', 'forming',
   'A clear supporter-group description is enough to make the group findable.'
 );
@@ -193,7 +190,7 @@ reset role;
 insert into public.events (
   id, created_by, host_venue_id, match_id, title, description,
   expected_activity, cost_description, event_rules, commercial_affiliation,
-  host_presence_confirmed_at, starts_at, ends_at, city_id, place_kind, venue_id,
+  host_presence_confirmed_at, starts_at, ends_at, place_kind, venue_id,
   audience, capacity, requires_approval, status, published_at
 )
 values (
@@ -206,7 +203,6 @@ values (
   'Watch together', 'Free entry', 'Respect the Venue.', 'Venue-hosted',
   statement_timestamp(), statement_timestamp() + interval '7 days',
   statement_timestamp() + interval '7 days 3 hours',
-  (select id from public.cities where slug = 'haifa'),
   'venue', 'f6000000-0000-4000-8000-000000000301',
   'public', 80, false, 'published', statement_timestamp()
 );
@@ -214,7 +210,7 @@ values (
 insert into public.events (
   id, created_by, host_user_id, organizing_group_id, match_id, title, description,
   expected_activity, cost_description, event_rules, commercial_affiliation,
-  host_presence_confirmed_at, starts_at, ends_at, city_id, place_kind,
+  host_presence_confirmed_at, starts_at, ends_at, place_kind,
   public_place_name, public_address_text, public_location,
   audience, audience_group_id, capacity, requires_approval, status, published_at
 )
@@ -229,7 +225,6 @@ values (
   'Watch together', 'Free entry', 'Respect the group.', 'None',
   statement_timestamp(), statement_timestamp() + interval '7 days 10 minutes',
   statement_timestamp() + interval '7 days 3 hours 10 minutes',
-  (select id from public.cities where slug = 'haifa'),
   'public_place', 'Supporters Hall', '32 Stadium Street, Haifa',
   extensions.st_setsrid(extensions.st_makepoint(35.001, 32.814), 4326)::extensions.geography,
   'group', 'f6000000-0000-4000-8000-000000000401',
@@ -239,7 +234,7 @@ values (
 insert into public.events (
   id, created_by, host_user_id, organizing_group_id, match_id, title, description,
   expected_activity, cost_description, event_rules, commercial_affiliation,
-  host_presence_confirmed_at, starts_at, ends_at, city_id, place_kind,
+  host_presence_confirmed_at, starts_at, ends_at, place_kind,
   audience, audience_group_id, capacity, requires_approval, status, published_at
 )
 values (
@@ -253,7 +248,6 @@ values (
   'Watch together', 'Free entry', 'Respect the home.', 'None',
   statement_timestamp(), statement_timestamp() + interval '7 days 20 minutes',
   statement_timestamp() + interval '7 days 3 hours 20 minutes',
-  (select id from public.cities where slug = 'haifa'),
   'home', 'group', 'f6000000-0000-4000-8000-000000000401',
   8, true, 'published', statement_timestamp()
 );
@@ -293,7 +287,6 @@ select is(
   (
     select count(*)
     from public.discover_owned_venue_events(
-      (select id from public.cities where slug = 'haifa'),
       32.813, 35.000, 15,
       statement_timestamp(), statement_timestamp() + interval '30 days',
       null, null, 'f6000000-0000-4000-8000-000000000204',
@@ -312,7 +305,6 @@ select is(
   (
     select count(*)
     from public.discover_owned_venue_events(
-      (select id from public.cities where slug = 'haifa'),
       32.813, 35.000, 15,
       statement_timestamp(), statement_timestamp() + interval '30 days',
       null, null, null, null, null, null, null, 20

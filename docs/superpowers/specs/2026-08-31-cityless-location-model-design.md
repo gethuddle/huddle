@@ -1,7 +1,7 @@
 # Cityless Location Model and Global Groups
 
-**Status:** Approved in chat on 2026-08-31; written design awaiting final review  
-**Branch:** `codex/cityless-location-model`  
+**Status:** Approved on 2026-08-31; implementation and acceptance evidence in progress
+**Branch:** `codex/cityless-location-model`
 **Baseline:** merged PR #43 at `5585f00f73dfc09064a3e49be1dfbeed5b7d4183`
 
 ## 1. Purpose
@@ -212,4 +212,3 @@ At desktop, tablet, and mobile widths:
 ## 7. Delivery boundary
 
 This branch may add the migration, application changes, tests, generated types, and documentation and may be committed, pushed, and published as one pull request because the user explicitly authorized publication. It does not authorize merging the writer's own PR or mutating production Supabase. Any preview-database mutation needed for runtime preview review requires a separately identified preview target and must not touch production.
-

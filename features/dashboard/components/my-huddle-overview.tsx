@@ -267,16 +267,26 @@ function EventCollection({
               </CardHeader>
               <CardContent className="flex flex-1 flex-col">
                 <div className="flex items-center gap-3">
-                  <TeamMark name={event.homeTeamName} size="sm" tla={null} />
+                  <TeamMark
+                    crestUrl={event.homeTeamCrestUrl}
+                    name={event.homeTeamName}
+                    size="sm"
+                    tla={event.homeTeamTla}
+                  />
                   <p className="min-w-0 font-medium text-foreground">
                     {event.homeTeamName} vs {event.awayTeamName}
                   </p>
-                  <TeamMark name={event.awayTeamName} size="sm" tla={null} />
+                  <TeamMark
+                    crestUrl={event.awayTeamCrestUrl}
+                    name={event.awayTeamName}
+                    size="sm"
+                    tla={event.awayTeamTla}
+                  />
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">{event.competitionName}</p>
                 <p className="mt-4 inline-flex items-center gap-2 text-sm text-muted-foreground">
                   <CalendarDays aria-hidden="true" className="size-4 text-forest" />
-                  {formatIsraelKickoff(event.startsAt)} · {event.cityName}
+                  {formatIsraelKickoff(event.startsAt)}
                 </p>
                 <div className="mt-5 flex flex-wrap gap-2">
                   <Button asChild className="min-h-11" size="sm" variant="outline">
@@ -357,10 +367,8 @@ function GroupCollection({
                 <p className="mt-4 inline-flex items-center gap-2 text-sm text-muted-foreground">
                   <UsersRound aria-hidden="true" className="size-4 text-forest" />
                   {group.activeMemberCount === null
-                    ? [group.cityName, "Application pending"].filter(Boolean).join(" · ")
-                    : [`${group.activeMemberCount} active`, group.cityName]
-                        .filter(Boolean)
-                        .join(" · ")}
+                    ? "Application pending"
+                    : `${group.activeMemberCount} active`}
                 </p>
                 <div className="mt-5 flex flex-wrap gap-2">
                   <Button asChild className="min-h-11" size="sm" variant="outline">
@@ -424,7 +432,13 @@ function SavedCollection({
                   <Bookmark aria-hidden="true" className="size-4 text-forest" />
                   <span className="text-xs text-muted-foreground">{item.kind}</span>
                   {item.kind === "team" ? (
-                    <TeamMark className="ml-auto" name={item.label} size="sm" tla={null} />
+                    <TeamMark
+                      className="ml-auto"
+                      crestUrl={item.crestUrl}
+                      name={item.label}
+                      size="sm"
+                      tla={item.tla}
+                    />
                   ) : null}
                 </div>
                 <h3 className="mt-3 text-lg font-semibold text-foreground">{item.label}</h3>

@@ -21,7 +21,7 @@ describe("GET /api/groups/search", () => {
 
   it("returns only the public DTO and short-caches anonymous search", async () => {
     const response = await GET(
-      new NextRequest("https://huddle.test/api/groups/search?q=supporters&city=haifa"),
+      new NextRequest("https://huddle.test/api/groups/search?q=supporters"),
     );
     const body = await response.json();
 

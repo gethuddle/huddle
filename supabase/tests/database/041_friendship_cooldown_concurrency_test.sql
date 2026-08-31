@@ -116,7 +116,6 @@ begin
             when '51000000-0000-4000-8000-000000000102' then 'Race Target A'
             when '51000000-0000-4000-8000-000000000103' then 'Race Target B'
           end,
-          city_id = (select id from public.cities where slug = 'haifa'),
           adult_attested_at = statement_timestamp(),
           rules_version = 1,
           rules_accepted_at = statement_timestamp(),

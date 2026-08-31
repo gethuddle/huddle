@@ -16,6 +16,7 @@ export type InterestCatalog = Readonly<{
     name: string;
     shortName: string | null;
     tla: string | null;
+    crestUrl: string | null;
     sportId: string;
   }>[];
 }>;
@@ -32,7 +33,7 @@ export async function getInterestCatalog(): Promise<InterestCatalog> {
       .limit(100),
     supabase
       .from("teams")
-      .select("id, name, short_name, tla, sport_id")
+      .select("id, name, short_name, tla, crest_url, sport_id")
       .eq("active", true)
       .order("name")
       .limit(100),
@@ -54,6 +55,7 @@ export async function getInterestCatalog(): Promise<InterestCatalog> {
       name: team.name,
       shortName: team.short_name,
       tla: team.tla,
+      crestUrl: team.crest_url,
       sportId: team.sport_id,
     })),
   };

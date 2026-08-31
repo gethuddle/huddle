@@ -33,7 +33,7 @@ export function DiscoveryEventCard({
         <p className="mt-1 text-sm text-muted-foreground">Hosted by {event.host.displayName}</p>
         <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
           <MapPin aria-hidden="true" className="size-4 shrink-0" />
-          {event.cityName} · {event.locationSummary}
+          {event.locationSummary}
         </p>
         <p className="mt-3 text-sm text-muted-foreground">
           {joining} <span aria-hidden="true">·</span>{" "}

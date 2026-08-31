@@ -1,9 +1,7 @@
 import { CURRENT_COMMUNITY_RULES_VERSION } from "@/content/community-rules";
-import type { CityOption } from "@/features/profiles/components/profile-form";
 import { ProfileAccessState } from "@/features/profiles/components/profile-access-state";
 import { CommonOnboardingForm } from "@/features/workspaces/components/common-onboarding-form";
 import { VenueOnboardingForm } from "@/features/workspaces/components/venue-onboarding-form";
-import { createAnonymousServerClient } from "@/lib/supabase/anonymous";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Set up Venue — Huddle" };
@@ -71,28 +69,7 @@ export default async function VenueOnboardingPage() {
   if (!commonEligible) {
     content = <CommonOnboardingForm />;
   } else {
-    const publicCatalog = createAnonymousServerClient();
-    const cityResult = await publicCatalog
-      .from("cities")
-      .select("id, slug, name_en")
-      .eq("active", true)
-      .order("name_en");
-    if (cityResult.error !== null || cityResult.data.length === 0) {
-      return (
-        <ProfileAccessState
-          description="No active Israel cities are configured. No venue was created."
-          eyebrow="Setup temporarily unavailable"
-          title="We couldn’t load the city list."
-          warning
-        />
-      );
-    }
-    const cities: CityOption[] = cityResult.data.map((city) => ({
-      id: city.id,
-      slug: city.slug,
-      name: city.name_en,
-    }));
-    content = <VenueOnboardingForm cities={cities} ownerId={user.id} />;
+    content = <VenueOnboardingForm ownerId={user.id} />;
   }
 
   return (

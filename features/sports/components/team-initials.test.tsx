@@ -17,6 +17,12 @@ describe("TeamInitials", () => {
     expect(teamInitials("AFC Bournemouth", null)).toBe("BOU");
   });
 
+  it("falls back safely when an older caller omits optional team metadata", () => {
+    render(<TeamInitials name="Legacy United" />);
+
+    expect(screen.getByRole("img", { name: "Legacy United" })).toHaveTextContent("LU");
+  });
+
   it("renders a synchronized crest and falls back to initials when it cannot load", () => {
     const { rerender } = render(
       <TeamInitials

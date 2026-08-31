@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { CURRENT_COMMUNITY_RULES } from "@/content/community-rules";
 import { activateFanOnboardingAction, saveProfileAction } from "@/features/profiles/actions";
@@ -20,16 +19,9 @@ import {
   writeSessionFormDraft,
 } from "@/features/onboarding/session-form-draft";
 
-export type CityOption = Readonly<{
-  id: string;
-  slug: string;
-  name: string;
-}>;
-
 export type ProfileFormInitialValue = Readonly<{
   handle: string;
   displayName: string;
-  citySlug: string;
   bio: string;
   adultAttested: boolean;
   currentRulesAccepted: boolean;
@@ -37,7 +29,6 @@ export type ProfileFormInitialValue = Readonly<{
 }>;
 
 type ProfileFormProps = Readonly<{
-  cities: readonly CityOption[];
   draftOwnerId?: string;
   initialValue: ProfileFormInitialValue;
   mode?: "onboarding" | "settings";
@@ -69,12 +60,7 @@ function ProfileFeedback({ state }: Readonly<{ state: ProfileActionState }>) {
   );
 }
 
-export function ProfileForm({
-  cities,
-  draftOwnerId,
-  initialValue,
-  mode = "settings",
-}: ProfileFormProps) {
+export function ProfileForm({ draftOwnerId, initialValue, mode = "settings" }: ProfileFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const draftKey =
     mode === "onboarding" && draftOwnerId !== undefined
@@ -90,7 +76,6 @@ export function ProfileForm({
       : {
           handle: initialValue.handle,
           displayName: initialValue.displayName,
-          citySlug: initialValue.citySlug,
           bio: initialValue.bio,
           adultAttested: initialValue.adultAttested,
           rulesAccepted: initialValue.currentRulesAccepted,
@@ -181,32 +166,6 @@ export function ProfileForm({
           </span>
           <FieldError id="profile-handle-error" messages={fieldErrors?.handle} />
         </div>
-      </div>
-
-      <div>
-        <Label className="text-foreground" htmlFor="profile-city">
-          City
-        </Label>
-        <NativeSelect
-          aria-describedby="profile-city-help profile-city-error"
-          aria-invalid={fieldErrors?.citySlug === undefined ? undefined : true}
-          className="mt-2"
-          defaultValue={values.citySlug}
-          id="profile-city"
-          name="citySlug"
-          required
-        >
-          <NativeSelectOption value="">Choose a city</NativeSelectOption>
-          {cities.map((city) => (
-            <NativeSelectOption key={city.id} value={city.slug}>
-              {city.name}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-        <span className="mt-2 block text-xs text-muted-foreground" id="profile-city-help">
-          This is your fallback when you do not share browser location.
-        </span>
-        <FieldError id="profile-city-error" messages={fieldErrors?.citySlug} />
       </div>
 
       <div>

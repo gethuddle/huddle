@@ -9,19 +9,12 @@ import DiscoverPage from "./page";
 const mocks = vi.hoisted(() => ({
   getDiscoveryCatalog: vi.fn(),
   getDiscoveryFreshness: vi.fn(),
-  getDiscoveryPage: vi.fn(),
   getFixtureById: vi.fn(),
-  getViewerCitySlug: vi.fn(),
 }));
 
 vi.mock("@/features/discovery/catalog", () => ({
   getDiscoveryCatalog: mocks.getDiscoveryCatalog,
   getDiscoveryFreshness: mocks.getDiscoveryFreshness,
-  getViewerCitySlug: mocks.getViewerCitySlug,
-}));
-
-vi.mock("@/features/discovery/query", () => ({
-  getDiscoveryPage: mocks.getDiscoveryPage,
 }));
 
 vi.mock("@/features/sports/browse", () => ({
@@ -32,7 +25,6 @@ describe("DiscoverPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getDiscoveryCatalog.mockResolvedValue({
-      cities: [],
       competitions: [],
       teams: [],
     });
@@ -41,24 +33,20 @@ describe("DiscoverPage", () => {
       lastSucceededAt: null,
       status: "unknown",
     });
-    mocks.getViewerCitySlug.mockResolvedValue(null);
     mocks.getFixtureById.mockResolvedValue({ match: null, freshness: null });
   });
 
-  it("renders a controlled catalog state instead of throwing when no city exists", async () => {
+  it("renders location-first discovery without requiring a city catalog", async () => {
     render(await DiscoverPage({ searchParams: Promise.resolve({}) }));
 
-    expect(
-      screen.getByRole("heading", { name: "Discovery is temporarily unavailable." }),
-    ).toBeVisible();
-    expect(screen.getByRole("alert")).toHaveTextContent("no active city fallbacks");
-    expect(mocks.getDiscoveryPage).not.toHaveBeenCalled();
+    expect(screen.getByRole("heading", { name: "Explore watch events" })).toBeVisible();
+    expect(screen.queryByRole("combobox", { name: "City" })).not.toBeInTheDocument();
+    expect(screen.getByText("Choose where to explore")).toBeVisible();
   });
 
   it("opens one focused Where, When, and Match editor without duplicating the search", async () => {
     const user = userEvent.setup();
     mocks.getDiscoveryCatalog.mockResolvedValue({
-      cities: [{ id: "52000000-0000-4000-8000-000000000401", slug: "haifa", name: "Haifa" }],
       competitions: [
         {
           id: "52000000-0000-4000-8000-000000000402",
@@ -74,27 +62,19 @@ describe("DiscoverPage", () => {
         },
       ],
     });
-    mocks.getViewerCitySlug.mockResolvedValue("haifa");
-    mocks.getDiscoveryPage.mockResolvedValue({
-      items: [],
-      nextCursor: null,
-      locationMode: "city",
-      generatedAt: "2026-08-30T12:00:00.000Z",
-      requiresPrivateCache: true,
-    });
-
-    render(await DiscoverPage({ searchParams: Promise.resolve({ city: "haifa" }) }));
+    render(await DiscoverPage({ searchParams: Promise.resolve({}) }));
 
     expect(screen.getByRole("heading", { name: "Explore watch events" })).toBeVisible();
     expect(screen.getByRole("link", { name: "Groups" })).toHaveAttribute("href", "/groups");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Change Explore search" }));
     expect(screen.getByRole("dialog", { name: "Change Explore search" })).toBeVisible();
-    expect(screen.getByText("Where", { selector: "legend" })).toBeVisible();
+    expect(screen.getByText("Distance", { selector: "legend" })).toBeVisible();
     expect(screen.getByText("When", { selector: "legend" })).toBeVisible();
     expect(screen.getByText("Match", { selector: "legend" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Show events" })).toBeVisible();
     expect(screen.getByRole("link", { name: "Clear" })).toBeVisible();
+    expect(screen.queryByRole("combobox", { name: "City" })).not.toBeInTheDocument();
 
     expect(screen.queryByLabelText("Possible acquisition audiences")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Public venue/i })).not.toBeInTheDocument();
@@ -103,16 +83,13 @@ describe("DiscoverPage", () => {
 
   it("keeps invalid dates editable and does not run discovery with a broken range", async () => {
     mocks.getDiscoveryCatalog.mockResolvedValue({
-      cities: [{ id: "52000000-0000-4000-8000-000000000401", slug: "haifa", name: "Haifa" }],
       competitions: [],
       teams: [],
     });
-    mocks.getViewerCitySlug.mockResolvedValue("haifa");
 
     render(
       await DiscoverPage({
         searchParams: Promise.resolve({
-          city: "haifa",
           from: "2026-09-14",
           to: "2026-08-31",
         }),
@@ -122,25 +99,15 @@ describe("DiscoverPage", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Choose an end date on or after the start date.",
     );
-    expect(mocks.getDiscoveryPage).not.toHaveBeenCalled();
   });
 
   it("stops an inverted date range in the filter dialog before navigation", async () => {
     const user = userEvent.setup();
     mocks.getDiscoveryCatalog.mockResolvedValue({
-      cities: [{ id: "52000000-0000-4000-8000-000000000401", slug: "haifa", name: "Haifa" }],
       competitions: [],
       teams: [],
     });
-    mocks.getViewerCitySlug.mockResolvedValue("haifa");
-    mocks.getDiscoveryPage.mockResolvedValue({
-      items: [],
-      nextCursor: null,
-      locationMode: "city",
-      generatedAt: "2026-08-30T12:00:00.000Z",
-      requiresPrivateCache: true,
-    });
-    render(await DiscoverPage({ searchParams: Promise.resolve({ city: "haifa" }) }));
+    render(await DiscoverPage({ searchParams: Promise.resolve({}) }));
 
     await user.click(screen.getByRole("button", { name: "Change Explore search" }));
     const from = screen.getByLabelText("From");
@@ -159,17 +126,8 @@ describe("DiscoverPage", () => {
     const user = userEvent.setup();
     const matchId = "52000000-0000-4000-8000-000000000404";
     mocks.getDiscoveryCatalog.mockResolvedValue({
-      cities: [{ id: "52000000-0000-4000-8000-000000000401", slug: "haifa", name: "Haifa" }],
       competitions: [],
       teams: [],
-    });
-    mocks.getViewerCitySlug.mockResolvedValue("haifa");
-    mocks.getDiscoveryPage.mockResolvedValue({
-      items: [],
-      nextCursor: null,
-      locationMode: "city",
-      generatedAt: "2026-08-30T12:00:00.000Z",
-      requiresPrivateCache: true,
     });
     mocks.getFixtureById.mockResolvedValue({
       match: {
@@ -183,7 +141,7 @@ describe("DiscoverPage", () => {
 
     render(
       await DiscoverPage({
-        searchParams: Promise.resolve({ city: "haifa", match: matchId }),
+        searchParams: Promise.resolve({ match: matchId }),
       }),
     );
 

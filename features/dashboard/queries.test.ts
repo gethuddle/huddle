@@ -4,12 +4,16 @@ const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
   getUser: vi.fn(),
   maybeSingle: vi.fn(),
+  loadTeamVisualsByName: vi.fn(),
   requireActor: vi.fn(),
   rpc: vi.fn(),
 }));
 
 vi.mock("@/features/auth/actor", () => ({ requireActor: mocks.requireActor }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
+vi.mock("@/features/sports/team-visuals", () => ({
+  loadTeamVisualsByName: mocks.loadTeamVisualsByName,
+}));
 
 import { getFanHome, getMyHuddleOverview, listMyGroupsForViewer } from "./queries";
 
@@ -24,7 +28,6 @@ const eventRow = {
   away_team_name: "Current Away FC",
   competition_name: "Current State League",
   starts_at: "2026-09-06T18:00:00Z",
-  city_name: "Haifa",
   place_kind: "public_place",
   audience: "group",
   status: "published",
@@ -41,7 +44,6 @@ const groupRow = {
   description: "A useful active group.",
   visibility: "unlisted",
   lifecycle: "active",
-  city_name: "Haifa",
   team_name: "Current Home FC",
   member_role: "owner",
   membership_status: "active",
@@ -82,6 +84,15 @@ describe("listMyGroupsForViewer", () => {
       from: () => ({ select: () => ({ eq: () => ({ maybeSingle: mocks.maybeSingle }) }) }),
       rpc: mocks.rpc,
     });
+    mocks.loadTeamVisualsByName.mockResolvedValue(
+      new Map([
+        [
+          "Current Home FC",
+          { tla: "CHF", crestUrl: "https://crests.football-data.org/current-home.png" },
+        ],
+        ["Current Away FC", { tla: "CAF", crestUrl: null }],
+      ]),
+    );
     mocks.requireActor.mockResolvedValue({ supabase: { rpc: mocks.rpc } });
   });
 
@@ -97,11 +108,11 @@ describe("listMyGroupsForViewer", () => {
     await expect(listMyGroupsForViewer()).rejects.toMatchObject({ code: "INTERNAL_ERROR" });
   });
 
-  it("accepts a global group without inventing a city", async () => {
-    mocks.rpc.mockResolvedValue({ data: [{ ...groupRow, city_name: null }], error: null });
+  it("accepts a global group without a geographic projection", async () => {
+    mocks.rpc.mockResolvedValue({ data: [groupRow], error: null });
 
     await expect(listMyGroupsForViewer()).resolves.toEqual([
-      expect.objectContaining({ group_id: groupId, city_name: null }),
+      expect.objectContaining({ group_id: groupId }),
     ]);
   });
 
@@ -126,10 +137,26 @@ describe("listMyGroupsForViewer", () => {
         savedPage: 1,
       }),
     ).resolves.toMatchObject({
-      events: [{ id: eventId, bucket: "upcoming", relationshipLabel: "You are going" }],
+      events: [
+        {
+          id: eventId,
+          bucket: "upcoming",
+          relationshipLabel: "You are going",
+          homeTeamCrestUrl: "https://crests.football-data.org/current-home.png",
+          awayTeamCrestUrl: null,
+        },
+      ],
       groups: [{ id: groupId, role: "owner" }],
       groupInvitations: [{ id: groupInvitationRow.invitation_id, groupId }],
-      saved: [{ id: teamId, kind: "team", href: `/discover?team=${teamId}` }],
+      saved: [
+        {
+          id: teamId,
+          kind: "team",
+          href: `/discover?team=${teamId}`,
+          crestUrl: "https://crests.football-data.org/current-home.png",
+          tla: "CHF",
+        },
+      ],
       pages: { events: 2, groups: 1, saved: 1 },
     });
 

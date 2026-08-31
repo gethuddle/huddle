@@ -1,11 +1,10 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getGroupDetail: vi.fn(),
-  getGroupDiscoveryProgress: vi.fn(),
   getGroupOverviewAttention: vi.fn(),
   listPeopleHub: vi.fn(),
   listGroupEvents: vi.fn(),
@@ -16,9 +15,6 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/features/groups/detail", () => ({ getGroupDetail: mocks.getGroupDetail }));
 vi.mock("@/features/events/queries", () => ({ listGroupEvents: mocks.listGroupEvents }));
-vi.mock("@/features/groups/discovery", () => ({
-  getGroupDiscoveryProgress: mocks.getGroupDiscoveryProgress,
-}));
 vi.mock("@/features/groups/management", () => ({
   getGroupOverviewAttention: mocks.getGroupOverviewAttention,
 }));
@@ -34,7 +30,6 @@ const publicGroup = {
   description: "Respectful match-going supporters.",
   visibility: "discoverable" as const,
   lifecycle: "active" as const,
-  cityName: "Haifa",
   teamName: "Arsenal FC",
   ownerHandle: "group_owner",
   activeMemberCount: 4,
@@ -53,16 +48,6 @@ describe("GroupPage", () => {
     vi.clearAllMocks();
     mocks.listGroupEvents.mockResolvedValue([]);
     mocks.getGroupOverviewAttention.mockResolvedValue({ applications: [], events: [] });
-    mocks.getGroupDiscoveryProgress.mockResolvedValue({
-      activeMemberCount: 1,
-      activeModeratorCount: 1,
-      ownerIsActive: true,
-      hasDescription: true,
-      hasPublishedRule: false,
-      hasFutureEvent: false,
-      gateSatisfied: true,
-      lifecycle: "active",
-    });
     mocks.listPeopleHub.mockResolvedValue({ items: [] });
   });
 
@@ -115,8 +100,6 @@ describe("GroupPage", () => {
       `/events/new?group=${publicGroup.id}`,
     );
     expect(screen.getByRole("button", { name: "Share group" })).toBeVisible();
-    fireEvent.click(screen.getByText("Search and setup details"));
-    expect(screen.getByText(/Members, rules, and events are optional/i)).toBeVisible();
     expect(screen.queryByRole("link", { name: "Invite people" })).not.toBeInTheDocument();
     expect(screen.getByText("Respect every supporter.")).toBeVisible();
   });
@@ -150,7 +133,7 @@ describe("GroupPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("explains why an owner-only forming group is not searchable yet", async () => {
+  it("does not expose the retired forming gate", async () => {
     mocks.getGroupDetail.mockResolvedValue({
       ...publicGroup,
       lifecycle: "forming",
@@ -160,24 +143,12 @@ describe("GroupPage", () => {
       canViewMemberContent: true,
       canApply: false,
     });
-    mocks.getGroupDiscoveryProgress.mockResolvedValue({
-      activeMemberCount: 1,
-      activeModeratorCount: 1,
-      ownerIsActive: true,
-      hasDescription: false,
-      hasPublishedRule: false,
-      hasFutureEvent: false,
-      gateSatisfied: false,
-      lifecycle: "forming",
-    });
-
     render(await GroupPage({ params: Promise.resolve({ slug: publicGroup.slug }) }));
 
-    expect(screen.getByText("Not listed yet")).toBeVisible();
+    expect(screen.getByText("Open for applications")).toBeVisible();
     expect(
-      screen.getByText(/Add a clear description to make this group searchable/i),
-    ).toBeVisible();
-    expect(screen.getByRole("textbox", { name: "Group description" })).toBeVisible();
+      screen.queryByText(/Not listed yet|make this group searchable/i),
+    ).not.toBeInTheDocument();
   });
 
   it("lets an active admin both manage and leave the group", async () => {

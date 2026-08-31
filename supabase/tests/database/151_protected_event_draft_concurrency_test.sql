@@ -77,7 +77,6 @@ begin
       set
         handle = 'task7_race_' || right(id::text, 3),
         display_name = 'Task Seven Race ' || right(id::text, 3),
-        city_id = (select id from public.cities where slug = 'haifa'),
         adult_attested_at = statement_timestamp(),
         rules_version = 1,
         rules_accepted_at = statement_timestamp(),
@@ -131,14 +130,13 @@ begin
       );
 
       insert into public.groups (
-        id, slug, name, owner_id, city_id, visibility, lifecycle, description
+        id, slug, name, owner_id, visibility, lifecycle, description
       )
       values
         (
           '65100000-0000-4000-8000-000000000205',
           'task-seven-race-group', 'Task Seven Race Group',
           '65100000-0000-4000-8000-000000000104',
-          (select id from public.cities where slug = 'haifa'),
           'unlisted', 'forming',
           'A deterministic group for publication role serialization.'
         ),
@@ -146,7 +144,6 @@ begin
           '65100000-0000-4000-8000-000000000206',
           'task-seven-reverse-group', 'Task Seven Reverse Group',
           '65100000-0000-4000-8000-000000000105',
-          (select id from public.cities where slug = 'haifa'),
           'unlisted', 'forming',
           'A second group for canonical multi-group lock ordering.'
         );
@@ -207,7 +204,6 @@ begin
             'eventRules', 'Respect every attendee.',
             'commercialAffiliation', 'None.',
             'hostPresenceConfirmed', true,
-            'cityId', (select id::text from public.cities where slug = 'haifa'),
             'placeKind', 'home',
             'audience', 'invite_only',
             'capacity', 6
@@ -226,7 +222,6 @@ begin
             'eventRules', 'Respect every attendee.',
             'commercialAffiliation', 'None.',
             'hostPresenceConfirmed', true,
-            'cityId', (select id::text from public.cities where slug = 'haifa'),
             'placeKind', 'home',
             'audience', 'invite_only',
             'capacity', 6
@@ -245,7 +240,6 @@ begin
             'eventRules', 'Respect every attendee.',
             'commercialAffiliation', 'None.',
             'hostPresenceConfirmed', true,
-            'cityId', (select id::text from public.cities where slug = 'haifa'),
             'placeKind', 'home',
             'audience', 'invite_only',
             'capacity', 6
@@ -276,7 +270,7 @@ begin
         id, created_by, host_user_id, organizing_group_id, match_id,
         title, description, expected_activity, cost_description,
         event_rules, commercial_affiliation, host_presence_confirmed_at,
-        starts_at, ends_at, city_id, place_kind, public_place_name,
+        starts_at, ends_at, place_kind, public_place_name,
         public_address_text, public_location, audience, audience_group_id,
         capacity, requires_approval, status
       )
@@ -291,7 +285,6 @@ begin
         'Watch the full match.', 'Free.', 'Respect every attendee.', 'None.',
         statement_timestamp(), statement_timestamp() + interval '7 days',
         statement_timestamp() + interval '7 days 3 hours',
-        (select id from public.cities where slug = 'haifa'),
         'public_place', 'Task Seven Race Square', '41 Race Square, Haifa',
         extensions.st_setsrid(extensions.st_makepoint(34.999, 32.813), 4326)::extensions.geography,
         'group', '65100000-0000-4000-8000-000000000205',
@@ -755,7 +748,6 @@ select is(
         'Watch the full match.', 'Free.', 'Respect every attendee.', 'None.', true,
         (select starts_at from public.matches where id = '65100000-0000-4000-8000-000000000204'),
         (select starts_at + interval '3 hours' from public.matches where id = '65100000-0000-4000-8000-000000000204'),
-        (select id from public.cities where slug = 'haifa'),
         'public_place', null, 'Task Seven Pair Square', '51 Pair Square, Haifa',
         34.999, 32.813, 'group', null,
         '65100000-0000-4000-8000-000000000206', 20, true,
@@ -794,7 +786,6 @@ select is(
         'Watch the full match.', 'Free.', 'Respect every attendee.', 'None.', true,
         (select starts_at from public.matches where id = '65100000-0000-4000-8000-000000000204'),
         (select starts_at + interval '3 hours' from public.matches where id = '65100000-0000-4000-8000-000000000204'),
-        (select id from public.cities where slug = 'haifa'),
         'public_place', null, 'Task Seven Reverse Square', '52 Pair Square, Haifa',
         34.999, 32.813, 'group', null,
         '65100000-0000-4000-8000-000000000205', 20, true,
@@ -947,7 +938,6 @@ select is(
         'Watch the full match.', 'Free.', 'Respect every attendee.', 'None.', true,
         (select starts_at from public.matches where id = '65100000-0000-4000-8000-000000000204'),
         (select starts_at + interval '3 hours' from public.matches where id = '65100000-0000-4000-8000-000000000204'),
-        (select id from public.cities where slug = 'haifa'),
         'public_place', 'Task Seven Race Square', '42 Race Square, Haifa',
         34.999, 32.813, 'group', '65100000-0000-4000-8000-000000000205',
         20, null, null, null, null, 'publish',

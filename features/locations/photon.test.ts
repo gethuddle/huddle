@@ -33,11 +33,10 @@ describe("PhotonPublicGeocoder", () => {
   it("uses the bounded Photon search-as-you-type endpoint and normalizes an Israel result", async () => {
     const geocoder = new PhotonPublicGeocoder({ fetch: fetchMock });
 
-    await expect(geocoder.search("10 Herzl Street", "Haifa")).resolves.toEqual([
+    await expect(geocoder.search("10 Herzl Street")).resolves.toEqual([
       {
         id: "N:101",
         label: "10 Herzl Street, Haifa, Israel",
-        city: "Haifa",
         latitude: 32.815,
         longitude: 34.989,
       },
@@ -45,7 +44,7 @@ describe("PhotonPublicGeocoder", () => {
 
     const [request, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
     expect(request.origin + request.pathname).toBe("https://photon.komoot.io/api/");
-    expect(request.searchParams.get("q")).toBe("10 Herzl Street, Haifa, Israel");
+    expect(request.searchParams.get("q")).toBe("10 Herzl Street, Israel");
     expect(request.searchParams.get("limit")).toBe("5");
     expect(request.searchParams.get("lang")).toBe("en");
     expect(request.searchParams.get("bbox")).toBe("34.2674,29.4534,35.895,33.3356");
@@ -72,10 +71,7 @@ describe("PhotonPublicGeocoder", () => {
       ),
     );
 
-    const results = await new PhotonPublicGeocoder({ fetch: fetchMock }).search(
-      "Herzl Street",
-      "Haifa",
-    );
+    const results = await new PhotonPublicGeocoder({ fetch: fetchMock }).search("Herzl Street");
 
     expect(results).toHaveLength(5);
     expect(results.map((result) => result.id)).toEqual(["N:1", "N:2", "N:3", "N:4", "N:5"]);
@@ -88,14 +84,14 @@ describe("PhotonPublicGeocoder", () => {
     fetchMock.mockResolvedValue(new Response("private upstream detail", { status }));
 
     await expect(
-      new PhotonPublicGeocoder({ fetch: fetchMock }).search("Herzl Street", "Haifa"),
+      new PhotonPublicGeocoder({ fetch: fetchMock }).search("Herzl Street"),
     ).rejects.toMatchObject({ code });
   });
 
   it("validates input before contacting Photon", async () => {
-    await expect(
-      new PhotonPublicGeocoder({ fetch: fetchMock }).search("x", "Haifa"),
-    ).rejects.toBeInstanceOf(DomainError);
+    await expect(new PhotonPublicGeocoder({ fetch: fetchMock }).search("x")).rejects.toBeInstanceOf(
+      DomainError,
+    );
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

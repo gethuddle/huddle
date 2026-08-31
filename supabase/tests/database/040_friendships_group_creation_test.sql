@@ -93,8 +93,8 @@ select ok(has_function_privilege('authenticated', 'public.request_friendship(uui
 select ok(not has_function_privilege('anon', 'public.request_friendship(uuid,uuid)', 'execute'), 'anonymous callers cannot request friendships');
 select ok(has_function_privilege('authenticated', 'public.respond_to_friendship(uuid,text,uuid)', 'execute'), 'recipients may invoke the controlled response function');
 select ok(has_function_privilege('authenticated', 'public.remove_friendship(uuid,uuid)', 'execute'), 'participants may invoke controlled removal');
-select ok(has_function_privilege('authenticated', 'public.create_group(text,text,uuid,uuid,text,text,uuid)', 'execute'), 'complete users may invoke atomic group creation');
-select ok(not has_function_privilege('anon', 'public.create_group(text,text,uuid,uuid,text,text,uuid)', 'execute'), 'anonymous callers cannot create groups');
+select ok(has_function_privilege('authenticated', 'public.create_group(text,text,uuid,text,text,uuid)', 'execute'), 'complete users may invoke atomic group creation');
+select ok(not has_function_privilege('anon', 'public.create_group(text,text,uuid,text,text,uuid)', 'execute'), 'anonymous callers cannot create groups');
 select ok(has_function_privilege('anon', 'public.get_group_by_slug(text)', 'execute'), 'anonymous callers may request a safe public group projection');
 select ok(not has_function_privilege('authenticated', 'private.enforce_group_owner_invariant()', 'execute'), 'the owner invariant helper is private');
 select ok(not has_function_privilege('authenticated', 'private.lock_direct_user_pair(uuid,uuid)', 'execute'), 'the direct-pair lock helper is private');
@@ -137,7 +137,6 @@ set handle = case id
       when '50000000-0000-4000-8000-000000000105' then 'Unverified Fan'
       when '50000000-0000-4000-8000-000000000107' then 'Suspended Fan'
     end,
-    city_id = (select id from public.cities where slug = 'haifa'),
     adult_attested_at = statement_timestamp(),
     rules_version = 1,
     rules_accepted_at = statement_timestamp(),
@@ -389,66 +388,60 @@ select is((select count(*) from public.user_blocks), 1::bigint, 'a target sees o
 reset role;
 
 select throws_ok(
-  $$insert into public.groups (slug, name, owner_id, city_id, visibility, lifecycle) values ('Bad Slug', 'Valid Group', '50000000-0000-4000-8000-000000000101', (select id from public.cities where slug = 'haifa'), 'discoverable', 'forming')$$,
+  $$insert into public.groups (slug, name, owner_id, visibility, lifecycle) values ('Bad Slug', 'Valid Group', '50000000-0000-4000-8000-000000000101', 'discoverable', 'forming')$$,
   '23514',
   null,
   'group slugs enforce normalized URL-safe values'
 );
 select throws_ok(
-  $$insert into public.groups (slug, name, owner_id, city_id, visibility, lifecycle) values ('bad-name', 'X', '50000000-0000-4000-8000-000000000101', (select id from public.cities where slug = 'haifa'), 'discoverable', 'forming')$$,
+  $$insert into public.groups (slug, name, owner_id, visibility, lifecycle) values ('bad-name', 'X', '50000000-0000-4000-8000-000000000101', 'discoverable', 'forming')$$,
   '23514',
   null,
   'group names enforce the bounded trimmed contract'
 );
 select throws_ok(
-  $$insert into public.groups (slug, name, owner_id, city_id, visibility, lifecycle, description) values ('bad-description', 'Valid Group', '50000000-0000-4000-8000-000000000101', (select id from public.cities where slug = 'haifa'), 'discoverable', 'forming', '')$$,
+  $$insert into public.groups (slug, name, owner_id, visibility, lifecycle, description) values ('bad-description', 'Valid Group', '50000000-0000-4000-8000-000000000101', 'discoverable', 'forming', '')$$,
   '23514',
   null,
   'group descriptions reject empty stored text'
 );
 select throws_ok(
-  $$insert into public.groups (slug, name, owner_id, city_id, visibility, lifecycle) values ('bad-active-time', 'Valid Group', '50000000-0000-4000-8000-000000000101', (select id from public.cities where slug = 'haifa'), 'unlisted', 'active')$$,
+  $$insert into public.groups (slug, name, owner_id, visibility, lifecycle) values ('bad-active-time', 'Valid Group', '50000000-0000-4000-8000-000000000101', 'unlisted', 'active')$$,
   '23514',
   null,
   'active groups require activation evidence'
 );
 select throws_ok(
-  $$insert into public.groups (slug, name, owner_id, city_id, visibility, lifecycle) values ('bad-owner', 'Valid Group', '60000000-0000-4000-8000-000000000001', (select id from public.cities where slug = 'haifa'), 'discoverable', 'forming')$$,
+  $$insert into public.groups (slug, name, owner_id, visibility, lifecycle) values ('bad-owner', 'Valid Group', '60000000-0000-4000-8000-000000000001', 'discoverable', 'forming')$$,
   '23503',
   null,
   'group owners must reference profiles'
 );
 select throws_ok(
-  $$insert into public.groups (slug, name, owner_id, team_id, city_id, visibility, lifecycle) values ('bad-team', 'Valid Group', '50000000-0000-4000-8000-000000000101', '60000000-0000-4000-8000-000000000002', (select id from public.cities where slug = 'haifa'), 'discoverable', 'forming')$$,
+  $$insert into public.groups (slug, name, owner_id, team_id, visibility, lifecycle) values ('bad-team', 'Valid Group', '50000000-0000-4000-8000-000000000101', '60000000-0000-4000-8000-000000000002', 'discoverable', 'forming')$$,
   '23503',
   null,
   'group teams must reference the sports catalog'
-);
-select throws_ok(
-  $$insert into public.groups (slug, name, owner_id, city_id, visibility, lifecycle) values ('bad-city', 'Valid Group', '50000000-0000-4000-8000-000000000101', '60000000-0000-4000-8000-000000000003', 'discoverable', 'forming')$$,
-  '23503',
-  null,
-  'group cities must reference the active city catalog'
 );
 
 set local role authenticated;
 set local "request.jwt.claim.sub" = '50000000-0000-4000-8000-000000000106';
 select throws_ok(
-  $$select * from public.create_group('Incomplete Group', 'incomplete-group', (select id from public.cities where slug = 'haifa'), null, 'discoverable', '', null)$$,
+  $$select * from public.create_group('Incomplete Group', 'incomplete-group', null, 'discoverable', '', null)$$,
   'P0001',
   'ADULT_ATTESTATION_REQUIRED',
   'an incomplete actor cannot create a group'
 );
 set local "request.jwt.claim.sub" = '50000000-0000-4000-8000-000000000107';
 select throws_ok(
-  $$select * from public.create_group('Suspended Group', 'suspended-group', (select id from public.cities where slug = 'haifa'), null, 'discoverable', '', null)$$,
+  $$select * from public.create_group('Suspended Group', 'suspended-group', null, 'discoverable', '', null)$$,
   'P0001',
   'ACCOUNT_SUSPENDED',
   'a suspended actor cannot create a group'
 );
 set local "request.jwt.claim.sub" = '50000000-0000-4000-8000-000000000105';
 select throws_ok(
-  $$select * from public.create_group('Unverified Group', 'unverified-group', (select id from public.cities where slug = 'haifa'), null, 'discoverable', '', null)$$,
+  $$select * from public.create_group('Unverified Group', 'unverified-group', null, 'discoverable', '', null)$$,
   'P0001',
   'EMAIL_NOT_VERIFIED',
   'an unverified actor cannot create a group'
@@ -456,7 +449,7 @@ select throws_ok(
 
 set local "request.jwt.claim.sub" = '50000000-0000-4000-8000-000000000101';
 select lives_ok(
-  $$select * from public.create_group('Haifa Arsenal Supporters', 'haifa-arsenal-supporters', (select id from public.cities where slug = 'haifa'), '50000000-0000-4000-8000-000000000201', 'discoverable', 'Match-going Arsenal supporters in Haifa.', null)$$,
+  $$select * from public.create_group('Haifa Arsenal Supporters', 'haifa-arsenal-supporters', '50000000-0000-4000-8000-000000000201', 'discoverable', 'Match-going Arsenal supporters in Haifa.', null)$$,
   'a complete actor atomically creates a discoverable group'
 );
 select is(
@@ -474,7 +467,7 @@ select is(
   'group creation inserts the creator as the active owner atomically'
 );
 select lives_ok(
-  $$select * from public.create_group('Haifa Arsenal Circle', 'haifa-arsenal-circle', (select id from public.cities where slug = 'haifa'), '50000000-0000-4000-8000-000000000201', 'unlisted', '', null)$$,
+  $$select * from public.create_group('Haifa Arsenal Circle', 'haifa-arsenal-circle', '50000000-0000-4000-8000-000000000201', 'unlisted', '', null)$$,
   'a complete actor can create an unlisted group'
 );
 select ok(
@@ -488,18 +481,18 @@ select ok(
 
 reset role;
 select throws_ok(
-  $$insert into public.groups (id, slug, name, owner_id, city_id, visibility, lifecycle) values ((select id from public.groups where slug = 'haifa-arsenal-supporters'), 'different-group-id', 'Different Group', '50000000-0000-4000-8000-000000000101', (select id from public.cities where slug = 'haifa'), 'discoverable', 'forming')$$,
+  $$insert into public.groups (id, slug, name, owner_id, visibility, lifecycle) values ((select id from public.groups where slug = 'haifa-arsenal-supporters'), 'different-group-id', 'Different Group', '50000000-0000-4000-8000-000000000101', 'discoverable', 'forming')$$,
   '23505', null, 'group primary identifiers are unique'
 );
 select throws_ok(
-  $$insert into public.groups (slug, name, owner_id, city_id, visibility, lifecycle) values ('haifa-arsenal-supporters', 'Duplicate URL Direct', '50000000-0000-4000-8000-000000000101', (select id from public.cities where slug = 'haifa'), 'discoverable', 'forming')$$,
+  $$insert into public.groups (slug, name, owner_id, visibility, lifecycle) values ('haifa-arsenal-supporters', 'Duplicate URL Direct', '50000000-0000-4000-8000-000000000101', 'discoverable', 'forming')$$,
   '23505', null, 'the case-insensitive slug index independently rejects duplicate URLs'
 );
 set local role authenticated;
 
 set local "request.jwt.claim.sub" = '50000000-0000-4000-8000-000000000102';
 select throws_ok(
-  $$select * from public.create_group('Duplicate URL', 'HAIFA-ARSENAL-SUPPORTERS', (select id from public.cities where slug = 'haifa'), null, 'discoverable', '', null)$$,
+  $$select * from public.create_group('Duplicate URL', 'HAIFA-ARSENAL-SUPPORTERS', null, 'discoverable', '', null)$$,
   'P0001',
   'GROUP_SLUG_UNAVAILABLE',
   'case-insensitive duplicate group slugs are rejected'
@@ -510,9 +503,9 @@ select is(
   'a failed duplicate creation leaves no partial owner membership'
 );
 select is(
-  (select count(*) from public.suggest_similar_groups('Haifa Arsenal Fans', (select id from public.cities where slug = 'haifa'), '50000000-0000-4000-8000-000000000201', 5)),
+  (select count(*) from public.suggest_similar_groups('Haifa Arsenal Fans', '50000000-0000-4000-8000-000000000201', 5)),
   1::bigint,
-  'similar suggestions include the discoverable same-team/city group but not the unlisted group'
+  'similar suggestions include the discoverable same-team group but not the unlisted group'
 );
 select is((select count(*) from public.groups), 1::bigint, 'a nonmember sees the active discoverable group but cannot enumerate the unlisted group');
 select is((select count(*) from public.get_group_by_slug('haifa-arsenal-circle')), 0::bigint, 'an unlisted group is non-enumerating to a nonmember');

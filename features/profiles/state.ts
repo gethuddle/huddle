@@ -8,7 +8,6 @@ export type ProfileActionData = Readonly<{
 export type ProfileFormValues = Readonly<{
   handle: string;
   displayName: string;
-  citySlug: string;
   bio: string;
   adultAttested: boolean;
   rulesAccepted: boolean;

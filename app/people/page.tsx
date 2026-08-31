@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -340,7 +339,6 @@ function PeopleSection({
                     >
                       {person.displayName}
                     </Link>
-                    <Badge variant="outline">{person.cityName}</Badge>
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">@{person.handle}</p>
                   {person.reason === null ? null : (

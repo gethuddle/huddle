@@ -200,9 +200,7 @@ function EventManagementControlsInner({
                         >
                           {row.requester_display_name} · @{row.requester_handle}
                         </Link>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {row.requester_city_name}
-                        </p>
+                        <p className="mt-1 text-sm text-muted-foreground"></p>
                       </div>
                       <Badge variant="outline">{row.status}</Badge>
                     </div>

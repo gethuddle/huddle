@@ -28,7 +28,7 @@ select isnt(
   'workspace recovery has a bounded projection'
 );
 select isnt(
-  to_regprocedure('public.activate_fan_workspace(text,text,text,text,boolean,integer)'),
+  to_regprocedure('public.activate_fan_workspace(text,text,text,boolean,integer,uuid)'),
   null::regprocedure,
   'Fan activation has an explicit controlled function'
 );
@@ -62,7 +62,7 @@ select ok(
 select ok(
   has_function_privilege(
     'authenticated',
-    'public.activate_fan_workspace(text,text,text,text,boolean,integer)',
+    'public.activate_fan_workspace(text,text,text,boolean,integer,uuid)',
     'execute'
   ),
   'authenticated actors can activate a Fan workspace through the controlled function'
@@ -70,7 +70,7 @@ select ok(
 select ok(
   not has_function_privilege(
     'anon',
-    'public.activate_fan_workspace(text,text,text,text,boolean,integer)',
+    'public.activate_fan_workspace(text,text,text,boolean,integer,uuid)',
     'execute'
   ),
   'anonymous actors cannot activate a Fan workspace'
@@ -139,7 +139,6 @@ set
     else 'workspace_unrelated'
   end,
   display_name = 'Workspace ' || right(id::text, 3),
-  city_id = (select id from public.cities where slug = 'haifa'),
   profile_completed_at = statement_timestamp(),
   fan_enabled_at = statement_timestamp()
 where id in (
@@ -155,7 +154,7 @@ set suspended_at = statement_timestamp()
 where id = 'c2000000-0000-4000-8000-000000000105';
 
 insert into public.venues (
-  id, owner_id, slug, name, city_id, address_text, location, description
+  id, owner_id, slug, name, address_text, location, description
 )
 values
   (
@@ -163,7 +162,6 @@ values
     'c2000000-0000-4000-8000-000000000103',
     'workspace-operator-venue',
     'Workspace Operator Venue',
-    (select id from public.cities where slug = 'haifa'),
     '12 Workspace Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(34.998, 32.812), 4326)::extensions.geography,
     'A venue used to verify membership-aware workspace authorization.'
@@ -173,7 +171,6 @@ values
     'c2000000-0000-4000-8000-000000000102',
     'workspace-venue-only',
     'Workspace Venue Only',
-    (select id from public.cities where slug = 'haifa'),
     '13 Workspace Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(34.999, 32.813), 4326)::extensions.geography,
     'A venue owned by a common-eligible operator without a public Fan identity.'
@@ -316,12 +313,12 @@ select lives_ok(
   'a venue-only common owner can load the concrete Venue management projection'
 );
 select is(
-  (select count(*) from public.list_owned_venues(0, 50)),
+  (select count(*) from public.list_my_workspaces() where workspace_kind = 'venue'),
   1::bigint,
-  'the legacy managed-Venue list is membership-aware during transition'
+  'the workspace switcher lists the owned Venue without a compatibility directory'
 );
 select lives_ok(
-  $$select * from public.activate_fan_workspace('workspace_venue_only', 'Workspace Venue Fan', 'haifa', '', true, 1)$$,
+  $$select * from public.activate_fan_workspace('workspace_venue_only', 'Workspace Venue Fan', '', true, 1, null)$$,
   'a common-eligible Venue operator can explicitly activate Fan later'
 );
 select ok(
@@ -332,8 +329,8 @@ select ok(
 set local "request.jwt.claim.sub" = 'c2000000-0000-4000-8000-000000000107';
 
 select lives_ok(
-  $$select * from public.complete_profile('workspace_legacy', 'Workspace Legacy', 'haifa', '', true, 1)$$,
-  'the existing complete_profile signature remains a compatibility wrapper'
+  $$select * from public.complete_profile('workspace_legacy', 'Workspace Legacy', '', true, 1)$$,
+  'complete_profile activates a Fan without a city field'
 );
 select ok(
   (select fan_enabled_at is not null from public.profiles where id = auth.uid()),

@@ -1,7 +1,7 @@
 "use client";
 
 import { QueryClient, QueryClientProvider, useInfiniteQuery } from "@tanstack/react-query";
-import { LocateFixed, Map as MapIcon, MapPinOff, X } from "lucide-react";
+import { LocateFixed, Map as MapIcon, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { EmptyState } from "@/components/states/empty-state";
@@ -21,7 +21,7 @@ import type { AddressSuggestion } from "@/features/locations/types";
 import type { DiscoveryApiPage, DiscoveryEvent, DiscoveryPage } from "@/features/discovery/types";
 
 type Coordinates = Readonly<{ lat: number; lng: number }>;
-type LocationState = "city" | "locating" | "browser" | "address" | "denied";
+type LocationState = "idle" | "locating" | "browser" | "address" | "denied";
 
 const SESSION_ORIGIN_KEY = "huddle:discovery-origin";
 
@@ -60,17 +60,17 @@ async function fetchDiscoveryPage(
 function DiscoveryFeedInner({
   filters,
   initialPage,
-  originCityName,
-}: Readonly<{ filters: DiscoveryFilters; initialPage: DiscoveryPage; originCityName: string }>) {
+}: Readonly<{ filters: DiscoveryFilters; initialPage: DiscoveryPage }>) {
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
-  const [locationState, setLocationState] = useState<LocationState>("city");
-  const [locationLabel, setLocationLabel] = useState(originCityName);
+  const [locationState, setLocationState] = useState<LocationState>("idle");
+  const [locationLabel, setLocationLabel] = useState("");
   const [mobileMapOpen, setMobileMapOpen] = useState(false);
   const query = useInfiniteQuery({
     queryKey: ["event-discovery", discoveryFilterIdentity(filters), coordinates],
     initialPageParam: null as string | null,
     queryFn: ({ pageParam }) => fetchDiscoveryPage(filters, coordinates, pageParam),
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    enabled: coordinates !== null,
     initialData:
       coordinates === null
         ? {
@@ -117,13 +117,7 @@ function DiscoveryFeedInner({
       window.sessionStorage.removeItem(SESSION_ORIGIN_KEY);
     }
 
-    if (!("permissions" in navigator) || !("geolocation" in navigator)) return;
-    void navigator.permissions
-      .query({ name: "geolocation" })
-      .then((permission) => {
-        if (permission.state === "granted") requestBrowserLocation();
-      })
-      .catch(() => undefined);
+    if ("geolocation" in navigator) requestBrowserLocation();
     // This is an intentional one-time restore/permission check.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -158,13 +152,6 @@ function DiscoveryFeedInner({
     );
   }
 
-  function useCityFallback() {
-    setCoordinates(null);
-    setLocationState("city");
-    setLocationLabel(originCityName);
-    window.sessionStorage.removeItem(SESSION_ORIGIN_KEY);
-  }
-
   function useAddressOrigin(suggestion: AddressSuggestion | null) {
     if (suggestion === null) return;
     rememberOrigin(
@@ -187,48 +174,38 @@ function DiscoveryFeedInner({
               ? "Using this browser location"
               : locationState === "address"
                 ? `Near ${locationLabel}`
-                : `Near ${locationLabel}`}
+                : locationState === "locating"
+                  ? "Finding events near you…"
+                  : "Choose where to explore"}
           </p>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
             Distance is calculated from this origin. Exact coordinates stay out of links and logs.
           </p>
         </div>
-        {locationState === "browser" || locationState === "address" ? (
-          <Button className="min-h-11" onClick={useCityFallback} type="button" variant="outline">
-            <MapPinOff aria-hidden="true" />
-            Use profile area
-          </Button>
-        ) : (
-          <Button
-            className="min-h-11"
-            disabled={locationState === "locating"}
-            onClick={requestBrowserLocation}
-            type="button"
-            variant="outline"
-          >
-            <LocateFixed aria-hidden="true" />
-            {locationState === "locating" ? "Requesting location…" : "Use my location"}
-          </Button>
-        )}
+        <Button
+          className="min-h-11"
+          disabled={locationState === "locating"}
+          onClick={requestBrowserLocation}
+          type="button"
+          variant="outline"
+        >
+          <LocateFixed aria-hidden="true" />
+          {locationState === "locating" ? "Requesting location…" : "Use my current location"}
+        </Button>
       </div>
 
       {locationState === "denied" ? (
         <p className="mt-3 text-sm text-sand" role="status">
-          Location was unavailable or declined. Discovery is continuing from your profile area.
+          Location was unavailable or declined. Search an address or area below to explore.
         </p>
       ) : null}
 
       <details className="mt-4 rounded-2xl border border-border bg-card px-5 py-4">
         <summary className="cursor-pointer font-semibold text-foreground">
-          Search a city or address
+          Search an area or address
         </summary>
         <div className="mt-5 border-t border-border pt-5">
-          <AddressSearch
-            city={originCityName}
-            locationKind="public_place"
-            onConfirm={useAddressOrigin}
-            purpose="origin"
-          />
+          <AddressSearch onConfirm={useAddressOrigin} purpose="origin" />
         </div>
       </details>
 
@@ -287,9 +264,19 @@ function DiscoveryFeedInner({
                     return (
                       <section aria-labelledby={headingId} key={match.id}>
                         <div className="flex items-center gap-4 rounded-2xl bg-muted px-4 py-4 sm:px-5">
-                          <TeamMark name={match.homeTeamName} size="md" tla={null} />
+                          <TeamMark
+                            crestUrl={match.homeTeamCrestUrl}
+                            name={match.homeTeamName}
+                            size="md"
+                            tla={match.homeTeamTla}
+                          />
                           <span className="text-xs font-semibold text-muted-foreground">vs</span>
-                          <TeamMark name={match.awayTeamName} size="md" tla={null} />
+                          <TeamMark
+                            crestUrl={match.awayTeamCrestUrl}
+                            name={match.awayTeamName}
+                            size="md"
+                            tla={match.awayTeamTla}
+                          />
                           <div className="min-w-0">
                             <h3 className="font-semibold text-foreground" id={headingId}>
                               {match.homeTeamName} vs {match.awayTeamName}
@@ -383,16 +370,12 @@ export function DiscoveryFeed(
   props: Readonly<{
     filters: DiscoveryFilters;
     initialPage: DiscoveryPage;
-    originCityName?: string;
   }>,
 ) {
   const [queryClient] = useState(() => new QueryClient());
   return (
     <QueryClientProvider client={queryClient}>
-      <DiscoveryFeedInner
-        {...props}
-        originCityName={props.originCityName ?? props.filters.citySlug.replaceAll("-", " ")}
-      />
+      <DiscoveryFeedInner initialPage={props.initialPage} filters={props.filters} />
     </QueryClientProvider>
   );
 }

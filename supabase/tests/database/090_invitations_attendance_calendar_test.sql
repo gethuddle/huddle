@@ -91,7 +91,6 @@ update public.profiles
 set
   handle = 'b10_user_' || right(id::text, 3),
   display_name = 'B10 User ' || right(id::text, 3),
-  city_id = (select id from public.cities where slug = 'haifa'),
   adult_attested_at = statement_timestamp(),
   rules_version = 1,
   rules_accepted_at = statement_timestamp(),
@@ -162,12 +161,11 @@ values
   );
 
 insert into public.groups (
-  id, slug, name, owner_id, city_id, visibility, lifecycle, description, activated_at
+  id, slug, name, owner_id, visibility, lifecycle, description, activated_at
 )
 values (
   '90000000-0000-4000-8000-000000000205',
   'b10-group', 'B10 Group', '90000000-0000-4000-8000-000000000101',
-  (select id from public.cities where slug = 'haifa'),
   'unlisted', 'active', 'A B10 group for current eligibility checks.',
   statement_timestamp()
 );
@@ -190,14 +188,13 @@ values
   );
 
 insert into public.venues (
-  id, owner_id, slug, name, city_id, address_text, location,
+  id, owner_id, slug, name, address_text, location,
   description, screen_count, stated_capacity
 )
 values (
   '90000000-0000-4000-8000-000000000301',
   '90000000-0000-4000-8000-000000000101',
   'b10-venue', 'B10 Match Corner',
-  (select id from public.cities where slug = 'haifa'),
   '12 Public Street, Haifa',
   extensions.st_setsrid(extensions.st_makepoint(34.999, 32.813), 4326)::extensions.geography,
   'A public venue for B10 attendance and calendar tests.', 4, 80
@@ -206,7 +203,7 @@ values (
 insert into public.events (
   id, created_by, host_user_id, match_id, title, description,
   expected_activity, cost_description, event_rules, commercial_affiliation,
-  host_presence_confirmed_at, starts_at, ends_at, city_id, place_kind,
+  host_presence_confirmed_at, starts_at, ends_at, place_kind,
   audience, capacity, requires_approval, status, published_at
 )
 values
@@ -219,7 +216,6 @@ values
     'Watch the full match', 'Free', 'Respect every attendee.', 'None',
     statement_timestamp(), statement_timestamp() + interval '7 days',
     statement_timestamp() + interval '7 days 3 hours',
-    (select id from public.cities where slug = 'haifa'),
     'home', 'friends', 3, true, 'published', statement_timestamp()
   ),
   (
@@ -231,7 +227,6 @@ values
     'Watch the full match', 'Free', 'Respect every attendee.', 'None',
     statement_timestamp(), statement_timestamp() + interval '8 days',
     statement_timestamp() + interval '8 days 3 hours',
-    (select id from public.cities where slug = 'haifa'),
     'home', 'invite_only', 1, true, 'published', statement_timestamp()
   );
 
@@ -251,7 +246,7 @@ values
 insert into public.events (
   id, created_by, host_user_id, match_id, title, description,
   expected_activity, cost_description, event_rules, commercial_affiliation,
-  host_presence_confirmed_at, starts_at, ends_at, city_id, place_kind,
+  host_presence_confirmed_at, starts_at, ends_at, place_kind,
   audience, audience_group_id, organizing_group_id, capacity, requires_approval,
   status, published_at
 )
@@ -264,7 +259,6 @@ values (
   'Watch the full match', 'Free', 'Respect every attendee.', 'None',
   statement_timestamp(), statement_timestamp() + interval '9 days',
   statement_timestamp() + interval '9 days 3 hours',
-  (select id from public.cities where slug = 'haifa'),
   'home', 'group', '90000000-0000-4000-8000-000000000205',
   '90000000-0000-4000-8000-000000000205', 3, true, 'published',
   statement_timestamp()
@@ -280,7 +274,7 @@ values (
 insert into public.events (
   id, created_by, host_user_id, match_id, title, description,
   expected_activity, cost_description, event_rules, commercial_affiliation,
-  host_presence_confirmed_at, starts_at, ends_at, city_id, place_kind,
+  host_presence_confirmed_at, starts_at, ends_at, place_kind,
   public_place_name, public_address_text, public_location,
   audience, organizing_group_id, capacity, requires_approval, status, published_at
 )
@@ -294,7 +288,6 @@ values (
   'Watch the full match', 'Free', 'Respect every attendee.', 'None',
   statement_timestamp(), statement_timestamp() + interval '10 days',
   statement_timestamp() + interval '10 days 3 hours',
-  (select id from public.cities where slug = 'haifa'),
   'public_place', 'B10 Public Room', '20 Public Street, Haifa',
   extensions.st_setsrid(extensions.st_makepoint(35.001, 32.815), 4326)::extensions.geography,
   'invite_only', '90000000-0000-4000-8000-000000000205',
@@ -351,7 +344,7 @@ values (
 insert into public.events (
   id, created_by, host_venue_id, match_id, title, description,
   expected_activity, cost_description, event_rules, commercial_affiliation,
-  host_presence_confirmed_at, starts_at, ends_at, city_id, place_kind,
+  host_presence_confirmed_at, starts_at, ends_at, place_kind,
   venue_id, audience, audience_team_id, capacity, requires_approval,
   status, published_at
 )
@@ -365,7 +358,6 @@ values
     'Watch the full match', 'Free', 'Respect every attendee.', 'Commercial venue',
     statement_timestamp(), statement_timestamp() + interval '7 days',
     statement_timestamp() + interval '7 days 3 hours',
-    (select id from public.cities where slug = 'haifa'),
     'venue', '90000000-0000-4000-8000-000000000301',
     'public', null, 1, false, 'published', statement_timestamp()
   ),
@@ -378,7 +370,6 @@ values
     'Watch the full match', 'Free', 'Respect every attendee.', 'Commercial venue',
     statement_timestamp(), statement_timestamp() + interval '7 days',
     statement_timestamp() + interval '7 days 3 hours',
-    (select id from public.cities where slug = 'haifa'),
     'venue', '90000000-0000-4000-8000-000000000301',
     'team_followers', '90000000-0000-4000-8000-000000000202',
     2, false, 'published', statement_timestamp()
@@ -639,10 +630,8 @@ set local "request.jwt.claim.sub" = '90000000-0000-4000-8000-000000000101';
 select is(
   (
     select requester_handle
-    from public.request_context(
-      '90000000-0000-4000-8000-000000000401',
-      '90000000-0000-4000-8000-000000000103'
-    )
+    from public.list_event_attendance('90000000-0000-4000-8000-000000000401')
+    where user_id = '90000000-0000-4000-8000-000000000103'
   ),
   'b10_user_103',
   'the manager receives bounded factual requester context'
@@ -651,10 +640,8 @@ select ok(
   (
     select row_to_json(context)::text not like '%@example.com%'
       and row_to_json(context)::text not like '%score%'
-    from public.request_context(
-      '90000000-0000-4000-8000-000000000401',
-      '90000000-0000-4000-8000-000000000103'
-    ) as context
+    from public.list_event_attendance('90000000-0000-4000-8000-000000000401') as context
+    where user_id = '90000000-0000-4000-8000-000000000103'
   ),
   'request context exposes neither email nor a reputation score'
 );

@@ -24,8 +24,8 @@ The 2026-08-29 B12 run passed 90 Vitest files / 403 tests (78.7% statements,
 and all 17 Playwright journeys. The PR/main CI run and second-computer reproduction
 remain separate evidence.
 
-The current Calm Explore inventory contains 153 Vitest files / 778 tests,
-33 ordered migrations, 39 pgTAP files / 1656 assertions, and 28 Playwright scenarios.
+The current cityless-location inventory contains 154 Vitest files / 765 tests,
+34 ordered migrations, 40 pgTAP files / 1642 assertions, and 28 Playwright scenarios.
 The complete acceptance command passes this combined inventory. The B12 numbers above are
 retained as historical accepted evidence rather than presented as the current repository
 inventory. Hosted migration and production acceptance remain separately evidenced operations.
@@ -73,7 +73,7 @@ accounts and a fresh event.
 
 ## Database coverage
 
-The 39 pgTAP files under `supabase/tests/database/` cover all exposed-table RLS
+The 40 pgTAP files under `supabase/tests/database/` cover all exposed-table RLS
 inventory, CHECK/unique/FK invariants, minimum grants, safe reads, denied reads and
 mutations, lifecycle transitions, cooldowns, exact-address authorization, capacity,
 moderation, workspace membership, protected drafts, current-state projections,

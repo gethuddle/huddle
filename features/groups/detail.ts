@@ -15,7 +15,6 @@ const groupDetailRowSchema = z
     description: z.string().nullable(),
     visibility: z.enum(["discoverable", "unlisted"]),
     lifecycle: z.enum(["forming", "active", "suspended", "archived"]),
-    city_name: z.string().nullable(),
     team_name: z.string().nullable(),
     owner_handle: z.string(),
     active_member_count: z.number().int().nonnegative(),
@@ -55,7 +54,6 @@ export type GroupDetail = Readonly<{
   description: string | null;
   visibility: "discoverable" | "unlisted";
   lifecycle: "forming" | "active" | "suspended" | "archived";
-  cityName: string | null;
   teamName: string | null;
   ownerHandle: string;
   activeMemberCount: number;
@@ -152,7 +150,6 @@ export async function getGroupDetail(slug: string, memberPage = 1): Promise<Grou
     description: row.description,
     visibility: row.visibility,
     lifecycle: row.lifecycle,
-    cityName: row.city_name,
     teamName: row.team_name,
     ownerHandle: row.owner_handle,
     activeMemberCount: row.active_member_count,

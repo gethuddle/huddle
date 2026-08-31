@@ -9,6 +9,7 @@ import {
   discoveryUtcRange,
 } from "@/features/discovery/schemas";
 import type { DiscoveryPage } from "@/features/discovery/types";
+import { loadTeamVisualsByName } from "@/features/sports/team-visuals";
 import { getServerEnvironment } from "@/lib/env/server";
 import { DomainError, domainErrorFromDatabase } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
@@ -27,7 +28,6 @@ const discoveryRowSchema = z
     away_team_name: z.string(),
     starts_at: z.string(),
     ends_at: z.string(),
-    city_name: z.string(),
     place_kind: z.enum(["home", "venue", "public_place"]),
     location_summary: z.string(),
     audience: z.enum(["public", "team_followers", "group", "friends"]),
@@ -54,18 +54,8 @@ const discoveryMapPointRowSchema = z
 
 export async function getDiscoveryPage(filters: DiscoveryFilters): Promise<DiscoveryPage> {
   const supabase = await createClient();
-  const [cityResult, authResult] = await Promise.all([
-    supabase
-      .from("cities")
-      .select("id")
-      .eq("slug", filters.citySlug)
-      .eq("active", true)
-      .maybeSingle(),
-    supabase.auth.getUser(),
-  ]);
-  if (cityResult.error !== null)
-    throw new DomainError("INTERNAL_ERROR", { cause: cityResult.error });
-  if (cityResult.data === null) throw new DomainError("VALIDATION_FAILED");
+  if (filters.lat === null || filters.lng === null) throw new DomainError("VALIDATION_FAILED");
+  const authResult = await supabase.auth.getUser();
 
   const filterKey = cursorFilterKey(discoveryFilterIdentity(filters));
   const secret = getServerEnvironment().DISCOVERY_CURSOR_SECRET;
@@ -76,9 +66,8 @@ export async function getDiscoveryPage(filters: DiscoveryFilters): Promise<Disco
 
   const range = discoveryUtcRange(filters);
   const rpcInput = {
-    input_city_id: cityResult.data.id,
-    input_lat: filters.lat as number,
-    input_lng: filters.lng as number,
+    input_lat: filters.lat,
+    input_lng: filters.lng,
     input_radius_km: filters.radiusKm,
     input_from: range.from,
     input_to: range.to,
@@ -133,6 +122,10 @@ export async function getDiscoveryPage(filters: DiscoveryFilters): Promise<Disco
     ownedVenueRows.some((row) => row.has_more);
   const rows = combinedRows.slice(0, filters.limit);
   const hasMore = sourceHasMore || combinedRows.length > rows.length;
+  const teamVisuals = await loadTeamVisualsByName(
+    supabase,
+    rows.flatMap((row) => [row.home_team_name, row.away_team_name]),
+  );
 
   const mapResult =
     rows.length === 0
@@ -182,11 +175,14 @@ export async function getDiscoveryPage(filters: DiscoveryFilters): Promise<Disco
         id: row.match_id,
         competitionName: row.competition_name,
         homeTeamName: row.home_team_name,
+        homeTeamTla: teamVisuals.get(row.home_team_name)?.tla ?? null,
+        homeTeamCrestUrl: teamVisuals.get(row.home_team_name)?.crestUrl ?? null,
         awayTeamName: row.away_team_name,
+        awayTeamTla: teamVisuals.get(row.away_team_name)?.tla ?? null,
+        awayTeamCrestUrl: teamVisuals.get(row.away_team_name)?.crestUrl ?? null,
       },
       startsAt: row.starts_at,
       endsAt: row.ends_at,
-      cityName: row.city_name,
       placeKind: row.place_kind,
       locationSummary: row.location_summary,
       mapPoint: mapPointsByEvent.has(row.event_id)
@@ -207,7 +203,7 @@ export async function getDiscoveryPage(filters: DiscoveryFilters): Promise<Disco
       matchesFollows: row.interest_score > 0,
     })),
     nextCursor,
-    locationMode: filters.lat === null ? "city" : "browser",
+    locationMode: "browser",
     generatedAt: new Date().toISOString(),
     requiresPrivateCache,
   };

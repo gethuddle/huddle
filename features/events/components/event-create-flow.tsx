@@ -70,9 +70,6 @@ function reviewIssues(
       message: "Use at least 10 characters for the description.",
     });
   }
-  if (values.cityId == null) {
-    issues.push({ fieldId: "event-city", message: "Choose the event city." });
-  }
   if (values.placeKind === "home") {
     if (protectedLocation === null) {
       issues.push({

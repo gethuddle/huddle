@@ -19,13 +19,6 @@ export const profileHandleSchema = z
       .regex(/^[a-z0-9_]+$/, "Use lowercase letters, numbers, and underscores only."),
   );
 
-export const citySlugSchema = z
-  .string()
-  .trim()
-  .min(1, "Choose your city.")
-  .max(80, "Choose a valid city.")
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Choose a valid city.");
-
 export const fanWorkspaceInputSchema = z.object({
   handle: profileHandleSchema,
   displayName: z
@@ -33,7 +26,6 @@ export const fanWorkspaceInputSchema = z.object({
     .trim()
     .min(2, "Use at least 2 characters.")
     .max(60, "Use 60 characters or fewer."),
-  citySlug: citySlugSchema,
   bio: z.string().trim().max(500, "Use 500 characters or fewer."),
   adultAttested: checkedSchema,
   rulesAccepted: checkedSchema,

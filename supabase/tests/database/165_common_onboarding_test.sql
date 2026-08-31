@@ -75,49 +75,16 @@ select is(
   (
     select procedure.provolatile
     from pg_proc as procedure
-    where procedure.oid = to_regprocedure('public.list_owned_venues(integer,integer)')
-  ),
-  'v'::"char",
-  'the managed Venue directory is callable through PostgREST'
-);
-select is(
-  (
-    select procedure.provolatile
-    from pg_proc as procedure
     where procedure.oid = to_regprocedure('public.list_managed_venue_events(uuid,integer)')
   ),
   'v'::"char",
   'the managed Venue event list is callable through PostgREST'
 );
-select is(
-  (
-    select procedure.provolatile
-    from pg_proc as procedure
-    where procedure.oid = to_regprocedure('public.list_my_huddle_events(integer,integer)')
-  ),
-  'v'::"char",
-  'the mixed-workspace My Huddle event list is callable through PostgREST'
-);
-select is(
-  (
-    select count(*)
-    from pg_proc as procedure
-    join pg_namespace as namespace on namespace.oid = procedure.pronamespace
-    where namespace.nspname = 'public'
-      and procedure.prokind = 'f'
-      and procedure.provolatile = 's'
-      and (
-        pg_get_functiondef(procedure.oid) like '%private.assert_actor(%'
-        or pg_get_functiondef(procedure.oid) like '%private.assert_common_actor(%'
-        or pg_get_functiondef(procedure.oid) like '%private.assert_fan_actor(%'
-        or pg_get_functiondef(procedure.oid) like '%private.assert_event_context_actor(%'
-        or pg_get_functiondef(procedure.oid) like '%private.assert_event_manager_or_fan_actor(%'
-        or pg_get_functiondef(procedure.oid) like '%private.assert_attendance_context_actor(%'
-        or pg_get_functiondef(procedure.oid) like '%private.assert_invitation_context_actor(%'
-      )
-  ),
-  0::bigint,
-  'no lock-capable authenticated projection is misclassified as read-only for PostgREST'
+select ok(
+  position(
+    'transaction_read_only' in pg_get_functiondef('private.assert_common_actor()'::regprocedure)
+  ) > 0,
+  'common actor checks preserve locking writes while supporting read-only projections'
 );
 
 insert into auth.users (
@@ -186,7 +153,6 @@ set handle = case id
       when 'e4000000-0000-4000-8000-000000000105' then 'Common Stale Fan'
       when 'e4000000-0000-4000-8000-000000000107' then 'Common Stale Both'
     end,
-    city_id = (select id from public.cities where slug = 'haifa'),
     adult_attested_at = statement_timestamp(),
     rules_version = 2,
     rules_accepted_at = statement_timestamp() - interval '30 days',
@@ -204,14 +170,13 @@ set adult_attested_at = statement_timestamp(),
 where id = 'e4000000-0000-4000-8000-000000000106';
 
 insert into public.venues (
-  id, owner_id, slug, name, city_id, address_text, location, description
+  id, owner_id, slug, name, address_text, location, description
 )
 values
   (
     'e4000000-0000-4000-8000-000000000206',
     'e4000000-0000-4000-8000-000000000106',
     'common-stale-venue', 'Common Stale Venue',
-    (select id from public.cities where slug = 'haifa'),
     '16 Recovery Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(34.998, 32.812), 4326)::extensions.geography,
     'An existing Venue used to verify stale-rules recovery.'
@@ -220,7 +185,6 @@ values
     'e4000000-0000-4000-8000-000000000207',
     'e4000000-0000-4000-8000-000000000107',
     'common-stale-both', 'Common Stale Both Venue',
-    (select id from public.cities where slug = 'haifa'),
     '17 Recovery Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(34.999, 32.813), 4326)::extensions.geography,
     'An existing Fan plus Venue account used to verify stale-rules recovery.'
