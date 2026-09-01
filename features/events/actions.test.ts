@@ -34,7 +34,6 @@ import {
 } from "./actions";
 
 const matchId = "60000000-0000-4000-8000-000000000101";
-const cityId = "60000000-0000-4000-8000-000000000102";
 const eventId = "60000000-0000-4000-8000-000000000103";
 const groupId = "60000000-0000-4000-8000-000000000104";
 const venueId = "60000000-0000-4000-8000-000000000105";
@@ -47,7 +46,6 @@ function draftResult() {
       step: 2 as const,
       values: {
         matchId,
-        cityId,
         title: "Protected Fan draft",
         placeKind: "home" as const,
         audience: "invite_only" as const,
@@ -75,7 +73,6 @@ function draftSaveInput() {
     step: 2,
     values: {
       matchId,
-      cityId,
       title: "Protected Fan draft",
       placeKind: "home",
       audience: "invite_only",
@@ -189,7 +186,6 @@ function homeEventForm() {
   formData.set("eventRules", "Respect the host and every attendee.");
   formData.set("commercialAffiliation", "None");
   formData.set("hostPresenceConfirmed", "on");
-  formData.set("cityId", cityId);
   formData.set("placeKind", "home");
   formData.set("privateAddressText", "12 Private Street, Haifa");
   formData.set("privateDirections", "Ring apartment 4.");
@@ -237,7 +233,6 @@ describe("savePrivateEventAction", () => {
           data: [
             {
               venue_id: venueId,
-              city_id: cityId,
               verification_status: "unverified",
               suspended_at: null,
             },
@@ -401,7 +396,6 @@ describe("saveVenueEventAction", () => {
           data: [
             {
               venue_id: venueId,
-              city_id: cityId,
               verification_status: "unverified",
               suspended_at: null,
             },
@@ -430,7 +424,7 @@ describe("saveVenueEventAction", () => {
     expect(mocks.requireActor).not.toHaveBeenCalled();
   });
 
-  it("derives venue identity, city, and time while defaulting to immediate approval", async () => {
+  it("derives venue identity and time while defaulting to immediate approval", async () => {
     const result = await saveVenueEventAction(null, venueEventForm());
 
     expect(mocks.requireActor).toHaveBeenCalledWith({ venueId });
@@ -439,7 +433,6 @@ describe("saveVenueEventAction", () => {
       expect.objectContaining({
         input_host_venue_id: venueId,
         input_venue_id: venueId,
-        input_city_id: cityId,
         input_starts_at: "2026-09-01T17:00:00.000Z",
         input_ends_at: "2026-09-01T20:00:00.000Z",
         input_place_kind: "venue",
@@ -449,6 +442,8 @@ describe("saveVenueEventAction", () => {
         input_private_address_text: null,
       }),
     );
+    const eventInput = rpc.mock.calls.find(([name]) => name === "create_or_update_event")?.[1];
+    expect(eventInput).not.toHaveProperty("input_city_id");
     expect(result).toMatchObject({ ok: true, data: { event: { status: "published" } } });
   });
 

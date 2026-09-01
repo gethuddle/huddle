@@ -13,14 +13,12 @@ vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 import { createVenueAction, setVenueFollowAction, updateVenueAction } from "./actions";
 
 const venueId = "61000000-0000-4000-8000-000000000301";
-const cityId = "61000000-0000-4000-8000-000000000302";
 
 function venueForm(includeId: boolean) {
   const form = new FormData();
   if (includeId) form.set("venueId", venueId);
   form.set("name", "Match Corner");
   form.set("slug", "match-corner");
-  form.set("cityId", cityId);
   form.set("addressText", "12 Stadium Street, Haifa");
   form.set("longitude", "34.998");
   form.set("latitude", "32.812");

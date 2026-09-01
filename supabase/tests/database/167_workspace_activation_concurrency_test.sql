@@ -122,8 +122,8 @@ select is(
     'workspace_fan_second',
     $remote$
       select * from public.activate_fan_workspace(
-        'concurrent_fan', 'Concurrent Fan', 'haifa',
-        'One Fan identity activated by duplicate submissions.', true, 1
+        'concurrent_fan', 'Concurrent Fan',
+        'One Fan identity activated by duplicate submissions.', true, 1, null
       )
     $remote$
   ),
@@ -150,8 +150,8 @@ select lives_ok(
       'workspace_fan_first',
       $remote$
         select * from public.activate_fan_workspace(
-          'concurrent_fan', 'Concurrent Fan', 'haifa',
-          'One Fan identity activated by duplicate submissions.', true, 1
+          'concurrent_fan', 'Concurrent Fan',
+          'One Fan identity activated by duplicate submissions.', true, 1, null
         )
       $remote$
     ) as result(
@@ -263,7 +263,6 @@ select is(
     $remote$
       select * from public.create_venue_workspace(
         'Concurrent Venue', 'concurrent-venue',
-        (select id from public.cities where slug = 'haifa'),
         '42 Concurrent Street, Haifa', 34.999, 32.813,
         'One business workspace activated by duplicate submissions.',
         'Main room', 60, array[]::text[], '', false, true, true, 1, null
@@ -294,7 +293,6 @@ select lives_ok(
       $remote$
         select * from public.create_venue_workspace(
           'Concurrent Venue', 'concurrent-venue',
-          (select id from public.cities where slug = 'haifa'),
           '42 Concurrent Street, Haifa', 34.999, 32.813,
           'One business workspace activated by duplicate submissions.',
           'Main room', 60, array[]::text[], '', false, true, true, 1, null
@@ -418,7 +416,6 @@ select is(
     $remote$
       select * from public.create_venue_workspace(
         'Cross Flow Venue', 'cross-flow-venue',
-        (select id from public.cities where slug = 'haifa'),
         '43 Concurrent Street, Haifa', 34.998, 32.812,
         'A business workspace activated alongside the actor Fan identity.',
         'Main room', 80, array[]::text[], '', true, true, true, 1, null
@@ -448,8 +445,8 @@ select lives_ok(
       'workspace_cross_fan',
       $remote$
         select * from public.activate_fan_workspace(
-          'cross_flow_fan', 'Cross Flow Fan', 'haifa',
-          'A Fan identity activated alongside a Venue workspace.', true, 1
+          'cross_flow_fan', 'Cross Flow Fan',
+          'A Fan identity activated alongside a Venue workspace.', true, 1, null
         )
       $remote$
     ) as result(

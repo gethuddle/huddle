@@ -177,15 +177,6 @@ from (
     ('c5000000-0000-4000-8000-000000000112'::uuid, 'state-history@example.test')
 ) as fixture(id, email);
 
-insert into public.cities (id, slug, name_en, center, active)
-values (
-  'c5000000-0000-4000-8000-000000000001',
-  'current-state-city',
-  'Current State City',
-  extensions.st_setsrid(extensions.st_makepoint(35.01, 32.82), 4326)::extensions.geography,
-  true
-);
-
 update public.profiles
 set
   handle = case id
@@ -213,13 +204,6 @@ set
     when 'c5000000-0000-4000-8000-000000000109' then 'Restricted Person'
     when 'c5000000-0000-4000-8000-000000000111' then 'Unlisted Applicant'
     else 'History Person'
-  end,
-  city_id = case
-    when id in (
-      'c5000000-0000-4000-8000-000000000104',
-      'c5000000-0000-4000-8000-000000000105'
-    ) then (select id from public.cities where slug = 'tel-aviv-yafo')
-    else 'c5000000-0000-4000-8000-000000000001'::uuid
   end,
   adult_attested_at = statement_timestamp(),
   rules_version = 1,
@@ -311,7 +295,7 @@ values
   );
 
 insert into public.groups (
-  id, slug, name, owner_id, team_id, city_id, visibility, lifecycle,
+  id, slug, name, owner_id, team_id, visibility, lifecycle,
   description, activated_at
 )
 values
@@ -320,21 +304,18 @@ values
     'current-active-group', 'Current Active Group',
     'c5000000-0000-4000-8000-000000000101',
     'c5000000-0000-4000-8000-000000000202',
-    (select id from public.cities where slug = 'haifa'),
     'unlisted', 'active', 'Member-only active group description.', statement_timestamp()
   ),
   (
     'c5000000-0000-4000-8000-000000000302',
     'current-applications', 'Current Applications',
     'c5000000-0000-4000-8000-000000000101', null,
-    (select id from public.cities where slug = 'haifa'),
     'discoverable', 'forming', 'Public application group description.', null
   ),
   (
     'c5000000-0000-4000-8000-000000000303',
     'current-unlisted-applications', 'Current Unlisted Applications',
     'c5000000-0000-4000-8000-000000000101', null,
-    (select id from public.cities where slug = 'haifa'),
     'unlisted', 'active', 'Never disclose this member description.', statement_timestamp()
   );
 
@@ -350,14 +331,13 @@ values
   ('c5000000-0000-4000-8000-000000000303', 'c5000000-0000-4000-8000-000000000111', 'member', 'pending', 'Private invite application note.');
 
 insert into public.venues (
-  id, owner_id, slug, name, city_id, address_text, location,
+  id, owner_id, slug, name, address_text, location,
   description, stated_capacity
 )
 values (
   'c5000000-0000-4000-8000-000000000401',
   'c5000000-0000-4000-8000-000000000102',
   'current-state-venue', 'Current State Venue',
-  (select id from public.cities where slug = 'haifa'),
   '20 Public Street, Haifa',
   extensions.st_setsrid(extensions.st_makepoint(34.998, 32.812), 4326)::extensions.geography,
   'A public venue used only for current-state projection tests.', 50
@@ -367,7 +347,7 @@ insert into public.events (
   id, created_by, host_user_id, host_venue_id, organizing_group_id,
   match_id, title, description, expected_activity, cost_description,
   event_rules, commercial_affiliation, host_presence_confirmed_at,
-  starts_at, ends_at, city_id, place_kind, venue_id,
+  starts_at, ends_at, place_kind, venue_id,
   public_place_name, public_address_text, public_location,
   audience, audience_group_id, capacity, requires_approval,
   status, published_at, cancelled_at, cancel_reason
@@ -381,7 +361,6 @@ values
     'Current Invitation', 'A future invitation-only event for current-state tests.',
     'Watch together', 'Free', 'Respect everyone.', 'None', statement_timestamp(),
     statement_timestamp() + interval '7 days', statement_timestamp() + interval '7 days 3 hours',
-    (select id from public.cities where slug = 'haifa'),
     'public_place', null, 'Current Cafe', '10 Public Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(34.997, 32.811), 4326)::extensions.geography,
     'invite_only', null, 10, true, 'published', statement_timestamp(), null, null
@@ -395,7 +374,6 @@ values
     'Current Request', 'A group event with an attendance request.',
     'Watch together', 'Free', 'Respect everyone.', 'None', statement_timestamp(),
     statement_timestamp() + interval '7 days 1 hour', statement_timestamp() + interval '7 days 4 hours',
-    (select id from public.cities where slug = 'haifa'),
     'public_place', null, 'Group Cafe', '11 Public Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(34.996, 32.810), 4326)::extensions.geography,
     'group', 'c5000000-0000-4000-8000-000000000301', 10, true,
@@ -410,7 +388,6 @@ values
     'Member Submission', 'A member submission that needs a different administrator.',
     'Watch together', 'Free', 'Respect everyone.', 'None', statement_timestamp(),
     statement_timestamp() + interval '8 days', statement_timestamp() + interval '8 days 3 hours',
-    (select id from public.cities where slug = 'haifa'),
     'public_place', null, 'Member Cafe', '12 Public Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(34.995, 32.809), 4326)::extensions.geography,
     'group', 'c5000000-0000-4000-8000-000000000301', 10, true,
@@ -425,7 +402,6 @@ values
     'Legacy Self Review', 'A crafted legacy row the creator must not review.',
     'Watch together', 'Free', 'Respect everyone.', 'None', statement_timestamp(),
     statement_timestamp() + interval '9 days', statement_timestamp() + interval '9 days 3 hours',
-    (select id from public.cities where slug = 'haifa'),
     'public_place', null, 'Legacy Cafe', '13 Public Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(34.994, 32.808), 4326)::extensions.geography,
     'group', 'c5000000-0000-4000-8000-000000000301', 10, true,
@@ -439,7 +415,6 @@ values
     'Cancelled Hosting', 'A cancelled event retained only for host history.',
     'Watch together', 'Free', 'Respect everyone.', 'None', statement_timestamp(),
     statement_timestamp() + interval '5 days', statement_timestamp() + interval '5 days 3 hours',
-    (select id from public.cities where slug = 'haifa'),
     'public_place', null, 'Cancelled Cafe', '14 Public Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(34.993, 32.807), 4326)::extensions.geography,
     'invite_only', null, 10, true,
@@ -453,7 +428,6 @@ values
     'Completed Attendance', 'A completed event actually attended by the Fan.',
     'Watch together', 'Free', 'Respect everyone.', 'None', statement_timestamp() - interval '8 days',
     statement_timestamp() - interval '7 days', statement_timestamp() - interval '7 days' + interval '3 hours',
-    (select id from public.cities where slug = 'haifa'),
     'public_place', null, 'History Cafe', '15 Public Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(34.992, 32.806), 4326)::extensions.geography,
     'invite_only', null, 10, true,
@@ -467,7 +441,6 @@ values
     'Completed Mere Invitation', 'A completed event that was only invited.',
     'Watch together', 'Free', 'Respect everyone.', 'None', statement_timestamp() - interval '8 days',
     statement_timestamp() - interval '6 days', statement_timestamp() - interval '6 days' + interval '3 hours',
-    (select id from public.cities where slug = 'haifa'),
     'public_place', null, 'Old Cafe', '16 Public Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(34.991, 32.805), 4326)::extensions.geography,
     'invite_only', null, 10, true,
@@ -481,7 +454,6 @@ values
     'Venue Work', 'Commercial work must not leak into Fan My Huddle.',
     'Watch together', 'Free', 'Respect everyone.', 'Current State Venue', statement_timestamp(),
     statement_timestamp() + interval '10 days', statement_timestamp() + interval '10 days 3 hours',
-    (select id from public.cities where slug = 'haifa'),
     'venue', 'c5000000-0000-4000-8000-000000000401', null, null, null,
     'public', null, 50, false, 'published', statement_timestamp(), null, null
   ),
@@ -493,7 +465,6 @@ values
     'Cancelled Before Attendance', 'A cancelled event with a retained approved reservation.',
     'Watch together', 'Free', 'Respect everyone.', 'None', statement_timestamp(),
     statement_timestamp() + interval '4 days', statement_timestamp() + interval '4 days 3 hours',
-    (select id from public.cities where slug = 'haifa'),
     'public_place', null, 'Cancelled Reservation Cafe', '17 Public Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(34.990, 32.804), 4326)::extensions.geography,
     'invite_only', null, 10, true,
@@ -1586,11 +1557,6 @@ select is(
   'People suggestions may expose one group visible through active membership'
 );
 select is(
-  (select reason from public.list_people_hub('', 'suggested', 20, 0) where handle = 'state_city'),
-  'Also in Current State City',
-  'People suggestions may use the shared public city'
-);
-select is(
   (select count(*) from public.list_people_hub('person', 'search', 20, 0)),
   4::bigint,
   'People search finds display names without exact-handle knowledge and filters unsafe profiles'
@@ -1682,7 +1648,6 @@ set
     when 'c5000000-0000-4000-8000-000000000117' then 'AB-CD'
     else 'AB_CD'
   end,
-  city_id = 'c5000000-0000-4000-8000-000000000001',
   adult_attested_at = statement_timestamp(),
   rules_version = private.current_rules_version(),
   rules_accepted_at = statement_timestamp(),
@@ -1834,7 +1799,7 @@ select is(
 );
 select is(
   (select total_count from public.list_people_hub('', 'suggested', 1, 0)),
-  6::bigint,
+  3::bigint,
   'People pagination reports the full safe suggestion count'
 );
 select is(
@@ -1844,7 +1809,7 @@ select is(
 );
 select is(
   (select handle from public.list_people_hub('', 'suggested', 1, 1)),
-  'state_history'::text,
+  'state_group'::text,
   'People suggestions have a stable second page'
 );
 

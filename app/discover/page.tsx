@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
 
-import { ErrorState } from "@/components/states/error-state";
-import { getDiscoveryCatalog, getViewerCitySlug } from "@/features/discovery/catalog";
+import { getDiscoveryCatalog } from "@/features/discovery/catalog";
 import { DiscoveryFilterError } from "@/features/discovery/components/discovery-filter-error";
 import { DiscoveryFeed } from "@/features/discovery/components/discovery-feed";
 import { DiscoveryFiltersForm } from "@/features/discovery/components/discovery-filters";
 import { ExploreTabs } from "@/features/discovery/components/explore-tabs";
-import { getDiscoveryPage } from "@/features/discovery/query";
 import { parseDiscoveryFiltersResult } from "@/features/discovery/schemas";
 import { getFixtureById } from "@/features/sports/browse";
 
@@ -20,25 +18,9 @@ type DiscoverPageProps = Readonly<{
 }>;
 
 export default async function DiscoverPage({ searchParams }: DiscoverPageProps) {
-  const [rawSearchParams, catalog, viewerCitySlug] = await Promise.all([
-    searchParams,
-    getDiscoveryCatalog(),
-    getViewerCitySlug(),
-  ]);
-  const defaultCitySlug = viewerCitySlug ?? catalog.cities.at(0)?.slug;
-  if (defaultCitySlug === undefined) {
-    return (
-      <ErrorState
-        description="Huddle has no active city fallbacks right now. The event catalog is safe, but discovery needs a city before it can calculate nearby results."
-        title="Discovery is temporarily unavailable."
-      />
-    );
-  }
+  const [rawSearchParams, catalog] = await Promise.all([searchParams, getDiscoveryCatalog()]);
 
-  const parsedFilters = parseDiscoveryFiltersResult({
-    ...rawSearchParams,
-    city: rawSearchParams.city ?? defaultCitySlug,
-  });
+  const parsedFilters = parseDiscoveryFiltersResult(rawSearchParams);
   if (!parsedFilters.ok) {
     return (
       <section className="py-6 sm:py-10">
@@ -50,19 +32,13 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps) 
           filters={parsedFilters.values}
           key={`invalid:${parsedFilters.values.from}:${parsedFilters.values.to}:${parsedFilters.fieldErrors.from ?? ""}:${parsedFilters.fieldErrors.to ?? ""}`}
         />
-        <DiscoveryFilterError
-          errors={parsedFilters.fieldErrors}
-          resetHref={`/discover?city=${encodeURIComponent(parsedFilters.values.citySlug || defaultCitySlug)}`}
-        />
+        <DiscoveryFilterError errors={parsedFilters.fieldErrors} resetHref="/discover" />
       </section>
     );
   }
 
   const filters = parsedFilters.filters;
-  const [initialPage, selectedFixture] = await Promise.all([
-    getDiscoveryPage(filters),
-    filters.matchId === null ? Promise.resolve(null) : getFixtureById(filters.matchId),
-  ]);
+  const selectedFixture = filters.matchId === null ? null : await getFixtureById(filters.matchId);
   const selectedMatch = selectedFixture?.match ?? null;
   const currentFixtureLabel =
     selectedMatch === null
@@ -81,10 +57,13 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps) 
       />
       <DiscoveryFeed
         filters={filters}
-        initialPage={initialPage}
-        originCityName={
-          catalog.cities.find((city) => city.slug === filters.citySlug)?.name ?? filters.citySlug
-        }
+        initialPage={{
+          items: [],
+          nextCursor: null,
+          locationMode: "browser",
+          generatedAt: new Date().toISOString(),
+          requiresPrivateCache: true,
+        }}
       />
     </section>
   );

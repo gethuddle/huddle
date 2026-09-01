@@ -22,14 +22,12 @@ import {
 } from "./actions";
 
 const venueId = "d3000000-0000-4000-8000-000000000301";
-const cityId = "d3000000-0000-4000-8000-000000000302";
 const requestId = "d3000000-0000-4000-8000-000000000399";
 
 function activationForm() {
   const form = new FormData();
   form.set("name", "Match Corner");
   form.set("slug", "match-corner");
-  form.set("cityId", cityId);
   form.set("addressText", "12 Stadium Street, Haifa");
   form.set("longitude", "34.998");
   form.set("latitude", "32.812");
@@ -70,7 +68,6 @@ describe("Venue workspace actions", () => {
     expect(rpc).toHaveBeenCalledWith("create_venue_workspace_v2", {
       input_name: "Match Corner",
       input_slug: "match-corner",
-      input_city_id: cityId,
       input_address_text: "12 Stadium Street, Haifa",
       input_longitude: 34.998,
       input_latitude: 32.812,
@@ -202,8 +199,6 @@ describe("Venue workspace actions", () => {
             name: "Match Corner",
             role: "owner",
             verification_status: "unverified",
-            city_id: cityId,
-            city_name: "Haifa",
             address_text: "12 Stadium Street, Haifa",
             longitude: 34.998,
             latitude: 32.812,
@@ -228,7 +223,6 @@ describe("Venue workspace actions", () => {
         venueId,
         name: "Match Corner",
         slug: "match-corner",
-        cityId,
         description: "A refreshed welcoming venue for watching the full match together.",
         facilities: ["food"],
         houseInformation: "Order at the bar before kick-off.",
@@ -242,7 +236,6 @@ describe("Venue workspace actions", () => {
       input_venue_id: venueId,
       input_name: "Match Corner",
       input_slug: "match-corner",
-      input_city_id: cityId,
       input_address_text: "12 Stadium Street, Haifa",
       input_longitude: 34.998,
       input_latitude: 32.812,

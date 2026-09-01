@@ -4,7 +4,6 @@ export type VenueFormValues = Readonly<{
   venueId: string;
   name: string;
   slug: string;
-  cityId: string;
   addressText: string;
   longitude: string;
   latitude: string;

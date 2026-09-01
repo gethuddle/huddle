@@ -196,7 +196,6 @@ set handle = case id
       when '40000000-0000-4000-8000-000000000104' then 'B04 Suspended'
       when '40000000-0000-4000-8000-000000000105' then 'B04 Unverified'
     end,
-    city_id = '00000000-0000-4000-8000-000000000001',
     adult_attested_at = statement_timestamp(),
     rules_version = 1,
     rules_accepted_at = statement_timestamp(),

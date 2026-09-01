@@ -23,48 +23,39 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mocks.push, replace: mocks.replace, refresh: vi.fn() }),
 }));
 vi.mock("@/features/locations/components/address-search", () => ({
-  AddressSearch: ({ onConfirm }: { onConfirm: (value: unknown) => void }) => (
+  AddressSearch: ({
+    onConfirm,
+    purpose,
+  }: {
+    onConfirm: (value: unknown) => void;
+    purpose: "origin" | "public_address" | "private_home";
+  }) => (
     <button
       onClick={() =>
         onConfirm({
           id: "address-1",
           label: "10 Herzl Street, Haifa, Israel",
-          city: "Haifa",
           latitude: 32.815,
           longitude: 34.989,
         })
       }
       type="button"
     >
-      Choose test address
+      {purpose === "private_home" ? "Choose protected test address" : "Choose test address"}
     </button>
   ),
 }));
 vi.mock("@/features/locations/components/map-pin-picker", () => ({
   MapPinPicker: ({ onChange }: { onChange: (value: unknown) => void }) => (
-    <button
-      onClick={() =>
-        onChange({
-          addressText: "12 Private Street, Haifa",
-          point: { latitude: 32.813, longitude: 34.999 },
-        })
-      }
-      type="button"
-    >
-      Choose protected test pin
+    <button onClick={() => onChange({ latitude: 32.813, longitude: 34.999 })} type="button">
+      Adjust protected test pin
     </button>
   ),
 }));
 
 const draftId = "60000000-0000-4000-8000-000000000111";
 const matchId = "60000000-0000-4000-8000-000000000101";
-const cityId = "60000000-0000-4000-8000-000000000103";
-const telAvivCityId = "60000000-0000-4000-8000-000000000104";
 const catalog = {
-  cities: [
-    { id: cityId, name: "Haifa", slug: "haifa" },
-    { id: telAvivCityId, name: "Tel Aviv", slug: "tel-aviv" },
-  ],
   matches: [
     {
       id: matchId,
@@ -147,7 +138,7 @@ describe("EventCreateFlow", () => {
       screen.getByRole("textbox", { name: "Description" }),
       "Watch the match together with local supporters.",
     );
-    await user.selectOptions(screen.getByRole("combobox", { name: "City" }), cityId);
+    expect(screen.queryByRole("combobox", { name: /city/i })).not.toBeInTheDocument();
     await user.click(screen.getByRole("radio", { name: /Public place/ }));
     await user.type(screen.getByRole("textbox", { name: "Place name" }), "The Green Room");
     await user.click(screen.getByRole("button", { name: "Choose test address" }));
@@ -194,7 +185,6 @@ describe("EventCreateFlow", () => {
       screen.getByRole("textbox", { name: "Description" }),
       "Watch the late fixture together with local supporters.",
     );
-    await user.selectOptions(screen.getByRole("combobox", { name: "City" }), cityId);
     await user.click(screen.getByRole("radio", { name: /Public place/ }));
     await user.type(screen.getByRole("textbox", { name: "Place name" }), "The Green Room");
     await user.click(screen.getByRole("button", { name: "Choose test address" }));
@@ -274,7 +264,7 @@ describe("EventCreateFlow", () => {
     expect(screen.getByText("Submit through a group (optional)")).toBeVisible();
   });
 
-  it("clears stale protected and public locations when city or place kind changes", async () => {
+  it("clears stale protected and public locations when place kind changes", async () => {
     const user = userEvent.setup();
     render(
       <EventCreateFlow
@@ -284,7 +274,6 @@ describe("EventCreateFlow", () => {
           step: 2,
           values: {
             matchId,
-            cityId,
             placeKind: "home",
             publicPlaceName: "Stale venue",
             publicAddressText: "Stale public address",
@@ -303,15 +292,12 @@ describe("EventCreateFlow", () => {
     );
 
     expect(screen.getByText(/protected home address and pin are saved/i)).toBeVisible();
-    await user.selectOptions(screen.getByRole("combobox", { name: "City" }), telAvivCityId);
-    expect(screen.queryByText(/protected home address and pin are saved/i)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Choose protected test pin" })).toBeVisible();
-
     await user.click(screen.getByRole("radio", { name: /Public place/ }));
+    expect(screen.queryByText(/protected home address and pin are saved/i)).not.toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Place name" })).toHaveValue("");
     expect(screen.queryByText("Stale public address")).not.toBeInTheDocument();
     await user.click(screen.getByRole("radio", { name: /My home/ }));
-    expect(screen.getByRole("button", { name: "Choose protected test pin" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Choose protected test address" })).toBeVisible();
   });
 
   it("uses the server-returned protected state as authoritative on review", async () => {
@@ -325,7 +311,6 @@ describe("EventCreateFlow", () => {
         eventRules: "Respect everyone.",
         commercialAffiliation: "None",
         hostPresenceConfirmed: true,
-        cityId,
         placeKind: "public_place",
         publicPlaceName: "Canonical cafe",
         publicAddressText: "10 Herzl Street, Haifa, Israel",
@@ -346,7 +331,6 @@ describe("EventCreateFlow", () => {
             matchId,
             title: "Public switch",
             description: "A public event after leaving the saved home.",
-            cityId,
             placeKind: "home",
             audience: "invite_only",
             capacity: 6,
@@ -392,8 +376,7 @@ describe("EventCreateFlow", () => {
       screen.getByRole("textbox", { name: "Description" }),
       "A small watch night for approved Huddle supporters.",
     );
-    await user.selectOptions(screen.getByRole("combobox", { name: "City" }), cityId);
-    await user.click(screen.getByRole("button", { name: "Choose protected test pin" }));
+    await user.click(screen.getByRole("button", { name: "Choose protected test address" }));
     await user.click(screen.getByRole("checkbox", { name: /I will be present/ }));
     await user.click(screen.getByRole("button", { name: "Next: review and publish" }));
 
@@ -403,14 +386,14 @@ describe("EventCreateFlow", () => {
       privateLocation: {
         mode: "replace",
         value: {
-          addressText: "12 Private Street, Haifa",
-          latitude: 32.813,
-          longitude: 34.999,
+          addressText: "10 Herzl Street, Haifa, Israel",
+          latitude: 32.815,
+          longitude: 34.989,
         },
       },
       values: expect.objectContaining({ placeKind: "home" }),
     });
-    expect(JSON.stringify(savedInput.values)).not.toContain("12 Private Street");
+    expect(JSON.stringify(savedInput.values)).not.toContain("10 Herzl Street");
     expect(
       screen.queryByRole("spinbutton", { name: /latitude|longitude/i }),
     ).not.toBeInTheDocument();
@@ -433,10 +416,9 @@ describe("EventCreateFlow", () => {
     await user.click(screen.getByRole("button", { name: "Next: review and publish" }));
 
     const alert = screen.getByRole("alert");
-    expect(alert).toHaveTextContent("Fix 5 details before review");
+    expect(alert).toHaveTextContent("Fix 4 details before review");
     expect(alert).toHaveTextContent("Use at least 3 characters for the event title.");
     expect(alert).toHaveTextContent("Use at least 10 characters for the description.");
-    expect(alert).toHaveTextContent("Choose the event city.");
     expect(alert).toHaveTextContent("Choose the private address and pin.");
     expect(alert).toHaveTextContent("Confirm that you will be present.");
     expect(screen.getByRole("textbox", { name: "Event title" })).toHaveFocus();
@@ -468,7 +450,6 @@ describe("EventCreateFlow", () => {
             eventRules: "Respect the host and every attendee.",
             commercialAffiliation: "None",
             hostPresenceConfirmed: true,
-            cityId,
             placeKind: "public_place",
             publicPlaceName: "The Green Room",
             publicAddressText: "10 Herzl Street, Haifa, Israel",

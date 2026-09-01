@@ -12,8 +12,6 @@ const publicVenueRowSchema = z
     venue_id: z.uuid(),
     slug: z.string(),
     name: z.string(),
-    city_id: z.uuid(),
-    city_name: z.string(),
     address_text: z.string(),
     description: z.string(),
     screen_count: z.number().int().positive().nullable(),
@@ -31,8 +29,6 @@ const managedVenueRowSchema = z
     venue_id: z.uuid(),
     slug: z.string(),
     name: z.string(),
-    city_id: z.uuid(),
-    city_name: z.string(),
     address_text: z.string(),
     longitude: z.number(),
     latitude: z.number(),
@@ -48,8 +44,6 @@ export type PublicVenue = Readonly<{
   id: string;
   slug: string;
   name: string;
-  cityId: string;
-  cityName: string;
   addressText: string;
   description: string;
   screenCount: number | null;
@@ -65,8 +59,6 @@ export type ManagedVenue = Readonly<{
   id: string;
   slug: string;
   name: string;
-  cityId: string;
-  cityName: string;
   addressText: string;
   longitude: number;
   latitude: number;
@@ -91,8 +83,6 @@ export async function getVenueBySlug(slug: string): Promise<PublicVenue | null> 
       id: row.venue_id,
       slug: row.slug,
       name: row.name,
-      cityId: row.city_id,
-      cityName: row.city_name,
       addressText: row.address_text,
       description: row.description,
       screenCount: row.screen_count,
@@ -135,8 +125,6 @@ export async function getVenueForManagement(slug: string): Promise<ManagedVenue 
       id: row.venue_id,
       slug: row.slug,
       name: row.name,
-      cityId: row.city_id,
-      cityName: row.city_name,
       addressText: row.address_text,
       longitude: row.longitude,
       latitude: row.latitude,

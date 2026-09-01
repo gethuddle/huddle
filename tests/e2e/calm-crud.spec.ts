@@ -6,7 +6,6 @@ import path from "node:path";
 
 import type { Database } from "@/types/database.generated";
 
-const cityId = "00000000-0000-4000-8000-000000000003";
 const password = "matchday-local-test";
 
 type Fixture = Readonly<{
@@ -83,7 +82,6 @@ async function seedFan(run: string, role: string) {
   const activated = await client.rpc("activate_fan_workspace", {
     input_adult_attested: true,
     input_bio: "",
-    input_city_slug: "haifa",
     input_display_name: displayName,
     input_handle: handle,
     input_rules_version: 1,
@@ -204,7 +202,6 @@ function eventInput(
     input_host_presence_confirmed: true,
     input_starts_at: startsAt.toISOString(),
     input_ends_at: new Date(startsAt.getTime() + 3 * 3_600_000).toISOString(),
-    input_city_id: cityId,
     input_place_kind: "home",
     input_venue_id: null as unknown as string,
     input_public_place_name: null as unknown as string,
@@ -243,7 +240,6 @@ async function createVenueEvent(client: SupabaseClient<Database>, fixture: Fixtu
   const venue = await client.rpc("create_venue_workspace_v2", {
     input_address_text: `12 Calm ${run} Street, Haifa`,
     input_adult_attested: true,
-    input_city_id: cityId,
     input_default_attendance_mode: "reservations",
     input_default_requires_approval: false,
     input_description: "A public Venue used for calm-UX regression coverage.",
@@ -295,9 +291,13 @@ test("Explore exact-fixture search preserves its route context", async ({ page }
   const host = await seedFan(run, "host");
   const fixture = await seedFixture(run);
   const venueEvent = await createVenueEvent(host.client, fixture, run);
+  await page.context().grantPermissions(["geolocation"], {
+    origin: "http://127.0.0.1:3000",
+  });
+  await page.context().setGeolocation({ latitude: 32.81303, longitude: 34.99928 });
   await signIn(page, viewer.email);
 
-  await page.goto(`/discover?city=haifa&team=${fixture.homeTeamId}`);
+  await page.goto(`/discover?team=${fixture.homeTeamId}`);
   await expect(page.getByText(venueEvent.title, { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Change Explore search" }).click();
   await page.getByRole("searchbox", { name: "Specific fixture (optional)" }).fill(fixture.homeName);
@@ -439,7 +439,6 @@ test("member submissions can be withdrawn and a different owner can reject them"
   const fixture = await seedFixture(run);
   const slug = `calm-group-${run}`;
   const group = await owner.client.rpc("create_group", {
-    input_city_id: cityId,
     input_description: "A private general group used for calm review-flow coverage.",
     input_name: `Calm Group ${run}`,
     input_slug: slug,
@@ -482,7 +481,6 @@ test("member submissions can be withdrawn and a different owner can reject them"
       input_host_presence_confirmed: input.input_host_presence_confirmed,
       input_starts_at: input.input_starts_at,
       input_ends_at: input.input_ends_at,
-      input_city_id: input.input_city_id,
       input_place_kind: input.input_place_kind,
       input_public_place_name: input.input_public_place_name,
       input_public_address_text: input.input_public_address_text,

@@ -22,7 +22,6 @@ function submittedValues(formData: FormData): ProfileFormValues {
   return {
     handle: formString(formData.get("handle")),
     displayName: formString(formData.get("displayName")),
-    citySlug: formString(formData.get("citySlug")),
     bio: formString(formData.get("bio")),
     adultAttested: formData.get("adultAttested") === "on",
     rulesAccepted: formData.get("rulesAccepted") === "on",
@@ -51,7 +50,6 @@ async function activateFanWorkspace(
   const parsed = fanWorkspaceInputSchema.safeParse({
     handle: formData.get("handle"),
     displayName: formData.get("displayName"),
-    citySlug: formData.get("citySlug"),
     bio: formData.get("bio"),
     adultAttested: formData.get("adultAttested"),
     rulesAccepted: formData.get("rulesAccepted"),
@@ -67,7 +65,6 @@ async function activateFanWorkspace(
     const { data, error } = await supabase.rpc("activate_fan_workspace", {
       input_handle: parsed.data.handle,
       input_display_name: parsed.data.displayName,
-      input_city_slug: parsed.data.citySlug,
       input_bio: parsed.data.bio,
       input_adult_attested: parsed.data.adultAttested,
       input_rules_version: parsed.data.rulesVersion,

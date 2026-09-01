@@ -9,7 +9,6 @@ import { AddressSearch } from "./address-search";
 const suggestion = {
   id: "101",
   label: "10 Herzl Street, Haifa, Israel",
-  city: "Haifa",
   latitude: 32.815,
   longitude: 34.989,
 };
@@ -30,7 +29,7 @@ describe("AddressSearch", () => {
     const onConfirm = vi.fn();
     const user = userEvent.setup();
 
-    render(<AddressSearch city="Haifa" locationKind="venue" onConfirm={onConfirm} />);
+    render(<AddressSearch purpose="public_address" onConfirm={onConfirm} />);
 
     const input = screen.getByRole("combobox", { name: "Public address" });
     expect(input).toHaveAttribute("aria-expanded", "false");
@@ -42,8 +41,7 @@ describe("AddressSearch", () => {
     expect(init.method).toBe("POST");
     expect(JSON.parse(String(init.body))).toEqual({
       query: "10 Herzl Street",
-      city: "Haifa",
-      locationKind: "venue",
+      purpose: "public_address",
     });
 
     expect(await screen.findByRole("option", { name: suggestion.label })).toBeVisible();
@@ -66,7 +64,7 @@ describe("AddressSearch", () => {
     const user = userEvent.setup();
     const submitted = "PUBLIC-ADDRESS-NOT-FOR-ERROR-COPY";
 
-    render(<AddressSearch city="Haifa" locationKind="public_place" onConfirm={vi.fn()} />);
+    render(<AddressSearch purpose="public_address" onConfirm={vi.fn()} />);
     await user.type(screen.getByRole("combobox", { name: "Public address" }), submitted);
 
     const alert = await screen.findByRole("alert");
@@ -84,7 +82,7 @@ describe("AddressSearch", () => {
     vi.stubGlobal("fetch", fetchMock);
     const user = userEvent.setup();
 
-    render(<AddressSearch city="Haifa" locationKind="venue" onConfirm={vi.fn()} />);
+    render(<AddressSearch purpose="public_address" onConfirm={vi.fn()} />);
     const input = screen.getByRole("combobox", { name: "Public address" });
     await user.type(input, "  a ");
     await new Promise((resolve) => setTimeout(resolve, 600));
@@ -112,7 +110,7 @@ describe("AddressSearch", () => {
     vi.stubGlobal("fetch", fetchMock);
     const onConfirm = vi.fn();
     const user = userEvent.setup();
-    render(<AddressSearch city="Haifa" locationKind="venue" onConfirm={onConfirm} />);
+    render(<AddressSearch purpose="public_address" onConfirm={onConfirm} />);
 
     const input = screen.getByRole("combobox", { name: "Public address" });
     await user.type(input, "10 Herzl Street");
@@ -121,7 +119,7 @@ describe("AddressSearch", () => {
 
     await user.type(input, " edited");
     expect(onConfirm).toHaveBeenLastCalledWith(null);
-    expect(screen.queryByText("Pin ready to confirm in Haifa.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Address confirmed.")).not.toBeInTheDocument();
 
     await user.clear(input);
     await user.type(input, "10 Herzl Street");
@@ -153,7 +151,7 @@ describe("AddressSearch", () => {
       label: "20 Hanassi Boulevard, Haifa, Israel",
     };
     const user = userEvent.setup();
-    render(<AddressSearch city="Haifa" locationKind="venue" onConfirm={vi.fn()} />);
+    render(<AddressSearch purpose="public_address" onConfirm={vi.fn()} />);
 
     const input = screen.getByRole("combobox", { name: "Public address" });
     await user.type(input, "10 Herzl Street");
@@ -183,11 +181,31 @@ describe("AddressSearch", () => {
   });
 
   it("always displays linked OpenStreetMap attribution", () => {
-    render(<AddressSearch city="Haifa" locationKind="venue" onConfirm={vi.fn()} />);
+    render(<AddressSearch purpose="public_address" onConfirm={vi.fn()} />);
 
     expect(screen.getByRole("link", { name: "OpenStreetMap contributors" })).toHaveAttribute(
       "href",
       "https://www.openstreetmap.org/copyright",
     );
+  });
+
+  it("supports protected-home suggestions without asking for a city", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ suggestions: [suggestion] }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<AddressSearch purpose="private_home" onConfirm={vi.fn()} />);
+    await user.type(screen.getByRole("combobox", { name: "Home address" }), "10 Herzl Street");
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
+      query: "10 Herzl Street",
+      purpose: "private_home",
+    });
   });
 });

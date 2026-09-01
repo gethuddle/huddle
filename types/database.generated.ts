@@ -9,36 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      cities: {
-        Row: {
-          active: boolean
-          center: unknown
-          created_at: string
-          id: string
-          name_en: string
-          slug: string
-          updated_at: string
-        }
-        Insert: {
-          active?: boolean
-          center: unknown
-          created_at?: string
-          id?: string
-          name_en: string
-          slug: string
-          updated_at?: string
-        }
-        Update: {
-          active?: boolean
-          center?: unknown
-          created_at?: string
-          id?: string
-          name_en?: string
-          slug?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       competition_teams: {
         Row: {
           competition_id: string
@@ -486,7 +456,6 @@ export type Database = {
           cancel_reason: string | null
           cancelled_at: string | null
           capacity: number | null
-          city_id: string
           commercial_affiliation: string
           cost_description: string
           created_at: string
@@ -522,7 +491,6 @@ export type Database = {
           cancel_reason?: string | null
           cancelled_at?: string | null
           capacity?: number | null
-          city_id: string
           commercial_affiliation: string
           cost_description: string
           created_at?: string
@@ -558,7 +526,6 @@ export type Database = {
           cancel_reason?: string | null
           cancelled_at?: string | null
           capacity?: number | null
-          city_id?: string
           commercial_affiliation?: string
           cost_description?: string
           created_at?: string
@@ -613,13 +580,6 @@ export type Database = {
             columns: ["audience_team_id"]
             isOneToOne: false
             referencedRelation: "teams"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "events_city_id_fkey"
-            columns: ["city_id"]
-            isOneToOne: false
-            referencedRelation: "cities"
             referencedColumns: ["id"]
           },
           {
@@ -1015,7 +975,6 @@ export type Database = {
       groups: {
         Row: {
           activated_at: string | null
-          city_id: string | null
           created_at: string
           description: string | null
           id: string
@@ -1030,7 +989,6 @@ export type Database = {
         }
         Insert: {
           activated_at?: string | null
-          city_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -1045,7 +1003,6 @@ export type Database = {
         }
         Update: {
           activated_at?: string | null
-          city_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -1059,13 +1016,6 @@ export type Database = {
           visibility?: Database["public"]["Enums"]["group_visibility"]
         }
         Relationships: [
-          {
-            foreignKeyName: "groups_city_id_fkey"
-            columns: ["city_id"]
-            isOneToOne: false
-            referencedRelation: "cities"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "groups_owner_id_fkey"
             columns: ["owner_id"]
@@ -1402,7 +1352,6 @@ export type Database = {
         Row: {
           adult_attested_at: string | null
           bio: string | null
-          city_id: string | null
           community_restricted_at: string | null
           community_restricted_until: string | null
           created_at: string
@@ -1420,7 +1369,6 @@ export type Database = {
         Insert: {
           adult_attested_at?: string | null
           bio?: string | null
-          city_id?: string | null
           community_restricted_at?: string | null
           community_restricted_until?: string | null
           created_at?: string
@@ -1438,7 +1386,6 @@ export type Database = {
         Update: {
           adult_attested_at?: string | null
           bio?: string | null
-          city_id?: string | null
           community_restricted_at?: string | null
           community_restricted_until?: string | null
           created_at?: string
@@ -1453,15 +1400,7 @@ export type Database = {
           suspension_expires_at?: string | null
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_city_id_fkey"
-            columns: ["city_id"]
-            isOneToOne: false
-            referencedRelation: "cities"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       provider_sync_runs: {
         Row: {
@@ -1994,7 +1933,6 @@ export type Database = {
           archived_by: string | null
           business_representation_attested_at: string | null
           business_representation_attested_by: string | null
-          city_id: string
           created_at: string
           default_attendance_mode: Database["public"]["Enums"]["event_attendance_mode"]
           default_requires_approval: boolean
@@ -2018,7 +1956,6 @@ export type Database = {
           archived_by?: string | null
           business_representation_attested_at?: string | null
           business_representation_attested_by?: string | null
-          city_id: string
           created_at?: string
           default_attendance_mode?: Database["public"]["Enums"]["event_attendance_mode"]
           default_requires_approval?: boolean
@@ -2042,7 +1979,6 @@ export type Database = {
           archived_by?: string | null
           business_representation_attested_at?: string | null
           business_representation_attested_by?: string | null
-          city_id?: string
           created_at?: string
           default_attendance_mode?: Database["public"]["Enums"]["event_attendance_mode"]
           default_requires_approval?: boolean
@@ -2073,13 +2009,6 @@ export type Database = {
             columns: ["business_representation_attested_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "venues_city_id_fkey"
-            columns: ["city_id"]
-            isOneToOne: false
-            referencedRelation: "cities"
             referencedColumns: ["id"]
           },
           {
@@ -2132,9 +2061,9 @@ export type Database = {
       }
       activate_fan_workspace: {
         Args: {
+          audit_request_id?: string
           input_adult_attested: boolean
           input_bio: string
-          input_city_slug: string
           input_display_name: string
           input_handle: string
           input_rules_version: number
@@ -2232,9 +2161,14 @@ export type Database = {
           user_id: string
         }[]
       }
+      claim_ephemeral_location_search: {
+        Args: { input_purpose: string }
+        Returns: {
+          claim_granted: boolean
+        }[]
+      }
       claim_public_address_search: {
         Args: {
-          input_city: string
           input_country_code: string
           input_location_kind: string
           input_query: string
@@ -2251,7 +2185,6 @@ export type Database = {
         Args: {
           input_adult_attested: boolean
           input_bio: string
-          input_city_slug: string
           input_display_name: string
           input_handle: string
           input_rules_version: number
@@ -2322,7 +2255,6 @@ export type Database = {
       create_group: {
         Args: {
           audit_request_id?: string
-          input_city_id: string
           input_description: string
           input_name: string
           input_slug: string
@@ -2341,7 +2273,6 @@ export type Database = {
           input_audience: string
           input_audience_group_id: string
           input_capacity: number
-          input_city_id: string
           input_commercial_affiliation: string
           input_cost_description: string
           input_description: string
@@ -2420,7 +2351,6 @@ export type Database = {
           input_audience_group_id: string
           input_audience_team_id: string
           input_capacity: number
-          input_city_id: string
           input_commercial_affiliation: string
           input_cost_description: string
           input_description: string
@@ -2456,7 +2386,6 @@ export type Database = {
         Args: {
           audit_request_id?: string
           input_address_text: string
-          input_city_id: string
           input_description: string
           input_latitude: number
           input_longitude: number
@@ -2476,7 +2405,6 @@ export type Database = {
           audit_request_id?: string
           input_address_text: string
           input_adult_attested: boolean
-          input_city_id: string
           input_default_requires_approval: boolean
           input_description: string
           input_facilities: string[]
@@ -2501,7 +2429,6 @@ export type Database = {
           audit_request_id?: string
           input_address_text: string
           input_adult_attested: boolean
-          input_city_id: string
           input_default_attendance_mode: string
           input_default_requires_approval: boolean
           input_description: string
@@ -2533,7 +2460,6 @@ export type Database = {
           input_after_event_id?: string
           input_after_interest_score?: number
           input_after_starts_at?: string
-          input_city_id: string
           input_competition_id?: string
           input_from: string
           input_lat: number
@@ -2551,7 +2477,6 @@ export type Database = {
           audience_team_name: string
           away_team_name: string
           capacity: number
-          city_name: string
           competition_name: string
           cursor_distance_band: number
           ends_at: string
@@ -2578,7 +2503,6 @@ export type Database = {
           input_after_event_id?: string
           input_after_interest_score?: number
           input_after_starts_at?: string
-          input_city_id: string
           input_competition_id?: string
           input_from: string
           input_lat: number
@@ -2596,7 +2520,6 @@ export type Database = {
           audience_team_name: string
           away_team_name: string
           capacity: number
-          city_name: string
           competition_name: string
           cursor_distance_band: number
           ends_at: string
@@ -2623,7 +2546,6 @@ export type Database = {
           input_after_event_id?: string
           input_after_interest_score?: number
           input_after_starts_at?: string
-          input_city_id: string
           input_competition_id?: string
           input_from: string
           input_lat: number
@@ -2641,7 +2563,6 @@ export type Database = {
           audience_team_name: string
           away_team_name: string
           capacity: number
-          city_name: string
           competition_name: string
           cursor_distance_band: number
           ends_at: string
@@ -2737,7 +2658,6 @@ export type Database = {
           away_team_name: string
           can_manage: boolean
           capacity: number
-          city_name: string
           commercial_affiliation: string
           competition_name: string
           cost_description: string
@@ -2778,7 +2698,6 @@ export type Database = {
           active_member_count: number
           can_apply: boolean
           can_view_member_content: boolean
-          city_name: string
           description: string
           group_id: string
           lifecycle: string
@@ -2820,7 +2739,6 @@ export type Database = {
         Args: { lookup_handle: string }
         Returns: {
           bio: string
-          city_name: string
           display_name: string
           friendship_direction: string
           friendship_id: string
@@ -2842,8 +2760,6 @@ export type Database = {
         Args: { lookup_slug: string }
         Returns: {
           address_text: string
-          city_id: string
-          city_name: string
           description: string
           follower_count: number
           name: string
@@ -2861,8 +2777,6 @@ export type Database = {
         Args: { lookup_slug: string }
         Returns: {
           address_text: string
-          city_id: string
-          city_name: string
           description: string
           latitude: number
           longitude: number
@@ -2879,8 +2793,6 @@ export type Database = {
         Args: { input_venue_id: string }
         Returns: {
           address_text: string
-          city_id: string
-          city_name: string
           default_attendance_mode: string
           default_requires_approval: boolean
           description: string
@@ -2971,7 +2883,6 @@ export type Database = {
           mutual_friend_count: number
           removal_reason: string
           requested_at: string
-          requester_city_name: string
           requester_display_name: string
           requester_handle: string
           review_mode: string
@@ -3023,7 +2934,6 @@ export type Database = {
         Returns: {
           direction: string
           friendship_id: string
-          other_city_name: string
           other_display_name: string
           other_handle: string
           requested_at: string
@@ -3265,7 +3175,6 @@ export type Database = {
           attendance_id: string
           attendance_status: string
           away_team_name: string
-          city_name: string
           competition_name: string
           event_id: string
           home_team_name: string
@@ -3291,7 +3200,6 @@ export type Database = {
           away_team_name: string
           bucket: string
           can_manage: boolean
-          city_name: string
           competition_name: string
           event_id: string
           home_team_name: string
@@ -3323,7 +3231,6 @@ export type Database = {
         Returns: {
           active_member_count: number
           can_manage: boolean
-          city_name: string
           description: string
           group_id: string
           lifecycle: string
@@ -3341,7 +3248,6 @@ export type Database = {
         Returns: {
           active_member_count: number
           can_manage: boolean
-          city_name: string
           description: string
           group_id: string
           lifecycle: string
@@ -3352,26 +3258,6 @@ export type Database = {
           team_name: string
           total_count: number
           visibility: string
-        }[]
-      }
-      list_my_huddle_events: {
-        Args: { input_limit?: number; input_offset?: number }
-        Returns: {
-          attendance_status: string
-          audience: string
-          away_team_name: string
-          can_manage: boolean
-          city_name: string
-          competition_name: string
-          event_id: string
-          home_team_name: string
-          invitation_status: string
-          involvement: string
-          place_kind: string
-          starts_at: string
-          status: string
-          title: string
-          total_count: number
         }[]
       }
       list_my_moderation_actions: {
@@ -3449,17 +3335,6 @@ export type Database = {
           workspace_kind: string
         }[]
       }
-      list_owned_venues: {
-        Args: { input_limit?: number; input_offset?: number }
-        Returns: {
-          city_name: string
-          name: string
-          slug: string
-          total_count: number
-          venue_id: string
-          verification_status: string
-        }[]
-      }
       list_people_hub: {
         Args: {
           input_bucket: string
@@ -3468,7 +3343,6 @@ export type Database = {
           input_query: string
         }
         Returns: {
-          city_name: string
           display_name: string
           friendship_direction: string
           friendship_id: string
@@ -3592,23 +3466,6 @@ export type Database = {
           input_rule_ids: string[]
         }
         Returns: boolean
-      }
-      request_context: {
-        Args: { input_event_id: string; input_requester_id: string }
-        Returns: {
-          account_age_days: number
-          follows_audience_team: boolean
-          follows_away_team: boolean
-          follows_competition: boolean
-          follows_home_team: boolean
-          follows_sport: boolean
-          mutual_friend_count: number
-          requester_city_name: string
-          requester_display_name: string
-          requester_handle: string
-          shared_active_group_count: number
-          verified_account: boolean
-        }[]
       }
       request_friendship: {
         Args: { audit_request_id?: string; target_user_id: string }
@@ -3771,15 +3628,15 @@ export type Database = {
       search_groups: {
         Args: {
           input_after_id?: string
+          input_after_member_count?: number
           input_after_name?: string
-          input_city_id?: string
           input_limit?: number
           input_query?: string
           input_team_id?: string
         }
         Returns: {
           active_member_count: number
-          city_name: string
+          cursor_member_count: number
           cursor_name: string
           description: string
           group_id: string
@@ -3787,22 +3644,6 @@ export type Database = {
           name: string
           slug: string
           team_name: string
-        }[]
-      }
-      search_people: {
-        Args: {
-          input_limit?: number
-          input_offset?: number
-          input_query: string
-        }
-        Returns: {
-          city_name: string
-          display_name: string
-          friendship_direction: string
-          friendship_id: string
-          friendship_status: string
-          handle: string
-          total_count: number
         }[]
       }
       set_venue_verification_status: {
@@ -3859,13 +3700,11 @@ export type Database = {
       }
       suggest_similar_groups: {
         Args: {
-          input_city_id: string
           input_limit?: number
           input_name: string
           input_team_id: string
         }
         Returns: {
-          city_name: string
           group_id: string
           lifecycle: string
           name: string
@@ -3915,7 +3754,6 @@ export type Database = {
         Args: {
           audit_request_id?: string
           input_address_text: string
-          input_city_id: string
           input_description: string
           input_latitude: number
           input_longitude: number
@@ -3935,7 +3773,6 @@ export type Database = {
         Args: {
           audit_request_id?: string
           input_address_text: string
-          input_city_id: string
           input_default_requires_approval: boolean
           input_description: string
           input_facilities: string[]
@@ -3956,7 +3793,6 @@ export type Database = {
         Args: {
           audit_request_id?: string
           input_address_text: string
-          input_city_id: string
           input_default_attendance_mode: string
           input_default_requires_approval: boolean
           input_description: string

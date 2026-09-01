@@ -3,11 +3,9 @@ import type { Metadata } from "next";
 import { CURRENT_COMMUNITY_RULES_VERSION } from "@/content/community-rules";
 import {
   ProfileForm,
-  type CityOption,
   type ProfileFormInitialValue,
 } from "@/features/profiles/components/profile-form";
 import { ProfileAccessState } from "@/features/profiles/components/profile-access-state";
-import { createAnonymousServerClient } from "@/lib/supabase/anonymous";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -42,35 +40,20 @@ export default async function ProfileSettingsPage() {
     );
   }
 
-  const publicCatalog = createAnonymousServerClient();
-  const [profileResult, cityResult] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select(
-        "handle, display_name, city_id, bio, adult_attested_at, rules_version, rules_accepted_at, profile_completed_at, suspended_at",
-      )
-      .eq("id", user.id)
-      .maybeSingle(),
-    publicCatalog.from("cities").select("id, slug, name_en").eq("active", true).order("name_en"),
-  ]);
+  const profileResult = await supabase
+    .from("profiles")
+    .select(
+      "handle, display_name, bio, adult_attested_at, rules_version, rules_accepted_at, profile_completed_at, suspended_at",
+    )
+    .eq("id", user.id)
+    .maybeSingle();
 
-  if (profileResult.error !== null || cityResult.error !== null || profileResult.data === null) {
+  if (profileResult.error !== null || profileResult.data === null) {
     return (
       <ProfileAccessState
         description="Your profile could not be loaded right now. Try again in a moment."
         eyebrow="Unable to continue"
         title="We couldn’t load your profile."
-        warning
-      />
-    );
-  }
-
-  if (cityResult.data.length === 0) {
-    return (
-      <ProfileAccessState
-        description="No active Israel cities are configured right now. Your account is safe and no profile changes were made. Try again after the city catalog is restored."
-        eyebrow="Setup temporarily unavailable"
-        title="We couldn’t load the city list."
         warning
       />
     );
@@ -88,16 +71,9 @@ export default async function ProfileSettingsPage() {
     );
   }
 
-  const cities: CityOption[] = cityResult.data.map((city) => ({
-    id: city.id,
-    slug: city.slug,
-    name: city.name_en,
-  }));
-  const citySlug = cities.find((city) => city.id === profile.city_id)?.slug ?? "";
   const initialValue: ProfileFormInitialValue = {
     handle: profile.handle ?? "",
     displayName: profile.display_name ?? "",
-    citySlug,
     bio: profile.bio ?? "",
     adultAttested: profile.adult_attested_at !== null,
     currentRulesAccepted:
@@ -111,17 +87,17 @@ export default async function ProfileSettingsPage() {
       <div className="mb-8 max-w-2xl">
         <p className="text-sm font-medium text-forest">Profile and trust</p>
         <h1 className="mt-4 text-4xl font-semibold tracking-[-0.045em] text-foreground sm:text-4xl">
-          {initialValue.completed ? "Keep your profile current." : "Finish joining Huddle."}
+          {initialValue.completed ? "Keep your profile current." : "Complete your Fan profile"}
         </h1>
         <p className="mt-4 text-lg leading-8 text-muted-foreground">
           {initialValue.completed
             ? "Update how people know you. Your saved eligibility stays compact unless the community rules change."
-            : "Choose how people know you, set your city, and complete the eligibility steps that keep real gatherings safer."}
+            : "Choose how people know you and complete the eligibility steps that keep real gatherings safer."}
         </p>
       </div>
 
       <div className="rounded-[1.375rem] border border-border bg-card p-6 sm:p-10">
-        <ProfileForm cities={cities} initialValue={initialValue} />
+        <ProfileForm initialValue={initialValue} />
       </div>
     </section>
   );

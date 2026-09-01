@@ -17,7 +17,6 @@ const friendshipListRowSchema = z
     direction: z.enum(["incoming", "outgoing", "accepted"]),
     other_handle: z.string(),
     other_display_name: z.string(),
-    other_city_name: z.string(),
     requested_at: z.string(),
     responded_at: z.string().nullable(),
     total_count: z.number().int().nonnegative(),
@@ -30,7 +29,6 @@ export type FriendshipListItem = Readonly<{
   direction: "incoming" | "outgoing" | "accepted";
   handle: string;
   displayName: string;
-  cityName: string;
   requestedAt: string;
   respondedAt: string | null;
 }>;
@@ -58,7 +56,7 @@ export async function getFriendshipSettings(
   const profileResult = await supabase
     .from("profiles")
     .select(
-      "handle, display_name, city_id, adult_attested_at, rules_version, rules_accepted_at, profile_completed_at, fan_enabled_at, suspended_at, suspension_expires_at, community_restricted_at, community_restricted_until",
+      "handle, display_name, adult_attested_at, rules_version, rules_accepted_at, profile_completed_at, fan_enabled_at, suspended_at, suspension_expires_at, community_restricted_at, community_restricted_until",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -81,8 +79,7 @@ export async function getFriendshipSettings(
     profileComplete:
       profile.profile_completed_at !== null &&
       profile.handle !== null &&
-      profile.display_name !== null &&
-      profile.city_id !== null,
+      profile.display_name !== null,
     fanEnabled: profile.fan_enabled_at !== null,
     suspended: profile.suspended_at !== null,
     restricted:
@@ -123,7 +120,6 @@ export async function getFriendshipSettings(
       direction: row.direction,
       handle: row.other_handle,
       displayName: row.other_display_name,
-      cityName: row.other_city_name,
       requestedAt: row.requested_at,
       respondedAt: row.responded_at,
     })),

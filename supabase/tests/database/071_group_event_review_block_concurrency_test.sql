@@ -84,7 +84,6 @@ begin
           when '62100000-0000-4000-8000-000000000101' then 'B08 Review Host'
           else 'B08 Review Admin'
         end,
-        city_id = (select id from public.cities where slug = 'haifa'),
         adult_attested_at = statement_timestamp(),
         rules_version = 1,
         rules_accepted_at = statement_timestamp(),
@@ -139,14 +138,13 @@ begin
       );
 
       insert into public.groups (
-        id, slug, name, owner_id, city_id, visibility, lifecycle,
+        id, slug, name, owner_id, visibility, lifecycle,
         description, activated_at
       )
       values (
         '62100000-0000-4000-8000-000000000205',
         'b08-review-race-group', 'B08 Review Race Group',
         '62100000-0000-4000-8000-000000000102',
-        (select id from public.cities where slug = 'haifa'),
         'unlisted', 'active',
         'A deterministic group for event review and block serialization.',
         statement_timestamp()
@@ -172,7 +170,7 @@ begin
         id, created_by, host_user_id, organizing_group_id, match_id,
         title, description, expected_activity, cost_description,
         event_rules, commercial_affiliation, host_presence_confirmed_at,
-        starts_at, ends_at, city_id, place_kind, audience,
+        starts_at, ends_at, place_kind, audience,
         audience_group_id, capacity, requires_approval, status
       )
       values (
@@ -187,7 +185,6 @@ begin
         'Respect the host and every attendee.', 'No commercial affiliation',
         statement_timestamp(), statement_timestamp() + interval '7 days',
         statement_timestamp() + interval '7 days 3 hours',
-        (select id from public.cities where slug = 'haifa'),
         'home', 'group', '62100000-0000-4000-8000-000000000205',
         6, true, 'pending_group_review'
       );

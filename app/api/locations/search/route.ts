@@ -5,7 +5,7 @@ import { createPhotonPublicGeocoder } from "@/features/locations/photon";
 import { searchPublicAddress } from "@/features/locations/provider";
 import {
   addressSuggestionsSchema,
-  publicAddressSearchRequestSchema,
+  locationSearchRequestSchema,
 } from "@/features/locations/schemas";
 import { DomainError, domainErrorFromDatabase, toHttpError } from "@/lib/errors";
 import { elapsedMilliseconds, safeLog } from "@/lib/observability/server";
@@ -27,10 +27,6 @@ function jsonResponse(body: unknown, status: number, requestId: string, retryAft
   return response;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
 async function safeRequestBody(request: NextRequest): Promise<unknown> {
   try {
     const body = await request.text();
@@ -49,20 +45,36 @@ export async function POST(request: NextRequest) {
   try {
     const rawBody = await safeRequestBody(request);
 
-    // The public geocoder is intentionally not a private-home code path. Reject
-    // that marker before authentication, cache access, or provider construction.
-    if (isRecord(rawBody) && rawBody.locationKind === "home") {
-      throw new DomainError("VALIDATION_FAILED");
-    }
-
-    const input = publicAddressSearchRequestSchema.parse(rawBody);
-    await requireActor("common");
+    const input = locationSearchRequestSchema.parse(rawBody);
+    const { supabase } = await requireActor("common");
 
     const database = createServiceRoleClient();
+    if (input.purpose !== "public_address") {
+      const { data: claims, error: claimError } = await supabase.rpc(
+        "claim_ephemeral_location_search",
+        { input_purpose: input.purpose },
+      );
+      if (claimError !== null) throw domainErrorFromDatabase(claimError);
+      if (claims?.[0]?.claim_granted !== true) throw new DomainError("RATE_LIMITED");
+
+      const suggestions = addressSuggestionsSchema.parse(
+        await searchPublicAddress(createPhotonPublicGeocoder(), input.query),
+      );
+      safeLog("info", "route.completed", {
+        requestId,
+        route: "/api/locations/search",
+        action: `${input.purpose}_search`,
+        outcome: "succeeded",
+        status: 200,
+        durationMs: elapsedMilliseconds(startedAt),
+        itemCount: suggestions.length,
+      });
+      return jsonResponse({ suggestions }, 200, requestId);
+    }
+
     const { data: claims, error: claimError } = await database.rpc("claim_public_address_search", {
-      input_city: input.city,
       input_country_code: "il",
-      input_location_kind: input.locationKind,
+      input_location_kind: input.purpose,
       input_query: input.query,
     });
 
@@ -88,7 +100,7 @@ export async function POST(request: NextRequest) {
     if (!claim.claim_granted) throw new DomainError("RATE_LIMITED");
 
     const suggestions = addressSuggestionsSchema.parse(
-      await searchPublicAddress(createPhotonPublicGeocoder(), input.query, input.city),
+      await searchPublicAddress(createPhotonPublicGeocoder(), input.query),
     );
     const { error: storeError } = await database.rpc("store_public_address_search", {
       input_query_digest: claim.query_digest,

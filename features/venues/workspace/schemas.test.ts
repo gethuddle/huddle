@@ -11,13 +11,11 @@ import {
 } from "./schemas";
 
 const venueId = "d3000000-0000-4000-8000-000000000301";
-const cityId = "d3000000-0000-4000-8000-000000000302";
 
 function activationInput() {
   return {
     name: "Match Corner",
     slug: "match-corner",
-    cityId,
     addressText: "12 Stadium Street, Haifa",
     longitude: "34.998",
     latitude: "32.812",
@@ -115,7 +113,6 @@ describe("Venue workspace schemas", () => {
         venueId,
         name: "Match Corner",
         slug: "match-corner",
-        cityId,
         addressText: "12 Stadium Street, Haifa",
         longitude: "34.998",
         latitude: "32.812",
@@ -204,7 +201,6 @@ describe("Venue workspace schemas", () => {
         venueId,
         name: "Match Corner",
         slug: "match-corner",
-        cityId,
         description: "A welcoming venue for watching the full match together.",
         facilities: ["food", "drinks"],
         houseInformation: "Order at the bar before kick-off.",

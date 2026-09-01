@@ -11,11 +11,10 @@ import {
 const now = new Date("2026-08-27T10:00:00.000Z");
 
 describe("discovery filter schemas", () => {
-  it("applies bounded city-mode defaults", () => {
-    const filters = parseDiscoveryFilters({ city: "haifa" }, now);
+  it("applies location-neutral date and distance defaults", () => {
+    const filters = parseDiscoveryFilters({}, now);
 
     expect(filters).toMatchObject({
-      citySlug: "haifa",
       radiusKm: 15,
       from: "2026-08-27",
       to: "2026-09-10",
@@ -32,7 +31,6 @@ describe("discovery filter schemas", () => {
   it("accepts one-request browser coordinates and serializes shareable filters", () => {
     const filters = parseDiscoveryFilters(
       {
-        city: "tel-aviv",
         lat: "32.0853",
         lng: "34.7818",
         radiusKm: "30",
@@ -51,12 +49,11 @@ describe("discovery filter schemas", () => {
   });
 
   it.each([
-    { city: "haifa", lat: "32.8" },
-    { city: "haifa", lat: "91", lng: "35" },
-    { city: "haifa", radiusKm: "12" },
-    { city: "haifa", from: "2026-08-26" },
-    { city: "haifa", to: "2027-06-01" },
-    { city: "haifa", extra: "not-allowed" },
+    { lat: "32.8" },
+    { lat: "91", lng: "35" },
+    { radiusKm: "12" },
+    { from: "2026-08-26" },
+    { extra: "not-allowed" },
   ])("rejects malformed or unbounded filters: %o", (input) => {
     expect(() => parseDiscoveryFilters(input, now)).toThrow();
   });
@@ -64,34 +61,31 @@ describe("discovery filter schemas", () => {
   it("accepts the synchronized season instead of imposing a 45-day ceiling", () => {
     expect(() =>
       parseDiscoveryFilters(
-        { city: "haifa", from: "2026-08-31", to: "2026-10-21" },
+        { from: "2026-08-31", to: "2026-10-21" },
         new Date("2026-08-31T09:00:00.000Z"),
       ),
     ).not.toThrow();
     expect(() =>
       parseDiscoveryFilters(
-        { city: "haifa", from: "2026-08-31", to: "2027-06-01" },
+        { from: "2026-08-31", to: "2027-06-01" },
         new Date("2026-08-31T09:00:00.000Z"),
       ),
-    ).toThrow();
+    ).not.toThrow();
   });
 
   it("returns field recovery data instead of throwing for an inverted date range", () => {
-    const result = parseDiscoveryFiltersResult(
-      { city: "haifa", from: "2026-09-14", to: "2026-08-31" },
-      now,
-    );
+    const result = parseDiscoveryFiltersResult({ from: "2026-09-14", to: "2026-08-31" }, now);
 
     expect(result).toMatchObject({
       ok: false,
-      values: { citySlug: "haifa", from: "2026-09-14", to: "2026-08-31" },
+      values: { from: "2026-09-14", to: "2026-08-31" },
       fieldErrors: { to: "Choose an end date on or after the start date." },
     });
   });
 
   it("preserves a multi-month Israel-time window across the autumn DST fallback", () => {
     const filters = parseDiscoveryFilters(
-      { city: "haifa", from: "2026-09-15", to: "2026-11-15" },
+      { from: "2026-09-15", to: "2026-11-15" },
       new Date("2026-09-15T09:00:00.000Z"),
     );
 

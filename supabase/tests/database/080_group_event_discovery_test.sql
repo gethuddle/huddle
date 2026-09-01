@@ -56,7 +56,7 @@ select ok(
 select ok(
   has_function_privilege(
     'anon',
-    'public.search_groups(text,uuid,uuid,text,uuid,integer)',
+    'public.search_groups(text,uuid,bigint,text,uuid,integer)',
     'execute'
   ),
   'anonymous visitors may invoke safe active-group search'
@@ -64,7 +64,7 @@ select ok(
 select ok(
   has_function_privilege(
     'anon',
-    'public.discover_events(uuid,double precision,double precision,integer,timestamptz,timestamptz,uuid,uuid,uuid,integer,integer,timestamptz,uuid,integer)',
+    'public.discover_events(double precision,double precision,integer,timestamptz,timestamptz,uuid,uuid,uuid,integer,integer,timestamptz,uuid,integer)',
     'execute'
   ),
   'anonymous visitors may invoke safe event discovery'
@@ -72,7 +72,7 @@ select ok(
 select ok(
   position(
     'address_text' in pg_get_function_result(
-      'public.discover_events(uuid,double precision,double precision,integer,timestamptz,timestamptz,uuid,uuid,uuid,integer,integer,timestamptz,uuid,integer)'::regprocedure
+      'public.discover_events(double precision,double precision,integer,timestamptz,timestamptz,uuid,uuid,uuid,integer,integer,timestamptz,uuid,integer)'::regprocedure
     )
   ) = 0,
   'the discovery result type structurally omits addresses'
@@ -80,7 +80,7 @@ select ok(
 select ok(
   position(
     'distance_meters' in pg_get_function_result(
-      'public.discover_events(uuid,double precision,double precision,integer,timestamptz,timestamptz,uuid,uuid,uuid,integer,integer,timestamptz,uuid,integer)'::regprocedure
+      'public.discover_events(double precision,double precision,integer,timestamptz,timestamptz,uuid,uuid,uuid,integer,integer,timestamptz,uuid,integer)'::regprocedure
     )
   ) = 0,
   'the discovery result type structurally omits exact distances'
@@ -126,7 +126,7 @@ select ok(
 select ok(
   position(
     'private.discovery_window_is_valid' in pg_get_functiondef(
-      'public.discover_events(uuid,double precision,double precision,integer,timestamptz,timestamptz,uuid,uuid,uuid,integer,integer,timestamptz,uuid,integer)'::regprocedure
+      'private.discover_event_page(text,double precision,double precision,integer,timestamptz,timestamptz,uuid,uuid,uuid,integer,integer,timestamptz,uuid,integer)'::regprocedure
     )
   ) > 0,
   'event discovery delegates date bounds to the Israel-time calendar validator'
@@ -171,7 +171,6 @@ update public.profiles
 set
   handle = 'b09_' || right(id::text, 3),
   display_name = 'B09 Fan ' || right(id::text, 3),
-  city_id = (select id from public.cities where slug = 'haifa'),
   adult_attested_at = statement_timestamp(),
   rules_version = 1,
   rules_accepted_at = statement_timestamp(),
@@ -267,7 +266,7 @@ values
   );
 
 insert into public.groups (
-  id, slug, name, owner_id, city_id, team_id, visibility, lifecycle, description,
+  id, slug, name, owner_id, team_id, visibility, lifecycle, description,
   activated_at
 )
 values
@@ -276,7 +275,6 @@ values
     'b09-alpha-supporters',
     'B09 Alpha Supporters',
     '63000000-0000-4000-8000-000000000101',
-    (select id from public.cities where slug = 'haifa'),
     '63000000-0000-4000-8000-000000000202',
     'discoverable',
     'forming',
@@ -288,7 +286,6 @@ values
     'b09-unlisted-supporters',
     'B09 Unlisted Supporters',
     '63000000-0000-4000-8000-000000000101',
-    (select id from public.cities where slug = 'haifa'),
     '63000000-0000-4000-8000-000000000202',
     'unlisted',
     'active',
@@ -300,7 +297,6 @@ values
     'b09-other-forming',
     'B09 Other Forming Group',
     '63000000-0000-4000-8000-000000000108',
-    (select id from public.cities where slug = 'haifa'),
     null,
     'discoverable',
     'forming',
@@ -312,7 +308,6 @@ values
     'b09-zulu-supporters',
     'B09 Zulu Supporters',
     '63000000-0000-4000-8000-000000000101',
-    (select id from public.cities where slug = 'haifa'),
     '63000000-0000-4000-8000-000000000202',
     'discoverable',
     'forming',
@@ -405,7 +400,7 @@ reset role;
 insert into public.events (
   id, created_by, host_user_id, organizing_group_id, match_id, title, description,
   expected_activity, cost_description, event_rules, commercial_affiliation,
-  host_presence_confirmed_at, starts_at, ends_at, city_id, place_kind,
+  host_presence_confirmed_at, starts_at, ends_at, place_kind,
   public_place_name, public_address_text, public_location, audience,
   audience_group_id, capacity, requires_approval, status, published_at
 )
@@ -425,7 +420,6 @@ values
     statement_timestamp(),
     statement_timestamp() + interval '7 days',
     statement_timestamp() + interval '7 days 3 hours',
-    (select id from public.cities where slug = 'haifa'),
     'public_place',
     'B09 Community Hall',
     '21 Audience Safe Street, Haifa',
@@ -452,7 +446,6 @@ values
     statement_timestamp(),
     statement_timestamp() + interval '7 days 1 hour',
     statement_timestamp() + interval '7 days 4 hours',
-    (select id from public.cities where slug = 'haifa'),
     'public_place',
     'B09 Zulu Hall',
     '22 Audience Safe Street, Haifa',
@@ -479,7 +472,6 @@ values
     statement_timestamp(),
     statement_timestamp() + interval '9 days',
     statement_timestamp() + interval '9 days 3 hours',
-    (select id from public.cities where slug = 'haifa'),
     'public_place',
     'B09 Replacement Hall',
     '23 Audience Safe Street, Haifa',
@@ -534,8 +526,8 @@ create temporary table b09_group_first_page as
 select *
 from public.search_groups(
   'B09',
-  (select id from public.cities where slug = 'haifa'),
   '63000000-0000-4000-8000-000000000202',
+  null,
   null,
   null,
   1
@@ -555,8 +547,8 @@ select is(
     select count(*)
     from public.search_groups(
       'B09',
-      (select id from public.cities where slug = 'haifa'),
       '63000000-0000-4000-8000-000000000202',
+      (select cursor_member_count from b09_group_first_page),
       (select cursor_name from b09_group_first_page),
       (select group_id from b09_group_first_page),
       1
@@ -680,7 +672,7 @@ select is(
 );
 
 insert into public.venues (
-  id, owner_id, slug, name, city_id, address_text, location, description,
+  id, owner_id, slug, name, address_text, location, description,
   screen_count, stated_capacity
 )
 values
@@ -689,7 +681,6 @@ values
     '63000000-0000-4000-8000-000000000101',
     'b09-near-corner',
     'B09 Near Corner',
-    (select id from public.cities where slug = 'haifa'),
     '31 Public Venue Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(35.000, 32.800), 4326)::extensions.geography,
     'A public unverified venue for discovery.',
@@ -701,7 +692,6 @@ values
     '63000000-0000-4000-8000-000000000101',
     'b09-followed-corner',
     'B09 Followed Corner',
-    (select id from public.cities where slug = 'haifa'),
     '32 Public Venue Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(35.010, 32.810), 4326)::extensions.geography,
     'A second public unverified venue for discovery.',
@@ -712,7 +702,7 @@ values
 insert into public.events (
   id, created_by, host_venue_id, match_id, title, description, expected_activity,
   cost_description, event_rules, commercial_affiliation, host_presence_confirmed_at,
-  starts_at, ends_at, city_id, place_kind, venue_id, audience, audience_team_id,
+  starts_at, ends_at, place_kind, venue_id, audience, audience_team_id,
   capacity, requires_approval, status, published_at
 )
 values
@@ -730,7 +720,6 @@ values
     statement_timestamp(),
     statement_timestamp() + interval '7 days',
     statement_timestamp() + interval '7 days 3 hours',
-    (select id from public.cities where slug = 'haifa'),
     'venue',
     '63000000-0000-4000-8000-000000000401',
     'public',
@@ -754,7 +743,6 @@ values
     statement_timestamp(),
     statement_timestamp() + interval '8 days',
     statement_timestamp() + interval '8 days 3 hours',
-    (select id from public.cities where slug = 'haifa'),
     'venue',
     '63000000-0000-4000-8000-000000000402',
     'team_followers',
@@ -768,7 +756,7 @@ values
 insert into public.events (
   id, created_by, host_user_id, match_id, title, description, expected_activity,
   cost_description, event_rules, commercial_affiliation, host_presence_confirmed_at,
-  starts_at, ends_at, city_id, place_kind, audience, capacity, requires_approval,
+  starts_at, ends_at, place_kind, audience, capacity, requires_approval,
   status, published_at
 )
 values (
@@ -785,7 +773,6 @@ values (
   statement_timestamp(),
   statement_timestamp() + interval '7 days 2 hours',
   statement_timestamp() + interval '7 days 5 hours',
-  (select id from public.cities where slug = 'haifa'),
   'home',
   'friends',
   8,
@@ -819,7 +806,6 @@ select is(
   (
     select count(*)
     from public.discover_events(
-      (select id from public.cities where slug = 'haifa'),
       32.800,
       35.000,
       50,
@@ -842,7 +828,6 @@ select is(
   (
     select count(*)
     from public.discover_events(
-      (select id from public.cities where slug = 'haifa'),
       32.800,
       35.000,
       50,
@@ -862,7 +847,7 @@ select is(
   'team filtering is applied inside the discovery query before rows return'
 );
 select throws_ok(
-  $$select * from public.discover_events((select id from public.cities where slug = 'haifa'),32.8,35.0,12,statement_timestamp(),statement_timestamp() + interval '30 days',null,null,null,null,null,null,null,20)$$,
+  $$select * from public.discover_events(32.8,35.0,12,statement_timestamp(),statement_timestamp() + interval '30 days',null,null,null,null,null,null,null,20)$$,
   'P0001',
   'VALIDATION_FAILED',
   'an unallowlisted radius is rejected in the database'
@@ -872,7 +857,6 @@ reset role;
 create temporary table b09_event_first_page as
 select *
 from public.discover_events(
-  (select id from public.cities where slug = 'haifa'),
   32.800,
   35.000,
   50,
@@ -896,7 +880,6 @@ select is(
   (
     select count(*)
     from public.discover_events(
-      (select id from public.cities where slug = 'haifa'),
       32.800,
       35.000,
       50,
@@ -923,7 +906,6 @@ select is(
   (
     select count(*)
     from public.discover_events(
-      (select id from public.cities where slug = 'haifa'),
       32.800,
       35.000,
       50,
@@ -949,7 +931,6 @@ select ok(
       and row_to_json(discovery)::text not like '%34.997%'
       and row_to_json(discovery)::text not like '%32.803%'
     from public.discover_events(
-      (select id from public.cities where slug = 'haifa'),
       32.800,
       35.000,
       50,
@@ -981,7 +962,6 @@ select is(
   (
     select count(*)
     from public.discover_events(
-      (select id from public.cities where slug = 'haifa'),
       32.800,
       35.000,
       50,
@@ -1019,7 +999,6 @@ select is(
   (
     select count(*)
     from public.discover_events(
-      (select id from public.cities where slug = 'haifa'),
       32.800,
       35.000,
       50,
@@ -1052,7 +1031,6 @@ select is(
   (
     select event_id
     from public.discover_events(
-      (select id from public.cities where slug = 'haifa'),
       32.800,
       35.000,
       50,

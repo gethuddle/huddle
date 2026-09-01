@@ -1,12 +1,11 @@
 export type AddressSuggestion = Readonly<{
   id: string;
   label: string;
-  city: string;
   latitude: number;
   longitude: number;
 }>;
 
-export type PublicLocationKind = "venue" | "public_place";
+export type LocationSearchPurpose = "origin" | "public_address" | "private_home";
 
 export type PrivatePoint = Readonly<{
   latitude: number;

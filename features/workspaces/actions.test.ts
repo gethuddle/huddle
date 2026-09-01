@@ -244,11 +244,9 @@ describe("workspace actions", () => {
       activateVenueOnboardingAction({
         name: "Match Corner",
         slug: "match-corner",
-        cityId: "e4000000-0000-4000-8000-000000000201",
         address: {
           id: "osm-101",
           label: "10 Herzl Street, Haifa, Israel",
-          city: "Haifa",
           longitude: 34.989,
           latitude: 32.815,
         },
@@ -306,11 +304,9 @@ describe("workspace actions", () => {
       activateVenueOnboardingAction({
         name: "Match Corner",
         slug: "match-corner",
-        cityId: "e4000000-0000-4000-8000-000000000201",
         address: {
           id: "osm-101",
           label: "10 Herzl Street, Haifa, Israel",
-          city: "Haifa",
           longitude: 34.989,
           latitude: 32.815,
         },

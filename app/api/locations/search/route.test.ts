@@ -27,7 +27,6 @@ vi.mock("@/lib/observability/server", () => ({
 const suggestion = {
   id: "101",
   label: "10 Herzl Street, Haifa, Israel",
-  city: "Haifa",
   latitude: 32.815,
   longitude: 34.989,
 };
@@ -45,7 +44,7 @@ describe("POST /api/locations/search", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.requireActor.mockResolvedValue({ user: { id: "actor-id" } });
+    mocks.requireActor.mockResolvedValue({ user: { id: "actor-id" }, supabase: { rpc } });
     mocks.createServiceRoleClient.mockReturnValue({ rpc });
     mocks.search.mockResolvedValue([suggestion]);
     rpc
@@ -65,21 +64,18 @@ describe("POST /api/locations/search", () => {
   });
 
   it("authenticates, claims one global slot, calls the provider, and stores a bounded result", async () => {
-    const response = await POST(
-      request({ query: "10 Herzl Street", city: "Haifa", locationKind: "venue" }),
-    );
+    const response = await POST(request({ query: "10 Herzl Street", purpose: "public_address" }));
 
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toContain("no-store");
     await expect(response.json()).resolves.toEqual({ suggestions: [suggestion] });
     expect(mocks.requireActor).toHaveBeenCalledWith("common");
     expect(rpc).toHaveBeenNthCalledWith(1, "claim_public_address_search", {
-      input_city: "Haifa",
       input_country_code: "il",
-      input_location_kind: "venue",
+      input_location_kind: "public_address",
       input_query: "10 Herzl Street",
     });
-    expect(mocks.search).toHaveBeenCalledWith("10 Herzl Street", "Haifa");
+    expect(mocks.search).toHaveBeenCalledWith("10 Herzl Street");
     expect(rpc).toHaveBeenNthCalledWith(2, "store_public_address_search", {
       input_query_digest: "a".repeat(64),
       input_results: [suggestion],
@@ -101,9 +97,7 @@ describe("POST /api/locations/search", () => {
       error: null,
     });
 
-    const response = await POST(
-      request({ query: "10 Herzl Street", city: "Haifa", locationKind: "public_place" }),
-    );
+    const response = await POST(request({ query: "10 Herzl Street", purpose: "public_address" }));
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ suggestions: [suggestion] });
@@ -114,9 +108,7 @@ describe("POST /api/locations/search", () => {
   it("rejects unauthenticated requests before creating a service-role client", async () => {
     mocks.requireActor.mockRejectedValue(new DomainError("AUTH_REQUIRED"));
 
-    const response = await POST(
-      request({ query: "10 Herzl Street", city: "Haifa", locationKind: "venue" }),
-    );
+    const response = await POST(request({ query: "10 Herzl Street", purpose: "public_address" }));
 
     expect(response.status).toBe(401);
     expect(mocks.createServiceRoleClient).not.toHaveBeenCalled();
@@ -135,9 +127,7 @@ describe("POST /api/locations/search", () => {
     async (code, status) => {
       mocks.requireActor.mockRejectedValue(new DomainError(code));
 
-      const response = await POST(
-        request({ query: "10 Herzl Street", city: "Haifa", locationKind: "venue" }),
-      );
+      const response = await POST(request({ query: "10 Herzl Street", purpose: "public_address" }));
 
       expect(response.status).toBe(status);
       expect(mocks.requireActor).toHaveBeenCalledWith("common");
@@ -147,26 +137,28 @@ describe("POST /api/locations/search", () => {
     },
   );
 
-  it("rejects home/private input before authentication, cache, provider, or logging values", async () => {
-    const privateValue = "PRIVATE-HOME-ADDRESS-MUST-NOT-LEAK";
-    const response = await POST(
-      request({ query: privateValue, city: "Haifa", locationKind: "home" }),
-    );
-    const body = await response.json();
+  it("allows protected-home suggestions without storing the query or result", async () => {
+    rpc.mockReset().mockResolvedValueOnce({
+      data: [{ claim_granted: true }],
+      error: null,
+    });
+    const privateValue = "PRIVATE-HOME-ADDRESS-NOT-FOR-STORAGE";
+    const response = await POST(request({ query: privateValue, purpose: "private_home" }));
 
-    expect(response.status).toBe(400);
-    expect(JSON.stringify(body)).not.toContain(privateValue);
-    expect(mocks.requireActor).not.toHaveBeenCalled();
-    expect(mocks.createServiceRoleClient).not.toHaveBeenCalled();
-    expect(mocks.search).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ suggestions: [suggestion] });
+    expect(rpc).toHaveBeenCalledOnce();
+    expect(rpc).toHaveBeenCalledWith("claim_ephemeral_location_search", {
+      input_purpose: "private_home",
+    });
+    expect(mocks.search).toHaveBeenCalledWith(privateValue);
+    expect(JSON.stringify(rpc.mock.calls)).not.toContain(privateValue);
     expect(JSON.stringify(mocks.safeLog.mock.calls)).not.toContain(privateValue);
   });
 
-  it("validates query and city bounds without returning submitted text", async () => {
+  it("validates query bounds without returning submitted text", async () => {
     const submitted = `SENSITIVE-SUBMITTED-${"Q".repeat(170)}`;
-    const response = await POST(
-      request({ query: submitted, city: "Haifa", locationKind: "public_place" }),
-    );
+    const response = await POST(request({ query: submitted, purpose: "public_address" }));
     const body = await response.json();
 
     expect(response.status).toBe(400);
@@ -188,9 +180,7 @@ describe("POST /api/locations/search", () => {
       error: null,
     });
 
-    const response = await POST(
-      request({ query: "10 Herzl Street", city: "Haifa", locationKind: "venue" }),
-    );
+    const response = await POST(request({ query: "10 Herzl Street", purpose: "public_address" }));
 
     expect(response.status).toBe(429);
     expect(response.headers.get("retry-after")).toBe("1");
@@ -201,9 +191,7 @@ describe("POST /api/locations/search", () => {
     const submitted = "SAFE-PUBLIC-QUERY-BUT-NOT-A-LOG-VALUE";
     mocks.search.mockRejectedValue(new DomainError("UPSTREAM_UNAVAILABLE"));
 
-    const response = await POST(
-      request({ query: submitted, city: "Haifa", locationKind: "venue" }),
-    );
+    const response = await POST(request({ query: submitted, purpose: "public_address" }));
     const body = await response.json();
 
     expect(response.status).toBe(503);

@@ -29,7 +29,6 @@ const eventRow = {
   away_team_name: "Away",
   competition_name: "League",
   starts_at: "2026-09-01T18:00:00Z",
-  city_name: "Haifa",
   place_kind: "venue",
   host_kind: "venue",
   requires_approval: true,

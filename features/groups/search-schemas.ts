@@ -12,7 +12,6 @@ const optionalUuid = z.preprocess(firstSearchParam, z.union([z.literal(""), z.uu
 const groupSearchFiltersSchema = z
   .object({
     q: optionalString,
-    city: z.preprocess(firstSearchParam, z.string().optional()),
     team: optionalUuid,
     cursor: z.preprocess(firstSearchParam, z.string().trim().min(1).max(1024).optional()),
     limit: z.preprocess(
@@ -34,7 +33,6 @@ const groupSearchFiltersSchema = z
 
 export type GroupSearchFilters = Readonly<{
   query: string | null;
-  citySlug: string | null;
   teamId: string | null;
   cursor: string | null;
   limit: number;
@@ -44,7 +42,6 @@ export function parseGroupSearchFilters(input: unknown): GroupSearchFilters {
   const raw = groupSearchFiltersSchema.parse(input);
   return {
     query: raw.q === undefined || raw.q === "" ? null : raw.q,
-    citySlug: null,
     teamId: raw.team === undefined || raw.team === "" ? null : raw.team,
     cursor: raw.cursor ?? null,
     limit: raw.limit,

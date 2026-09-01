@@ -161,7 +161,7 @@ export default async function InterestSettingsPage({ searchParams }: InterestSet
       title: team.shortName ?? team.name,
       searchText: `${team.name} ${team.shortName ?? ""} ${team.tla ?? ""}`.toLocaleLowerCase("en"),
       description: "Team",
-      marker: <TeamInitials name={team.name} tla={team.tla} />,
+      marker: <TeamInitials crestUrl={team.crestUrl} name={team.name} tla={team.tla} />,
     })),
   ];
   const matchingItems = items.filter(

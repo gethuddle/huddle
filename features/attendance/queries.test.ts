@@ -17,7 +17,6 @@ const attendanceRow = {
   user_id: "90000000-0000-4000-8000-000000000102",
   requester_handle: "supporter",
   requester_display_name: "Supporter One",
-  requester_city_name: "Haifa",
   status: "requested",
   source: "self_request",
   requested_at: "2026-08-28T12:00:00Z",

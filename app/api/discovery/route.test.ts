@@ -26,7 +26,7 @@ function locatedDiscoveryRequest(body: Record<string, unknown>) {
 const emptyPage = {
   items: [],
   nextCursor: null,
-  locationMode: "city" as const,
+  locationMode: "browser" as const,
   generatedAt: "2026-08-27T20:00:00.000Z",
   requiresPrivateCache: false,
 };
@@ -51,7 +51,6 @@ const legacyExpandedPage = {
       },
       startsAt: "2026-08-30T17:30:00Z",
       endsAt: "2026-08-30T20:30:00Z",
-      cityName: "Haifa",
       placeKind: "venue" as const,
       locationSummary: "1–5 km away",
       mapPoint: { placeName: "The Corner", latitude: 32.812, longitude: 34.998 },
@@ -75,31 +74,22 @@ describe("GET /api/discovery", () => {
     mocks.getDiscoveryPage.mockResolvedValue(emptyPage);
   });
 
-  it("returns a short public cache only for anonymous city discovery", async () => {
-    const response = await GET(discoveryRequest("city=haifa"));
+  it("rejects GET discovery so precise origins never enter URLs or shared caches", async () => {
+    const response = await GET(discoveryRequest("from=2026-08-27"));
 
-    expect(response.status).toBe(200);
-    expect(response.headers.get("cache-control")).toContain("s-maxage=60");
-    await expect(response.json()).resolves.toEqual({
-      items: [],
-      nextCursor: null,
-      locationMode: "city",
-      generatedAt: "2026-08-27T20:00:00.000Z",
-    });
+    expect(response.status).toBe(400);
+    expect(response.headers.get("cache-control")).toContain("no-store");
+    expect(mocks.getDiscoveryPage).not.toHaveBeenCalled();
   });
 
-  it.each([
-    { locationMode: "browser", requiresPrivateCache: false },
-    { locationMode: "city", requiresPrivateCache: true },
-  ])("never shared-caches browser or private results: %o", async (privacy) => {
-    mocks.getDiscoveryPage.mockResolvedValue({ ...emptyPage, ...privacy });
-    const response = await POST(locatedDiscoveryRequest({ city: "haifa", lat: 32.8, lng: 35 }));
+  it("never shared-caches coordinate results", async () => {
+    const response = await POST(locatedDiscoveryRequest({ lat: 32.8, lng: 35 }));
 
     expect(response.headers.get("cache-control")).toContain("no-store");
   });
 
   it("rejects malformed coordinates before querying the database", async () => {
-    const response = await POST(locatedDiscoveryRequest({ city: "haifa", lat: 32.8 }));
+    const response = await POST(locatedDiscoveryRequest({ lat: 32.8 }));
 
     expect(response.status).toBe(400);
     expect(response.headers.get("cache-control")).toContain("no-store");
@@ -107,7 +97,7 @@ describe("GET /api/discovery", () => {
   });
 
   it("rejects precise coordinates in GET query strings", async () => {
-    const response = await GET(discoveryRequest("city=haifa&lat=32.8&lng=35"));
+    const response = await GET(discoveryRequest("lat=32.8&lng=35"));
 
     expect(response.status).toBe(400);
     expect(mocks.getDiscoveryPage).not.toHaveBeenCalled();
@@ -117,7 +107,9 @@ describe("GET /api/discovery", () => {
     mocks.getDiscoveryPage.mockRejectedValue(
       new DomainError("VALIDATION_FAILED", { cause: new Error("private cursor internals") }),
     );
-    const response = await GET(discoveryRequest("city=haifa&cursor=tampered"));
+    const response = await POST(
+      locatedDiscoveryRequest({ lat: 32.8, lng: 35, cursor: "tampered" }),
+    );
     const body = await response.json();
 
     expect(response.status).toBe(400);
@@ -128,7 +120,7 @@ describe("GET /api/discovery", () => {
   it("serializes only the canonical acquisition DTO at the public route boundary", async () => {
     mocks.getDiscoveryPage.mockResolvedValue(legacyExpandedPage);
 
-    const response = await GET(discoveryRequest("city=haifa"));
+    const response = await POST(locatedDiscoveryRequest({ lat: 32.8, lng: 35 }));
     const body = await response.json();
 
     expect(response.status).toBe(200);

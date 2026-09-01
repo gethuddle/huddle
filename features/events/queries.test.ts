@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ createClient: vi.fn() }));
+const mocks = vi.hoisted(() => ({ createClient: vi.fn(), loadTeamVisualsByName: vi.fn() }));
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
+vi.mock("@/features/sports/team-visuals", () => ({
+  loadTeamVisualsByName: mocks.loadTeamVisualsByName,
+}));
 
 import { getEventSummary, listMatchEvents, listVenueEvents } from "./queries";
 
@@ -30,7 +33,6 @@ function safeSummaryRow() {
     away_team_name: "Chelsea FC",
     starts_at: "2026-09-01T17:00:00Z",
     ends_at: "2026-09-01T20:00:00Z",
-    city_name: "Haifa",
     place_kind: "venue",
     public_place_name: null,
     public_address_text: null,
@@ -60,6 +62,12 @@ describe("event safe projections", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.createClient.mockResolvedValue({ rpc });
+    mocks.loadTeamVisualsByName.mockResolvedValue(
+      new Map([
+        ["Arsenal FC", { tla: "ARS", crestUrl: "https://crests.football-data.org/57.png" }],
+        ["Chelsea FC", { tla: "CHE", crestUrl: null }],
+      ]),
+    );
   });
 
   it("maps a safe summary with aggregates but no attendee identities", async () => {
@@ -70,6 +78,12 @@ describe("event safe projections", () => {
     expect(rpc).toHaveBeenCalledWith("get_event_summary", { input_event_id: eventId });
     expect(result).toMatchObject({
       host: { kind: "venue", venueSlug: "match-corner" },
+      match: {
+        homeTeamTla: "ARS",
+        homeTeamCrestUrl: "https://crests.football-data.org/57.png",
+        awayTeamTla: "CHE",
+        awayTeamCrestUrl: null,
+      },
       approvedAttendeeCount: 3,
       remainingCapacity: 77,
     });
@@ -135,6 +149,10 @@ describe("event safe projections", () => {
         id: eventId,
         audience: "team_followers",
         audienceTeamName: "Arsenal FC",
+        match: {
+          homeTeamCrestUrl: "https://crests.football-data.org/57.png",
+          awayTeamTla: "CHE",
+        },
         status: "published",
       },
     ]);

@@ -17,7 +17,6 @@ const group = {
   description: null,
   visibility: "unlisted" as const,
   lifecycle: "active" as const,
-  cityName: "Haifa",
   teamName: null,
   ownerHandle: "owner",
   activeMemberCount: 2,

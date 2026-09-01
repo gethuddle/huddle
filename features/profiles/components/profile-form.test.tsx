@@ -15,11 +15,6 @@ vi.mock("@/features/profiles/actions", () => ({
   saveProfileAction: mocks.saveProfileAction,
 }));
 
-const cities = [
-  { id: "1", slug: "haifa", name: "Haifa" },
-  { id: "2", slug: "jerusalem", name: "Jerusalem" },
-] as const;
-
 describe("ProfileForm", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -30,11 +25,9 @@ describe("ProfileForm", () => {
   it("renders labelled onboarding fields and both required confirmations", () => {
     render(
       <ProfileForm
-        cities={cities}
         initialValue={{
           handle: "",
           displayName: "",
-          citySlug: "",
           bio: "",
           adultAttested: false,
           currentRulesAccepted: false,
@@ -45,7 +38,7 @@ describe("ProfileForm", () => {
 
     expect(screen.getByRole("textbox", { name: "Display name" })).toBeVisible();
     expect(screen.getByRole("textbox", { name: "Handle" })).toBeVisible();
-    expect(screen.getByRole("combobox", { name: "City" })).toBeVisible();
+    expect(screen.queryByRole("combobox", { name: /city/i })).not.toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: /18 or older/i })).toBeVisible();
     expect(screen.getByRole("checkbox", { name: /accept the current/i })).toBeVisible();
     expect(screen.getByRole("button", { name: "Complete profile" })).toBeVisible();
@@ -58,7 +51,6 @@ describe("ProfileForm", () => {
       values: {
         handle: "fan_one",
         displayName: "Fan One",
-        citySlug: "haifa",
         bio: "",
         adultAttested: true,
         rulesAccepted: true,
@@ -67,11 +59,9 @@ describe("ProfileForm", () => {
     });
     render(
       <ProfileForm
-        cities={cities}
         initialValue={{
           handle: "",
           displayName: "",
-          citySlug: "",
           bio: "",
           adultAttested: false,
           currentRulesAccepted: false,
@@ -86,12 +76,8 @@ describe("ProfileForm", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "Handle" }), {
       target: { value: "fan_one" },
     });
-    fireEvent.change(screen.getByRole("combobox", { name: "City" }), {
-      target: { value: "haifa" },
-    });
     fireEvent.click(screen.getByRole("checkbox", { name: /18 or older/i }));
     fireEvent.click(screen.getByRole("checkbox", { name: /accept the current/i }));
-    expect(screen.getByRole("combobox", { name: "City" })).toHaveValue("haifa");
     const submitButton = screen.getByRole("button", { name: "Complete profile" });
     const form = submitButton.closest("form");
     expect(form).not.toBeNull();
@@ -101,7 +87,6 @@ describe("ProfileForm", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Choose another handle.");
     expect(screen.getByRole("textbox", { name: "Display name" })).toHaveValue("Fan One");
     expect(screen.getByRole("textbox", { name: "Handle" })).toHaveValue("fan_one");
-    expect(screen.getByRole("combobox", { name: "City" })).toHaveValue("haifa");
     expect(screen.getByRole("checkbox", { name: /18 or older/i })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: /accept the current/i })).toBeChecked();
   });
@@ -109,11 +94,9 @@ describe("ProfileForm", () => {
   it("renders recorded trust facts without asking a completed user to attest again", () => {
     render(
       <ProfileForm
-        cities={cities}
         initialValue={{
           handle: "fan_one",
           displayName: "Fan One",
-          citySlug: "haifa",
           bio: "",
           adultAttested: true,
           currentRulesAccepted: true,
@@ -132,11 +115,9 @@ describe("ProfileForm", () => {
   it("shows the full rules only when a completed profile must accept a newer version", () => {
     render(
       <ProfileForm
-        cities={cities}
         initialValue={{
           handle: "fan_one",
           displayName: "Fan One",
-          citySlug: "haifa",
           bio: "Match day regular",
           adultAttested: true,
           currentRulesAccepted: false,
@@ -157,11 +138,9 @@ describe("ProfileForm", () => {
   it("presents onboarding as an entry into Fan Home", () => {
     render(
       <ProfileForm
-        cities={cities}
         initialValue={{
           handle: "",
           displayName: "",
-          citySlug: "",
           bio: "",
           adultAttested: false,
           currentRulesAccepted: false,
@@ -177,12 +156,10 @@ describe("ProfileForm", () => {
 
   it("restores unfinished Fan profile fields without persisting legal confirmations", () => {
     const props = {
-      cities,
       draftOwnerId: "account-a",
       initialValue: {
         handle: "",
         displayName: "",
-        citySlug: "",
         bio: "",
         adultAttested: false,
         currentRulesAccepted: false,
@@ -198,9 +175,6 @@ describe("ProfileForm", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "Handle" }), {
       target: { value: "alex_local" },
     });
-    fireEvent.change(screen.getByRole("combobox", { name: "City" }), {
-      target: { value: "haifa" },
-    });
     fireEvent.change(screen.getByRole("textbox", { name: "Short bio (optional)" }), {
       target: { value: "Arsenal and away days" },
     });
@@ -210,7 +184,6 @@ describe("ProfileForm", () => {
     render(<ProfileForm {...props} />);
     expect(screen.getByRole("textbox", { name: "Display name" })).toHaveValue("Alex Local");
     expect(screen.getByRole("textbox", { name: "Handle" })).toHaveValue("alex_local");
-    expect(screen.getByRole("combobox", { name: "City" })).toHaveValue("haifa");
     expect(screen.getByRole("textbox", { name: "Short bio (optional)" })).toHaveValue(
       "Arsenal and away days",
     );

@@ -51,7 +51,7 @@ select is(
   'the cache stores only a digest, bounded public result payload, and expiry metadata'
 );
 select isnt(
-  to_regprocedure('public.claim_public_address_search(text,text,text,text)'),
+  to_regprocedure('public.claim_public_address_search(text,text,text)'),
   null::regprocedure,
   'the server has a controlled cache-hit/global-rate claim function'
 );
@@ -74,7 +74,7 @@ select ok(
 );
 select ok(
   has_function_privilege(
-    'service_role', 'public.claim_public_address_search(text,text,text,text)', 'execute'
+    'service_role', 'public.claim_public_address_search(text,text,text)', 'execute'
   )
   and has_function_privilege(
     'service_role', 'public.store_public_address_search(text,jsonb,integer)', 'execute'
@@ -83,10 +83,10 @@ select ok(
 );
 select ok(
   not has_function_privilege(
-    'anon', 'public.claim_public_address_search(text,text,text,text)', 'execute'
+    'anon', 'public.claim_public_address_search(text,text,text)', 'execute'
   )
   and not has_function_privilege(
-    'authenticated', 'public.claim_public_address_search(text,text,text,text)', 'execute'
+    'authenticated', 'public.claim_public_address_search(text,text,text)', 'execute'
   )
   and not has_function_privilege(
     'anon', 'public.store_public_address_search(text,jsonb,integer)', 'execute'
@@ -100,7 +100,7 @@ select ok(
 create temporary table first_address_claim on commit drop as
 select *
 from public.claim_public_address_search(
-  '10 Herzl Street', 'Haifa', 'il', 'venue'
+  '10 Herzl Street, Haifa', 'il', 'public_address'
 );
 
 select results_eq(
@@ -117,21 +117,21 @@ select is(
 select lives_ok(
   $$select public.store_public_address_search(
     (select query_digest from first_address_claim),
-    '[{"id":"101","label":"10 Herzl Street, Haifa, Israel","city":"Haifa","latitude":32.815,"longitude":34.989}]'::jsonb,
+    '[{"id":"101","label":"10 Herzl Street, Haifa, Israel","latitude":32.815,"longitude":34.989}]'::jsonb,
     3600
   )$$,
   'the service boundary stores a bounded public result payload by digest'
 );
 select results_eq(
   $$select cache_hit, claim_granted, result_payload from public.claim_public_address_search(
-    '  10   HERZL street  ', ' haifa ', 'IL', 'public_place'
+    '  10   HERZL street,  HAIFA ', 'IL', 'public_address'
   )$$,
   $$values (
     true,
     false,
-    '[{"id":"101","city":"Haifa","label":"10 Herzl Street, Haifa, Israel","latitude":32.815,"longitude":34.989}]'::jsonb
+    '[{"id":"101","label":"10 Herzl Street, Haifa, Israel","latitude":32.815,"longitude":34.989}]'::jsonb
   )$$,
-  'normalization makes repeated query/city/country variants a fresh cache hit'
+  'normalization makes repeated address and country variants a fresh cache hit'
 );
 
 update private.public_geocoder_rate_limit
@@ -139,7 +139,7 @@ set next_allowed_at = statement_timestamp() + interval '1 minute'
 where singleton;
 select results_eq(
   $$select cache_hit, claim_granted, (retry_after_ms > 0) from public.claim_public_address_search(
-    '20 Allenby Street', 'Tel Aviv-Yafo', 'il', 'venue'
+    '20 Allenby Street, Tel Aviv-Yafo', 'il', 'public_address'
   )$$,
   $$values (false, false, true)$$,
   'a different cache miss cannot claim another global upstream request inside one second'
@@ -150,25 +150,22 @@ set next_allowed_at = statement_timestamp() - interval '1 second'
 where singleton;
 select results_eq(
   $$select cache_hit, claim_granted from public.claim_public_address_search(
-    '20 Allenby Street', 'Tel Aviv-Yafo', 'il', 'venue'
+    '20 Allenby Street, Tel Aviv-Yafo', 'il', 'public_address'
   )$$,
   $$values (false, true)$$,
   'the next global request is granted only after the shared window has elapsed'
 );
 
-create temporary table cache_count_before_home on commit drop as
-select count(*) as row_count from private.public_address_cache;
-select throws_ok(
-  $$select * from public.claim_public_address_search(
-    'PRIVATE-HOME-ADDRESS-MUST-NOT-BE-CACHED', 'Haifa', 'il', 'home'
-  )$$,
-  'P0001', 'LOCATION_NOT_AUTHORIZED',
-  'the server boundary rejects private-home mode before digesting or caching it'
+update private.public_geocoder_rate_limit
+set next_allowed_at = statement_timestamp() - interval '1 second'
+where singleton;
+create temporary table private_address_claim on commit drop as
+select * from public.claim_public_address_search(
+  'PRIVATE-HOME-ADDRESS-MUST-NOT-BE-CACHED, Haifa', 'il', 'public_address'
 );
-select is(
-  (select count(*) from private.public_address_cache),
-  (select row_count from cache_count_before_home),
-  'a rejected private-home request leaves no cache residue'
+select ok(
+  (select claim_granted and length(query_digest) = 64 from private_address_claim),
+  'a typed home address may use autocomplete while the database retains only its digest'
 );
 select ok(
   not exists (

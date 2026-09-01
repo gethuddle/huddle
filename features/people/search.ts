@@ -42,7 +42,6 @@ const peopleHubRowSchema = z
     profile_id: z.uuid(),
     handle: z.string(),
     display_name: z.string(),
-    city_name: z.string(),
     reason: z.string().nullable(),
     friendship_id: z.uuid().nullable(),
     friendship_status: z.enum(["pending", "accepted"]).nullable(),
@@ -56,7 +55,6 @@ export type PeopleHubItem = Readonly<{
   id: string;
   handle: string;
   displayName: string;
-  cityName: string;
   reason: string | null;
   friendship: Readonly<{
     id: string;
@@ -114,7 +112,6 @@ function toPeopleHubPage(
       id: row.profile_id,
       handle: row.handle,
       displayName: row.display_name,
-      cityName: row.city_name,
       reason: row.reason,
       friendship:
         row.friendship_id === null ||

@@ -8,7 +8,7 @@ import type { AddressSuggestion } from "./types";
 
 const NOMINATIM_ENDPOINT = "https://nominatim.openstreetmap.org/search";
 const ISRAEL_VIEWBOX = "34.2674,33.3356,35.8950,29.4534";
-const HUDDLE_USER_AGENT = "Huddle/0.1 (https://github.com/gethuddle/huddle; public-address-search)";
+const HUDDLE_USER_AGENT = "Huddle/0.1 (https://github.com/gethuddle/huddle; location-search)";
 const DEFAULT_TIMEOUT_MS = 5_000;
 
 type FetchImplementation = (input: URL | RequestInfo, init?: RequestInit) => Promise<Response>;
@@ -27,10 +27,10 @@ export class NominatimPublicGeocoder implements PublicGeocoder {
     this.#timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   }
 
-  async search(query: string, city: string): Promise<readonly AddressSuggestion[]> {
-    const normalized = normalizePublicAddressInput(query, city);
+  async search(query: string): Promise<readonly AddressSuggestion[]> {
+    const normalized = normalizePublicAddressInput(query);
     const requestUrl = new URL(NOMINATIM_ENDPOINT);
-    requestUrl.searchParams.set("q", `${normalized.query}, ${normalized.city}, Israel`);
+    requestUrl.searchParams.set("q", `${normalized}, Israel`);
     requestUrl.searchParams.set("countrycodes", "il");
     requestUrl.searchParams.set("format", "jsonv2");
     requestUrl.searchParams.set("addressdetails", "1");
@@ -70,12 +70,6 @@ export class NominatimPublicGeocoder implements PublicGeocoder {
         .map((row) => ({
           id: String(row.place_id),
           label: row.display_name,
-          city:
-            row.address.city ??
-            row.address.town ??
-            row.address.village ??
-            row.address.municipality ??
-            normalized.city,
           latitude: row.lat,
           longitude: row.lon,
         }));

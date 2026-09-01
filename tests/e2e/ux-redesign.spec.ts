@@ -4,6 +4,7 @@ import {
   type BrowserContext,
   type ConsoleMessage,
   type Page,
+  type Route,
   type TestInfo,
 } from "@playwright/test";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
@@ -84,6 +85,11 @@ function localAdminClient() {
 
 function sqlLiteral(value: string) {
   return `'${value.replaceAll("'", "''")}'`;
+}
+
+function addIsoDays(dateValue: string, days: number) {
+  const [year, month, day] = dateValue.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
 }
 
 function localDatabaseQuery(sql: string) {
@@ -242,6 +248,7 @@ async function seedFixtureCatalog(runKey: string) {
         name: "North Stand FC",
         short_name: "North Stand",
         tla: "NSF",
+        crest_url: "https://crests.football-data.org/57.png",
         country_name: "England",
       },
       {
@@ -441,15 +448,24 @@ async function signUpAndVerify(
   await expect(page.getByRole("heading", { name: "How will you use Huddle?" })).toBeVisible();
 }
 
-async function completeFan(page: Page, handle: string, displayName: string, citySlug = "haifa") {
+async function completeFan(page: Page, handle: string, displayName: string) {
   await page.getByRole("link", { name: "Set up Fan", exact: true }).click();
+  await expectNoCityControl(page);
   await page.getByRole("textbox", { name: "Display name" }).fill(displayName);
   await page.getByRole("textbox", { name: "Handle" }).fill(handle);
-  await page.getByRole("combobox", { name: "City" }).selectOption(citySlug);
   await page.getByRole("checkbox", { name: /18 or older/i }).click();
   await page.getByRole("checkbox", { name: /accept the current/i }).click();
   await page.getByRole("button", { name: "Start using Huddle" }).click();
   await expect(page).toHaveURL(/^http:\/\/(?:localhost|127\.0\.0\.1):3000\/$/);
+}
+
+async function expectNoCityControl(page: Page) {
+  await expect(page.getByRole("combobox", { name: /city/i })).toHaveCount(0);
+  await expect(
+    page.locator(
+      'input[name="city" i], input[name="cityId" i], input[name="citySlug" i], input[name="city_id" i], select[name="city" i], select[name="cityId" i], select[name="citySlug" i], select[name="city_id" i]',
+    ),
+  ).toHaveCount(0);
 }
 
 function recordBrowserFailures(page: Page) {
@@ -463,6 +479,34 @@ function recordBrowserFailures(page: Page) {
 
 function journeyUrl(page: Page, pathname: string) {
   return new URL(pathname, page.url()).toString();
+}
+
+async function confirmPrivateHomeAddress(page: Page, address: string, id: string) {
+  const routePattern = "**/api/locations/search";
+  const routeHandler = async (route: Route) => {
+    expect(route.request().postDataJSON()).toEqual({
+      purpose: "private_home",
+      query: address,
+    });
+    await route.fulfill({
+      body: JSON.stringify({
+        suggestions: [
+          {
+            id,
+            label: address,
+            latitude: 32.812,
+            longitude: 34.998,
+          },
+        ],
+      }),
+      contentType: "application/json",
+      status: 200,
+    });
+  };
+  await page.route(routePattern, routeHandler);
+  await page.getByRole("combobox", { name: "Home address" }).fill(address);
+  await page.getByRole("option", { name: address }).click();
+  await page.unroute(routePattern, routeHandler);
 }
 
 async function expectNoHorizontalOverflow(page: Page) {
@@ -655,11 +699,13 @@ test("complete deterministic Fan and Venue workspace journey", async ({
   cleanupJourney();
   await clearMailbox();
   const fixtureCatalog = await seedFixtureCatalog(identity.runKey);
-  const focusedDiscoveryPath = `/discover?city=haifa&team=${fixtureCatalog.homeTeamId}`;
+  const focusedDiscoveryPath = `/discover?team=${fixtureCatalog.homeTeamId}`;
   page.setDefaultTimeout(15_000);
   const ownerErrors = recordBrowserFailures(page);
   const participantContext = await browser.newContext({
     baseURL: "http://127.0.0.1:3000",
+    geolocation: { latitude: 32.81303, longitude: 34.99928 },
+    permissions: ["geolocation"],
     viewport,
   });
   const participantPage = await participantContext.newPage();
@@ -667,15 +713,12 @@ test("complete deterministic Fan and Venue workspace journey", async ({
   const participantErrors = recordBrowserFailures(participantPage);
 
   try {
+    await context.grantPermissions(["geolocation"], { origin: "http://127.0.0.1:3000" });
+    await context.setGeolocation({ latitude: 32.81303, longitude: 34.99928 });
     await signUpAndVerify(page, context, identity.ownerEmail, password);
     await completeFan(page, identity.ownerHandle, identity.ownerName);
     await signUpAndVerify(participantPage, participantContext, identity.participantEmail, password);
-    await completeFan(
-      participantPage,
-      identity.participantHandle,
-      identity.participantName,
-      "ashdod",
-    );
+    await completeFan(participantPage, identity.participantHandle, identity.participantName);
 
     await page.goto(journeyUrl(page, "/"));
     await expect(
@@ -700,11 +743,61 @@ test("complete deterministic Fan and Venue workspace journey", async ({
     );
     await page.getByRole("button", { name: "Follow North Stand" }).click();
     await expect(page.getByRole("button", { name: "Unfollow North Stand" })).toBeVisible();
+    await expect(page.getByRole("img", { name: "North Stand FC" }).first()).toHaveAttribute(
+      "src",
+      expect.stringContaining("crests.football-data.org/57.png"),
+    );
 
-    await page.goto(journeyUrl(page, "/discover?city=haifa"));
+    await page.goto(journeyUrl(page, "/discover"));
     await expect(page.getByRole("heading", { name: "Explore watch events" })).toBeVisible();
     await expectFanNavigation(page, project.width, "Explore");
     await expect(page.getByRole("button", { name: "Change Explore search" })).toBeVisible();
+    await expectNoCityControl(page);
+
+    await context.clearPermissions();
+    await page.evaluate(() => window.sessionStorage.removeItem("huddle:discovery-origin"));
+    await page.reload();
+    await expect(page.getByRole("status")).toContainText("Location was unavailable or declined");
+    const originQuery = `Dizengoff Square ${project.label}`;
+    const originLabel = `${originQuery}, Tel Aviv-Yafo, Israel`;
+    const originRoute = async (route: Route) => {
+      expect(route.request().postDataJSON()).toEqual({ query: originQuery, purpose: "origin" });
+      await route.fulfill({
+        body: JSON.stringify({
+          suggestions: [
+            {
+              id: `ux14-${identity.runKey}-origin`,
+              label: originLabel,
+              latitude: 32.077,
+              longitude: 34.774,
+            },
+          ],
+        }),
+        contentType: "application/json",
+        status: 200,
+      });
+    };
+    await page.route("**/api/locations/search", originRoute);
+    await page.getByText("Search an area or address", { exact: true }).click();
+    await page.getByRole("combobox", { name: "Area or address" }).fill(originQuery);
+    await page.getByRole("option", { name: originLabel }).click();
+    await expect(page.getByText(`Near ${originLabel}`)).toBeVisible();
+    expect(new URL(page.url()).searchParams.has("lat")).toBe(false);
+    expect(new URL(page.url()).searchParams.has("lng")).toBe(false);
+    expect(new URL(page.url()).searchParams.has("city")).toBe(false);
+    await page.unroute("**/api/locations/search", originRoute);
+
+    await page.getByRole("button", { name: "Change Explore search" }).click();
+    const fromField = page.getByLabel("From", { exact: true });
+    const fromValue = await fromField.inputValue();
+    await page.getByLabel("To", { exact: true }).fill(addIsoDays(fromValue, 60));
+    await page.getByRole("button", { name: "Show events" }).click();
+    await expect(page).toHaveURL(new RegExp(`to=${addIsoDays(fromValue, 60)}`));
+    await expect(page.getByRole("heading", { name: "Check your search dates" })).toHaveCount(0);
+    await expectNoCityControl(page);
+    await context.grantPermissions(["geolocation"], { origin: new URL(page.url()).origin });
+    await page.getByRole("button", { name: "Use my current location" }).click();
+    await expect(page.getByText("Using this browser location")).toBeVisible();
 
     const latinResults = await searchPeople(page, "José");
     await expect(latinResults.getByRole("link", { name: identity.participantName })).toBeVisible();
@@ -718,6 +811,7 @@ test("complete deterministic Fan and Venue workspace journey", async ({
     await expect(participantPage.getByRole("status")).toHaveText("Friend request accepted.");
 
     await page.goto(journeyUrl(page, "/groups/new"));
+    await expectNoCityControl(page);
     await page.getByRole("textbox", { name: "Group name" }).fill(identity.groupName);
     await page
       .getByRole("textbox", { name: "Short description" })
@@ -788,18 +882,19 @@ test("complete deterministic Fan and Venue workspace journey", async ({
     await expect(participantPage.getByText("Your role: member")).toBeVisible();
 
     await page.goto(journeyUrl(page, "/events/new"));
+    await expectNoCityControl(page);
     await selectJourneyFixture(page);
     await page.getByRole("button", { name: "Next: place and audience" }).click();
+    await expectNoCityControl(page);
     await page.getByRole("textbox", { name: "Event title" }).fill(identity.eventTitle);
-    await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
     await page
       .getByRole("textbox", { name: "Description" })
       .fill("A deterministic private huddle whose server-side draft survives reload.");
     const privateAddress = `44 UX14 ${project.label} Home, Haifa`;
-    await page.getByRole("textbox", { name: "Private address" }).fill(privateAddress);
-    const map = page.getByRole("region", { name: "Map for choosing a private location" });
-    await map.focus();
-    await map.press("ArrowRight");
+    await confirmPrivateHomeAddress(page, privateAddress, `ux14-${identity.runKey}-private-home`);
+    await expect(
+      page.getByRole("region", { name: "Map for choosing a meeting point" }),
+    ).toBeVisible();
     await page.getByRole("checkbox", { name: /I will be present/i }).click();
     await page.getByRole("button", { name: "Next: review and publish" }).click();
     await expect(page).toHaveURL(/\/events\/new\?draft=[0-9a-f-]{36}$/);
@@ -808,7 +903,7 @@ test("complete deterministic Fan and Venue workspace journey", async ({
     await page.reload();
     await expect(page).toHaveURL(draftUrl);
     await expect(page.getByText(identity.eventTitle, { exact: true })).toBeVisible();
-    await expect(page.getByText("Protected home location in Haifa")).toBeVisible();
+    await expect(page.getByText("Protected home address confirmed")).toBeVisible();
     await page.getByRole("button", { name: "Publish event" }).click();
     await expect(page).toHaveURL(/\/events\/[0-9a-f-]{36}\?created=1$/);
     const eventPath = new URL(page.url()).pathname;
@@ -882,7 +977,6 @@ test("complete deterministic Fan and Venue workspace journey", async ({
             {
               id: `ux14-${identity.runKey}-address`,
               label: venueAddress,
-              city: "Haifa",
               latitude: 32.81303,
               longitude: 34.99928,
             },
@@ -900,9 +994,9 @@ test("complete deterministic Fan and Venue workspace journey", async ({
     await expect(
       page.getByRole("heading", { name: "Give your business its own workspace." }),
     ).toBeVisible();
+    await expectNoCityControl(page);
     await page.getByRole("textbox", { name: "Venue name" }).fill(identity.venueName);
     await page.getByRole("textbox", { name: "Venue URL" }).fill(identity.venueSlug);
-    await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
     await expect(page.locator('input[name="longitude"], input[name="latitude"]')).toHaveCount(0);
     await page.getByRole("combobox", { name: "Public address" }).fill(venueAddressQuery);
     await expect(
@@ -944,18 +1038,21 @@ test("complete deterministic Fan and Venue workspace journey", async ({
       `/venues/${identity.venueSlug}/workspace`,
     );
     expect(addressRequests).toEqual([
-      { query: venueAddressQuery, city: "Haifa", locationKind: "venue" },
-      { query: venueAddressQuery, city: "Haifa", locationKind: "venue" },
+      { query: venueAddressQuery, purpose: "public_address" },
+      { query: venueAddressQuery, purpose: "public_address" },
     ]);
     await page.unroute("**/api/locations/search");
 
     await page.goto(journeyUrl(page, `/venues/${identity.venueSlug}/workspace/settings`));
+    await expectNoCityControl(page);
     await expectVenueNavigation(page, project.width, "Venue");
     await expect(
       page.getByLabel("Self-listed venue · business identity not checked by Huddle"),
     ).toBeVisible();
     await expect(page.getByRole("textbox", { name: "Venue name" })).toHaveValue(identity.venueName);
-    await expect(page.getByText(venueAddress, { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Public address" }).getByText(venueAddress, { exact: true }),
+    ).toBeVisible();
     await page
       .getByRole("textbox", { name: "House information" })
       .fill("Doors open 45 minutes before kickoff.");
@@ -1051,6 +1148,12 @@ test("complete deterministic Fan and Venue workspace journey", async ({
     for (const title of identity.publishedVenueTitles) {
       await expect(participantPage.getByText(title, { exact: true })).toBeVisible();
     }
+    await expect(
+      participantPage.getByRole("img", { name: "North Stand FC" }).first(),
+    ).toHaveAttribute("src", expect.stringContaining("crests.football-data.org/57.png"));
+    await expect(participantPage.getByRole("img", { name: "South Bank FC" }).first()).toHaveText(
+      "SBF",
+    );
 
     await page.goto(journeyUrl(page, `/venues/${identity.venueSlug}/workspace`));
     await expectVenueNavigation(page, project.width, "Today");
@@ -1110,18 +1213,20 @@ test("complete deterministic Fan and Venue workspace journey", async ({
     await workspaceTrigger.click();
     await expect(workspaceMenu.getByText(identity.ownerName, { exact: true })).toBeVisible();
     await expect(workspaceMenu.getByText(identity.venueName, { exact: true })).toBeVisible();
-    await page.screenshot({
-      animations: "disabled",
-      caret: "hide",
-      fullPage: false,
-      path: path.join(
-        process.cwd(),
-        "docs",
-        "evidence",
-        "ux-redesign",
-        `${project.key === "desktop" ? "desktop-1280" : project.key === "tablet" ? "tablet-768" : "mobile-375"}.png`,
-      ),
-    });
+    if (process.env.UPDATE_UX_EVIDENCE === "1") {
+      await page.screenshot({
+        animations: "disabled",
+        caret: "hide",
+        fullPage: false,
+        path: path.join(
+          process.cwd(),
+          "docs",
+          "evidence",
+          "ux-redesign",
+          `${project.key === "desktop" ? "desktop-1280" : project.key === "tablet" ? "tablet-768" : "mobile-375"}.png`,
+        ),
+      });
+    }
     await page.keyboard.press("Escape");
     await expect(workspaceTrigger).toBeFocused();
 

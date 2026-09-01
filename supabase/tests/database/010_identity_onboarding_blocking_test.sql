@@ -5,21 +5,11 @@ set local search_path = extensions, public, pg_catalog;
 
 select no_plan();
 
-select has_table('public', 'cities', 'B02 creates the city catalog');
 select has_table('public', 'profiles', 'B02 creates Auth-linked profiles');
 select has_table('public', 'platform_roles', 'B02 creates platform roles');
 select has_table('public', 'user_blocks', 'B02 creates private block records');
 select has_table('public', 'security_audit_events', 'B02 creates security audit evidence');
 
-select ok(
-  (
-    select relation.relrowsecurity and relation.relforcerowsecurity
-    from pg_class as relation
-    join pg_namespace as namespace on namespace.oid = relation.relnamespace
-    where namespace.nspname = 'public' and relation.relname = 'cities'
-  ),
-  'cities has RLS enabled and forced'
-);
 select ok(
   (
     select relation.relrowsecurity and relation.relforcerowsecurity
@@ -57,18 +47,6 @@ select ok(
   'security audit events has RLS enabled and forced'
 );
 
-select is((select count(*) from public.cities), 13::bigint, 'the reviewed city seed is present');
-select is(
-  (select count(*) from public.cities where center is null),
-  0::bigint,
-  'every seeded city has a PostGIS center'
-);
-select has_index(
-  'public',
-  'cities',
-  'cities_center_gist_idx',
-  'cities has the required spatial index'
-);
 select has_index(
   'public',
   'profiles',
@@ -88,25 +66,6 @@ select is(
   'platform roles are limited to moderator and admin'
 );
 
-select throws_ok(
-  $$insert into public.cities (slug, name_en, center) select 'invalid slug', 'Constraint City', center from public.cities where slug = 'haifa'$$,
-  '23514',
-  'new row for relation "cities" violates check constraint "cities_slug_format_check"',
-  'city slugs enforce the normalized format constraint'
-);
-select throws_ok(
-  $$insert into public.cities (slug, name_en, center) select 'constraint-city-name', 'X', center from public.cities where slug = 'haifa'$$,
-  '23514',
-  'new row for relation "cities" violates check constraint "cities_name_en_length_check"',
-  'city names enforce the trimmed length constraint'
-);
-select throws_ok(
-  $$insert into public.cities (slug, name_en, center) select 'haifa', 'Duplicate Haifa', center from public.cities where slug = 'haifa'$$,
-  '23505',
-  'duplicate key value violates unique constraint "cities_slug_key"',
-  'city slugs remain unique'
-);
-
 select ok(not has_table_privilege('anon', 'public.profiles', 'select'), 'anonymous cannot read profile rows');
 select ok(has_table_privilege('authenticated', 'public.profiles', 'select'), 'authenticated owners can read their profile row');
 select ok(not has_table_privilege('authenticated', 'public.profiles', 'update'), 'profiles cannot be forged with direct updates');
@@ -114,8 +73,8 @@ select ok(not has_table_privilege('authenticated', 'public.profiles', 'insert'),
 select ok(not has_table_privilege('authenticated', 'public.platform_roles', 'select'), 'ordinary users cannot enumerate platform roles');
 select ok(not has_table_privilege('authenticated', 'public.security_audit_events', 'select'), 'ordinary users cannot enumerate security audit events');
 select ok(not has_table_privilege('authenticated', 'public.user_blocks', 'insert'), 'blocks cannot be forged with direct inserts');
-select ok(not has_function_privilege('anon', 'public.complete_profile(text,text,text,text,boolean,integer)', 'execute'), 'anonymous cannot complete a profile');
-select ok(has_function_privilege('authenticated', 'public.complete_profile(text,text,text,text,boolean,integer)', 'execute'), 'authenticated users may invoke controlled onboarding');
+select ok(not has_function_privilege('anon', 'public.complete_profile(text,text,text,boolean,integer)', 'execute'), 'anonymous cannot complete a profile');
+select ok(has_function_privilege('authenticated', 'public.complete_profile(text,text,text,boolean,integer)', 'execute'), 'authenticated users may invoke controlled onboarding');
 select ok(not has_function_privilege('anon', 'public.block_user(text,uuid)', 'execute'), 'anonymous cannot block a user');
 select ok(not has_function_privilege('authenticated', 'private.assert_actor(boolean)', 'execute'), 'the actor assertion helper is not directly exposed');
 
@@ -235,17 +194,10 @@ select throws_ok(
   'insert or update on table "profiles" violates foreign key constraint "profiles_id_fkey"',
   'profiles must reference an Auth user'
 );
-select throws_ok(
-  $$update public.profiles set city_id = '20000000-0000-4000-8000-000000000002' where id = '10000000-0000-4000-8000-000000000004'$$,
-  '23503',
-  'insert or update on table "profiles" violates foreign key constraint "profiles_city_id_fkey"',
-  'profile city choices must reference the city catalog'
-);
-
 set local role authenticated;
 set local "request.jwt.claim.sub" = '10000000-0000-4000-8000-000000000003';
 select throws_ok(
-  $$select * from public.complete_profile('unverified', 'Unverified Fan', 'haifa', '', true, 1)$$,
+  $$select * from public.complete_profile('unverified', 'Unverified Fan', '', true, 1)$$,
   'P0001',
   'EMAIL_NOT_VERIFIED',
   'an unverified account cannot complete onboarding'
@@ -253,43 +205,37 @@ select throws_ok(
 
 set local "request.jwt.claim.sub" = '10000000-0000-4000-8000-000000000001';
 select throws_ok(
-  $$select * from public.complete_profile('fan_one', 'Fan One', 'haifa', '', false, 1)$$,
+  $$select * from public.complete_profile('fan_one', 'Fan One', '', false, 1)$$,
   'P0001',
   'ADULT_ATTESTATION_REQUIRED',
   'adult attestation is required by the database function'
 );
 select throws_ok(
-  $$select * from public.complete_profile('fan_one', 'Fan One', 'haifa', '', true, 0)$$,
+  $$select * from public.complete_profile('fan_one', 'Fan One', '', true, 0)$$,
   'P0001',
   'RULES_ACCEPTANCE_REQUIRED',
   'the current rules version is required by the database function'
 );
-select throws_ok(
-  $$select * from public.complete_profile('fan_one', 'Fan One', 'missing-city', '', true, 1)$$,
-  'P0001',
-  'VALIDATION_FAILED',
-  'an inactive or unknown city is rejected'
-);
 select lives_ok(
-  $$select * from public.complete_profile('Fan_One', 'Fan One', 'haifa', 'Football and friends.', true, 1)$$,
+  $$select * from public.complete_profile('Fan_One', 'Fan One', 'Football and friends.', true, 1)$$,
   'a verified adult can complete onboarding'
 );
 
 set local "request.jwt.claim.sub" = '10000000-0000-4000-8000-000000000002';
 select throws_ok(
-  $$select * from public.complete_profile('fan_one', 'Fan Two', 'netanya', '', true, 1)$$,
+  $$select * from public.complete_profile('fan_one', 'Fan Two', '', true, 1)$$,
   'P0001',
   'HANDLE_UNAVAILABLE',
   'case-insensitive duplicate handles are rejected'
 );
 select lives_ok(
-  $$select * from public.complete_profile('fan_two', 'Fan Two', 'netanya', '', true, 1)$$,
+  $$select * from public.complete_profile('fan_two', 'Fan Two', '', true, 1)$$,
   'a second user can choose a distinct handle'
 );
 
 set local "request.jwt.claim.sub" = '10000000-0000-4000-8000-000000000005';
 select lives_ok(
-  $$select * from public.complete_profile('suspended_fan', 'Suspended Fan', 'ashdod', '', true, 1)$$,
+  $$select * from public.complete_profile('suspended_fan', 'Suspended Fan', '', true, 1)$$,
   'the suspension fixture completes before platform suspension'
 );
 reset role;
@@ -347,7 +293,6 @@ select is(
   ),
   array[
     'bio',
-    'city_name',
     'display_name',
     'friendship_direction',
     'friendship_id',

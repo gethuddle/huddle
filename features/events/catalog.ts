@@ -43,7 +43,6 @@ const venueMatchRowSchema = z
   .strict();
 
 export type PrivateEventCatalog = Readonly<{
-  cities: readonly Readonly<{ id: string; name: string; slug: string }>[];
   matches: readonly Readonly<{
     id: string;
     label: string;
@@ -88,19 +87,12 @@ export async function getPrivateEventCatalog(
   if (user === null) throw new DomainError("AUTH_REQUIRED");
 
   const [
-    citiesResult,
     matchesResult,
     selectedMatchResult,
     membershipResult,
     friendshipResult,
     subscriptionResult,
   ] = await Promise.all([
-    supabase
-      .from("cities")
-      .select("id, name_en, slug")
-      .eq("active", true)
-      .order("name_en")
-      .limit(100),
     supabase
       .from("public_future_matches")
       .select(
@@ -136,7 +128,6 @@ export async function getPrivateEventCatalog(
   ]);
 
   const firstError =
-    citiesResult.error ??
     matchesResult.error ??
     selectedMatchResult.error ??
     membershipResult.error ??
@@ -175,11 +166,6 @@ export async function getPrivateEventCatalog(
     ),
   );
   return {
-    cities: (citiesResult.data ?? []).map((city) => ({
-      id: city.id,
-      name: city.name_en,
-      slug: city.slug,
-    })),
     matches: matches.map((match) => ({
       id: match.id,
       label: match.home_team_name + " vs " + match.away_team_name + " — " + match.competition_name,

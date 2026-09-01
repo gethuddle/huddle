@@ -7,11 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { AddressSearch } from "@/features/locations/components/address-search";
 import type { AddressSuggestion } from "@/features/locations/types";
-import type { CityOption } from "@/features/profiles/components/profile-form";
 import { activateVenueOnboardingAction } from "@/features/workspaces/actions";
 import type { WorkspaceActionState } from "@/features/workspaces/state";
 import {
@@ -36,26 +34,20 @@ const FACILITIES = [
   ["drinks", "Drinks"],
 ] as const;
 
-export function VenueOnboardingForm({
-  cities,
-  ownerId,
-}: Readonly<{ cities: readonly CityOption[]; ownerId: string }>) {
+export function VenueOnboardingForm({ ownerId }: Readonly<{ ownerId: string }>) {
   const formRef = useRef<HTMLFormElement>(null);
   const draftKey = onboardingSessionDraftKey("venue", ownerId);
   const restoredDraftRef = useRef<StoredFormDraft<VenueDraftExtra> | null>(null);
-  const [cityId, setCityId] = useState("");
   const [address, setAddress] = useState<AddressSuggestion | null>(null);
   const [attendanceMode, setAttendanceMode] = useState<AttendanceMode>("reservations");
   const [state, setState] = useState<WorkspaceActionState>(null);
   const [pending, startTransition] = useTransition();
-  const city = cities.find((candidate) => candidate.id === cityId) ?? null;
 
   useEffect(() => {
     const draft = readSessionFormDraft<VenueDraftExtra>(draftKey);
     if (draft === null) return;
     restoredDraftRef.current = draft;
     const frame = window.requestAnimationFrame(() => {
-      setCityId(draft.values.cityId ?? "");
       setAttendanceMode(draft.values.attendanceMode === "open_door" ? "open_door" : "reservations");
       setAddress(draft.extra?.address ?? null);
     });
@@ -70,7 +62,7 @@ export function VenueOnboardingForm({
       return;
     }
     writeSessionFormDraft(draftKey, formRef.current, { address });
-  }, [address, attendanceMode, cityId, draftKey]);
+  }, [address, attendanceMode, draftKey]);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -91,7 +83,6 @@ export function VenueOnboardingForm({
       const result = await activateVenueOnboardingAction({
         name: formData.get("name") as string,
         slug: formData.get("slug") as string,
-        cityId: formData.get("cityId") as string,
         address: confirmedAddress,
         description: formData.get("description") as string,
         mainSpaceName: formData.get("mainSpaceName") as string,
@@ -143,34 +134,7 @@ export function VenueOnboardingForm({
         </div>
       </div>
 
-      <div>
-        <Label htmlFor="venue-city">City</Label>
-        <NativeSelect
-          id="venue-city"
-          name="cityId"
-          onChange={(event) => {
-            setCityId(event.currentTarget.value);
-            setAddress(null);
-          }}
-          required
-          value={cityId}
-        >
-          <NativeSelectOption value="">Choose a city</NativeSelectOption>
-          {cities.map((option) => (
-            <NativeSelectOption key={option.id} value={option.id}>
-              {option.name}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-      </div>
-
-      {city === null ? (
-        <p className="rounded-2xl border border-border bg-muted p-5 text-sm text-muted-foreground">
-          Choose the venue city before searching for its public address.
-        </p>
-      ) : (
-        <AddressSearch city={city.name} key={city.id} locationKind="venue" onConfirm={setAddress} />
-      )}
+      <AddressSearch onConfirm={setAddress} purpose="public_address" />
 
       {address === null ? null : (
         <div className="rounded-2xl border border-court/30 bg-court/10 p-5" role="status">

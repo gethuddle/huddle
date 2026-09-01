@@ -12,6 +12,8 @@ The 31 August discovery-consistency revision makes a described owner-backed grou
 
 The current Calm Explore revision replaces the dark, route-heavy interface with a light-first, border-led hierarchy; combines fixture, date, team, area, event, group, list, and map discovery under Explore; adds repository-owned team marks; completes friendship and invitation outcomes; provides secure event invite links; and gives Venue owners an audited Close venue action. The [86-action flow matrix](./docs/evidence/calm-explore/ACTION-MATRIX.md) and [bounded final UX audit](./docs/evidence/calm-explore/UX-AUDIT.md) record the current behavior and evidence.
 
+The approved cityless-location revision removes the redundant city catalog and every city selector. Explore uses either the browser's current position or a confirmed OpenStreetMap/Photon address for session-only distance ranking; public places and venues store confirmed coordinates, while exact home coordinates stay in the protected location domain. Groups have no locality and public groups are ranked globally by active-member count. Official football-data crest URLs flow through the local catalog to every shared team-mark surface, with accessible initials when artwork is unavailable.
+
 ## The problem
 
 Sports are better with other people, but it can be difficult to find nearby fans of the same team or a venue showing a particular match. The problem is especially noticeable for people who are new to a city, support a foreign team, or follow a less popular competition.

@@ -17,7 +17,7 @@ export async function getGroupCreationViewerState(): Promise<GroupCreationViewer
   const profileResult = await supabase
     .from("profiles")
     .select(
-      "handle, display_name, city_id, adult_attested_at, rules_version, rules_accepted_at, profile_completed_at, fan_enabled_at, suspended_at, suspension_expires_at, community_restricted_at, community_restricted_until",
+      "handle, display_name, adult_attested_at, rules_version, rules_accepted_at, profile_completed_at, fan_enabled_at, suspended_at, suspension_expires_at, community_restricted_at, community_restricted_until",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -38,8 +38,7 @@ export async function getGroupCreationViewerState(): Promise<GroupCreationViewer
     profileComplete:
       profile.profile_completed_at !== null &&
       profile.handle !== null &&
-      profile.display_name !== null &&
-      profile.city_id !== null,
+      profile.display_name !== null,
     fanEnabled: profile.fan_enabled_at !== null,
     suspended: profile.suspended_at !== null,
     restricted:

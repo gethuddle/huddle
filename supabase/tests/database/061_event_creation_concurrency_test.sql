@@ -89,7 +89,6 @@ begin
           when '62000000-0000-4000-8000-000000000102' then 'B07 Event Race Owner'
           when '62000000-0000-4000-8000-000000000103' then 'B07 Event Race Member'
         end,
-        city_id = (select id from public.cities where slug = 'haifa'),
         adult_attested_at = statement_timestamp(),
         rules_version = 1,
         rules_accepted_at = statement_timestamp(),
@@ -145,14 +144,13 @@ begin
       );
 
       insert into public.groups (
-        id, slug, name, owner_id, city_id, visibility, lifecycle,
+        id, slug, name, owner_id, visibility, lifecycle,
         description, activated_at
       )
       values (
         '62000000-0000-4000-8000-000000000205',
         'b07-event-race-group', 'B07 Event Race Group',
         '62000000-0000-4000-8000-000000000102',
-        (select id from public.cities where slug = 'haifa'),
         'unlisted', 'active',
         'A deterministic group for event authorization concurrency tests.',
         statement_timestamp()
@@ -215,7 +213,6 @@ select is(
         'Respect every registered attendee.', 'No commercial affiliation',
         true, statement_timestamp() + interval '7 days',
         statement_timestamp() + interval '7 days 3 hours',
-        (select id from public.cities where slug = 'haifa'),
         'home', null, null, null, null, null,
         'invite_only', null, null, 6, true,
         '91 Protected Event Street, Haifa',
@@ -257,7 +254,6 @@ select is(
         'Respect every registered attendee.', 'No commercial affiliation',
         true, statement_timestamp() + interval '7 days',
         statement_timestamp() + interval '7 days 3 hours',
-        (select id from public.cities where slug = 'haifa'),
         'home', null, null, null, null, null,
         'invite_only', null, null, 6, true,
         '92 Protected Event Street, Haifa',
@@ -388,7 +384,6 @@ select is(
         'Respect every registered attendee.', 'No commercial affiliation',
         true, statement_timestamp() + interval '7 days',
         statement_timestamp() + interval '7 days 3 hours',
-        (select id from public.cities where slug = 'haifa'),
         'home', null, null, null, null, null,
         'group', null, '62000000-0000-4000-8000-000000000205', 6, true,
         '93 Protected Event Street, Haifa',

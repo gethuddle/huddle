@@ -10,13 +10,11 @@ describe("group search filters", () => {
   it("normalizes optional filters without introducing a hidden mode", () => {
     const filters = parseGroupSearchFilters({
       q: "  Arsenal supporters  ",
-      city: "HAIFA",
       team: "70000000-0000-4000-8000-000000000001",
     });
 
     expect(filters).toMatchObject({
       query: "Arsenal supporters",
-      citySlug: null,
       limit: 20,
     });
     expect(groupSearchFilterIdentity(filters)).toEqual({
@@ -26,7 +24,7 @@ describe("group search filters", () => {
   });
 
   it("serializes the opaque cursor with the visible filters", () => {
-    const filters = parseGroupSearchFilters({ q: "supporters", city: "haifa" });
+    const filters = parseGroupSearchFilters({ q: "supporters" });
     const query = groupSearchParams(filters, "signed-cursor");
 
     expect(query.get("q")).toBe("supporters");
@@ -40,6 +38,7 @@ describe("group search filters", () => {
     { team: "not-a-uuid" },
     { limit: "51" },
     { extra: "not-allowed" },
+    { city: "haifa" },
   ])("rejects malformed filters: %o", (input) => {
     expect(() => parseGroupSearchFilters(input)).toThrow();
   });

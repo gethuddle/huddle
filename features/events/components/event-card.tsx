@@ -31,11 +31,21 @@ export function EventCard({
       </CardHeader>
       <CardContent>
         <div className="flex items-center gap-3">
-          <TeamMark name={event.match.homeTeamName} size="sm" tla={null} />
+          <TeamMark
+            crestUrl={event.match.homeTeamCrestUrl}
+            name={event.match.homeTeamName}
+            size="sm"
+            tla={event.match.homeTeamTla}
+          />
           <p className="min-w-0 font-semibold text-foreground">
             {event.match.homeTeamName} vs {event.match.awayTeamName}
           </p>
-          <TeamMark name={event.match.awayTeamName} size="sm" tla={null} />
+          <TeamMark
+            crestUrl={event.match.awayTeamCrestUrl}
+            name={event.match.awayTeamName}
+            size="sm"
+            tla={event.match.awayTeamTla}
+          />
         </div>
         <p className="mt-2 text-sm text-muted-foreground">{event.match.competitionName}</p>
         <p className="mt-4 text-sm font-semibold text-forest">

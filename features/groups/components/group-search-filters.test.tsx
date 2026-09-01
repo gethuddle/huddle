@@ -10,11 +10,10 @@ describe("GroupSearchFilters", () => {
     render(
       <GroupSearchFilters
         catalog={{
-          cities: [{ id: "50000000-0000-4000-8000-000000000101", name: "Haifa", slug: "haifa" }],
           competitions: [],
           teams: [],
         }}
-        filters={{ query: null, citySlug: null, teamId: null, cursor: null, limit: 20 }}
+        filters={{ query: null, teamId: null, cursor: null, limit: 20 }}
       />,
     );
 

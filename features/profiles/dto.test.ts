@@ -5,7 +5,6 @@ import { toPublicProfileDto } from "./dto";
 const safeRow = {
   handle: "fan_one",
   display_name: "Fan One",
-  city_name: "Haifa",
   bio: "Football and friends.",
   member_since: "2026-08-25T00:00:00Z",
   viewer_has_blocked: false,
@@ -19,7 +18,6 @@ describe("toPublicProfileDto", () => {
     expect(toPublicProfileDto(safeRow)).toEqual({
       handle: "fan_one",
       displayName: "Fan One",
-      cityName: "Haifa",
       bio: "Football and friends.",
       memberSince: "2026-08-25T00:00:00Z",
       viewerHasBlocked: false,

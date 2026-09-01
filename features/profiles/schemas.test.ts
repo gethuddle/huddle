@@ -5,7 +5,6 @@ import { fanWorkspaceInputSchema } from "./schemas";
 const validInput = {
   handle: "  Fan_One ",
   displayName: "  Fan One ",
-  citySlug: "haifa",
   bio: "  Football and friends. ",
   adultAttested: "on",
   rulesAccepted: "on",

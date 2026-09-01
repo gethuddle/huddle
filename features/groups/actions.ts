@@ -19,7 +19,6 @@ const similarGroupRowSchema = z
     slug: z.string(),
     name: z.string(),
     lifecycle: z.enum(["forming", "active"]),
-    city_name: z.string().nullable(),
     team_name: z.string().nullable(),
     similarity_score: z.number(),
   })
@@ -38,7 +37,6 @@ function creationInput(formData: FormData) {
     intent: formData.get("intent"),
     name: formData.get("name"),
     slug: formData.get("slug"),
-    cityId: formData.get("cityId"),
     teamId: formData.get("teamId"),
     visibility: formData.get("visibility"),
     description: formData.get("description"),
@@ -53,7 +51,6 @@ function submittedValues(formData: FormData): GroupCreationFormValues {
   return {
     name: formString(formData.get("name")),
     slug: formString(formData.get("slug")),
-    cityId: formString(formData.get("cityId")),
     teamId: formString(formData.get("teamId")),
     visibility: formString(formData.get("visibility")),
     description: formString(formData.get("description")),
@@ -77,7 +74,6 @@ function valuesFromInput(input: z.infer<typeof groupCreationSchema>): GroupCreat
   return {
     name: input.name,
     slug: input.slug,
-    cityId: input.cityId,
     teamId: input.teamId,
     visibility: input.visibility,
     description: input.description,
@@ -88,7 +84,6 @@ function sameValues(first: GroupCreationValues, second: GroupCreationValues): bo
   return (
     first.name === second.name &&
     first.slug === second.slug &&
-    first.cityId === second.cityId &&
     first.teamId === second.teamId &&
     first.visibility === second.visibility &&
     first.description === second.description
@@ -111,8 +106,6 @@ export async function createGroupAction(
     if (parsed.data.intent === "check") {
       const { data, error } = await supabase.rpc("suggest_similar_groups", {
         input_name: parsed.data.name,
-        // PostgREST permits SQL null even though generated RPC argument types cannot express it.
-        input_city_id: parsed.data.cityId as string,
         // The generated RPC type does not preserve nullable SQL arguments.
         input_team_id: parsed.data.teamId as string,
         input_limit: 5,
@@ -134,7 +127,6 @@ export async function createGroupAction(
             slug: row.slug,
             name: row.name,
             lifecycle: row.lifecycle,
-            cityName: row.city_name,
             teamName: row.team_name,
           })),
         },
@@ -154,8 +146,6 @@ export async function createGroupAction(
     const { data, error } = await supabase.rpc("create_group", {
       input_name: parsed.data.name,
       input_slug: parsed.data.slug,
-      // PostgREST permits SQL null even though generated RPC argument types cannot express it.
-      input_city_id: parsed.data.cityId as string,
       input_team_id: parsed.data.teamId as string,
       input_visibility: parsed.data.visibility,
       input_description: parsed.data.description,

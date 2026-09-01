@@ -1,28 +1,26 @@
 import { DomainError } from "@/lib/errors";
 
-import { publicAddressCitySchema, publicAddressQuerySchema } from "./schemas";
+import { publicAddressQuerySchema } from "./schemas";
 import type { AddressSuggestion } from "./types";
 
 export interface PublicGeocoder {
-  search(query: string, city: string): Promise<readonly AddressSuggestion[]>;
+  search(query: string): Promise<readonly AddressSuggestion[]>;
 }
 
-export function normalizePublicAddressInput(query: string, city: string) {
+export function normalizePublicAddressInput(query: string) {
   const parsedQuery = publicAddressQuerySchema.safeParse(query);
-  const parsedCity = publicAddressCitySchema.safeParse(city);
 
-  if (!parsedQuery.success || !parsedCity.success) {
+  if (!parsedQuery.success) {
     throw new DomainError("VALIDATION_FAILED");
   }
 
-  return { query: parsedQuery.data, city: parsedCity.data } as const;
+  return parsedQuery.data;
 }
 
 export async function searchPublicAddress(
   geocoder: PublicGeocoder,
   query: string,
-  city: string,
 ): Promise<readonly AddressSuggestion[]> {
-  const normalized = normalizePublicAddressInput(query, city);
-  return geocoder.search(normalized.query, normalized.city);
+  const normalized = normalizePublicAddressInput(query);
+  return geocoder.search(normalized);
 }

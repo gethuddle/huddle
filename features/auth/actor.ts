@@ -52,7 +52,6 @@ type ActorProfile = Pick<
   | "id"
   | "handle"
   | "display_name"
-  | "city_id"
   | "adult_attested_at"
   | "rules_version"
   | "rules_accepted_at"
@@ -88,7 +87,7 @@ export async function requireActor(
   const { data: profile, error } = await supabase
     .from("profiles")
     .select(
-      "id, handle, display_name, city_id, adult_attested_at, rules_version, rules_accepted_at, profile_completed_at, fan_enabled_at, suspended_at, suspension_expires_at, community_restricted_at, community_restricted_until",
+      "id, handle, display_name, adult_attested_at, rules_version, rules_accepted_at, profile_completed_at, fan_enabled_at, suspended_at, suspension_expires_at, community_restricted_at, community_restricted_until",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -109,8 +108,7 @@ export async function requireActor(
       profile?.profile_completed_at !== null &&
       profile?.profile_completed_at !== undefined &&
       profile.handle !== null &&
-      profile.display_name !== null &&
-      profile.city_id !== null,
+      profile.display_name !== null,
     fanEnabled: profile?.fan_enabled_at !== null && profile?.fan_enabled_at !== undefined,
     suspended: profile?.suspended_at !== null && profile?.suspended_at !== undefined,
     restricted:

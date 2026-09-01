@@ -127,11 +127,21 @@ export default async function EventPage({ params, searchParams }: EventPageProps
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
-              <TeamMark name={event.match.homeTeamName} size="sm" tla={null} />
+              <TeamMark
+                crestUrl={event.match.homeTeamCrestUrl}
+                name={event.match.homeTeamName}
+                size="sm"
+                tla={event.match.homeTeamTla}
+              />
               <p className="text-sm font-semibold text-foreground">
                 {event.match.homeTeamName} vs {event.match.awayTeamName}
               </p>
-              <TeamMark name={event.match.awayTeamName} size="sm" tla={null} />
+              <TeamMark
+                crestUrl={event.match.awayTeamCrestUrl}
+                name={event.match.awayTeamName}
+                size="sm"
+                tla={event.match.awayTeamTla}
+              />
             </div>
             <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-foreground sm:text-4xl">
               {event.title}
@@ -144,7 +154,6 @@ export default async function EventPage({ params, searchParams }: EventPageProps
             </p>
             <dl className="mt-8 grid gap-5 border-y border-border py-6 sm:grid-cols-2">
               <Detail label="Kickoff" value={formatIsraelKickoff(event.startsAt)} />
-              <Detail label="City" value={event.cityName} />
               <Detail
                 label="Location"
                 value={

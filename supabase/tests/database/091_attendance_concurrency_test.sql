@@ -106,7 +106,6 @@ begin
           when '91000000-0000-4000-8000-000000000102' then 'B10 Race One'
           else 'B10 Race Two'
         end,
-        city_id = (select id from public.cities where slug = 'haifa'),
         adult_attested_at = statement_timestamp(),
         rules_version = 1,
         rules_accepted_at = statement_timestamp(),
@@ -179,7 +178,7 @@ begin
       insert into public.events (
         id, created_by, host_user_id, match_id, title, description,
         expected_activity, cost_description, event_rules, commercial_affiliation,
-        host_presence_confirmed_at, starts_at, ends_at, city_id, place_kind,
+        host_presence_confirmed_at, starts_at, ends_at, place_kind,
         audience, capacity, requires_approval, status, published_at
       )
       values
@@ -193,7 +192,6 @@ begin
           'Watch the full match', 'Free', 'Respect every attendee.', 'None',
           statement_timestamp(), statement_timestamp() + interval '7 days',
           statement_timestamp() + interval '7 days 3 hours',
-          (select id from public.cities where slug = 'haifa'),
           'home', 'friends', 1, true, 'published', statement_timestamp()
         ),
         (
@@ -206,7 +204,6 @@ begin
           'Watch the full match', 'Free', 'Respect every attendee.', 'None',
           statement_timestamp(), statement_timestamp() + interval '7 days',
           statement_timestamp() + interval '7 days 3 hours',
-          (select id from public.cities where slug = 'haifa'),
           'home', 'invite_only', 1, true, 'published', statement_timestamp()
         );
 

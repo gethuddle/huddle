@@ -34,7 +34,6 @@ const facilitiesSchema = z
 const sharedVenueFields = {
   name: z.string().trim().min(2, "Use at least 2 characters.").max(120),
   slug: venueSlugSchema,
-  cityId: z.uuid("Choose a city."),
   addressText: z.string().trim().min(3, "Enter the public address.").max(300),
   longitude: z.coerce.number().min(34, "Use a coordinate in Israel.").max(36),
   latitude: z.coerce.number().min(29, "Use a coordinate in Israel.").max(34),
@@ -148,7 +147,6 @@ export const venueSettingsInputSchema = z
     venueId: z.uuid(),
     name: sharedVenueFields.name,
     slug: sharedVenueFields.slug,
-    cityId: sharedVenueFields.cityId,
     description: sharedVenueFields.description,
     facilities: facilitiesSchema,
     houseInformation: sharedVenueFields.houseInformation,

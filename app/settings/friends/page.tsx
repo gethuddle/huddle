@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { EmptyState } from "@/components/states/empty-state";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -143,7 +142,6 @@ export default async function FriendsSettingsPage({ searchParams }: FriendsPageP
                     >
                       {friendship.displayName}
                     </Link>
-                    <Badge variant="outline">{friendship.cityName}</Badge>
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">@{friendship.handle}</p>
                 </div>

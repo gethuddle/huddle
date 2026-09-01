@@ -25,25 +25,10 @@ describe("VenueOnboardingForm", () => {
   });
 
   it("composes address search without nested forms or raw coordinate controls", async () => {
-    const user = userEvent.setup();
-    const { container } = render(
-      <VenueOnboardingForm
-        cities={[
-          {
-            id: "e4000000-0000-4000-8000-000000000201",
-            slug: "haifa",
-            name: "Haifa",
-          },
-        ]}
-        ownerId="account-a"
-      />,
-    );
-
-    await user.selectOptions(screen.getByRole("combobox", { name: "City" }), [
-      "e4000000-0000-4000-8000-000000000201",
-    ]);
+    const { container } = render(<VenueOnboardingForm ownerId="account-a" />);
 
     expect(screen.getByRole("combobox", { name: "Public address" })).toBeVisible();
+    expect(screen.queryByRole("combobox", { name: "City" })).not.toBeInTheDocument();
     expect(container.querySelector("form form")).toBeNull();
     expect(container.querySelector('[name="latitude"]')).toBeNull();
     expect(container.querySelector('[name="longitude"]')).toBeNull();
@@ -54,7 +39,6 @@ describe("VenueOnboardingForm", () => {
     const suggestion = {
       id: "osm-101",
       label: "10 Herzl Street, Haifa, Israel",
-      city: "Haifa",
       latitude: 32.815,
       longitude: 34.989,
     };
@@ -69,24 +53,10 @@ describe("VenueOnboardingForm", () => {
       ),
     );
     const user = userEvent.setup();
-    render(
-      <VenueOnboardingForm
-        cities={[
-          {
-            id: "e4000000-0000-4000-8000-000000000201",
-            slug: "haifa",
-            name: "Haifa",
-          },
-        ]}
-        ownerId="account-a"
-      />,
-    );
+    render(<VenueOnboardingForm ownerId="account-a" />);
 
     await user.type(screen.getByRole("textbox", { name: "Venue name" }), "Match Corner");
     await user.type(screen.getByRole("textbox", { name: "Venue URL" }), "match-corner");
-    await user.selectOptions(screen.getByRole("combobox", { name: "City" }), [
-      "e4000000-0000-4000-8000-000000000201",
-    ]);
     await user.type(screen.getByRole("combobox", { name: "Public address" }), "10 Herzl Street");
     await user.click(await screen.findByRole("option", { name: suggestion.label }));
     await user.type(
@@ -103,7 +73,6 @@ describe("VenueOnboardingForm", () => {
     expect(mocks.activateVenueOnboardingAction).toHaveBeenCalledWith({
       name: "Match Corner",
       slug: "match-corner",
-      cityId: "e4000000-0000-4000-8000-000000000201",
       address: suggestion,
       description: "A welcoming match-day venue.",
       mainSpaceName: "Main screen",
@@ -116,11 +85,10 @@ describe("VenueOnboardingForm", () => {
     });
   });
 
-  it("disables creation after address edits, a new search, or a city reset until reconfirmed", async () => {
+  it("disables creation after address edits or a new search until reconfirmed", async () => {
     const suggestion = {
       id: "osm-101",
       label: "10 Herzl Street, Haifa, Israel",
-      city: "Haifa",
       latitude: 32.815,
       longitude: 34.989,
     };
@@ -135,21 +103,8 @@ describe("VenueOnboardingForm", () => {
       ),
     );
     const user = userEvent.setup();
-    render(
-      <VenueOnboardingForm
-        cities={[
-          {
-            id: "e4000000-0000-4000-8000-000000000201",
-            slug: "haifa",
-            name: "Haifa",
-          },
-        ]}
-        ownerId="account-a"
-      />,
-    );
+    render(<VenueOnboardingForm ownerId="account-a" />);
 
-    const city = screen.getByRole("combobox", { name: "City" });
-    await user.selectOptions(city, ["e4000000-0000-4000-8000-000000000201"]);
     const input = screen.getByRole("combobox", { name: "Public address" });
     await user.type(input, "10 Herzl Street");
     await user.click(await screen.findByRole("option", { name: suggestion.label }));
@@ -164,18 +119,12 @@ describe("VenueOnboardingForm", () => {
     expect(screen.getByRole("button", { name: "Create venue account" })).toBeDisabled();
     await user.click(await screen.findByRole("option", { name: suggestion.label }));
     expect(screen.getByRole("button", { name: "Create venue account" })).toBeEnabled();
-
-    await user.selectOptions(city, [""]);
-    expect(screen.getByRole("button", { name: "Create venue account" })).toBeDisabled();
-    expect(screen.queryByRole("combobox", { name: "Public address" })).not.toBeInTheDocument();
-    expect(screen.queryByText("Confirmed public address")).not.toBeInTheDocument();
   });
 
   it("restores every unfinished Venue field and its confirmed address after a refresh remount", async () => {
     const suggestion = {
       id: "osm-101",
       label: "10 Herzl Street, Haifa, Israel",
-      city: "Haifa",
       latitude: 32.815,
       longitude: 34.989,
     };
@@ -188,22 +137,12 @@ describe("VenueOnboardingForm", () => {
         }),
       ),
     );
-    const props = {
-      cities: [
-        {
-          id: "e4000000-0000-4000-8000-000000000201",
-          slug: "haifa",
-          name: "Haifa",
-        },
-      ],
-      ownerId: "account-a",
-    };
+    const props = { ownerId: "account-a" };
     const user = userEvent.setup();
     const first = render(<VenueOnboardingForm {...props} />);
 
     await user.type(screen.getByRole("textbox", { name: "Venue name" }), "Match House");
     await user.type(screen.getByRole("textbox", { name: "Venue URL" }), "match-house");
-    await user.selectOptions(screen.getByRole("combobox", { name: "City" }), props.cities[0].id);
     await user.type(screen.getByRole("combobox", { name: "Public address" }), "10 Herzl Street");
     await user.click(await screen.findByRole("option", { name: suggestion.label }));
     await user.type(
@@ -221,7 +160,6 @@ describe("VenueOnboardingForm", () => {
     render(<VenueOnboardingForm {...props} />);
     expect(screen.getByRole("textbox", { name: "Venue name" })).toHaveValue("Match House");
     expect(screen.getByRole("textbox", { name: "Venue URL" })).toHaveValue("match-house");
-    expect(screen.getByRole("combobox", { name: "City" })).toHaveValue(props.cities[0].id);
     expect(await screen.findByText("Confirmed public address")).toBeVisible();
     expect(screen.getByText(suggestion.label)).toBeVisible();
     expect(screen.getByRole("textbox", { name: "Public description" })).toHaveValue(

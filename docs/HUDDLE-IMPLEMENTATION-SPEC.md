@@ -14,7 +14,7 @@
 
 **Approved discovery consistency revision:** 31 August 2026. A described discoverable group with an active owner is searchable without artificial member, moderator, rule, or event quotas. Eligible signed-in Fans may discover its published public-place events as acquisition previews, but must become active group members before attending; group home events remain private. Fan Explore also includes public listings from Venues the same human manages, fixture details list every event currently visible to that viewer, and an owner may delete a group through an audited archival transition that cancels live group events and revokes usable invites while retaining safety history.
 
-**Approved location and catalog revision:** 31 August 2026. Explore accepts a privacy-safe public search origin from browser location or an OpenStreetMap-backed address suggestion and ranks eligible results across city borders. Group city is optional descriptive context and never an eligibility gate. The scheduled football-data sync may store a tightly validated provider crest URL for display with an accessible Huddle initials fallback; normal page requests still never call the sports provider.
+**Approved cityless location and catalog revision:** 31 August 2026. Explore accepts a privacy-safe session origin from browser location or a confirmed OpenStreetMap/Photon address suggestion and ranks eligible results by coordinate distance across municipal borders. Profiles and groups have no location; events and Venues use confirmed coordinates, with exact homes isolated in the protected location domain. The scheduled football-data sync may store a tightly validated provider crest URL for display with an accessible Huddle initials fallback; normal page requests still never call the sports provider.
 
 The keywords **MUST**, **MUST NOT**, **SHOULD**, and **MAY** express implementation priority. A MUST is part of acceptance for the submitted MVP unless this specification is deliberately revised.
 
@@ -28,7 +28,7 @@ Huddle MUST let a person:
 
 1. create and verify an adult account;
 2. attest that they are 18+, accept the community rules, and activate an optional Fan identity or a self-serve Venue workspace;
-3. discover safe, relevant future watch events near a chosen public origin in Israel, with profile city as a fallback;
+3. discover safe, relevant future watch events near a session origin chosen through browser location or a confirmed Israel address;
 4. form trust through accepted friendships or moderated social/team-linked groups;
 5. request or accept attendance without exposing a home address prematurely;
 6. host and manage a private, group, public-place, or venue event;
@@ -48,7 +48,7 @@ The system MUST also let a venue-only operator activate an Unverified venue work
 - Group applications, `owner`/`admin`/`member` roles, bans, invite links, atomic owner/admin-authored event publication, and review of ordinary-member event submissions by a different current owner/admin.
 - Private-person events restricted to `group`, `friends`, or `invite_only`.
 - Business-venue events using `public` or `team_followers`.
-- Location discovery using a selected public origin from Photon/OpenStreetMap address suggestions, optional browser geolocation, profile-city fallback, and PostGIS distance ranking across city borders.
+- Location discovery using a selected public origin from Photon/OpenStreetMap address suggestions or browser geolocation, with PostGIS distance ranking across municipal borders and no saved profile location.
 - Venue `public` events may be `open_door`, with no Huddle RSVP, invitation, queue, guest list, or capacity claim, or `reservations`, using the registered-account attendance flows below.
 - Reservation attendance request, accept/approve, decline, host removal, and leave flows with atomic capacity enforcement and no unregistered guests.
 - RFC 5545 `.ics` event download.
@@ -81,7 +81,7 @@ Deferred behavior MUST NOT be represented by fake controls, placeholder entitlem
 - Anonymous visitors MAY read explicitly public projections.
 - Authentication is required for any mutation.
 - Common safety eligibility requires a verified email, `adult_attested_at`, `rules_accepted_at` for the current rules version, and a non-suspended account.
-- Fan activation is optional. A Fan is active only after the human explicitly enables the Fan workspace and supplies a unique handle, display name, and pilot city in addition to common safety eligibility.
+- Fan activation is optional. A Fan is active only after the human explicitly enables the Fan workspace and supplies a unique handle and display name in addition to common safety eligibility. Profiles store no default city or location.
 - Fan activation is required to follow, befriend, apply to or join a group, attend, host a private event, or create a group. Venue-only onboarding MAY leave Fan identity fields incomplete and non-public.
 - Venue activation requires common safety eligibility, venue information, and a truthful business-representation attestation. It MUST NOT require Fan activation.
 - One account represents one attendee. The MVP MUST NOT support anonymous guests or plus-ones.
@@ -107,8 +107,8 @@ Deferred behavior MUST NOT be represented by fake controls, placeholder entitlem
 - A discoverable group starts as `forming` and becomes `active`/searchable when it has an active owner and a non-empty description. Member count, additional admins, rules, and events are useful group content but MUST NOT be search prerequisites.
 - Unlisted groups MAY operate immediately and do not need the discovery gate.
 - A group's team association is optional. Product copy MUST say “Groups” when referring to the complete domain; “supporter group” is appropriate only when the group actually identifies with a team.
-- A group's city association is optional display context. It MUST NOT gate discovery, application, invitation, or membership.
-- Creation SHOULD show groups with the same optional team/home area and similarly normalized names. Similarity warns; it does not block creation.
+- Groups have no location, city, home area, local/global mode, or geographic membership boundary. Discoverable groups are globally searchable and sorted by active-member count before normalized name and ID; unlisted groups remain outside global search.
+- Creation SHOULD show groups with the same optional team and similarly normalized names. Similarity warns; it does not block creation.
 - An owner/admin MAY invite one eligible registered Fan directly. Only that recipient may accept or decline; acceptance activates membership after rechecking current safety, block, ban, and membership state. This is separate from a reusable unlisted-group link, which starts an application and remains expiring, revocable, and usage-limited.
 - An active ordinary member MAY submit a group event for owner/admin review. An event authored by a current group owner/admin MUST publish atomically; an ordinary-member submission MUST remain pending until a current owner/admin whose user ID differs from `created_by` publishes or rejects it. Promotion after submission MUST NOT let an author review their own pending event.
 - Platform moderators do not routinely approve group creation. They handle reports and suspensions.
@@ -141,7 +141,7 @@ Deferred behavior MUST NOT be represented by fake controls, placeholder entitlem
 - A business-venue event uses a venue place and public/team-followers audience.
 - Home events have a hard submitted-MVP capacity limit of 12 registered Huddle accounts.
 - Exact home address and coordinate MUST exist only in `event_private_locations`.
-- The ordinary event record MUST contain city-level discovery data but no exact home address/coordinate.
+- The ordinary event record MUST NOT contain a selected city or an exact home address/coordinate. Venue and public-place events use confirmed public coordinates; exact home coordinates remain only in the protected location domain.
 - Before approval, an eligible requester MAY receive a coarse distance band calculated inside the database, never the exact coordinate.
 - Friendship and group membership alone MUST NOT reveal a home address.
 - A home request requires host approval unless the requester accepts a direct invitation.
@@ -258,9 +258,9 @@ Unauthorized access MUST render a clear `not found`, `sign in`, `finish safety s
 
 ### 4.2 Main user journeys
 
-**Onboarding:** sign up → verify email → attest 18+ → accept the current community rules → choose Fan or Venue setup. Fan setup adds handle/display name/city and optional interests; Venue setup adds venue information and a truthful business-representation attestation without publishing a Fan identity.
+**Onboarding:** sign up → verify email → attest 18+ → accept the current community rules → choose Fan or Venue setup. Fan setup adds handle/display name and optional interests; Venue setup adds a confirmed public address, venue information, and a truthful business-representation attestation without publishing a Fan identity.
 
-**Discover and attend:** choose city or allow location → filter by date/team/competition/specific fixture → see who is showing it nearby → open event → sign in/activate Fan if needed → request or join → see stable result → download calendar when authorized.
+**Discover and attend:** use current location or choose a confirmed address → filter by date/team/competition/specific fixture → see who is showing it nearby → open event → sign in/activate Fan if needed → request or join → see stable result → download calendar when authorized.
 
 **Private home event:** choose fixture → home → choose group/friends/invite-only → enter protected address → set capacity up to 12 → publish/submit → invite or review registered users → approved attendee receives exact details. No plus-ones are available.
 
@@ -288,7 +288,7 @@ Generic reusable controls MUST use repository-owned shadcn components under `com
 
 B04 establishes this shared component layer and progressively migrates existing reusable buttons, fields, cards, status panels, and confirmation dialogs without changing their product behavior or authorization boundaries. Later milestones use the shared layer by default instead of creating parallel hand-built component systems.
 
-All forms MUST have labels, keyboard access, visible focus, inline field errors, a submission status, and a non-color-only status indicator. Destructive transitions require confirmation. Location permission denial MUST fall back to city selection.
+All forms MUST have labels, keyboard access, visible focus, inline field errors, a submission status, and a non-color-only status indicator. Destructive transitions require confirmation. Location permission denial MUST fall back to a keyboard-accessible confirmed-address search, never a city catalog.
 
 ---
 
@@ -451,18 +451,6 @@ Provider match status is stored as a normalized string/enum appropriate to the a
 
 ### 6.3 Identity domain
 
-#### `cities`
-
-| Column | Contract |
-|---|---|
-| `id` | UUID PK |
-| `slug` | unique normalized value |
-| `name_en` | display name |
-| `center` | `geography(Point,4326)`, NOT NULL |
-| `active` | boolean default true |
-
-Seed a reviewed Israel city list. Index `slug`; add a GiST index on `center`.
-
 #### `profiles`
 
 | Column | Contract |
@@ -470,7 +458,6 @@ Seed a reviewed Israel city list. Index `slug`; add a GiST index on `center`.
 | `id` | UUID PK/FK to `auth.users(id)` |
 | `handle` | nullable until Fan activation; unique, normalized, 3–30 allowed characters when active |
 | `display_name` | nullable until Fan activation; 2–60 characters when active |
-| `city_id` | nullable FK `cities`; required for Fan activation |
 | `bio` | optional, max 500 plain-text characters |
 | `adult_attested_at` | required for common safety eligibility; assertion of 18+, not identity verification |
 | `rules_version`, `rules_accepted_at` | current accepted rules version and time, required for common safety eligibility |
@@ -478,9 +465,9 @@ Seed a reviewed Israel city list. Index `slug`; add a GiST index on `center`.
 | `fan_enabled_at` | explicit optional Fan-workspace activation; set only when common eligibility and required Fan identity fields are valid |
 | `suspended_at` | nullable platform action |
 
-Email is read from Auth only where needed and MUST NOT be part of public profile queries. Public Fan DTOs exist only for activated Fans and expose handle, display name, city name, short bio, and factual trust context only. Venue-only operators have no public Fan projection.
+Email is read from Auth only where needed and MUST NOT be part of public profile queries. Public Fan DTOs exist only for activated Fans and expose handle, display name, short bio, and factual trust context only. Venue-only operators have no public Fan projection.
 
-Indexes: partial unique `lower(handle)` where non-null, `city_id`, `fan_enabled_at`, `profile_completed_at`, `suspended_at`.
+Indexes: partial unique `lower(handle)` where non-null, `fan_enabled_at`, `profile_completed_at`, `suspended_at`.
 
 #### `platform_roles`
 
@@ -561,13 +548,12 @@ Never store tokens or full sensitive responses. Public freshness derives from th
 | `slug`, `name` | unique slug; name 3–80 chars |
 | `owner_id` | FK profile |
 | `team_id` | optional FK team |
-| `city_id` | nullable FK city; descriptive home area only |
 | `visibility` | discoverable/unlisted |
 | `lifecycle` | forming/active/suspended/archived |
 | `description` | required before discovery, max 2,000 plain-text chars |
 | `activated_at`, `suspended_at` | nullable transition timestamps |
 
-Indexes: unique `lower(slug)`, live visibility/lifecycle, optional team/city, `owner_id`, and a GIN `pg_trgm` index on normalized name. The creator transaction inserts an active owner membership.
+Indexes: unique `lower(slug)`, live visibility/lifecycle, optional team, `owner_id`, active-member search ordering, and a GIN `pg_trgm` index on normalized name. The creator transaction inserts an active owner membership.
 
 #### `group_rules`
 
@@ -607,7 +593,6 @@ PK `(group_id, user_id)`, plus `banned_by`, `reason` (bounded plain text), `crea
 | `id` | UUID PK |
 | `owner_id` | FK profile |
 | `slug`, `name` | unique slug; bounded display name |
-| `city_id` | FK city |
 | `address_text` | public bounded text |
 | `location` | public `geography(Point,4326)` |
 | `description` | max 2,000 plain-text chars |
@@ -618,7 +603,7 @@ PK `(group_id, user_id)`, plus `banned_by`, `reason` (bounded plain text), `crea
 | `suspended_at` | nullable |
 | `archived_at`, `archived_by` | nullable owner-initiated terminal live-product state and actor evidence; never substitutes for moderator suspension |
 
-Indexes: unique `lower(slug)`, GiST `location`, `(city_id, verification_status)`, `(archived_at, city_id)`, `owner_id`. `owner_id` remains the canonical primary owner during the redesign migration, but it is not sufficient workspace authorization. Only platform moderators change verification/suspension status; only the current active owner may archive the live venue through the controlled function.
+Indexes: unique `lower(slug)`, GiST `location`, `(verification_status, archived_at)`, and `owner_id`. The confirmed public address and coordinate are authoritative; no separate city is stored. `owner_id` remains the canonical primary owner during the redesign migration, but it is not sufficient workspace authorization. Only platform moderators change verification/suspension status; only the current active owner may archive the live venue through the controlled function.
 
 #### `venue_memberships`
 
@@ -648,7 +633,6 @@ PK `(user_id, venue_id)`, with reverse `(venue_id, created_at)` index. User cont
 | `match_id` | required FK match for submitted MVP |
 | `title`, `description` | bounded plain text |
 | `starts_at`, `ends_at` | UTC; end > start; event start should align with match but may differ |
-| `city_id` | required city-level discovery |
 | `place_kind` | home/venue/public_place |
 | `venue_id` | required only for venue place |
 | `public_place_name`, `public_address_text`, `public_location` | required only for public place; location is geography |
@@ -680,7 +664,7 @@ After the first approved attendance row exists, controlled update functions reje
 
 Some cross-table ownership/audience conditions require a controlled database function/trigger rather than a simple CHECK. All event create/update actions MUST use that function.
 
-Indexes: `(status, starts_at, id)`, `(match_id, status)`, `(city_id, status, starts_at)`, `(created_by, status)`, `(host_user_id, status)`, `(host_venue_id, status)`, `(organizing_group_id, status)`, `(audience_group_id, status)`, `(audience_team_id, status)`, and GiST on public-place `public_location` (or an expression/partial spatial index).
+Indexes: `(status, starts_at, id)`, `(match_id, status)`, `(created_by, status)`, `(host_user_id, status)`, `(host_venue_id, status)`, `(organizing_group_id, status)`, `(audience_group_id, status)`, `(audience_team_id, status)`, and GiST on public-place `public_location` (or an expression/partial spatial index). Explore ranks venue, public-place, and eligible protected-home results from a session origin across municipal borders; no event city is stored or selected.
 
 #### `event_private_locations`
 
@@ -733,7 +717,7 @@ Views MUST use invoker semantics where supported so RLS is not bypassed. Where a
 
 | Resource | Read | Insert/update/delete |
 |---|---|---|
-| Catalog/cities | Public active rows | Sync service/platform migration only |
+| Sports catalog | Public active rows | Sync service/platform migration only |
 | Profile | Safe projection only for active Fans; full own human trust row; limited factual context through functions | Own bounded fields through common-safety/Fan-activation functions; adult/rules/Fan activation fields cannot be forged by direct row update; suspension/roles platform only |
 | Subscription/follow | Own rows; aggregate counts only if deliberately exposed | Own rows only, active Fan required |
 | Friendship | Pair participants | Controlled pair functions only |
@@ -778,18 +762,18 @@ An adapter error is categorized as `AUTH`, `RATE_LIMIT`, `UPSTREAM_4XX`, `UPSTRE
 
 ### 7.2 Route Handlers
 
-#### `GET` and `POST /api/discovery`
+#### `POST /api/discovery`
 
-Public query filters:
+The bounded private request body accepts:
 
-- `city`: city slug fallback;
-- `radiusKm`: allowlisted bounded options, default appropriate to city pilot;
+- paired `lat`/`lng` from browser location or a confirmed address origin;
+- `radiusKm`: allowlisted bounded options, default 15 km;
 - `from`, `to`: future dates bounded by the locally synchronized football-season end;
 - optional `team`, `competition`, `match` IDs;
 - `cursor`: opaque signed/base64url cursor containing last sort keys, not raw SQL;
 - `limit`: default 20, maximum 50.
 
-`GET` rejects precise coordinates in the URL. `POST` accepts the same filters plus paired validated `lat`/`lng` in a bounded JSON body for one browser/address-origin request, returns `private, no-store`, and never logs or persists the precise origin. Public address text is resolved through the location-search route and is not sent to discovery or stored as an origin.
+`GET` rejects discovery requests so precise coordinates cannot enter the URL. `POST` validates paired `lat`/`lng` in a bounded JSON body, returns `private, no-store`, and never logs or persists the precise origin. Address text is resolved through the location-search route and is not sent to discovery or stored as an origin.
 
 Response `200`:
 
@@ -797,16 +781,16 @@ Response `200`:
 type DiscoveryResponse = {
   items: EventSummaryDto[];
   nextCursor: string | null;
-  locationMode: "browser" | "city";
+  locationMode: "browser";
   generatedAt: string;
 };
 ```
 
-Sort is deterministic: eligible published future events by match/interest relevance for signed-in users, then distance/time, then ID tie-breaker. Signed-in Fan results merge ordinary eligible events, open-door listings, and public listings from Venues the same account manages, deduplicated by event ID. Anonymous users receive only public business-venue events, ordered deterministically by distance/time without personalization. Eligible signed-in home results include only city/coarse distance band.
+Sort is deterministic: eligible published future events by match/interest relevance for signed-in users, then distance/time, then ID tie-breaker. Signed-in Fan results merge ordinary eligible events, open-door listings, and public listings from Venues the same account manages, deduplicated by event ID. Anonymous users receive only public business-venue events, ordered deterministically by distance/time without personalization. Eligible signed-in home results include only a safe coarse distance summary before approval.
 
 #### `GET /api/groups/search`
 
-Validates `q`, optional `team`, `cursor`, and `limit`. Returns only `active + discoverable` groups globally; optional city metadata is descriptive and does not exclude candidates. Group-creation similarity MAY reuse a signed-in mode that includes the creator's own forming groups but never another unlisted group.
+Validates `q`, optional `team`, `cursor`, and `limit`. Returns only `active + discoverable` groups globally, ordered by active-member count before normalized name and ID. Groups carry no geographic metadata. Group-creation similarity MAY reuse a signed-in mode that includes the creator's own forming groups but never another unlisted group.
 
 #### `POST /api/internal/sports-sync`
 
@@ -1205,7 +1189,7 @@ MUST test:
 - keyboard/focus behavior for dialogs and menus;
 - permission-aware actions without treating hidden controls as security;
 - follow/friend/attendance pending/success/error/removed states;
-- location denial and city fallback;
+- location denial, manual address autocomplete, selection invalidation, and retry;
 - unverified venue, audience, capacity, and stale-data labels;
 - private-address absence before approval and after authorization revocation;
 - audience selector options appropriate to private person versus business venue;
@@ -1218,13 +1202,13 @@ MUST test:
 Seed deterministic users, relationships, groups, venues, matches, and events. Required flows:
 
 1. Signup, email-verification test path, 18+ attestation, current-rules acceptance, onboarding, and team follow; omitted attestation is rejected.
-2. Personalized fixture/event discovery with city and mocked browser geolocation.
+2. Personalized fixture/event discovery with a session-only confirmed address and mocked browser geolocation.
 3. Friend request/accept and friends-only event visibility; unrelated user denied.
 4. Host/audience boundary: a private user cannot create public/team-followers even by crafted request; a venue cannot create group/friends/invite-only.
 5. A described discoverable group with its active owner becomes searchable without member/rule/event quotas; unlisted, archived, blocked, and banned boundaries remain enforced.
 6. Group application/approval, group ban/reapplication denial, and unlisted invite application.
 7. Owner/admin-authored group event publishes atomically; an ordinary-member submission remains hidden until a different current owner/admin approves it. In a two-account E2E, promoting the creator to admin still denies their self-approval/self-rejection, while a different current owner/admin can decide it.
-8. Home-event request: city/coarse context visible, exact address absent; address appears only after approval; material address/audience change then requires cancellation/new event.
+8. Home-event request: safe coarse distance context visible, exact address absent; address appears only after approval; material address/audience change then requires cancellation/new event.
 9. Home event rejects capacity above 12 and offers no plus-one; each approved account consumes exactly one seat.
 10. Venue-only onboarding creates an Unverified venue plus active owner membership without Fan activation; commercial mutations deny inactive/non-members; fixture planning inherits kickoff data; a public open-door event has no capacity, invitations, RSVP, queue, or residue; a reservation/team-followers event retains atomic seat and invitation behavior; the venue itself never attends.
 11. Capacity race: simultaneous approvals result in only available seats and stable rejected/conflict response.
@@ -1388,14 +1372,14 @@ The MVP is done only when:
 
 | Decision | Chosen answer | Consequence |
 |---|---|---|
-| Pilot | Israel, English, Israel display time | Small city seed and consistent time UX |
+| Pilot | Israel, English, Israel display time | Country-bounded address search and consistent time UX |
 | Sports | Football first | One provider adapter; NBA stays future-ready |
 | Provider | football-data.org v4 | Six-hour sync and local cache under free-rate constraints |
 | Auth | Supabase email/password SSR | No OAuth and no application password storage |
 | Community eligibility | 18+ attestation and current rules acceptance | Avoid child-safety scope; do not claim identity/age verification |
 | Backend | Next.js only | One deployable modular monolith |
 | DB access | Supabase SQL/RPC, no Prisma | RLS/PostGIS/functions remain explicit |
-| Location | City fallback + optional browser coordinate, OpenStreetMap public-event map, and bounded Photon address search | No paid geocoder or route planning; protected homes never enter discovery maps |
+| Location | Session-only browser coordinate or confirmed Photon/OpenStreetMap address; confirmed coordinates on venues/events; protected exact home coordinates | No city catalog or profile location, no paid geocoder or route planning, and protected homes never enter public discovery maps |
 | Social | Direct mutual friends plus moderated groups | No friends-of-friends |
 | Group creation | Active-owner plus description discovery gate | Avoid platform bottlenecks and fake activity quotas while keeping empty groups out of search |
 | Audience boundary | Private people: group/friends/invite-only; business venues: public/team-followers; eligible signed-in Fans may preview public-place events of active discoverable groups | Anonymous visitors never discover private-person events, and group attendance/home privacy still require membership |
@@ -1409,7 +1393,7 @@ The MVP is done only when:
 | State | Server + URL + narrow TanStack Query + local React | No unnecessary global store |
 | Scale | Indexed modular monolith | Optimize and split only from evidence |
 
-There are no unresolved product decisions required before scaffolding. Exact package versions, final seeded city list, provider competition allowlist, and production quota snapshot are implementation-time configuration choices and must be recorded when selected.
+There are no unresolved product decisions required before scaffolding. Exact package versions, provider competition allowlist, and production quota snapshot are implementation-time configuration choices and must be recorded when selected.
 
 ---
 

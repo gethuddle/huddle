@@ -129,7 +129,6 @@ begin
           when '52200000-0000-4000-8000-000000000103' then 'B06 Direct Applicant'
           when '52200000-0000-4000-8000-000000000104' then 'B06 Invite Applicant'
         end,
-        city_id = (select id from public.cities where slug = 'haifa'),
         adult_attested_at = statement_timestamp(),
         rules_version = 1,
         rules_accepted_at = statement_timestamp(),
@@ -147,7 +146,6 @@ begin
         slug,
         name,
         owner_id,
-        city_id,
         visibility,
         lifecycle,
         activated_at
@@ -158,7 +156,6 @@ begin
           'b06-block-discoverable',
           'B06 Block Discoverable',
           '52200000-0000-4000-8000-000000000101',
-          (select id from public.cities where slug = 'haifa'),
           'discoverable',
           'forming',
           null
@@ -168,7 +165,6 @@ begin
           'b06-block-unlisted',
           'B06 Block Unlisted',
           '52200000-0000-4000-8000-000000000101',
-          (select id from public.cities where slug = 'haifa'),
           'unlisted',
           'active',
           statement_timestamp()

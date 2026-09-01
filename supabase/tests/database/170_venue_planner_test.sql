@@ -82,13 +82,12 @@ where id in (
 update public.profiles
 set handle = 'planner_attendee',
     display_name = 'Planner Attendee',
-    city_id = (select id from public.cities where slug = 'haifa'),
     profile_completed_at = statement_timestamp(),
     fan_enabled_at = statement_timestamp()
 where id = 'e5000000-0000-4000-8000-000000000104';
 
 insert into public.venues (
-  id, owner_id, slug, name, city_id, address_text, location, description,
+  id, owner_id, slug, name, address_text, location, description,
   stated_capacity, facilities, house_information, default_requires_approval,
   business_representation_attested_at, business_representation_attested_by
 )
@@ -96,7 +95,6 @@ values (
   'e5000000-0000-4000-8000-000000000201',
   'e5000000-0000-4000-8000-000000000101',
   'planner-match-corner', 'Planner Match Corner',
-  (select id from public.cities where slug = 'haifa'),
   '12 Stadium Street, Haifa',
   extensions.st_setsrid(extensions.st_makepoint(34.998, 32.812), 4326)::extensions.geography,
   'A welcoming Venue for watching the full match together.',

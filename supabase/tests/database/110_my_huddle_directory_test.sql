@@ -10,21 +10,21 @@ select ok(
   'authenticated members can list only their own group relationships'
 );
 select ok(
-  has_function_privilege('authenticated', 'public.list_my_huddle_events(integer,integer)', 'execute'),
+  has_function_privilege('authenticated', 'public.list_my_events(text,integer,integer)', 'execute'),
   'authenticated members can list their own event relationships'
 );
 select ok(
-  has_function_privilege('authenticated', 'public.search_people(text,integer,integer)', 'execute'),
+  has_function_privilege('authenticated', 'public.list_people_hub(text,text,integer,integer)', 'execute'),
   'authenticated members can use the bounded safe people directory'
 );
 select ok(
-  not has_function_privilege('anon', 'public.search_people(text,integer,integer)', 'execute'),
+  not has_function_privilege('anon', 'public.list_people_hub(text,text,integer,integer)', 'execute'),
   'anonymous visitors cannot enumerate the people directory'
 );
 select ok(
   position(
     'address' in pg_get_function_result(
-      'public.list_my_huddle_events(integer,integer)'::regprocedure
+      'public.list_my_events(text,integer,integer)'::regprocedure
     )
   ) = 0,
   'the My Huddle event result structurally omits every address field'
@@ -32,7 +32,7 @@ select ok(
 select ok(
   position(
     'email' in pg_get_function_result(
-      'public.search_people(text,integer,integer)'::regprocedure
+      'public.list_people_hub(text,text,integer,integer)'::regprocedure
     )
   ) = 0,
   'people search structurally omits email addresses'
@@ -75,7 +75,6 @@ set
     when 'b1000000-0000-4000-8000-000000000103' then 'Directory Casey'
     else 'Directory Devin'
   end,
-  city_id = (select id from public.cities where slug = 'haifa'),
   adult_attested_at = statement_timestamp(),
   rules_version = 1,
   rules_accepted_at = statement_timestamp(),
@@ -102,14 +101,13 @@ values (
 );
 
 insert into public.groups (
-  id, slug, name, owner_id, city_id, visibility, lifecycle, description, activated_at
+  id, slug, name, owner_id, visibility, lifecycle, description, activated_at
 )
 values (
   'b1000000-0000-4000-8000-000000000201',
   'directory-unlisted',
   'Directory Unlisted Group',
   'b1000000-0000-4000-8000-000000000101',
-  (select id from public.cities where slug = 'haifa'),
   'unlisted',
   'active',
   'An unlisted group that must remain findable by its owner.',
@@ -174,7 +172,7 @@ values (
 insert into public.events (
   id, created_by, host_user_id, match_id, title, description,
   expected_activity, cost_description, event_rules, commercial_affiliation,
-  host_presence_confirmed_at, starts_at, ends_at, city_id, place_kind,
+  host_presence_confirmed_at, starts_at, ends_at, place_kind,
   audience, capacity, requires_approval, status, published_at
 )
 values (
@@ -186,7 +184,6 @@ values (
   'Watch the full match', 'Free', 'Respect every attendee.', 'None',
   statement_timestamp(), statement_timestamp() + interval '7 days',
   statement_timestamp() + interval '7 days 3 hours',
-  (select id from public.cities where slug = 'haifa'),
   'home', 'invite_only', 6, true, 'published', statement_timestamp()
 );
 
@@ -219,35 +216,30 @@ select is(
   'the owner list preserves the group visibility state'
 );
 select is(
-  (select involvement from public.list_my_huddle_events(20, 0)),
-  'hosting',
+  (select relationship_label from public.list_my_events('upcoming', 20, 0)),
+  'You are hosting',
   'a host can find their event without an attendance row'
 );
 select is(
-  (select count(*) from public.search_people('directory', 20, 0)),
+  (select count(*) from public.list_people_hub('directory', 'search', 20, 0)),
   2::bigint,
   'people search excludes self and either direction of a block'
 );
 select is(
   (
     select friendship_direction
-    from public.search_people('@directory_blair', 20, 0)
+    from public.list_people_hub('@directory_blair', 'search', 20, 0)
   ),
-  'outgoing',
-  'people search accepts an at-prefixed handle and returns only the actor direct friendship state'
+  'sent',
+  'people search accepts an at-prefixed handle and returns the RPC friendship direction used by the People hub'
 );
 
 set local "request.jwt.claim.sub" = 'b1000000-0000-4000-8000-000000000102';
 
 select is(
-  (select involvement from public.list_my_huddle_events(20, 0)),
-  'invited',
-  'an invitee can find their pending event in My Huddle'
-);
-select is(
-  (select can_manage from public.list_my_huddle_events(20, 0)),
-  false,
-  'an invitee receives a concrete false management flag rather than a nullable result'
+  (select count(*) from public.list_attention_items(20) where kind = 'event_invitation'),
+  1::bigint,
+  'an invitee receives one clear current invitation action'
 );
 select is(
   (select count(*) from public.list_my_groups(20, 0)),
@@ -274,9 +266,9 @@ set local role authenticated;
 set local "request.jwt.claim.sub" = 'b1000000-0000-4000-8000-000000000102';
 
 select is(
-  (select involvement from public.list_my_huddle_events(20, 0)),
-  'history',
-  'an invitee keeps a safe historical event entry after the future visibility window ends'
+  (select count(*) from public.list_my_events('history', 20, 0)),
+  0::bigint,
+  'an unanswered invitation leaves no historical event residue after the fixture ends'
 );
 
 select * from finish();

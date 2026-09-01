@@ -56,7 +56,6 @@ from (
 update public.profiles
 set handle = 'map_' || right(id::text, 3),
     display_name = 'Map Fan ' || right(id::text, 3),
-    city_id = (select id from public.cities where slug = 'haifa'),
     adult_attested_at = statement_timestamp(),
     rules_version = 1,
     rules_accepted_at = statement_timestamp(),
@@ -79,7 +78,7 @@ values (
 );
 
 insert into public.venues (
-  id, owner_id, slug, name, city_id, address_text, location, description,
+  id, owner_id, slug, name, address_text, location, description,
   stated_capacity, facilities, house_information, default_attendance_mode,
   default_requires_approval, business_representation_attested_at,
   business_representation_attested_by
@@ -88,7 +87,6 @@ values (
   '9a000000-0000-4000-8000-000000000201',
   '9a000000-0000-4000-8000-000000000101',
   'map-corner', 'Map Corner',
-  (select id from public.cities where slug = 'haifa'),
   '12 Public Street, Haifa',
   extensions.st_setsrid(extensions.st_makepoint(34.99, 32.81), 4326)::extensions.geography,
   'A public Venue used to prove the discovery map boundary.',
@@ -137,7 +135,7 @@ values (
 insert into public.events (
   id, created_by, host_venue_id, match_id, title, description, expected_activity,
   cost_description, event_rules, commercial_affiliation, host_presence_confirmed_at,
-  starts_at, ends_at, city_id, place_kind, venue_id, audience, capacity,
+  starts_at, ends_at, place_kind, venue_id, audience, capacity,
   attendance_mode, requires_approval, status, published_at
 )
 values (
@@ -148,7 +146,6 @@ values (
   'Public venue map event', 'A public venue event visible on the discovery map.',
   'Watch the match', 'Free', 'Respect the Venue.', 'Venue hosted', statement_timestamp(),
   statement_timestamp() + interval '10 days', statement_timestamp() + interval '10 days 3 hours',
-  (select id from public.cities where slug = 'haifa'),
   'venue', '9a000000-0000-4000-8000-000000000201', 'public', null,
   'open_door', false, 'published', statement_timestamp()
 );
@@ -156,7 +153,7 @@ values (
 insert into public.events (
   id, created_by, host_user_id, match_id, title, description, expected_activity,
   cost_description, event_rules, commercial_affiliation, host_presence_confirmed_at,
-  starts_at, ends_at, city_id, place_kind, public_place_name, public_address_text,
+  starts_at, ends_at, place_kind, public_place_name, public_address_text,
   public_location, audience, capacity, attendance_mode, requires_approval, status, published_at
 )
 values
@@ -169,7 +166,6 @@ values
     'Watch the match', 'Free', 'Respect the host.', 'None', statement_timestamp(),
     statement_timestamp() + interval '10 days 5 minutes',
     statement_timestamp() + interval '10 days 3 hours 5 minutes',
-    (select id from public.cities where slug = 'haifa'),
     'public_place', 'Map Public Hall', '20 Public Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(35.01, 32.82), 4326)::extensions.geography,
     'friends', 20, 'reservations', true, 'published', statement_timestamp()
@@ -183,7 +179,6 @@ values
     'Watch the match', 'Free', 'Respect the host.', 'None', statement_timestamp(),
     statement_timestamp() + interval '10 days 15 minutes',
     statement_timestamp() + interval '10 days 3 hours 15 minutes',
-    (select id from public.cities where slug = 'haifa'),
     'public_place', 'Map Invite Hall', '21 Public Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(35.02, 32.83), 4326)::extensions.geography,
     'invite_only', 20, 'reservations', true, 'published', statement_timestamp()
@@ -192,7 +187,7 @@ values
 insert into public.events (
   id, created_by, host_user_id, match_id, title, description, expected_activity,
   cost_description, event_rules, commercial_affiliation, host_presence_confirmed_at,
-  starts_at, ends_at, city_id, place_kind, audience, capacity, attendance_mode,
+  starts_at, ends_at, place_kind, audience, capacity, attendance_mode,
   requires_approval, status, published_at
 )
 values (
@@ -204,7 +199,6 @@ values (
   'Watch the match', 'Free', 'Respect the home.', 'None', statement_timestamp(),
   statement_timestamp() + interval '10 days 10 minutes',
   statement_timestamp() + interval '10 days 3 hours 10 minutes',
-  (select id from public.cities where slug = 'haifa'),
   'home', 'friends', 8, 'reservations', true, 'published', statement_timestamp()
 );
 

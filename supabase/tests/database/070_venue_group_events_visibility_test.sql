@@ -16,7 +16,7 @@ select ok(
 select ok(
   has_function_privilege(
     'authenticated',
-    'public.create_group_event(uuid,uuid,text,text,text,text,text,text,boolean,timestamptz,timestamptz,uuid,text,text,text,double precision,double precision,text,uuid,integer,text,text,double precision,double precision,text,uuid)',
+    'public.create_group_event(uuid,uuid,text,text,text,text,text,text,boolean,timestamptz,timestamptz,text,text,text,double precision,double precision,text,uuid,integer,text,text,double precision,double precision,text,uuid)',
     'execute'
   ),
   'active members may invoke the controlled organizing-group event transaction'
@@ -92,7 +92,6 @@ set
     else 'b08_banned'
   end,
   display_name = 'B08 Fan ' || right(id::text, 3),
-  city_id = (select id from public.cities where slug = 'haifa'),
   adult_attested_at = statement_timestamp(),
   rules_version = 1,
   rules_accepted_at = statement_timestamp(),
@@ -162,14 +161,13 @@ values (
 );
 
 insert into public.groups (
-  id, slug, name, owner_id, city_id, visibility, lifecycle, description
+  id, slug, name, owner_id, visibility, lifecycle, description
 )
 values (
   '62000000-0000-4000-8000-000000000205',
   'b08-supporters',
   'B08 Supporters',
   '62000000-0000-4000-8000-000000000101',
-  (select id from public.cities where slug = 'haifa'),
   'discoverable',
   'forming',
   'A complete group description awaiting its first approved future event.'
@@ -203,7 +201,7 @@ values (
 );
 
 insert into public.venues (
-  id, owner_id, slug, name, city_id, address_text, location, description,
+  id, owner_id, slug, name, address_text, location, description,
   screen_count, stated_capacity
 )
 values (
@@ -211,7 +209,6 @@ values (
   '62000000-0000-4000-8000-000000000101',
   'b08-match-corner',
   'B08 Match Corner',
-  (select id from public.cities where slug = 'haifa'),
   '12 Public Street, Haifa',
   extensions.st_setsrid(
     extensions.st_makepoint(34.99928, 32.81303),
@@ -249,7 +246,6 @@ as $function$
     true,
     statement_timestamp() + interval '7 days',
     statement_timestamp() + interval '7 days 3 hours',
-    (select id from public.cities where slug = 'haifa'),
     'home',
     null,
     null,
@@ -293,7 +289,6 @@ as $function$
     true,
     statement_timestamp() + interval '7 days',
     statement_timestamp() + interval '7 days 3 hours',
-    (select id from public.cities where slug = 'haifa'),
     'venue',
     '62000000-0000-4000-8000-000000000301',
     null,
@@ -334,7 +329,6 @@ as $function$
     true,
     statement_timestamp() + interval '7 days',
     statement_timestamp() + interval '7 days 3 hours',
-    (select id from public.cities where slug = 'haifa'),
     'home',
     null,
     null,
@@ -1000,7 +994,7 @@ values (
 insert into public.events (
   id, created_by, host_user_id, match_id, title, description, expected_activity,
   cost_description, event_rules, commercial_affiliation, host_presence_confirmed_at,
-  starts_at, ends_at, city_id, place_kind, audience, capacity, requires_approval,
+  starts_at, ends_at, place_kind, audience, capacity, requires_approval,
   status, published_at
 )
 values
@@ -1018,7 +1012,6 @@ values
     statement_timestamp(),
     statement_timestamp() + interval '7 days',
     statement_timestamp() + interval '7 days 3 hours',
-    (select id from public.cities where slug = 'haifa'),
     'home',
     'friends',
     6,
@@ -1040,7 +1033,6 @@ values
     statement_timestamp(),
     statement_timestamp() + interval '7 days',
     statement_timestamp() + interval '7 days 3 hours',
-    (select id from public.cities where slug = 'haifa'),
     'home',
     'invite_only',
     6,
@@ -1067,7 +1059,7 @@ values
 insert into public.events (
   id, created_by, host_user_id, match_id, title, description, expected_activity,
   cost_description, event_rules, commercial_affiliation, host_presence_confirmed_at,
-  starts_at, ends_at, city_id, place_kind, public_place_name, public_address_text,
+  starts_at, ends_at, place_kind, public_place_name, public_address_text,
   public_location, audience, capacity, requires_approval, status, published_at
 )
 values (
@@ -1084,7 +1076,6 @@ values (
   statement_timestamp(),
   statement_timestamp() + interval '7 days',
   statement_timestamp() + interval '7 days 3 hours',
-  (select id from public.cities where slug = 'haifa'),
   'public_place',
   'B08 Community Hall',
   '20 Public Street, Haifa',

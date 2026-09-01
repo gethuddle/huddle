@@ -1,4 +1,4 @@
-import { expect, test, type BrowserContext, type Page } from "@playwright/test";
+import { expect, test, type BrowserContext, type Page, type Route } from "@playwright/test";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
@@ -26,7 +26,6 @@ const captureB09Evidence = process.env.HUDDLE_CAPTURE_B09_EVIDENCE === "1";
 const captureB10Evidence = process.env.HUDDLE_CAPTURE_B10_EVIDENCE === "1";
 const captureB11Evidence = process.env.HUDDLE_CAPTURE_B11_EVIDENCE === "1";
 const captureUxEvidence = process.env.HUDDLE_CAPTURE_UX_EVIDENCE === "1";
-const haifaCityId = "00000000-0000-4000-8000-000000000003";
 
 function uniqueSuffix() {
   return randomUUID().replaceAll("-", "").slice(0, 8);
@@ -67,25 +66,23 @@ function sqlLiteral(value: string) {
   return `'${value.replaceAll("'", "''")}'`;
 }
 
-function publicAddressCacheDigest(query: string, city: string) {
+function publicAddressCacheDigest(query: string) {
   const normalize = (value: string) => value.trim().replaceAll(/\s+/g, " ").toLowerCase();
   return createHash("sha256")
-    .update(`${normalize(query)}\u001f${normalize(city)}\u001fil`)
+    .update(`${normalize(query)}\u001fil`)
     .digest("hex");
 }
 
 function seedPublicAddressCache(
   query: string,
-  city: string,
   suggestion: Readonly<{
     id: string;
     label: string;
-    city: string;
     latitude: number;
     longitude: number;
   }>,
 ) {
-  const digest = publicAddressCacheDigest(query, city);
+  const digest = publicAddressCacheDigest(query);
   localDatabaseQuery(`
     insert into private.public_address_cache (query_digest, result_payload, expires_at)
     values (
@@ -155,7 +152,6 @@ async function seedCompletedUser(
   const activated = await client.rpc("activate_fan_workspace", {
     input_adult_attested: true,
     input_bio: "",
-    input_city_slug: "haifa",
     input_display_name: displayName,
     input_handle: handle,
     input_rules_version: 1,
@@ -183,9 +179,8 @@ async function seedGroupOwner(
   localDatabaseQuery(`
     with new_group as (
       insert into public.groups (
-        city_id, description, lifecycle, name, owner_id, slug, visibility
+        description, lifecycle, name, owner_id, slug, visibility
       ) values (
-        '00000000-0000-4000-8000-000000000003'::uuid,
         'A deterministic group proving group administrators cannot inspect reports.',
         'forming',
         ${sqlLiteral(`Safety Circle ${suffix}`)},
@@ -452,7 +447,6 @@ function privateEventInput(
     input_host_presence_confirmed: true,
     input_starts_at: startsAt.toISOString(),
     input_ends_at: new Date(startsAt.getTime() + 3 * 60 * 60 * 1000).toISOString(),
-    input_city_id: haifaCityId,
     input_place_kind: "home",
     input_venue_id: null as unknown as string,
     input_public_place_name: null as unknown as string,
@@ -500,7 +494,6 @@ async function createVenueEvent(
   const venueResult = await client.rpc("create_venue_workspace", {
     input_address_text: "12 Hanassi Boulevard, Haifa",
     input_adult_attested: true,
-    input_city_id: haifaCityId,
     input_default_requires_approval: false,
     input_description: "A deterministic acceptance venue with accessible seating.",
     input_facilities: ["wheelchair_accessible"],
@@ -533,7 +526,6 @@ async function createVenueEvent(
     input_host_presence_confirmed: true,
     input_starts_at: startsAt.toISOString(),
     input_ends_at: new Date(startsAt.getTime() + 3 * 60 * 60 * 1000).toISOString(),
-    input_city_id: haifaCityId,
     input_place_kind: "venue",
     input_venue_id: venueId,
     input_public_place_name: null as unknown as string,
@@ -695,7 +687,6 @@ async function completeProfile(
   await page.goto(new URL("/onboarding/fan", page.url()).toString());
   await page.getByRole("textbox", { name: "Display name" }).fill(displayName);
   await page.getByRole("textbox", { name: "Handle" }).fill(handle);
-  await page.getByRole("combobox", { name: "City" }).selectOption("haifa");
 
   if (proveRequiredConfirmations) {
     await page.getByRole("button", { name: "Start using Huddle" }).click();
@@ -730,11 +721,32 @@ async function openFanEventDetailsStep(page: Page) {
 }
 
 async function selectPrivateHomeLocation(page: Page, address: string) {
-  await page.getByRole("textbox", { name: "Private address" }).fill(address);
-  const map = page.getByRole("region", { name: "Map for choosing a private location" });
-  await map.focus();
-  await map.press("ArrowRight");
-  await expect(page.getByRole("status").filter({ hasText: "Private pin selected" })).toBeVisible();
+  const routePattern = "**/api/locations/search";
+  const routeHandler = async (route: Route) => {
+    const body = route.request().postDataJSON() as { purpose?: unknown; query?: unknown };
+    expect(body).toEqual({ purpose: "private_home", query: address });
+    await route.fulfill({
+      contentType: "application/json",
+      status: 200,
+      body: JSON.stringify({
+        suggestions: [
+          {
+            id: `private-home-${createHash("sha256").update(address).digest("hex").slice(0, 12)}`,
+            label: address,
+            latitude: 32.812,
+            longitude: 34.998,
+          },
+        ],
+      }),
+    });
+  };
+  await page.route(routePattern, routeHandler);
+  await page.getByRole("combobox", { name: "Home address" }).fill(address);
+  await page.getByRole("option", { name: address }).click();
+  await page.unroute(routePattern, routeHandler);
+  await expect(
+    page.getByRole("region", { name: "Map for choosing a meeting point" }),
+  ).toBeVisible();
 }
 
 async function planSingleVenueEvent(page: Page, title: string, description: string) {
@@ -977,7 +989,6 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
     await applicantPage.goto(new URL("/events/new", applicantPage.url()).toString());
     await openFanEventDetailsStep(applicantPage);
     await applicantPage.getByRole("textbox", { name: "Event title" }).fill(groupEventTitle);
-    await applicantPage.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
     await applicantPage
       .getByRole("textbox", { name: "Description" })
       .fill("A protected group watch party submitted by an active member for review.");
@@ -1031,8 +1042,8 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
 
     await page.goto(new URL(`/groups/${slug}`, page.url()).toString());
     await expect(page.getByText("Discoverable group", { exact: true })).toBeVisible();
-    await page.getByText("Search and setup details", { exact: true }).click();
-    await expect(page.getByText(/Members, rules, and events are optional/i)).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Active members" })).toBeVisible();
+    await expect(page.getByText("City", { exact: true })).toHaveCount(0);
     if (captureB09Evidence) {
       await page.screenshot({
         fullPage: true,
@@ -1057,7 +1068,7 @@ test("05 and 07 a group reaches discovery and a member event receives admin appr
         .getByText(`Haifa Huddle ${suffix}`, { exact: true }),
     ).toBeVisible();
 
-    await applicantPage.goto(new URL("/discover?city=haifa", applicantPage.url()).toString());
+    await applicantPage.goto(new URL("/discover", applicantPage.url()).toString());
     await expect(applicantPage.getByText(groupEventTitle, { exact: true })).toHaveCount(0);
     await expect(
       applicantPage.getByRole("button", { name: "Change Explore search" }),
@@ -1151,15 +1162,13 @@ test("17 a provider failure preserves cached fixtures and exposes stale state", 
     if (request.url().includes("football-data.org")) providerRequests.push(request.url());
   });
 
-  await page.goto(
-    `/matches/${fixture.matchId}?returnTo=${encodeURIComponent("/discover?city=haifa")}`,
-  );
+  await page.goto(`/matches/${fixture.matchId}?returnTo=${encodeURIComponent("/discover")}`);
   await expect(page.getByRole("heading", { name: "Arsenal vs Chelsea" })).toBeVisible();
   await expect(page.getByRole("status")).toContainText("Updated less than a minute ago");
   await expect(page.getByRole("status")).toContainText("Fixtures available through");
   await expect(page.getByRole("link", { name: "Back to Explore" })).toHaveAttribute(
     "href",
-    "/discover?city=haifa",
+    "/discover",
   );
   expect(providerRequests).toEqual([]);
 
@@ -1233,24 +1242,21 @@ test("review corrections persist Fan drafts and reach the full local fixture hor
   await expect(page.getByRole("heading", { name: "Place and audience" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Event title" })).toHaveValue(draftTitle);
 
-  await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
   await selectPrivateHomeLocation(page, `First protected ${suffix}, Haifa`);
-  await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Tel Aviv-Yafo" });
-  await expect(page.getByRole("textbox", { name: "Private address" })).toHaveValue("");
-  await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
+  await page.getByRole("button", { name: "Replace protected location" }).click();
   await selectPrivateHomeLocation(page, `Second protected ${suffix}, Haifa`);
   await page.getByRole("radio", { name: /Public place/ }).click();
   await page.getByRole("radio", { name: /My home/ }).click();
-  await expect(page.getByRole("textbox", { name: "Private address" })).toHaveValue("");
+  await expect(page.getByRole("combobox", { name: "Home address" })).toHaveValue("");
   const finalAddress = `Final protected ${suffix}, Haifa`;
   await selectPrivateHomeLocation(page, finalAddress);
   await page.getByRole("checkbox", { name: /I will be present/i }).click();
   await page.getByRole("button", { name: "Next: review and publish" }).click();
-  await expect(page.getByText("Protected home location in Haifa")).toBeVisible();
+  await expect(page.getByText("Protected home address confirmed")).toBeVisible();
   await page.reload();
   await expect(page.getByRole("heading", { name: "Review and publish" })).toBeVisible();
   await expect(page.getByText(horizon.targetLabel)).toBeVisible();
-  await expect(page.getByText("Protected home location in Haifa")).toBeVisible();
+  await expect(page.getByText("Protected home address confirmed")).toBeVisible();
   await page.getByRole("button", { name: "Publish event" }).click();
   await expect(page).toHaveURL(/\/events\/[0-9a-f-]{36}[?]created=1$/);
   await expect(page.getByText(new RegExp(finalAddress))).toBeVisible();
@@ -1301,7 +1307,6 @@ test("completed users create venue and private events with safe projections", as
           {
             id: `e2e-address-${suffix}`,
             label: "12 Hanassi Boulevard, Haifa, Israel",
-            city: "Haifa",
             latitude: 32.81303,
             longitude: 34.99928,
           },
@@ -1313,7 +1318,6 @@ test("completed users create venue and private events with safe projections", as
   await expect(page).toHaveURL(/\/onboarding\/venue$/);
   await page.getByRole("textbox", { name: "Venue name" }).fill(`Match Corner ${suffix}`);
   await page.getByRole("textbox", { name: "Venue URL" }).fill(venueSlug);
-  await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
   await page.getByRole("combobox", { name: "Public address" }).fill("12 Hanassi Boulevard");
   await page.getByRole("option", { name: "12 Hanassi Boulevard, Haifa, Israel" }).click();
   await expect(
@@ -1379,9 +1383,15 @@ test("completed users create venue and private events with safe projections", as
     }
     await anonymousPage.goto(new URL(`/venues/${venueSlug}`, anonymousPage.url()).toString());
     await expect(anonymousPage.getByRole("link", { name: venueEventTitle })).toBeVisible();
-    await anonymousPage.goto(new URL("/discover?city=haifa", anonymousPage.url()).toString());
+    await anonymousContext.grantPermissions(["geolocation"], {
+      origin: "http://127.0.0.1:3000",
+    });
+    await anonymousContext.setGeolocation({ latitude: 32.81303, longitude: 34.99928 });
+    await anonymousPage.goto(new URL("/discover", anonymousPage.url()).toString());
     await expect(anonymousPage.getByText(venueEventTitle, { exact: true })).toBeVisible();
-    await expect(anonymousPage.getByText("Near Haifa", { exact: true })).toBeVisible();
+    await expect(
+      anonymousPage.getByText("Using this browser location", { exact: true }),
+    ).toBeVisible();
     if (captureB09Evidence) {
       await anonymousPage.screenshot({
         fullPage: true,
@@ -1400,7 +1410,7 @@ test("completed users create venue and private events with safe projections", as
 
   await page.goto(
     new URL(
-      `/matches/${fixture.matchId}?returnTo=${encodeURIComponent("/discover?city=haifa")}`,
+      `/matches/${fixture.matchId}?returnTo=${encodeURIComponent("/discover")}`,
       page.url(),
     ).toString(),
   );
@@ -1411,7 +1421,6 @@ test("completed users create venue and private events with safe projections", as
 
   await page.getByRole("button", { name: "Next: place and audience" }).click();
   await page.getByRole("textbox", { name: "Event title" }).fill(`Arsenal at home ${suffix}`);
-  await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
   await page
     .getByRole("textbox", { name: "Description" })
     .fill("A calm home watch party for registered supporters during the full match.");
@@ -1467,11 +1476,10 @@ test("a Venue-only operator completes the real onboarding boundary and publishes
   const suggestion = {
     id: `e2e-venue-only-${suffix}`,
     label: `${addressQuery}, Haifa, Israel`,
-    city: "Haifa",
     latitude: 32.81303,
     longitude: 34.99928,
   };
-  const digest = seedPublicAddressCache(addressQuery, "Haifa", suggestion);
+  const digest = seedPublicAddressCache(addressQuery, suggestion);
   const addressRequests: unknown[] = [];
   page.on("request", (request) => {
     if (new URL(request.url()).pathname !== "/api/locations/search") return;
@@ -1516,7 +1524,6 @@ test("a Venue-only operator completes the real onboarding boundary and publishes
 
     await page.getByRole("textbox", { name: "Venue name" }).fill(`Venue Only ${suffix}`);
     await page.getByRole("textbox", { name: "Venue URL" }).fill(venueSlug);
-    await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
     await expect(page.locator('input[name="longitude"], input[name="latitude"]')).toHaveCount(0);
     await page.getByRole("combobox", { name: "Public address" }).fill(addressQuery);
     await page.getByRole("option", { name: suggestion.label }).click();
@@ -1535,9 +1542,7 @@ test("a Venue-only operator completes the real onboarding boundary and publishes
       `Venue Only ${suffix}`,
     );
     await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
-    expect(addressRequests).toEqual([
-      { query: addressQuery, city: "Haifa", locationKind: "venue" },
-    ]);
+    expect(addressRequests).toEqual([{ query: addressQuery, purpose: "public_address" }]);
     const venueNavigation = page.getByRole("navigation", { name: "Venue navigation" });
     await expect(venueNavigation.getByRole("link")).toHaveText([
       "Today",
@@ -1701,7 +1706,6 @@ test("08 and 12 approval reveals a home address and host removal revokes it", as
     await page.goto(new URL("/events/new", page.url()).toString());
     await openFanEventDetailsStep(page);
     await page.getByRole("textbox", { name: "Event title" }).fill(eventTitle);
-    await page.getByRole("combobox", { name: "City" }).selectOption({ label: "Haifa" });
     await page
       .getByRole("textbox", { name: "Description" })
       .fill("A protected home event proving direct invitations and attendance approval.");
@@ -2052,7 +2056,7 @@ test("02 personalized discovery uses a browser coordinate without exposing it in
       discoveryRequests.push(request.postDataJSON());
     }
   });
-  await page.goto(new URL("/discover?city=haifa", page.url()).toString());
+  await page.goto(new URL("/discover", page.url()).toString());
   await expect(page.getByText(event.input.input_title, { exact: true })).toBeVisible();
   await expect(page.getByText("Using this browser location", { exact: true })).toBeVisible();
   await expect.poll(() => discoveryRequests.length).toBeGreaterThan(0);
@@ -2504,7 +2508,6 @@ test("14 crafted cross-user event group and venue edits are denied", async () =>
     attacker.rpc("update_venue", {
       input_venue_id: venue.venueId,
       input_address_text: "99 Crafted Address, Haifa",
-      input_city_id: haifaCityId,
       input_description: "A crafted cross-user venue edit that must be rejected.",
       input_latitude: 32.81303,
       input_longitude: 34.99928,

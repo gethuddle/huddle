@@ -17,15 +17,16 @@ export const groupSlugSchema = z
       .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lowercase words separated by hyphens."),
   );
 
-export const groupCreationSchema = z.object({
-  intent: z.enum(["check", "create"]),
-  name: z.string().trim().min(3, "Use at least 3 characters.").max(80),
-  slug: groupSlugSchema,
-  cityId: optionalUuidSchema,
-  teamId: optionalUuidSchema,
-  visibility: z.enum(["discoverable", "unlisted"]),
-  description: z.string().trim().max(2000, "Use 2,000 characters or fewer."),
-});
+export const groupCreationSchema = z
+  .object({
+    intent: z.enum(["check", "create"]),
+    name: z.string().trim().min(3, "Use at least 3 characters.").max(80),
+    slug: groupSlugSchema,
+    teamId: optionalUuidSchema,
+    visibility: z.enum(["discoverable", "unlisted"]),
+    description: z.string().trim().max(2000, "Use 2,000 characters or fewer."),
+  })
+  .strict();
 
 export const groupRouteSlugSchema = groupSlugSchema;
 

@@ -21,7 +21,7 @@ const journey = [
   {
     number: "02",
     title: "Discover",
-    description: "Find eligible watch events connected to a fixture and a city in Israel.",
+    description: "Find eligible watch events near the place you choose in Israel.",
   },
   {
     number: "03",
@@ -123,7 +123,7 @@ export default async function Home() {
                     {nextEvent.title}
                   </h2>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    {nextEvent.homeTeamName} vs {nextEvent.awayTeamName} · {nextEvent.cityName}
+                    {nextEvent.homeTeamName} vs {nextEvent.awayTeamName}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
                     {formatIsraelKickoff(nextEvent.startsAt)}

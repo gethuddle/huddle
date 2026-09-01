@@ -546,7 +546,7 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tests/evidence:** unit validation, component forms, and E2E signup/verification/sign-in/sign-out against local Supabase.
 
-### A02 — Cities, profiles, adult attestation, and rules onboarding
+### A02 — Historical city catalog, profiles, adult attestation, and rules onboarding
 
 **Depends on:** `A01`.
 
@@ -556,7 +556,7 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Tasks:**
 
-- [x] Create and seed `cities` with reviewed Israel entries and centers.
+- [x] Historical B01–B12: create and seed `cities` with reviewed Israel entries and centers. The approved cityless-location migration later removes this catalog without deleting product objects.
 - [x] Create `profiles` with all constraints and indexes.
 - [x] Create the Auth-to-profile lifecycle/trigger deliberately.
 - [x] Implement unique normalized handle validation.
@@ -564,7 +564,7 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 - [x] Add repository-owned versioned community rules content.
 - [x] Record current `rules_version` and `rules_accepted_at`.
 - [x] Set `profile_completed_at` only after all required fields are valid.
-- [x] Build onboarding and profile settings with city fallback.
+- [x] Historical B01–B12: build onboarding and profile settings with city fallback. Current onboarding and settings deliberately contain no city or saved profile location.
 - [x] Prevent forged direct updates to protected completion fields.
 
 **Checkpoints:** schema/RLS/function; onboarding UI; tests and seeded journey.
@@ -764,10 +764,10 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 **Tasks:**
 
 - [x] Create groups, rules, memberships, invite-token metadata, and bans tables.
-- [x] Add slugs, team/city relationships, lifecycle, role, status, and all indexes.
+- [x] Historical B01–B12: add slugs, team/city relationships, lifecycle, role, status, and all indexes. The current group model removes the city relationship.
 - [x] Create group plus active owner membership atomically.
 - [x] Enforce one active owner and protect the sole owner invariant.
-- [x] Build similar-name/team/city suggestion query using `pg_trgm`.
+- [x] Historical B01–B12: build similar-name/team/city suggestions using `pg_trgm`. Current similarity is global and may use name/team only.
 - [x] Build the group creation flow with discoverable/unlisted explanation.
 - [x] Add public safe group summary and protected member-content boundary.
 
@@ -914,7 +914,7 @@ The following checked modules describe the B01–B12 baseline. Their original ou
 - [x] Support home and public-place details with different privacy copy.
 - [x] Write home address/coordinate only through the controlled transaction into `event_private_locations`.
 - [x] Deny all direct client select/update of private locations.
-- [x] Return only city/coarse distance context before approval.
+- [x] Historical B01–B12: return city/coarse distance context before approval. Current home-event previews return only a safe coarse distance summary from the session origin.
 - [x] Show the 12-person cap, registered-users-only rule, host presence, and address-sharing warning.
 - [x] Add draft/publish states and group-review submission where required.
 
@@ -1011,7 +1011,7 @@ The following checked modules describe the B01–B12 baseline. Their original ou
 
 **Authority:** implementation spec §§4.1–4.3, 7.2, 9, 12.
 
-**Outcome:** anonymous and signed-in users discover only eligible future events from a profile-city fallback, one-request browser location, or session-scoped Photon/OpenStreetMap address origin with cursor pagination and cross-city distance ranking.
+**Historical B09 outcome:** anonymous and signed-in users discover only eligible future events from the then-current profile-city fallback, one-request browser location, or session-scoped Photon/OpenStreetMap address origin with cursor pagination and cross-city distance ranking. The approved cityless-location revision removes the profile fallback and keeps browser/address origins only.
 
 **Tasks:**
 
@@ -1022,15 +1022,17 @@ The following checked modules describe the B01–B12 baseline. Their original ou
 - [x] Add opaque/tamper-resistant cursor encode/decode.
 - [x] Add `GET /api/discovery` with narrow DTO and privacy-safe cache headers.
 - [x] Store browser coordinates only for the request; do not create location history.
-- [x] Build URL-owned non-coordinate filters, browser permission prompt, city fallback, session-scoped address origin, and TanStack Query cursor pages.
+- [x] Historical B09: build URL-owned non-coordinate filters, browser permission prompt, city fallback, session-scoped address origin, and TanStack Query cursor pages. Current Explore removes the city fallback and uses browser/address origins only.
 - [x] Avoid per-card N+1 requests and never fetch exact private location.
 - [x] Add empty, loading, retry, permission-denied, stale, and end-of-list states.
 
 **Tests/evidence:** SQL query and authorization matrix, cursor tests, query-count inspection, component geolocation denial, E2E personalized/anonymous discovery, representative `EXPLAIN` evidence.
 
-**B09 implementation decisions:** group lifecycle is recalculated from current gate facts after every relevant membership, role, rule, description, event, ban, and suspension transition; search also requires a currently future published group event so wall-clock expiry cannot leak a stale group. Event discovery uses one authorization-filtered RPC and one safe DTO page rather than per-card reads. Spatial candidates are selected separately from indexed public-place, venue, and protected-home locations, while responses expose only a coarse distance band and never an exact address, coordinate, or distance. Signed cursors are endpoint-scoped and bound to normalized filters. Precise browser or selected public-address coordinates are sent only in a no-store request body, omitted from address-bar state, retained only for the current browser session, and discarded when city fallback is restored. Browser permission is requested only after an explicit click. Database date bounds compare Israel calendar timestamps, so 23-hour and 25-hour daylight-saving transition days do not change the accepted discovery window.
+**Historical B09 implementation decisions:** group lifecycle is recalculated from current gate facts after every relevant membership, role, rule, description, event, ban, and suspension transition; search also requires a currently future published group event so wall-clock expiry cannot leak a stale group. Event discovery uses one authorization-filtered RPC and one safe DTO page rather than per-card reads. Spatial candidates are selected separately from indexed public-place, venue, and protected-home locations, while responses expose only a coarse distance band and never an exact address, coordinate, or distance. Signed cursors are endpoint-scoped and bound to normalized filters. Precise browser or selected public-address coordinates are sent only in a no-store request body, omitted from address-bar state, and retained only for the current browser session. The later cityless revision removes the profile-city restoration path and permits typed home-address confirmation through the same no-store geocoder boundary. Database date bounds compare Israel calendar timestamps, so 23-hour and 25-hour daylight-saving transition days do not change the accepted discovery window.
 
 **Post-redesign discovery correction:** the historical member/moderator/rule/event thresholds above no longer control current lifecycle or search. Event discovery merges the ordinary reservation, open-door, and current Fan's managed-Venue projections with event-ID deduplication. Eligible signed-in nonmembers may receive a safe public-place event preview for an active discoverable group and are directed to apply before attendance; anonymous visitors and all nonmembers remain unable to discover group home events. Fixture detail loads one bounded authorization-filtered linked-event projection so Explore and fixture navigation do not disagree.
+
+**Cityless-location correction:** profiles and groups contain no geography. Explore accepts only a session browser coordinate or confirmed address, while venue/public/home event locations use their own confirmed points. Discoverable groups are global and deterministic by active-member count, normalized name, and ID.
 
 ---
 

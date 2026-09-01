@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 type TeamInitialsProps = Readonly<{
   crestUrl?: string | null;
   name: string;
-  tla: string | null;
+  tla?: string | null;
   className?: string;
   size?: "sm" | "md" | "lg";
 }>;
@@ -75,7 +75,7 @@ export function TeamMark({
       )}
       role="img"
     >
-      {teamInitials(name, tla)}
+      {teamInitials(name, tla ?? null)}
     </span>
   );
 }

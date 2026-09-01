@@ -14,7 +14,6 @@ vi.mock("./discovery-map", () => ({
 import { DiscoveryFeed } from "./discovery-feed";
 
 const filters: DiscoveryFilters = {
-  citySlug: "haifa",
   lat: null,
   lng: null,
   radiusKm: 15,
@@ -42,11 +41,14 @@ const initialPage: DiscoveryPage = {
         id: "52000000-0000-4000-8000-000000000402",
         competitionName: "Premier League",
         homeTeamName: "Arsenal",
+        homeTeamTla: "ARS",
+        homeTeamCrestUrl: "https://crests.football-data.org/57.png",
         awayTeamName: "Liverpool",
+        awayTeamTla: "LIV",
+        awayTeamCrestUrl: null,
       },
       startsAt: "2026-08-30T17:30:00Z",
       endsAt: "2026-08-30T20:30:00Z",
-      cityName: "Haifa",
       placeKind: "venue",
       locationSummary: "1–5 km away",
       mapPoint: { placeName: "The Corner", latitude: 32.812, longitude: 34.998 },
@@ -62,7 +64,7 @@ const initialPage: DiscoveryPage = {
     },
   ],
   nextCursor: null,
-  locationMode: "city",
+  locationMode: "browser",
   generatedAt: "2026-08-27T12:00:00Z",
   requiresPrivateCache: true,
 };
@@ -75,7 +77,7 @@ afterEach(() => {
 });
 
 describe("DiscoveryFeed", () => {
-  it("continues in city mode when browser location is denied", async () => {
+  it("asks for an address when browser location is denied", async () => {
     const getCurrentPosition = vi.fn((_success, error: PositionErrorCallback) =>
       error({ code: 1, message: "denied", PERMISSION_DENIED: 1 } as GeolocationPositionError),
     );
@@ -83,18 +85,10 @@ describe("DiscoveryFeed", () => {
       configurable: true,
       value: { getCurrentPosition },
     });
-    const user = userEvent.setup();
-
     render(<DiscoveryFeed filters={filters} initialPage={initialPage} />);
-    const browserLocationButton = screen.getByRole("button", { name: "Use my location" });
-    expect(browserLocationButton).toHaveClass("min-h-11");
-    await user.click(browserLocationButton);
-
-    expect(getCurrentPosition).toHaveBeenCalledOnce();
-    expect(await screen.findByRole("status")).toHaveTextContent(
-      "Discovery is continuing from your profile area",
-    );
-    expect(screen.getByText("North stand watch")).toBeVisible();
+    await waitFor(() => expect(getCurrentPosition).toHaveBeenCalledOnce());
+    expect(await screen.findByRole("status")).toHaveTextContent("Search an address or area below");
+    expect(screen.queryByText(/profile area/i)).not.toBeInTheDocument();
   });
 
   it("uses a granted coordinate for one API query without adding it to page history", async () => {
@@ -110,10 +104,7 @@ describe("DiscoveryFeed", () => {
       json: async () => ({ ...initialPage, locationMode: "browser" }),
     });
     vi.stubGlobal("fetch", fetchMock);
-    const user = userEvent.setup();
-
     render(<DiscoveryFeed filters={filters} initialPage={initialPage} />);
-    await user.click(screen.getByRole("button", { name: "Use my location" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
     expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/discovery");
@@ -124,20 +115,16 @@ describe("DiscoveryFeed", () => {
     });
     expect(window.location.search).not.toContain("lat=");
     expect(screen.getByText("Using this browser location")).toBeVisible();
-    expect(screen.getByRole("button", { name: "Use profile area" })).toHaveClass("min-h-11");
+    expect(screen.getByRole("button", { name: "Use my current location" })).toHaveClass("min-h-11");
   });
 
-  it("uses browser location automatically only when permission was already granted", async () => {
+  it("uses browser location automatically on first visit", async () => {
     const getCurrentPosition = vi.fn((success: PositionCallback) =>
       success({ coords: { latitude: 32.794, longitude: 34.989 } } as GeolocationPosition),
     );
     Object.defineProperty(navigator, "geolocation", {
       configurable: true,
       value: { getCurrentPosition },
-    });
-    Object.defineProperty(navigator, "permissions", {
-      configurable: true,
-      value: { query: vi.fn().mockResolvedValue({ state: "granted" }) },
     });
     vi.stubGlobal(
       "fetch",
@@ -189,10 +176,7 @@ describe("DiscoveryFeed", () => {
       },
     });
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false }));
-    const user = userEvent.setup();
-
     render(<DiscoveryFeed filters={filters} initialPage={initialPage} />);
-    await user.click(screen.getByRole("button", { name: "Use my location" }));
 
     expect(await screen.findByRole("button", { name: "Retry" }, { timeout: 4_000 })).toHaveClass(
       "min-h-11",

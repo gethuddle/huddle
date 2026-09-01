@@ -15,13 +15,6 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: mocks.replace }
 
 const matchId = "60000000-0000-4000-8000-000000000101";
 const catalog = {
-  cities: [
-    {
-      id: "60000000-0000-4000-8000-000000000103",
-      name: "Haifa",
-      slug: "haifa",
-    },
-  ],
   matches: [
     {
       id: matchId,

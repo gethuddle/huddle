@@ -8,7 +8,7 @@ select no_plan();
 select ok(
   position(
     'viewer_attendance_status' in pg_get_function_result(
-      'public.discover_events(uuid,double precision,double precision,integer,timestamptz,timestamptz,uuid,uuid,uuid,integer,integer,timestamptz,uuid,integer)'::regprocedure
+      'public.discover_events(double precision,double precision,integer,timestamptz,timestamptz,uuid,uuid,uuid,integer,integer,timestamptz,uuid,integer)'::regprocedure
     )
   ) = 0,
   'acquisition discovery structurally omits viewer attendance history'
@@ -16,17 +16,17 @@ select ok(
 select ok(
   position(
     'address' in lower(pg_get_function_result(
-      'public.discover_events(uuid,double precision,double precision,integer,timestamptz,timestamptz,uuid,uuid,uuid,integer,integer,timestamptz,uuid,integer)'::regprocedure
+      'public.discover_events(double precision,double precision,integer,timestamptz,timestamptz,uuid,uuid,uuid,integer,integer,timestamptz,uuid,integer)'::regprocedure
     ))
   ) = 0
   and position(
     'longitude' in lower(pg_get_function_result(
-      'public.discover_events(uuid,double precision,double precision,integer,timestamptz,timestamptz,uuid,uuid,uuid,integer,integer,timestamptz,uuid,integer)'::regprocedure
+      'public.discover_events(double precision,double precision,integer,timestamptz,timestamptz,uuid,uuid,uuid,integer,integer,timestamptz,uuid,integer)'::regprocedure
     ))
   ) = 0
   and position(
     'latitude' in lower(pg_get_function_result(
-      'public.discover_events(uuid,double precision,double precision,integer,timestamptz,timestamptz,uuid,uuid,uuid,integer,integer,timestamptz,uuid,integer)'::regprocedure
+      'public.discover_events(double precision,double precision,integer,timestamptz,timestamptz,uuid,uuid,uuid,integer,integer,timestamptz,uuid,integer)'::regprocedure
     ))
   ) = 0,
   'acquisition discovery structurally omits exact location fields'
@@ -34,12 +34,12 @@ select ok(
 select ok(
   has_function_privilege(
     'anon',
-    'public.discover_events(uuid,double precision,double precision,integer,timestamptz,timestamptz,uuid,uuid,uuid,integer,integer,timestamptz,uuid,integer)',
+    'public.discover_events(double precision,double precision,integer,timestamptz,timestamptz,uuid,uuid,uuid,integer,integer,timestamptz,uuid,integer)',
     'execute'
   )
   and has_function_privilege(
     'authenticated',
-    'public.discover_events(uuid,double precision,double precision,integer,timestamptz,timestamptz,uuid,uuid,uuid,integer,integer,timestamptz,uuid,integer)',
+    'public.discover_events(double precision,double precision,integer,timestamptz,timestamptz,uuid,uuid,uuid,integer,integer,timestamptz,uuid,integer)',
     'execute'
   ),
   'only the documented safe discovery roles retain the RPC grant'
@@ -86,7 +86,6 @@ update public.profiles
 set
   handle = 'task6_' || right(id::text, 3),
   display_name = 'Task 6 Fan ' || right(id::text, 3),
-  city_id = (select id from public.cities where slug = 'haifa'),
   adult_attested_at = statement_timestamp(),
   rules_version = 1,
   rules_accepted_at = statement_timestamp(),
@@ -179,7 +178,7 @@ values
   );
 
 insert into public.groups (
-  id, slug, name, owner_id, team_id, city_id, visibility, lifecycle, description,
+  id, slug, name, owner_id, team_id, visibility, lifecycle, description,
   activated_at, suspended_at
 )
 values
@@ -189,7 +188,6 @@ values
     'Task 6 Eligible Group',
     '64500000-0000-4000-8000-000000000103',
     '64500000-0000-4000-8000-000000000202',
-    (select id from public.cities where slug = 'haifa'),
     'unlisted',
     'active',
     'A private group whose active member may discover a new event.',
@@ -202,7 +200,6 @@ values
     'Task 6 Banned Group',
     '64500000-0000-4000-8000-000000000103',
     '64500000-0000-4000-8000-000000000202',
-    (select id from public.cities where slug = 'haifa'),
     'unlisted',
     'active',
     'A group used to prove a retained active ban removes discovery.',
@@ -215,7 +212,6 @@ values
     'Task 6 Suspended Group',
     '64500000-0000-4000-8000-000000000103',
     '64500000-0000-4000-8000-000000000202',
-    (select id from public.cities where slug = 'haifa'),
     'unlisted',
     'suspended',
     'A suspended group whose event must remain invisible.',
@@ -280,7 +276,7 @@ set suspended_at = statement_timestamp()
 where id = '64500000-0000-4000-8000-000000000107';
 
 insert into public.venues (
-  id, owner_id, slug, name, city_id, address_text, location, description,
+  id, owner_id, slug, name, address_text, location, description,
   screen_count, stated_capacity, verification_status, suspended_at
 )
 values
@@ -289,7 +285,6 @@ values
     '64500000-0000-4000-8000-000000000105',
     'task6-open-venue',
     'Task 6 Open Venue',
-    (select id from public.cities where slug = 'haifa'),
     '1 Public Venue Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(35.000, 32.800), 4326)::extensions.geography,
     'A nearby venue for acquisition-only discovery.',
@@ -303,7 +298,6 @@ values
     '64500000-0000-4000-8000-000000000104',
     'task6-managed-venue',
     'Task 6 Managed Venue',
-    (select id from public.cities where slug = 'haifa'),
     '2 Public Venue Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(35.002, 32.802), 4326)::extensions.geography,
     'A Venue workspace whose inventory is not an acquisition.',
@@ -317,7 +311,6 @@ values
     '64500000-0000-4000-8000-000000000105',
     'task6-far-venue',
     'Task 6 Far Venue',
-    (select id from public.cities where slug = 'haifa'),
     '3 Public Venue Street, Israel',
     extensions.st_setsrid(extensions.st_makepoint(34.800, 29.550), 4326)::extensions.geography,
     'A valid Israeli venue outside the requested radius.',
@@ -331,7 +324,6 @@ values
     '64500000-0000-4000-8000-000000000105',
     'task6-suspended-venue',
     'Task 6 Suspended Venue',
-    (select id from public.cities where slug = 'haifa'),
     '4 Public Venue Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(35.004, 32.804), 4326)::extensions.geography,
     'A suspended venue that must never enter discovery.',
@@ -361,7 +353,7 @@ values (
 insert into public.events (
   id, created_by, host_user_id, organizing_group_id, match_id, title, description,
   expected_activity, cost_description, event_rules, commercial_affiliation,
-  host_presence_confirmed_at, starts_at, ends_at, city_id, place_kind,
+  host_presence_confirmed_at, starts_at, ends_at, place_kind,
   public_place_name, public_address_text, public_location, audience,
   audience_group_id, capacity, requires_approval, status, published_at
 )
@@ -377,7 +369,6 @@ values
     'Watch the match', 'Free', 'Respect the group.', 'None',
     statement_timestamp(), statement_timestamp() + interval '7 days',
     statement_timestamp() + interval '7 days 3 hours',
-    (select id from public.cities where slug = 'haifa'),
     'public_place', 'Task 6 Group Hall', '10 Public Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(35.006, 32.806), 4326)::extensions.geography,
     'group', '64500000-0000-4000-8000-000000000301', 20, true,
@@ -394,7 +385,6 @@ values
     'Watch the match', 'Free', 'Respect the host.', 'None',
     statement_timestamp(), statement_timestamp() + interval '7 days 10 minutes',
     statement_timestamp() + interval '7 days 3 hours 10 minutes',
-    (select id from public.cities where slug = 'haifa'),
     'public_place', 'Task 6 Hosted Hall', '11 Public Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(35.007, 32.807), 4326)::extensions.geography,
     'friends', null, 20, true, 'published', statement_timestamp()
@@ -410,7 +400,6 @@ values
     'Watch the match', 'Free', 'Respect the group.', 'None',
     statement_timestamp(), statement_timestamp() + interval '7 days 20 minutes',
     statement_timestamp() + interval '7 days 3 hours 20 minutes',
-    (select id from public.cities where slug = 'haifa'),
     'public_place', 'Task 6 Submitted Hall', '12 Public Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(35.008, 32.808), 4326)::extensions.geography,
     'group', '64500000-0000-4000-8000-000000000301', 20, true,
@@ -427,7 +416,6 @@ values
     'Watch the match', 'Free', 'Respect the host.', 'None',
     statement_timestamp(), statement_timestamp() + interval '7 days 30 minutes',
     statement_timestamp() + interval '7 days 3 hours 30 minutes',
-    (select id from public.cities where slug = 'haifa'),
     'public_place', 'Task 6 Invite Hall', '13 Public Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(35.009, 32.809), 4326)::extensions.geography,
     'invite_only', null, 20, true, 'published', statement_timestamp()
@@ -443,7 +431,6 @@ values
     'Watch the match', 'Free', 'Respect the host.', 'None',
     statement_timestamp(), statement_timestamp() + interval '7 days 40 minutes',
     statement_timestamp() + interval '7 days 3 hours 40 minutes',
-    (select id from public.cities where slug = 'haifa'),
     'public_place', 'Task 6 Blocked Hall', '14 Public Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(35.010, 32.810), 4326)::extensions.geography,
     'friends', null, 20, true, 'published', statement_timestamp()
@@ -459,7 +446,6 @@ values
     'Watch the match', 'Free', 'Respect the group.', 'None',
     statement_timestamp(), statement_timestamp() + interval '7 days 50 minutes',
     statement_timestamp() + interval '7 days 3 hours 50 minutes',
-    (select id from public.cities where slug = 'haifa'),
     'public_place', 'Task 6 Banned Hall', '15 Public Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(35.011, 32.811), 4326)::extensions.geography,
     'group', '64500000-0000-4000-8000-000000000302', 20, true,
@@ -476,7 +462,6 @@ values
     'Watch the match', 'Free', 'Respect the host.', 'None',
     statement_timestamp(), statement_timestamp() + interval '7 days 60 minutes',
     statement_timestamp() + interval '7 days 4 hours',
-    (select id from public.cities where slug = 'haifa'),
     'public_place', 'Task 6 Suspended Hall', '16 Public Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(35.012, 32.812), 4326)::extensions.geography,
     'friends', null, 20, true, 'published', statement_timestamp()
@@ -492,7 +477,6 @@ values
     'Watch the match', 'Free', 'Respect the host.', 'None',
     statement_timestamp(), statement_timestamp() + interval '7 days 70 minutes',
     statement_timestamp() + interval '7 days 4 hours 10 minutes',
-    (select id from public.cities where slug = 'haifa'),
     'public_place', 'Task 6 Unrelated Hall', '17 Public Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(35.013, 32.813), 4326)::extensions.geography,
     'friends', null, 20, true, 'published', statement_timestamp()
@@ -508,7 +492,6 @@ values
     'Watch the match', 'Free', 'Respect the group.', 'None',
     statement_timestamp(), statement_timestamp() + interval '7 days 80 minutes',
     statement_timestamp() + interval '7 days 4 hours 20 minutes',
-    (select id from public.cities where slug = 'haifa'),
     'public_place', 'Task 6 Suspended Group Hall', '18 Public Street, Haifa',
     extensions.st_setsrid(extensions.st_makepoint(35.014, 32.814), 4326)::extensions.geography,
     'group', '64500000-0000-4000-8000-000000000303', 20, true,
@@ -518,7 +501,7 @@ values
 insert into public.events (
   id, created_by, host_user_id, match_id, title, description, expected_activity,
   cost_description, event_rules, commercial_affiliation, host_presence_confirmed_at,
-  starts_at, ends_at, city_id, place_kind, audience, capacity, requires_approval,
+  starts_at, ends_at, place_kind, audience, capacity, requires_approval,
   status, published_at
 )
 values (
@@ -531,7 +514,6 @@ values (
   'Watch the match', 'Free', 'Respect the home.', 'None',
   statement_timestamp(), statement_timestamp() + interval '7 days 5 minutes',
   statement_timestamp() + interval '7 days 3 hours 5 minutes',
-  (select id from public.cities where slug = 'haifa'),
   'home', 'friends', 8, true, 'published', statement_timestamp()
 );
 
@@ -546,7 +528,7 @@ values (
 insert into public.events (
   id, created_by, host_venue_id, match_id, title, description, expected_activity,
   cost_description, event_rules, commercial_affiliation, host_presence_confirmed_at,
-  starts_at, ends_at, city_id, place_kind, venue_id, audience, audience_team_id,
+  starts_at, ends_at, place_kind, venue_id, audience, audience_team_id,
   capacity, requires_approval, status, published_at, cancelled_at, cancel_reason
 )
 select
@@ -563,7 +545,6 @@ select
   statement_timestamp(),
   statement_timestamp() + fixture.start_offset,
   statement_timestamp() + fixture.end_offset,
-  (select id from public.cities where slug = 'haifa'),
   'venue',
   fixture.venue_id,
   fixture.audience::public.event_audience,
@@ -656,7 +637,6 @@ set local "request.jwt.claim.sub" = '64500000-0000-4000-8000-000000000101';
 create temporary table task6_fan_results on commit drop as
 select *
 from public.discover_events(
-  (select id from public.cities where slug = 'haifa'),
   32.800,
   35.000,
   50,
@@ -679,9 +659,12 @@ select is(
     'Eligible friends opportunity',
     'Eligible group opportunity',
     'Eligible public opportunity',
-    'Eligible team opportunity'
+    'Eligible team opportunity',
+    'Viewer created group submission',
+    'Viewer hosted event',
+    'Viewer managed venue event'
   ]::text[],
-  'a signed-in Fan receives only genuinely new visible acquisition opportunities'
+  'a signed-in Fan receives new opportunities plus events they created or manage'
 );
 select is(
   (select count(*) from task6_fan_results where audience = 'invite_only'),
@@ -710,7 +693,6 @@ set local "request.jwt.claim.sub" = '';
 create temporary table task6_anon_results on commit drop as
 select *
 from public.discover_events(
-  (select id from public.cities where slug = 'haifa'),
   32.800,
   35.000,
   50,
@@ -748,7 +730,6 @@ set local "request.jwt.claim.sub" = '64500000-0000-4000-8000-000000000104';
 create temporary table task6_venue_only_results on commit drop as
 select *
 from public.discover_events(
-  (select id from public.cities where slug = 'haifa'),
   32.800,
   35.000,
   50,
@@ -767,13 +748,13 @@ reset role;
 
 select is(
   (select count(*) from task6_venue_only_results),
-  11::bigint,
-  'a Venue-only actor receives public acquisition without its own Venue inventory'
+  12::bigint,
+  'a Venue-only actor receives public acquisition including its own Venue inventory'
 );
 select is(
   (select count(*) from task6_venue_only_results where title = 'Viewer managed venue event'),
-  0::bigint,
-  'active Venue membership excludes that Venue inventory for a Venue-only actor'
+  1::bigint,
+  'active Venue membership keeps that Venue inventory visible to its manager'
 );
 select is(
   (select count(*) from task6_venue_only_results where host_kind <> 'venue' or audience not in ('public', 'team_followers')),
@@ -786,7 +767,6 @@ set local "request.jwt.claim.sub" = '64500000-0000-4000-8000-000000000101';
 create temporary table task6_fan_first_page on commit drop as
 select *
 from public.discover_events(
-  (select id from public.cities where slug = 'haifa'),
   32.800,
   35.000,
   50,
@@ -799,13 +779,12 @@ from public.discover_events(
   null,
   null,
   null,
-  2
+  4
 );
 
 create temporary table task6_fan_second_page on commit drop as
 select *
 from public.discover_events(
-  (select id from public.cities where slug = 'haifa'),
   32.800,
   35.000,
   50,
@@ -817,30 +796,30 @@ from public.discover_events(
   (
     select interest_score from task6_fan_first_page
     order by interest_score desc, cursor_distance_band, starts_at, event_id
-    offset 1 limit 1
+    offset 3 limit 1
   ),
   (
     select cursor_distance_band from task6_fan_first_page
     order by interest_score desc, cursor_distance_band, starts_at, event_id
-    offset 1 limit 1
+    offset 3 limit 1
   ),
   (
     select starts_at from task6_fan_first_page
     order by interest_score desc, cursor_distance_band, starts_at, event_id
-    offset 1 limit 1
+    offset 3 limit 1
   ),
   (
     select event_id from task6_fan_first_page
     order by interest_score desc, cursor_distance_band, starts_at, event_id
-    offset 1 limit 1
+    offset 3 limit 1
   ),
-  2
+  4
 );
 reset role;
 
-select is((select count(*) from task6_fan_first_page), 2::bigint, 'the first acquisition page is full');
+select is((select count(*) from task6_fan_first_page), 4::bigint, 'the first acquisition page is full');
 select ok((select bool_and(has_more) from task6_fan_first_page), 'the first acquisition page reports more eligible rows');
-select is((select count(*) from task6_fan_second_page), 2::bigint, 'exclusions do not create a short second page');
+select is((select count(*) from task6_fan_second_page), 3::bigint, 'the second page contains the remaining owned and acquisition rows');
 select ok((select not bool_or(has_more) from task6_fan_second_page), 'the final acquisition page reports the true end');
 select is(
   (
@@ -864,44 +843,47 @@ select is(
     'Eligible friends opportunity',
     'Eligible group opportunity',
     'Eligible public opportunity',
-    'Eligible team opportunity'
+    'Eligible team opportunity',
+    'Viewer created group submission',
+    'Viewer hosted event',
+    'Viewer managed venue event'
   ]::text[],
-  'two keyset pages contain exactly the acquisition set after exclusions'
+  'two keyset pages contain the acquisition set plus owned events after exclusions'
 );
 
 set local role anon;
 select throws_ok(
-  $$select * from public.discover_events((select id from public.cities where slug = 'haifa'),32.8,35.0,null,statement_timestamp(),statement_timestamp() + interval '30 days',null,null,null,null,null,null,null,20)$$,
+  $$select * from public.discover_events(32.8,35.0,null,statement_timestamp(),statement_timestamp() + interval '30 days',null,null,null,null,null,null,null,20)$$,
   'P0001',
   'VALIDATION_FAILED',
   'a direct anonymous SQL null radius is rejected'
 );
 select throws_ok(
-  $$select * from public.discover_events((select id from public.cities where slug = 'haifa'),32.8,35.0,50,statement_timestamp(),statement_timestamp() + interval '30 days',null,null,null,null,null,null,null,null)$$,
+  $$select * from public.discover_events(32.8,35.0,50,statement_timestamp(),statement_timestamp() + interval '30 days',null,null,null,null,null,null,null,null)$$,
   'P0001',
   'VALIDATION_FAILED',
   'a direct SQL null limit is rejected instead of widened'
 );
 select throws_ok(
-  $$select * from public.discover_events((select id from public.cities where slug = 'haifa'),32.8,35.0,50,statement_timestamp(),statement_timestamp() + interval '30 days',null,null,null,null,null,null,null,0)$$,
+  $$select * from public.discover_events(32.8,35.0,50,statement_timestamp(),statement_timestamp() + interval '30 days',null,null,null,null,null,null,null,0)$$,
   'P0001',
   'VALIDATION_FAILED',
   'a direct SQL zero limit is rejected instead of clamped'
 );
 select throws_ok(
-  $$select * from public.discover_events((select id from public.cities where slug = 'haifa'),32.8,35.0,50,statement_timestamp(),statement_timestamp() + interval '30 days',null,null,null,null,null,null,null,51)$$,
+  $$select * from public.discover_events(32.8,35.0,50,statement_timestamp(),statement_timestamp() + interval '30 days',null,null,null,null,null,null,null,51)$$,
   'P0001',
   'VALIDATION_FAILED',
   'a direct SQL oversized limit is rejected instead of clamped'
 );
 select throws_ok(
-  $$select * from public.discover_events((select id from public.cities where slug = 'haifa'),32.8,35.0,50,statement_timestamp(),statement_timestamp() + interval '30 days',null,null,null,-1,0,statement_timestamp() + interval '7 days','64500000-0000-4000-8000-000000000601',20)$$,
+  $$select * from public.discover_events(32.8,35.0,50,statement_timestamp(),statement_timestamp() + interval '30 days',null,null,null,-1,0,statement_timestamp() + interval '7 days','64500000-0000-4000-8000-000000000601',20)$$,
   'P0001',
   'VALIDATION_FAILED',
   'a negative direct SQL cursor score is rejected'
 );
 select throws_ok(
-  $$select * from public.discover_events((select id from public.cities where slug = 'haifa'),32.8,35.0,50,statement_timestamp(),statement_timestamp() + interval '30 days',null,null,null,0,5,statement_timestamp() + interval '7 days','64500000-0000-4000-8000-000000000601',20)$$,
+  $$select * from public.discover_events(32.8,35.0,50,statement_timestamp(),statement_timestamp() + interval '30 days',null,null,null,0,5,statement_timestamp() + interval '7 days','64500000-0000-4000-8000-000000000601',20)$$,
   'P0001',
   'VALIDATION_FAILED',
   'an out-of-range direct SQL cursor distance band is rejected'

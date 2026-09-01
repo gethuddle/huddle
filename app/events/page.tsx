@@ -115,7 +115,7 @@ export default async function EventsDashboardPage({ searchParams }: Props) {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  {formatIsraelKickoff(item.starts_at)} · {item.city_name}
+                  {formatIsraelKickoff(item.starts_at)}
                 </p>
                 <div className="mt-5">
                   <EventParticipationControls

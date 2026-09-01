@@ -25,14 +25,14 @@ select ok(
 );
 select isnt(
   to_regprocedure(
-    'public.create_venue_workspace_v2(text,text,uuid,text,numeric,numeric,text,text,integer,text[],text,text,boolean,boolean,boolean,integer,uuid)'
+    'public.create_venue_workspace_v2(text,text,text,numeric,numeric,text,text,integer,text[],text,text,boolean,boolean,boolean,integer,uuid)'
   ),
   null::regprocedure,
   'Venue activation accepts one explicit attendance default'
 );
 select isnt(
   to_regprocedure(
-    'public.discover_open_door_events(uuid,double precision,double precision,integer,timestamptz,timestamptz,uuid,uuid,uuid,integer,integer,timestamptz,uuid,integer)'
+    'public.discover_open_door_events(double precision,double precision,integer,timestamptz,timestamptz,uuid,uuid,uuid,integer,integer,timestamptz,uuid,integer)'
   ),
   null::regprocedure,
   'discovery has a dedicated walk-in projection'
@@ -82,13 +82,12 @@ where id in (
 update public.profiles
 set handle = 'open_door_fan',
     display_name = 'Open Door Fan',
-    city_id = (select id from public.cities where slug = 'haifa'),
     profile_completed_at = statement_timestamp(),
     fan_enabled_at = statement_timestamp()
 where id = 'f5000000-0000-4000-8000-000000000102';
 
 insert into public.venues (
-  id, owner_id, slug, name, city_id, address_text, location, description,
+  id, owner_id, slug, name, address_text, location, description,
   stated_capacity, facilities, house_information, default_attendance_mode,
   default_requires_approval, business_representation_attested_at,
   business_representation_attested_by
@@ -97,7 +96,6 @@ values (
   'f5000000-0000-4000-8000-000000000201',
   'f5000000-0000-4000-8000-000000000101',
   'open-door-corner', 'Open Door Corner',
-  (select id from public.cities where slug = 'haifa'),
   '12 Stadium Street, Haifa',
   extensions.st_setsrid(extensions.st_makepoint(34.998, 32.812), 4326)::extensions.geography,
   'A public walk-in Venue showing the full match.',
@@ -223,8 +221,7 @@ select is(
   (
     select count(*)
     from public.discover_open_door_events(
-      (select id from public.cities where slug = 'haifa'),
-      null, null, 50,
+      32.800, 35.000, 50,
       statement_timestamp(), statement_timestamp() + interval '31 days',
       null, null, null, null, null, null, null, 20
     )

@@ -11,11 +11,9 @@ const mocks = vi.hoisted(() => ({ createGroupAction: vi.fn(), replace: vi.fn() }
 vi.mock("@/features/groups/actions", () => ({ createGroupAction: mocks.createGroupAction }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: mocks.replace }) }));
 
-const cityId = "50000000-0000-4000-8000-000000000101";
 const teamId = "50000000-0000-4000-8000-000000000201";
 const groupId = "50000000-0000-4000-8000-000000000301";
 const catalog = {
-  cities: [{ id: cityId, name: "Haifa" }],
   teams: [{ id: teamId, name: "Arsenal FC", shortName: "Arsenal" }],
 };
 
@@ -36,7 +34,7 @@ describe("GroupCreateForm", () => {
     expect(screen.getByText(/owner or admin reviews each application/i)).toBeVisible();
     expect(screen.queryByLabelText("Group URL")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Review group" })).toBeVisible();
-    expect(screen.getByLabelText("Home area (optional)")).not.toBeRequired();
+    expect(screen.queryByLabelText(/Home area|City/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Create group" })).not.toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText("Visibility"), "unlisted");
@@ -65,7 +63,6 @@ describe("GroupCreateForm", () => {
         values: {
           name: "Haifa Arsenal Supporters",
           slug: "haifa-arsenal-supporters",
-          cityId: null,
           teamId,
           visibility: "discoverable",
           description: "Match-going supporters in Haifa.",
@@ -76,7 +73,6 @@ describe("GroupCreateForm", () => {
             slug: "haifa-arsenal-fans",
             name: "Haifa Arsenal Fans",
             lifecycle: "active",
-            cityName: "Haifa",
             teamName: "Arsenal FC",
           },
         ],
@@ -91,7 +87,7 @@ describe("GroupCreateForm", () => {
     await waitFor(() => expect(mocks.createGroupAction).toHaveBeenCalledOnce());
     const submitted = mocks.createGroupAction.mock.calls[0]?.[1] as FormData;
     expect(submitted.get("slug")).toBe("haifa-arsenal-supporters");
-    expect(submitted.get("cityId")).toBe("");
+    expect(submitted.has("cityId")).toBe(false);
     expect(
       await screen.findByRole("heading", { name: "Similar discoverable groups" }),
     ).toBeVisible();
@@ -109,7 +105,7 @@ describe("GroupCreateForm", () => {
         phase: "created",
         message: "Group created. You are its active owner.",
         visibility: "discoverable",
-        group: { id: groupId, slug: "haifa-arsenal-supporters", lifecycle: "forming" },
+        group: { id: groupId, slug: "haifa-arsenal-supporters", lifecycle: "active" },
       },
     });
     const user = userEvent.setup();
@@ -136,7 +132,7 @@ describe("GroupCreateForm", () => {
         phase: "created",
         message: "Group created. You are its active owner.",
         visibility: "unlisted",
-        group: { id: groupId, slug: "private-haifa-group", lifecycle: "forming" },
+        group: { id: groupId, slug: "private-haifa-group", lifecycle: "active" },
       },
     });
     const user = userEvent.setup();

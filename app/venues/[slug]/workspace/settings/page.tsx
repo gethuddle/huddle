@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { VenueVerificationBadge } from "@/features/venues/components/venue-verification-badge";
-import { getVenueCatalog } from "@/features/venues/catalog";
 import { venueRouteSlugSchema } from "@/features/venues/schemas";
 import { VenueSettingsForm } from "@/features/venues/workspace/components/venue-settings-form";
 import { VenueClosureControl } from "@/features/venues/workspace/components/venue-closure-control";
@@ -20,10 +19,7 @@ export default async function VenueSettingsPage({ params }: VenueSettingsPagePro
   if (!parsed.success) notFound();
   const workspace = await getAuthorizedVenueWorkspaceBySlug(parsed.data);
   if (workspace === null) notFound();
-  const [settings, catalog] = await Promise.all([
-    getVenueSettings(workspace.id),
-    getVenueCatalog(),
-  ]);
+  const settings = await getVenueSettings(workspace.id);
   if (settings === null) notFound();
 
   return (
@@ -48,13 +44,10 @@ export default async function VenueSettingsPage({ params }: VenueSettingsPagePro
 
       <div className="mt-10 grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_22rem] xl:gap-14">
         <VenueSettingsForm
-          cities={catalog.cities}
           venue={{
             id: settings.id,
             slug: settings.slug,
             name: settings.name,
-            cityId: settings.cityId,
-            cityName: settings.cityName,
             addressText: settings.addressText,
             description: settings.description,
             facilities: settings.facilities,
@@ -73,9 +66,7 @@ export default async function VenueSettingsPage({ params }: VenueSettingsPagePro
           <div className="p-6">
             <p className="text-sm font-medium text-muted-foreground">How fans see you</p>
             <h2 className="mt-3 text-xl font-semibold">{settings.name}</h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              {settings.addressText} · {settings.cityName}
-            </p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">{settings.addressText}</p>
             <p className="mt-4 line-clamp-4 text-sm leading-6 text-muted-foreground">
               {settings.description}
             </p>

@@ -1,4 +1,4 @@
-import { ArrowRight, MapPin, UsersRound } from "lucide-react";
+import { ArrowRight, UsersRound } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -17,12 +17,6 @@ export function GroupCard({ group }: Readonly<{ group: GroupSearchItem }>) {
       <CardContent className="space-y-4">
         <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">{group.description}</p>
         <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-          {group.cityName === null ? null : (
-            <span className="inline-flex items-center gap-1.5">
-              <MapPin aria-hidden="true" className="size-4" />
-              {group.cityName}
-            </span>
-          )}
           <span className="inline-flex items-center gap-1.5">
             <UsersRound aria-hidden="true" className="size-4" />
             {group.activeMemberCount} active members

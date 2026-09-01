@@ -45,7 +45,6 @@ const event = {
   description: "A saved event.",
   status: "published",
   startsAt: "2026-09-01T18:00:00Z",
-  cityName: "Haifa",
   placeKind: "venue",
   publicPlaceName: null,
   publicAddressText: null,

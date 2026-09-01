@@ -6,21 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { addressSuggestionsSchema } from "@/features/locations/schemas";
-import type { AddressSuggestion, PublicLocationKind } from "@/features/locations/types";
+import type { AddressSuggestion, LocationSearchPurpose } from "@/features/locations/types";
 
 type AddressSearchProps = Readonly<{
-  city: string;
-  locationKind: PublicLocationKind;
   onConfirm: (suggestion: AddressSuggestion | null) => void;
-  purpose?: "public-address" | "origin";
+  purpose: LocationSearchPurpose;
 }>;
 
-export function AddressSearch({
-  city,
-  locationKind,
-  onConfirm,
-  purpose = "public-address",
-}: AddressSearchProps) {
+export function AddressSearch({ onConfirm, purpose }: AddressSearchProps) {
   const listboxId = useId();
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<readonly AddressSuggestion[]>([]);
@@ -29,7 +22,6 @@ export function AddressSearch({
   const [state, setState] = useState<"idle" | "loading" | "ready" | "empty" | "error">("idle");
   const confirmed = useRef<AddressSuggestion | null>(null);
   const latestRequest = useRef(0);
-  const previousCity = useRef(city);
 
   function invalidateConfirmation() {
     if (confirmed.current !== null) {
@@ -37,20 +29,6 @@ export function AddressSearch({
       onConfirm(null);
     }
   }
-
-  useEffect(() => {
-    if (previousCity.current === city) return;
-    previousCity.current = city;
-    latestRequest.current += 1;
-    setQuery("");
-    setSuggestions([]);
-    setState("idle");
-    setActiveIndex(-1);
-    if (confirmed.current !== null) {
-      confirmed.current = null;
-      onConfirm(null);
-    }
-  }, [city, onConfirm]);
 
   useEffect(() => {
     const normalizedQuery = query.trim();
@@ -65,7 +43,7 @@ export function AddressSearch({
         const response = await fetch("/api/locations/search", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ query: normalizedQuery, city, locationKind }),
+          body: JSON.stringify({ query: normalizedQuery, purpose }),
           signal: controller.signal,
         });
         if (!response.ok) throw new Error("address-search-failed");
@@ -92,7 +70,7 @@ export function AddressSearch({
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [city, locationKind, query, retry]);
+  }, [purpose, query, retry]);
 
   function chooseSuggestion(suggestion: AddressSuggestion) {
     latestRequest.current += 1;
@@ -108,19 +86,27 @@ export function AddressSearch({
     <section className="space-y-4" aria-labelledby={`${listboxId}-title`}>
       <div>
         <h2 className="text-lg font-semibold" id={`${listboxId}-title`}>
-          {purpose === "origin" ? "Search another area" : "Find the public address"}
+          {purpose === "origin"
+            ? "Search another area"
+            : purpose === "private_home"
+              ? "Find the home address"
+              : "Find the public address"}
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
           {purpose === "origin"
-            ? "Choose any city, neighborhood, or address in Israel. Results rank by distance from it."
-            : "Search deliberately, then confirm the matching pin. Results are limited to Israel."}
+            ? "Choose an area, landmark, or address in Israel. Results rank by distance from it."
+            : "Choose a suggestion to confirm the matching location. Results are limited to Israel."}
         </p>
       </div>
 
       <div>
         <div className="relative min-w-0">
           <Label htmlFor={`${listboxId}-query`}>
-            {purpose === "origin" ? "City or address" : "Public address"}
+            {purpose === "origin"
+              ? "Area or address"
+              : purpose === "private_home"
+                ? "Home address"
+                : "Public address"}
           </Label>
           <Input
             aria-activedescendant={
@@ -158,7 +144,7 @@ export function AddressSearch({
                 setActiveIndex(-1);
               }
             }}
-            required={purpose === "public-address"}
+            required={purpose !== "origin"}
             role="combobox"
             value={query}
           />
@@ -211,7 +197,7 @@ export function AddressSearch({
       ) : null}
       {state === "empty" ? (
         <p className="text-sm text-muted-foreground" role="status">
-          No matching places were found. Check the city or address, then search again.
+          No matching places were found. Check the address or try a broader area.
         </p>
       ) : null}
 

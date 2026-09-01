@@ -140,8 +140,6 @@ describe("Venue workspace projections", () => {
           name: "Match Corner",
           role: "admin",
           verification_status: "unverified",
-          city_id: "d3000000-0000-4000-8000-000000000310",
-          city_name: "Haifa",
           address_text: "12 Stadium Street, Haifa",
           longitude: 34.998,
           latitude: 32.812,
