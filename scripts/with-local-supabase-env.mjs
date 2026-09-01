@@ -1,6 +1,8 @@
 import { spawn, spawnSync } from "node:child_process";
 import path from "node:path";
 
+import { createLocalQualityEnvironment } from "./local-quality-environment.mjs";
+
 const [command, ...commandArguments] = process.argv.slice(2);
 
 if (command === undefined) {
@@ -52,25 +54,12 @@ if (missingValues.length > 0) {
   process.exit(1);
 }
 
-const executableSearchPath = [localBinaryDirectory, process.env.PATH]
-  .filter(Boolean)
-  .join(path.delimiter);
-const childEnvironment = {
-  ...process.env,
-  PATH: executableSearchPath,
-  NEXT_PUBLIC_SUPABASE_URL: localEnvironment.API_URL,
-  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: localEnvironment.PUBLISHABLE_KEY,
-  NEXT_PUBLIC_APP_URL: "http://localhost:3000",
-  HUDDLE_ENVIRONMENT: "local",
-  SUPABASE_SERVICE_ROLE_KEY: localEnvironment.SERVICE_ROLE_KEY,
-  // The local quality/auth path must never gain live provider authority from
-  // an unrelated shell or ignored environment file.
-  FOOTBALL_DATA_API_TOKEN: "local-test-placeholder",
-  SPORTS_SYNC_SECRET: "local-sports-sync-secret-for-tests-only",
-  DISCOVERY_CURSOR_SECRET: "local-discovery-cursor-secret-for-tests",
-  HUDDLE_MAILPIT_URL:
-    localEnvironment.MAILPIT_URL || localEnvironment.INBUCKET_URL || "http://127.0.0.1:54324",
-};
+const childEnvironment = createLocalQualityEnvironment({
+  parentEnvironment: process.env,
+  localSupabaseEnvironment: localEnvironment,
+  localBinaryDirectory,
+  assistedDiscoveryEnabled: command === "playwright",
+});
 
 const child = spawn(command, commandArguments, {
   cwd: repositoryRoot,

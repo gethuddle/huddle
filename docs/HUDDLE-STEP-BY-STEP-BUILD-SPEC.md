@@ -12,6 +12,8 @@
 
 **Approved discovery consistency revision:** 31 August 2026. Current runtime and acceptance evidence supersede the historical B09 activity-quota gate: discoverable groups require an active owner plus description; eligible signed-in Fans may preview public-place events from those groups but must join before attending; group home events remain private; Fan Explore retains public listings from managed Venues; fixture details list currently visible linked events; and owner deletion is an audited archive with retained history.
 
+**Approved AI-assisted discovery revision:** 1 September 2026. `AI01` is one bounded post-B12 implementation module before hosted B13 acceptance. It adds a default-off active-Fan Home search in which Cloudflare extracts only a strict intent and the existing Vercel/Supabase application authorizes and ranks at most three results. It does not renumber B13 or approve agents, RAG, generated event content, or AI moderation.
+
 ---
 
 ## 1. What working together means
@@ -438,7 +440,7 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 - [x] Scaffold Next.js App Router with TypeScript and Tailwind.
 - [x] Enable and confirm `strict: true`.
 - [x] Install only the planned initial dependencies: Supabase SSR/client, Zod, Radix primitives as first needed, and testing/quality tools.
-- [x] Do not add Express, Prisma, Zustand, Redis, Socket.IO, payments, AI, or microservice tooling.
+- [x] Do not add Express, Prisma, Zustand, Redis, Socket.IO, payments, unapproved AI tooling, or microservices; the later `AI01` revision is the sole bounded AI exception.
 - [x] Add Prettier and compatible ESLint configuration.
 - [x] Create scripts for `dev`, `build`, `typecheck`, `lint`, `format`, and `format:check`.
 - [x] Commit the dependency lockfile.
@@ -1249,9 +1251,35 @@ evidence for merge; hosted checks remain B13 (`D02`–`D04`).
 
 **Exit evidence:** a clean CI run from a fresh pull request and a recorded mapping from each critical rule to at least one enforcement layer and test.
 
+### AI01 — One-shot AI-assisted event discovery
+
+**Depends on:** `D01`, `S03`, `G02`, `G03`, `E06`, `E07`, `M03`, `M04`.
+
+**Authority:** implementation spec §§1, 5, 7, 10–14; architecture §5.10.1.
+
+**Outcome:** an active Fan describes a football watch-event need in one bounded sentence and receives no more than three currently authorized, deterministic event results without disclosing private account context to the model.
+
+**Tasks:**
+
+- [x] Add the versioned Cloudflare JSON-schema interpreter and strict Zod/provider failure boundary.
+- [x] Resolve Israel date semantics and local team/competition aliases without model-issued IDs.
+- [x] Add Fan/global inference cooldowns that retain counts only, plus the Fan-only authorization-filtered search RPC and facility index.
+- [x] Add five-minute actor-bound continuation tokens so location collection never repeats inference.
+- [x] Add the private no-store Route Handler and active-Fan Home UI with result, location, ambiguity, unsupported, empty, rate, and provider-failure states.
+- [x] Keep sentences, origins, private account data, provider payloads, and result IDs out of logs and AI storage products.
+- [x] Add pgTAP, Vitest/RTL, deterministic E2E, and a checked-in 40-case live-model evaluation harness; CI never receives live model authority.
+- [x] Run the credentialed live-model evaluation and meet the core, privacy, unsupported-scope, date-boundary, and 90% supported-intent gates before enabling production.
+- [x] Update the normative implementation, architecture, build, security, environment, and README sources truthfully.
+
+**Tests/evidence:** red/green unit and component coverage; Fan/friend/group/block/ban/capacity/facility/private-location pgTAP; three deterministic example E2E journeys without live AI traffic; at least 40 synthetic live-model cases with all safety cases passing and at least 90% exact supported-intent extraction.
+
+**Exit evidence:** full repository acceptance gates, generated database types with no drift, safe aggregate provider-usage evidence, and both partners able to explain why Cloudflare never authorizes or receives private account context.
+
+**Current local evidence (1 September 2026):** 860 automated Vitest assertions passed with the one live-model test deliberately skipped; all 1,675 pgTAP assertions, generated-type drift, schema lint, production build, 29 Playwright journeys, formatting, lint, typecheck, security audit, and diff hygiene passed. The credentialed 40-case live-model evaluation passed every required gate with prompt `ai01-v3`. Reciprocal partner review and explicit production enablement remain pending, so the production flag remains off.
+
 ### D02 — Preview and production environments
 
-**Depends on:** `D01`.
+**Depends on:** `D01`, `AI01` when assisted discovery is enabled.
 
 **Authority:** implementation spec §§15.4–15.5.
 
@@ -1389,6 +1417,7 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 | B10 Invitations, attendance, and calendar | `T01`–`T04` | done | [#28](https://github.com/gethuddle/huddle/issues/28) / [PR #29](https://github.com/gethuddle/huddle/pull/29) |
 | B11 Moderation, security, and accessibility | `M01`–`M04` | done | [#30](https://github.com/gethuddle/huddle/issues/30) / [PR #31](https://github.com/gethuddle/huddle/pull/31) |
 | B12 Release candidate and automated acceptance | `D01` | done | [#32](https://github.com/gethuddle/huddle/issues/32) / [PR #33](https://github.com/gethuddle/huddle/pull/33) |
+| AI-assisted event discovery | `AI01` | review | Local gates and credentialed evaluation pass; partner review pending |
 | B13 Production acceptance and submission | `D02`–`D04` | not started | — |
 
 ---

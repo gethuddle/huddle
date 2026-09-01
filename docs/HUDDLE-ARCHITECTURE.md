@@ -16,6 +16,8 @@
 
 **Approved cityless location and catalog revision:** 31 August 2026. Public discovery starts from a browser coordinate or OpenStreetMap-backed address suggestion and ranks eligible results by distance across municipal borders. Profiles and groups store no location; groups are global communities ordered by active-member count. Events and venues use confirmed addresses and coordinates, including protected home coordinates. Scheduled football-data synchronization may retain a strictly allowlisted provider crest URL, while Huddle initials remain the resilient accessible fallback.
 
+**Approved AI-assisted discovery revision:** 1 September 2026. An active Fan may describe the desired fixture, timing, relationship, venue type, or venue facility in one sentence on Home. Cloudflare extracts only a bounded intent. Huddle's local catalog and authenticated PostgreSQL boundary resolve, authorize, filter, and rank the results; private account context never enters the model.
+
 The source of truth for the course deliverables is the [official project brief](<../course-roadmap/project instructions.pdf>). The [course roadmap](../course-roadmap/ROADMAP.md) is a wider technology menu, not a requirement to use every tool mentioned in the lectures.
 
 ---
@@ -71,6 +73,7 @@ Promotion must never bypass distance, audience, privacy, moderation, or match re
 - Fan-hosted events restricted to group, friend, or invite-only audiences.
 - Venue-hosted events using public or team-follower audiences; public listings may be open-door with no Huddle reservation or guest list.
 - Session-origin discovery from browser location or a confirmed address using PostGIS distance ranking.
+- One-shot AI-assisted Home discovery that returns up to three authorized events without chat history or model-written content.
 - Attendance request, approval, decline, host removal, leave, and capacity flows; no unregistered plus-one guests.
 - A standards-based `.ics` calendar download.
 - Minimal reports and platform moderation.
@@ -86,7 +89,7 @@ Promotion must never bypass distance, audience, privacy, moderation, or match re
 - route planning and paid address autocomplete beyond the implemented Photon/OpenStreetMap search and public-event map;
 - Google Calendar OAuth;
 - Stripe billing, menus, offers, or promoted ranking;
-- payments, ratings, AI recommendations, and AI moderation.
+- payments, ratings, generative recommendations, automatic event creation, and AI moderation.
 
 This boundary keeps the submission small enough to explain and test while preserving the full core loop: **follow → discover → request/join → host/manage**.
 
@@ -113,6 +116,7 @@ flowchart LR
     end
 
     Provider[football-data.org v4]
+    AI[Cloudflare Workers AI<br/>bounded intent only]
     CI[GitHub Actions<br/>quality and test gates]
 
     Person --> Browser
@@ -127,6 +131,7 @@ flowchart LR
     Cron -->|protected call every 6 hours| Routes
     Vault --> Cron
     Routes -->|server-only token| Provider
+    Routes -->|sentence + Israel time only| AI
     CI -->|verified deployment| Vercel
     CI -->|migrations + tests| Supabase
 ```
@@ -245,6 +250,14 @@ Fan onboarding stores no location. Explore first requests a browser coordinate a
 
 The feed combines location, future time, followed interests, audience eligibility, match, and event status. It also merges and deduplicates public listings from Venues managed by the current Fan account, so switching workspaces does not make the person's own published event disappear. Fixture details use the same visibility boundary to list the watch events attached to that match. Results use cursor pagination so a larger catalog does not require loading or re-counting every earlier row.
 
+### 5.10.1 AI-assisted discovery
+
+The active Fan Home adds a one-shot natural-language search, not a persistent chatbot. A Vercel Route Handler sends only the bounded sentence and current Israel date/time to Cloudflare Workers AI in JSON-schema mode. The provider returns text mentions and intent categories, never database IDs or authorized results. Huddle validates that response, applies deterministic Israel-calendar rules, resolves sports aliases against the locally synchronized catalog, and calls one Fan-only Supabase function through the ordinary request session.
+
+General discovery requires the same 15 km session origin as Explore. Friend-host and current-group lookups may work nationally unless proximity was requested. The database checks accepted friendship, active group membership, current event visibility, blocks, bans, suspension, capacity, venue facilities, and the current viewer's own event state before returning at most three rows. Exact home addresses and coordinates never enter this result shape. Cloudflare never receives the actor, friend/group lists, origin, attendance, events, results, or protected locations.
+
+The model does not answer the user, call tools, access a vector store, or rank rows. Huddle produces the interpretation chips, match reasons, empty state, and Explore/Plan actions from validated application data. Missing location uses a short-lived actor-bound signed intent so adding the origin does not trigger a second inference. Invalid output, ambiguity, timeout, rate exhaustion, or provider failure fails closed without broadening the search.
+
 ### 5.11 Calendar export
 
 An event page offers an RFC 5545 `.ics` download. It works with many calendar products and needs no Google account or OAuth integration. The export includes the exact home location only if the requesting user is the host or a currently authorized approved attendee; leaving, removal, blocking, banning, suspension, or cancellation removes it from future downloads.
@@ -321,7 +334,7 @@ The lectures also teach Express, Prisma, Redis, Zustand, Socket.IO, queues, paym
 | Cloudflare Kumo | It would introduce a second Base UI design system and semantic-token layer beside Huddle's approved Radix and brand-token architecture | A separately approved redesign deliberately replaces the current component system |
 | Socket.IO/WebSockets | No chat, live scores, or realtime collaboration is in the MVP | A real realtime feature is accepted into scope |
 | Payments/Stripe | Venue billing is a future business module and should not be simulated insecurely | Commercial entitlements and payment operations are ready to be built end to end |
-| AI | Core discovery can be deterministic, explainable, and testable | There is data, a defined user benefit, and a safe evaluation plan |
+| AI agents, RAG, and generated recommendations | The accepted AI seam only extracts bounded intent; authorization and ranking stay deterministic | A separately approved use case proves it needs private context or generative output safely |
 | Microservices | A modular monolith is simpler to test, deploy, and explain | Scale or ownership boundaries justify operational separation |
 
 ---

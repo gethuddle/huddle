@@ -49,6 +49,7 @@ derives the actor again rather than trusting hidden inputs.
 | Route | Method and input | Authorization/cache boundary |
 |---|---|---|
 | `/api/discovery` | read-only `GET`; bounded Zod query | personalized/browser-location responses are `no-store`; uncertain auth fails closed |
+| `/api/assisted-discovery` | read-only `POST`; max 4 KB JSON and 400-character sentence | active Fan only; `no-store`; Cloudflare sees sentence/time only; database re-authorizes every result |
 | `/api/groups/search` | read-only `GET`; bounded Zod query | member-dependent results are `no-store` |
 | `/api/events/[eventId]/calendar.ics` | read-only `GET`; UUID route input | public venue calendar may cache; private output is authorized, audited and `no-store` |
 | `/api/internal/sports-sync` | `POST`; max 4 KB JSON plus Zod | constant-time server secret check, service role only after authorization, always `no-store` |
@@ -74,6 +75,7 @@ address-free security audit record.
   outcome/code/status, duration/count/age/quota metrics. They do not accept user
   text, tokens, cookies, report details, or addresses.
 - Discovery and calendar/search/sync routes log bounded duration and outcome.
+- Assisted discovery logs only fixed route/outcome/provider-failure fields, duration, and result count. It never logs the sentence, entity names, actor, origin, model payload, or result identifiers.
   Fixture reads log the age/status of the last successful catalog import. Sports
   sync logs request/retry counts and the provider's numeric remaining-quota
   response header when present; the durable sync row also retains run outcome.
@@ -101,6 +103,9 @@ address-free security audit record.
   policy is a future hardening task.
 - Sports-provider availability, correctness, quota behavior, and terms remain
   external dependencies; the last good catalog is retained on sync failure.
+- Cloudflare intent extraction is an external dependency. Invalid output, timeout,
+  or free-quota exhaustion disables only the assisted search and returns ordinary
+  Explore/Plan actions; it never broadens results or bypasses database authorization.
 - Timed restrictions and account suspensions have a review deadline but remain
   enforced until a moderator records an audited reversal. The two-owner course
   MVP has no unattended scheduler that silently changes moderation state.

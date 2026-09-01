@@ -14,6 +14,8 @@ The current Calm Explore revision replaces the dark, route-heavy interface with 
 
 The approved cityless-location revision removes the redundant city catalog and every city selector. Explore uses either the browser's current position or a confirmed OpenStreetMap/Photon address for session-only distance ranking; public places and venues store confirmed coordinates, while exact home coordinates stay in the protected location domain. Groups have no locality and public groups are ranked globally by active-member count. Official football-data crest URLs flow through the local catalog to every shared team-mark surface, with accessible initials when artwork is unavailable.
 
+The approved AI-assisted discovery revision adds a one-shot active-Fan Home search. Cloudflare Workers AI sees only the short sentence and current Israel time and returns a bounded intent; Huddle's local catalog and Supabase authorization resolve friendships, group membership, event visibility, location, facilities, capacity, and the deterministic top three. There is no chat history, RAG, AI-written event content, or private account context in the model request.
+
 ## The problem
 
 Sports are better with other people, but it can be difficult to find nearby fans of the same team or a venue showing a particular match. The problem is especially noticeable for people who are new to a city, support a foreign team, or follow a less popular competition.
@@ -134,6 +136,7 @@ The submitted implementation remains **football-first**: [football-data.org](htt
 - Protected home locations, blocking, reporting, moderation, and audit records.
 - RFC 5545 `.ics` calendar download.
 - A personal My Huddle home for actively owned/joined groups plus hosted, submitted, invited, requested, and attending events.
+- A one-shot AI-assisted active-Fan Home search for fixture, date, relationship, venue, and venue-facility intent, returning at most three authorized event cards.
 - Automated tests, CI, public Vercel deployment, and Supabase-managed Auth/PostgreSQL.
 
 ## Architecture and course stack
@@ -148,6 +151,7 @@ Huddle is designed as a modular monolith: one Next.js application contains the U
 | Authentication | Supabase Auth | Verified users and cookie-based SSR sessions |
 | Database | Supabase PostgreSQL, RLS, PostGIS | Durable data, authorization, atomic attendance, and nearby discovery |
 | Sports ingestion | Provider adapters, Supabase Cron, protected Next.js route | Scheduled fixture synchronization and normalization |
+| AI intent extraction | Cloudflare Workers AI REST API from a Vercel Route Handler | Convert one sentence into a strict, untrusted search intent; never authorize or rank data |
 | Testing | Vitest, React Testing Library, Playwright, pgTAP | Domain, UI, end-to-end, schema, and RLS coverage |
 | Delivery | GitHub Actions, Vercel, Supabase | CI, deployment, database, and hosting |
 
@@ -162,6 +166,7 @@ There is no separate Express service, ORM, Redis cache, WebSocket layer, payment
 - Attendance approval is atomic, so concurrent approvals cannot exceed capacity.
 - Reports are confidential from the reported user and group administrators; moderation actions are auditable and appealable.
 - Provider keys, service credentials, private addresses, session data, and invite-token digests are never sent to the browser or committed to Git. A group-invite plaintext secret is shown once to its authorized creator, travels only through the intended join URL, and is never persisted or logged.
+- Assisted discovery never sends the model an actor ID, friend/group list, coordinate, attendance state, event row, result, or private address; raw sentences are not retained in Huddle logs or tables.
 
 ## Deferred beyond the MVP
 
@@ -171,7 +176,7 @@ There is no separate Express service, ORM, Redis cache, WebSocket layer, payment
 - route planning and paid address autocomplete beyond the implemented Photon/OpenStreetMap search and public-event map;
 - Google Calendar OAuth;
 - Stripe subscriptions, payments, ticketing, menus, offers, analytics, and promoted listings;
-- AI recommendations, automatic event creation, and AI moderation.
+- generative recommendations, automatic event creation, AI moderation, agents, RAG, and conversational history beyond the bounded intent extractor.
 
 The database and provider boundaries may be future-ready, but deferred features will not appear as fake controls or half-implemented product flows.
 
@@ -205,7 +210,7 @@ The first database start downloads the pinned local images. Repository scripts u
 npm run dev
 ```
 
-`HUDDLE_ENVIRONMENT` labels the configuration as `local`, `preview`, or `production`. Hosted builds must also agree with Vercel's own environment label and use HTTPS. `.env.preview.example` and `.env.production.example` enumerate separate safe key names; preview must use its own non-production Supabase project. `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `NEXT_PUBLIC_APP_URL` are browser-safe. `SUPABASE_SERVICE_ROLE_KEY`, `FOOTBALL_DATA_API_TOKEN`, `SPORTS_SYNC_SECRET`, and `DISCOVERY_CURSOR_SECRET` are server-only and must never enter Client Components or logs. B03 creates a service-role client only after the internal route authenticates `SPORTS_SYNC_SECRET`; ordinary sessions cannot trigger a sync or mutate the catalog. B09 uses a separate high-entropy `DISCOVERY_CURSOR_SECRET` only to sign and verify filter-bound pagination cursors. The repository-managed local stack remains unlinked, so these commands do not mutate the shared Supabase organization.
+`HUDDLE_ENVIRONMENT` labels the configuration as `local`, `preview`, or `production`. Hosted builds must also agree with Vercel's own environment label and use HTTPS. `.env.preview.example` and `.env.production.example` enumerate separate safe key names; preview must use its own non-production Supabase project. `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `NEXT_PUBLIC_APP_URL` are browser-safe. `SUPABASE_SERVICE_ROLE_KEY`, `FOOTBALL_DATA_API_TOKEN`, `SPORTS_SYNC_SECRET`, `DISCOVERY_CURSOR_SECRET`, `ASSISTED_DISCOVERY_TOKEN_SECRET`, `CLOUDFLARE_ACCOUNT_ID`, and `CLOUDFLARE_WORKERS_AI_API_TOKEN` are server-only and must never enter Client Components or logs. B03 creates a service-role client only after the internal route authenticates `SPORTS_SYNC_SECRET`; ordinary sessions cannot trigger a sync or mutate the catalog. B09 uses a separate high-entropy `DISCOVERY_CURSOR_SECRET` only to sign and verify filter-bound pagination cursors. AI01 remains disabled unless its conditional provider variables are configured. The repository-managed local stack remains unlinked, so these commands do not mutate the shared Supabase organization.
 
 B03's automated tests use only the sanitized fixtures under `tests/fixtures/football-data` and never call the provider. To perform a deliberate real-provider sync locally, put the intended local Supabase values, provider token, and a matching high-entropy sync secret in `.env.local`, run the application with `npm run dev`, and invoke:
 
@@ -237,6 +242,16 @@ B12 also provides one fail-fast local acceptance command that runs the entire se
 ```bash
 npm run test:acceptance
 ```
+
+AI01 adds an opt-in manual evaluation command for the fixed 40-query synthetic corpus. It is intentionally excluded from CI and consumes Workers AI quota, so run it only with deliberate local Cloudflare credentials:
+
+```bash
+CLOUDFLARE_ACCOUNT_ID=... \
+CLOUDFLARE_WORKERS_AI_API_TOKEN=... \
+npm run test:assisted-discovery:live
+```
+
+The local AI01 verification currently passes 860 automated Vitest assertions with the live evaluation skipped, all 1,675 pgTAP assertions, and all 29 Playwright journeys. On 1 September 2026, the credentialed 40-case evaluation passed every core, privacy, unsupported-scope, date-boundary, and supported-intent gate with prompt `ai01-v3`. `ASSISTED_DISCOVERY_ENABLED` remains `false` in every checked-in environment example pending reciprocal partner review and explicit production enablement.
 
 The accepted B12 local run passed 403 Vitest/unit/component tests, 975 pgTAP assertions, the generated-type check, the production build, and all 17 Playwright journeys. The current post-B12 inventory is maintained in the [submission test plan](./docs/submission/TEST-PLAN.md). Hosted acceptance and rehearsal evidence belong to B13 and remain pending.
 

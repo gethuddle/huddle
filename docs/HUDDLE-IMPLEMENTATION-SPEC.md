@@ -16,6 +16,8 @@
 
 **Approved cityless location and catalog revision:** 31 August 2026. Explore accepts a privacy-safe session origin from browser location or a confirmed OpenStreetMap/Photon address suggestion and ranks eligible results by coordinate distance across municipal borders. Profiles and groups have no location; events and Venues use confirmed coordinates, with exact homes isolated in the protected location domain. The scheduled football-data sync may store a tightly validated provider crest URL for display with an accessible Huddle initials fallback; normal page requests still never call the sports provider.
 
+**Approved AI-assisted discovery revision:** 1 September 2026. Active Fans may describe a desired watch event in one short sentence on Home. Cloudflare Workers AI extracts only a bounded search intent; it receives no account, relationship, location, attendance, event, or private-address data. Huddle validates and resolves that intent against its local sports catalog, while one authenticated Supabase function remains the sole authorization, filtering, and ranking boundary. This revision does not approve generative answers, chat history, autonomous tools, RAG, AI event creation, or AI moderation.
+
 The keywords **MUST**, **MUST NOT**, **SHOULD**, and **MAY** express implementation priority. A MUST is part of acceptance for the submitted MVP unless this specification is deliberately revised.
 
 ---
@@ -49,6 +51,7 @@ The system MUST also let a venue-only operator activate an Unverified venue work
 - Private-person events restricted to `group`, `friends`, or `invite_only`.
 - Business-venue events using `public` or `team_followers`.
 - Location discovery using a selected public origin from Photon/OpenStreetMap address suggestions or browser geolocation, with PostGIS distance ranking across municipal borders and no saved profile location.
+- One-shot AI-assisted discovery for active Fans, returning at most three authorization-filtered event summaries from a validated, deterministic search intent.
 - Venue `public` events may be `open_door`, with no Huddle RSVP, invitation, queue, guest list, or capacity claim, or `reservations`, using the registered-account attendance flows below.
 - Reservation attendance request, accept/approve, decline, host removal, and leave flows with atomic capacity enforcement and no unregistered guests.
 - RFC 5545 `.ics` event download.
@@ -66,7 +69,7 @@ The system MUST also let a venue-only operator activate an Unverified venue work
 - Stripe billing or subscription enforcement;
 - venue menus, offers, analytics, and promoted ranking;
 - ticket/payment handling;
-- AI recommendations, content creation, or moderation.
+- generative recommendations, automatic content/event creation, and AI moderation beyond the bounded intent-extraction seam above.
 
 Deferred behavior MUST NOT be represented by fake controls, placeholder entitlements, or unused schema in the submitted app. Later interfaces are documented only where an explicit seam avoids coupling.
 
@@ -309,6 +312,7 @@ All forms MUST have labels, keyboard access, visible focus, inline field errors,
 | Server reads | Direct service/database reads from Server Components |
 | Mutations | Server Actions calling domain services/database functions |
 | HTTP/file endpoints | Route Handlers for discovery JSON, group search, sports sync, and `.ics` |
+| AI intent extraction | Cloudflare Workers AI REST API, called only from a Vercel Route Handler |
 | Tests | Vitest, React Testing Library, Playwright, and pgTAP |
 | Quality | ESLint and Prettier |
 | Delivery | GitHub Actions, Vercel, and Supabase |
@@ -324,6 +328,7 @@ Exact package versions MUST be pinned from stable releases at scaffolding time. 
 - No Zustand: there is no complex global client-only state.
 - No client-side service-role key or sports-provider token.
 - No microservices, message broker, search cluster, object storage, or Dockerized production app.
+- No AI agent, AI Gateway, vector database, RAG, model-written event copy, or AI authorization/ranking.
 
 ### 5.3 Logical flow
 
@@ -334,6 +339,7 @@ Exact package versions MUST be pinned from stable releases at scaffolding time. 
 5. Route Handlers validate query/header/session input and return narrow DTOs/files.
 6. PostgreSQL constraints and RLS protect invariants even when application code is wrong.
 7. Only the internal sync route creates a service-role client, and that module MUST never be imported by a Client Component.
+8. The assisted-discovery route sends only the bounded sentence plus current Israel date/time to Cloudflare, validates the returned JSON intent, then searches through the caller's ordinary Supabase session and database authorization.
 
 ### 5.4 Planned folder structure
 
@@ -357,6 +363,7 @@ app/
     settings/...
   (moderation)/moderation/page.tsx
   api/
+    assisted-discovery/route.ts
     discovery/route.ts
     groups/search/route.ts
     internal/sports-sync/route.ts
@@ -379,6 +386,7 @@ features/
   venues/
   events/
   attendance/
+  assisted-discovery/
   discovery/
   moderation/
 lib/
@@ -788,6 +796,14 @@ type DiscoveryResponse = {
 
 Sort is deterministic: eligible published future events by match/interest relevance for signed-in users, then distance/time, then ID tie-breaker. Signed-in Fan results merge ordinary eligible events, open-door listings, and public listings from Venues the same account manages, deduplicated by event ID. Anonymous users receive only public business-venue events, ordered deterministically by distance/time without personalization. Eligible signed-in home results include only a safe coarse distance summary before approval.
 
+#### `POST /api/assisted-discovery`
+
+The private, no-store route is available only to an authenticated active Fan. It accepts either a bounded `interpret` request containing a maximum-400-character sentence and optional session origin, or a `continue` request containing a five-minute actor-bound signed intent token plus an origin. `GET` is rejected, and neither the sentence nor origin may enter URLs, application logs, database rows, or caches.
+
+Cloudflare receives only the sentence, current Israel date/time, and the fixed intent schema. It MUST NOT receive an actor identifier, profile, friendship/group data, attendance, coordinates, event rows, or private location. Model output is untrusted and MUST pass a strict Zod schema before Huddle resolves team/competition aliases, date semantics, relationship mode, host kind, proximity, and the existing venue-facility enum.
+
+The route returns exactly one of `results`, `needs_location`, `clarification`, `unsupported`, or `no_results`. It never invents event copy, silently relaxes a filter, or asks the model to rank database rows. Results contain at most three safe event summaries produced by `search_assisted_events`; explanation strings and matched reasons are deterministic application copy.
+
 #### `GET /api/groups/search`
 
 Validates `q`, optional `team`, `cursor`, and `limit`. Returns only `active + discoverable` groups globally, ordered by active-member count before normalized name and ID. Groups carry no geographic metadata. Group-creation similarity MAY reuse a signed-in mode that includes the creator's own forming groups but never another unlisted group.
@@ -1033,6 +1049,10 @@ This design follows the [OWASP Authorization Cheat Sheet](https://cheatsheetseri
 | `FOOTBALL_DATA_API_TOKEN` | Server-only | Provider authentication |
 | `SPORTS_SYNC_SECRET` | Server-only + Supabase Vault copy | Authenticate cron call |
 | `DISCOVERY_CURSOR_SECRET` | Server-only | Sign and verify filter-bound group/event pagination cursors |
+| `ASSISTED_DISCOVERY_ENABLED` | Server-only | Default-off rollout gate for the assisted Home search |
+| `ASSISTED_DISCOVERY_TOKEN_SECRET` | Server-only | Sign five-minute actor-bound resolved-intent continuations |
+| `CLOUDFLARE_ACCOUNT_ID` | Server-only | Address the Workers AI REST endpoint |
+| `CLOUDFLARE_WORKERS_AI_API_TOKEN` | Server-only | Invoke Workers AI from Vercel |
 | `NEXT_PUBLIC_APP_URL` | Browser-safe | Canonical links and calendar URL |
 
 `.env*` secrets MUST be ignored. CI/deploy secrets live in GitHub/Vercel/Supabase secret stores. Service-role/provider modules carry `server-only` protection and MUST NOT be exported from shared/client modules.
@@ -1045,6 +1065,7 @@ This design follows the [OWASP Authorization Cheat Sheet](https://cheatsheetseri
 - Public profiles omit email, exact address, private memberships, and attendance history.
 - Invite tokens are high entropy, hashed at rest, expiring, revocable, and usage limited.
 - Audit/log metadata excludes secrets and exact home data.
+- Assisted-discovery logs and rate counters exclude sentences, extracted entity names, actor IDs, origins, model payloads, and event IDs. Cloudflare receives no private account context, and no AI Gateway/storage product is enabled.
 - Reports are private from the reported user, and group admins cannot read platform reports merely because the target belongs to their group.
 - Platform moderators do not automatically gain private-address access; exceptional access would require a separately audited policy not included in routine MVP moderation.
 
@@ -1161,6 +1182,7 @@ MUST test:
 - host removal/attendee leave/cancellation history retention;
 - report confidentiality, group-admin denial, moderation action, and appeal policies;
 - sync-service scope and ordinary-user denial.
+- assisted-discovery Fan-only access, atomic per-Fan/global inference limits, friendship/group membership modes, facility filtering, stable top-three ranking, capacity behavior, and absence of protected-location fields.
 
 ### 14.2 Unit/Vitest
 
@@ -1178,6 +1200,7 @@ MUST test:
 - error mapping;
 - RFC 5545 escaping, line folding, UTC values, stable UID, and location omission/inclusion;
 - stale-sync presentation logic.
+- assisted intent/date/entity schemas, aliases and ambiguity, prompt-injection containment, Cloudflare error/malformed-output handling, and signed continuation expiry/actor binding.
 
 Provider tests use committed, sanitized response fixtures and MUST NOT call a live provider in CI.
 
@@ -1196,6 +1219,7 @@ MUST test:
 - absence of plus-one controls and visibility of the 12-person home cap;
 - block/report controls, report categories, emergency-service disclaimer, enforcement outcome, and appeal states;
 - empty, loading, retry, and not-permitted states.
+- assisted-discovery result, needs-location, clarification, unsupported, no-result, rate-limit, and provider-unavailable states.
 
 ### 14.4 End-to-end/Playwright
 
@@ -1218,6 +1242,7 @@ Seed deterministic users, relationships, groups, venues, matches, and events. Re
 15. Correct `.ics`; private location included only for a currently authorized host/approved attendee and omitted after revocation.
 16. Report a profile/event before and after the event; reported user and group admin cannot see reporter; moderator applies an action and affected user submits an appeal.
 17. Provider outage/invalid response leaves cached fixtures browsable and marks stale/failure state.
+18. The three approved assisted-discovery examples resolve through a deterministic fake interpreter and seeded database; CI never calls a live AI provider.
 
 ### 14.5 Manual acceptance
 
@@ -1344,7 +1369,7 @@ The final submission may split product, test, scale, and security material into 
 3. **Architecture (2 min):** Next.js modular monolith, Supabase Auth/PostgreSQL/RLS/PostGIS, provider sync, Vercel.
 4. **Database and permissions (2 min):** events/audiences, relationships, separate home location, atomic capacity.
 5. **Tests, security, scale (2.5 min):** one pgTAP denial, one E2E flow, CI, indexes/pagination/cache, residual risks.
-6. **Trade-offs and next steps (1 min):** why no Redis/Socket.IO/Stripe/AI; venue subscription and NBA adapter later.
+6. **Trade-offs and next steps (1 min):** why assisted discovery uses only bounded AI intent extraction, and why there is no Redis, Socket.IO, Stripe, agent, RAG, or generative recommendation layer; venue subscription and NBA adapter later.
 
 The presenters MUST be able to explain each selected dependency, trace one browser action through server/database/RLS, and distinguish planned future features from the working submission.
 
@@ -1392,6 +1417,7 @@ The MVP is done only when:
 | Realtime | None | No Socket.IO/Redis dependency |
 | State | Server + URL + narrow TanStack Query + local React | No unnecessary global store |
 | Scale | Indexed modular monolith | Optimize and split only from evidence |
+| AI boundary | Cloudflare extracts a bounded intent; Huddle resolves, authorizes, filters, and ranks | No private account context, generative answer, agent, RAG, or model-written event data |
 
 There are no unresolved product decisions required before scaffolding. Exact package versions, provider competition allowlist, and production quota snapshot are implementation-time configuration choices and must be recorded when selected.
 

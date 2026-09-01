@@ -45,3 +45,4 @@ export const venueFollowSchema = z.object({
 });
 
 export type VenueFormInput = z.infer<typeof venueFormSchema>;
+export type VenueFacility = z.infer<typeof venueFacilitySchema>;

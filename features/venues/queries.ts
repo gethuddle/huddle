@@ -5,6 +5,8 @@ import { z } from "zod";
 import { DomainError, domainErrorFromDatabase } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
 
+import { venueFacilitySchema, type VenueFacility } from "./schemas";
+
 const verificationStatusSchema = z.enum(["unverified", "verified", "suspended"]);
 
 const publicVenueRowSchema = z
@@ -16,6 +18,7 @@ const publicVenueRowSchema = z
     description: z.string(),
     screen_count: z.number().int().positive().nullable(),
     stated_capacity: z.number().int().positive().nullable(),
+    facilities: z.array(venueFacilitySchema).max(7),
     verification_status: verificationStatusSchema,
     owner_handle: z.string().nullable(),
     follower_count: z.number().int().nonnegative(),
@@ -48,6 +51,7 @@ export type PublicVenue = Readonly<{
   description: string;
   screenCount: number | null;
   statedCapacity: number | null;
+  facilities: readonly VenueFacility[];
   verificationStatus: z.infer<typeof verificationStatusSchema>;
   ownerHandle: string | null;
   followerCount: number;
@@ -87,6 +91,7 @@ export async function getVenueBySlug(slug: string): Promise<PublicVenue | null> 
       description: row.description,
       screenCount: row.screen_count,
       statedCapacity: row.stated_capacity,
+      facilities: row.facilities,
       verificationStatus: row.verification_status,
       ownerHandle: row.owner_handle,
       followerCount: row.follower_count,

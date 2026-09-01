@@ -15,6 +15,9 @@ describe("safeLog", () => {
       itemCount: 4,
       quotaRemaining: 8,
       retryCount: 1,
+      modelVersion: "@cf/meta/llama-3.1-8b-instruct-fast",
+      promptVersion: "ai01-v1",
+      providerFailureClass: "timeout",
       // Runtime filtering protects against an accidentally widened caller.
       address_text: "must-never-log",
     } as unknown as Parameters<typeof safeLog>[2];
@@ -28,6 +31,9 @@ describe("safeLog", () => {
       itemCount: 4,
       quotaRemaining: 8,
       retryCount: 1,
+      modelVersion: "@cf/meta/llama-3.1-8b-instruct-fast",
+      promptVersion: "ai01-v1",
+      providerFailureClass: "timeout",
     });
     expect(JSON.stringify(info.mock.calls)).not.toContain("must-never-log");
   });
