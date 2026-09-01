@@ -9,6 +9,9 @@ const httpUrl = z
   );
 const deploymentEnvironment = z.enum(["local", "preview", "production"]);
 const vercelEnvironment = z.enum(["development", "preview", "production"]);
+const environmentBoolean = z
+  .union([z.boolean(), z.enum(["true", "false"]).transform((value) => value === "true")])
+  .default(false);
 
 export const publicEnvironmentSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: httpUrl,
@@ -23,6 +26,10 @@ export const serverEnvironmentSchema = publicEnvironmentSchema
     FOOTBALL_DATA_API_TOKEN: nonEmptyEnvironmentValue,
     SPORTS_SYNC_SECRET: z.string().trim().min(32),
     DISCOVERY_CURSOR_SECRET: z.string().trim().min(32),
+    ASSISTED_DISCOVERY_ENABLED: environmentBoolean,
+    ASSISTED_DISCOVERY_TOKEN_SECRET: z.string().trim().min(32).optional(),
+    CLOUDFLARE_ACCOUNT_ID: nonEmptyEnvironmentValue.optional(),
+    CLOUDFLARE_WORKERS_AI_API_TOKEN: nonEmptyEnvironmentValue.optional(),
     VERCEL_ENV: vercelEnvironment.optional(),
   })
   .superRefine((environment, context) => {
@@ -46,6 +53,22 @@ export const serverEnvironmentSchema = publicEnvironmentSchema
           context.addIssue({
             code: "custom",
             message: "Hosted environments require HTTPS",
+            path: [variable],
+          });
+        }
+      }
+    }
+
+    if (environment.ASSISTED_DISCOVERY_ENABLED) {
+      for (const variable of [
+        "ASSISTED_DISCOVERY_TOKEN_SECRET",
+        "CLOUDFLARE_ACCOUNT_ID",
+        "CLOUDFLARE_WORKERS_AI_API_TOKEN",
+      ] as const) {
+        if (environment[variable] === undefined) {
+          context.addIssue({
+            code: "custom",
+            message: "Required when assisted discovery is enabled",
             path: [variable],
           });
         }

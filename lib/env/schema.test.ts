@@ -52,7 +52,41 @@ describe("environment schemas", () => {
       FOOTBALL_DATA_API_TOKEN: "provider-token",
       SPORTS_SYNC_SECRET: "a-dedicated-sports-sync-secret-value",
       DISCOVERY_CURSOR_SECRET: "a-dedicated-discovery-cursor-secret",
+      ASSISTED_DISCOVERY_ENABLED: false,
     });
+  });
+
+  it("keeps assisted discovery disabled without Cloudflare credentials", () => {
+    expect(
+      parseServerEnvironment({
+        ...publicEnvironment,
+        HUDDLE_ENVIRONMENT: "local",
+        SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
+        FOOTBALL_DATA_API_TOKEN: "provider-token",
+        SPORTS_SYNC_SECRET: "a-dedicated-sports-sync-secret-value",
+        DISCOVERY_CURSOR_SECRET: "a-dedicated-discovery-cursor-secret",
+      }),
+    ).toMatchObject({ ASSISTED_DISCOVERY_ENABLED: false });
+  });
+
+  it("requires every assisted-discovery secret when the feature is enabled", () => {
+    expect(() =>
+      parseServerEnvironment({
+        ...publicEnvironment,
+        HUDDLE_ENVIRONMENT: "local",
+        SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
+        FOOTBALL_DATA_API_TOKEN: "provider-token",
+        SPORTS_SYNC_SECRET: "a-dedicated-sports-sync-secret-value",
+        DISCOVERY_CURSOR_SECRET: "a-dedicated-discovery-cursor-secret",
+        ASSISTED_DISCOVERY_ENABLED: "true",
+      }),
+    ).toThrowError(
+      new EnvironmentConfigurationError([
+        "ASSISTED_DISCOVERY_TOKEN_SECRET",
+        "CLOUDFLARE_ACCOUNT_ID",
+        "CLOUDFLARE_WORKERS_AI_API_TOKEN",
+      ]),
+    );
   });
 
   it("rejects a preview build labeled as production", () => {

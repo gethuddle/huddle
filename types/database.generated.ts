@@ -2161,6 +2161,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      claim_assisted_discovery_interpretation: { Args: never; Returns: boolean }
       claim_ephemeral_location_search: {
         Args: { input_purpose: string }
         Returns: {
@@ -2761,6 +2762,7 @@ export type Database = {
         Returns: {
           address_text: string
           description: string
+          facilities: string[]
           follower_count: number
           name: string
           owner_handle: string
@@ -3623,6 +3625,47 @@ export type Database = {
           capacity: number
           name: string
           space_id: string
+        }[]
+      }
+      search_assisted_events: {
+        Args: {
+          input_competition_id: string
+          input_facilities: string[]
+          input_from_date: string
+          input_host_kind: string
+          input_lat: number
+          input_lng: number
+          input_relationship: string
+          input_team_ids: string[]
+          input_to_date: string
+        }
+        Returns: {
+          approved_attendee_count: number
+          attendance_mode: string
+          audience: string
+          away_team_name: string
+          capacity: number
+          competition_name: string
+          distance_band: number
+          ends_at: string
+          event_id: string
+          home_team_name: string
+          host_display_name: string
+          host_kind: string
+          host_venue_slug: string
+          interest_score: number
+          location_summary: string
+          match_id: string
+          matched_friend_host: boolean
+          matched_my_group: boolean
+          place_kind: string
+          remaining_capacity: number
+          requires_approval: boolean
+          starts_at: string
+          title: string
+          venue_facilities: string[]
+          venue_verification_status: string
+          viewer_participation_state: string
         }[]
       }
       search_groups: {

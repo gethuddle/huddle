@@ -91,6 +91,24 @@ describe("DiscoveryFeed", () => {
     expect(screen.queryByText(/profile area/i)).not.toBeInTheDocument();
   });
 
+  it("asks for an Israel origin when browser coordinates are outside the pilot", async () => {
+    const getCurrentPosition = vi.fn((success: PositionCallback) =>
+      success({ coords: { latitude: 40.71, longitude: -74 } } as GeolocationPosition),
+    );
+    Object.defineProperty(navigator, "geolocation", {
+      configurable: true,
+      value: { getCurrentPosition },
+    });
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<DiscoveryFeed filters={filters} initialPage={initialPage} />);
+
+    expect(await screen.findByRole("status")).toHaveTextContent("Search an address or area below");
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(window.sessionStorage.getItem("huddle:discovery-origin")).toBeNull();
+  });
+
   it("uses a granted coordinate for one API query without adding it to page history", async () => {
     const getCurrentPosition = vi.fn((success: PositionCallback) =>
       success({ coords: { latitude: 32.794, longitude: 34.989 } } as GeolocationPosition),

@@ -16,6 +16,9 @@ export type SafeLogContext = Readonly<{
   quotaRemaining?: number;
   retryCount?: number;
   runId?: string;
+  modelVersion?: string;
+  promptVersion?: string;
+  providerFailureClass?: string;
 }>;
 
 const allowedKeys = new Set<keyof SafeLogContext>([
@@ -32,6 +35,9 @@ const allowedKeys = new Set<keyof SafeLogContext>([
   "quotaRemaining",
   "retryCount",
   "runId",
+  "modelVersion",
+  "promptVersion",
+  "providerFailureClass",
 ]);
 
 export function safeLog(level: "info" | "warn" | "error", event: string, context: SafeLogContext) {

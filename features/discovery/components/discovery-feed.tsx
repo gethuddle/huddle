@@ -19,11 +19,14 @@ import { formatIsraelKickoff } from "@/features/sports/time";
 import { AddressSearch } from "@/features/locations/components/address-search";
 import type { AddressSuggestion } from "@/features/locations/types";
 import type { DiscoveryApiPage, DiscoveryEvent, DiscoveryPage } from "@/features/discovery/types";
+import {
+  parseSessionOrigin,
+  readSessionOrigin,
+  writeSessionOrigin,
+} from "@/features/discovery/session-origin";
 
 type Coordinates = Readonly<{ lat: number; lng: number }>;
 type LocationState = "idle" | "locating" | "browser" | "address" | "denied";
-
-const SESSION_ORIGIN_KEY = "huddle:discovery-origin";
 
 function groupEventsByMatch(events: readonly DiscoveryEvent[]) {
   const groups = new Map<string, DiscoveryEvent[]>();
@@ -90,31 +93,14 @@ function DiscoveryFeedInner({
   });
 
   useEffect(() => {
-    try {
-      const stored = window.sessionStorage.getItem(SESSION_ORIGIN_KEY);
-      if (stored !== null) {
-        const parsed = JSON.parse(stored) as {
-          lat?: unknown;
-          lng?: unknown;
-          label?: unknown;
-          kind?: unknown;
-        };
-        if (
-          typeof parsed.lat === "number" &&
-          typeof parsed.lng === "number" &&
-          typeof parsed.label === "string" &&
-          (parsed.kind === "browser" || parsed.kind === "address")
-        ) {
-          const restoreTimer = window.setTimeout(() => {
-            setCoordinates({ lat: parsed.lat as number, lng: parsed.lng as number });
-            setLocationLabel(parsed.label as string);
-            setLocationState(parsed.kind as "browser" | "address");
-          }, 0);
-          return () => window.clearTimeout(restoreTimer);
-        }
-      }
-    } catch {
-      window.sessionStorage.removeItem(SESSION_ORIGIN_KEY);
+    const stored = readSessionOrigin(window.sessionStorage);
+    if (stored !== null) {
+      const restoreTimer = window.setTimeout(() => {
+        setCoordinates({ lat: stored.lat, lng: stored.lng });
+        setLocationLabel(stored.label);
+        setLocationState(stored.kind);
+      }, 0);
+      return () => window.clearTimeout(restoreTimer);
     }
 
     if ("geolocation" in navigator) requestBrowserLocation();
@@ -123,10 +109,17 @@ function DiscoveryFeedInner({
   }, []);
 
   function rememberOrigin(next: Coordinates, label: string, kind: "browser" | "address") {
-    setCoordinates(next);
-    setLocationLabel(label);
-    setLocationState(kind);
-    window.sessionStorage.setItem(SESSION_ORIGIN_KEY, JSON.stringify({ ...next, label, kind }));
+    const origin = parseSessionOrigin({ ...next, label, kind });
+    if (origin === null) {
+      setCoordinates(null);
+      setLocationLabel("");
+      setLocationState("denied");
+      return;
+    }
+    setCoordinates({ lat: origin.lat, lng: origin.lng });
+    setLocationLabel(origin.label);
+    setLocationState(origin.kind);
+    writeSessionOrigin(window.sessionStorage, origin);
   }
 
   function requestBrowserLocation() {

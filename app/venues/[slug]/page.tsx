@@ -10,6 +10,7 @@ import { listVenueEvents } from "@/features/events/queries";
 import { ProfileAccessState } from "@/features/profiles/components/profile-access-state";
 import { ReportControl } from "@/features/moderation/components/report-control";
 import { VenueFollowControl } from "@/features/venues/components/venue-follow-control";
+import { VenueFacilities } from "@/features/venues/components/venue-facilities";
 import { VenueVerificationBadge } from "@/features/venues/components/venue-verification-badge";
 import { getVenueBySlug } from "@/features/venues/queries";
 import { venueRouteSlugSchema } from "@/features/venues/schemas";
@@ -60,6 +61,7 @@ export default async function VenuePage({ params }: VenuePageProps) {
                 </dd>
               </div>
             </dl>
+            <VenueFacilities facilities={venue.facilities} />
             <p className="mt-6 font-semibold text-foreground">{venue.addressText}</p>
             {venue.ownerHandle === null ? (
               <p className="mt-2 text-sm text-muted-foreground">

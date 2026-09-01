@@ -8,6 +8,8 @@ const secretNames = [
   "FOOTBALL_DATA_API_TOKEN",
   "SPORTS_SYNC_SECRET",
   "DISCOVERY_CURSOR_SECRET",
+  "ASSISTED_DISCOVERY_TOKEN_SECRET",
+  "CLOUDFLARE_WORKERS_AI_API_TOKEN",
 ];
 
 function valuesFromEnvFile(path) {
