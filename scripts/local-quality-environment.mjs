@@ -23,6 +23,8 @@ export function createLocalQualityEnvironment({
     FOOTBALL_DATA_API_TOKEN: "local-test-placeholder",
     SPORTS_SYNC_SECRET: "local-sports-sync-secret-for-tests-only",
     DISCOVERY_CURSOR_SECRET: "local-discovery-cursor-secret-for-tests",
+    AUTH_RECOVERY_TOKEN_SECRET: "local-password-recovery-secret-for-tests",
+    AUTH_TURNSTILE_ENABLED: "false",
     ASSISTED_DISCOVERY_ENABLED: assistedDiscoveryEnabled ? "true" : "false",
     ASSISTED_DISCOVERY_TOKEN_SECRET: "local-playwright-assisted-discovery-token-secret",
     CLOUDFLARE_ACCOUNT_ID: "local-playwright-fake-account",

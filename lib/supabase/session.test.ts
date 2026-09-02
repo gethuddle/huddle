@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { REQUEST_ID_HEADER } from "@/lib/request-id";
+import { issueRecoveryGrant, RECOVERY_GRANT_COOKIE_NAME } from "@/features/auth/recovery-grant";
 
 import { refreshSession } from "./session";
 
@@ -25,6 +26,7 @@ type CookieAdapter = Readonly<{
 const mocks = vi.hoisted(() => ({
   createServerClient: vi.fn(),
   getClaims: vi.fn(),
+  signOut: vi.fn(),
 }));
 
 vi.mock("@/lib/env/public", () => ({
@@ -38,6 +40,12 @@ vi.mock("@/lib/env/public", () => ({
 vi.mock("@supabase/ssr", () => ({
   createServerClient: mocks.createServerClient,
 }));
+vi.mock("@/lib/env/server", () => ({
+  getServerEnvironment: () => ({
+    AUTH_RECOVERY_TOKEN_SECRET: "r".repeat(32),
+    HUDDLE_ENVIRONMENT: "local",
+  }),
+}));
 
 describe("session refresh Proxy boundary", () => {
   let cookieAdapter: CookieAdapter;
@@ -46,7 +54,7 @@ describe("session refresh Proxy boundary", () => {
     vi.clearAllMocks();
     mocks.createServerClient.mockImplementation((_url, _key, options) => {
       cookieAdapter = options.cookies as CookieAdapter;
-      return { auth: { getClaims: mocks.getClaims } };
+      return { auth: { getClaims: mocks.getClaims, signOut: mocks.signOut } };
     });
     mocks.getClaims.mockImplementation(async () => {
       cookieAdapter.setAll(
@@ -103,5 +111,68 @@ describe("session refresh Proxy boundary", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("keeps a valid recovery session on the isolated reset path", async () => {
+    const userId = "e4000000-0000-4000-8000-000000000401";
+    const sessionId = "e4000000-0000-4000-8000-000000000402";
+    const token = issueRecoveryGrant({ userId, sessionId }, "r".repeat(32));
+    mocks.getClaims.mockResolvedValueOnce({
+      data: { claims: { sub: userId, session_id: sessionId } },
+      error: null,
+    });
+
+    const response = await refreshSession(
+      new NextRequest("https://huddle.test/auth/reset-password", {
+        headers: { cookie: `${RECOVERY_GRANT_COOKIE_NAME}=${token}` },
+      }),
+    );
+
+    expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("redirects a valid recovery session away from the signed-in application", async () => {
+    const userId = "e4000000-0000-4000-8000-000000000401";
+    const sessionId = "e4000000-0000-4000-8000-000000000402";
+    const token = issueRecoveryGrant({ userId, sessionId }, "r".repeat(32));
+    mocks.getClaims.mockResolvedValueOnce({
+      data: { claims: { sub: userId, session_id: sessionId } },
+      error: null,
+    });
+
+    const response = await refreshSession(
+      new NextRequest("https://huddle.test/account", {
+        headers: { cookie: `${RECOVERY_GRANT_COOKIE_NAME}=${token}` },
+      }),
+    );
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get("location")).toBe("https://huddle.test/auth/reset-password");
+  });
+
+  it("clears an invalid recovery session instead of exposing the regular signed-in UI", async () => {
+    mocks.getClaims.mockResolvedValueOnce({
+      data: {
+        claims: {
+          sub: "e4000000-0000-4000-8000-000000000401",
+          session_id: "e4000000-0000-4000-8000-000000000402",
+        },
+      },
+      error: null,
+    });
+    mocks.signOut.mockResolvedValueOnce({ error: null });
+
+    const response = await refreshSession(
+      new NextRequest("https://huddle.test/account", {
+        headers: { cookie: `${RECOVERY_GRANT_COOKIE_NAME}=tampered.token` },
+      }),
+    );
+
+    expect(mocks.signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(response.headers.get("location")).toBe(
+      "https://huddle.test/auth/forgot-password?status=expired",
+    );
+    expect(response.cookies.get(RECOVERY_GRANT_COOKIE_NAME)?.value).toBe("");
+    expect(response.cookies.get("huddle-workspace")?.value).toBe("");
   });
 });

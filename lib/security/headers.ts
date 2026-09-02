@@ -8,15 +8,16 @@ const baseDirectives = [
   "font-src 'self'",
   "style-src 'self' 'unsafe-inline'",
   "worker-src 'self' blob:",
+  "frame-src https://challenges.cloudflare.com",
 ] as const;
 
 export function contentSecurityPolicy(production: boolean) {
   const scripts = production
-    ? "script-src 'self' 'unsafe-inline'"
-    : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
+    ? "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com"
+    : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com";
   const connections = production
-    ? "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://tile.openstreetmap.org"
-    : "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://tile.openstreetmap.org ws://127.0.0.1:* ws://localhost:*";
+    ? "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://tile.openstreetmap.org https://challenges.cloudflare.com"
+    : "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://tile.openstreetmap.org https://challenges.cloudflare.com ws://127.0.0.1:* ws://localhost:*";
   return [
     ...baseDirectives,
     scripts,

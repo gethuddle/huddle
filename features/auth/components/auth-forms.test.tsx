@@ -5,11 +5,13 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SignInForm } from "./sign-in-form";
+import { ChangePasswordForm } from "./change-password-form";
 import { ForgotPasswordForm } from "./forgot-password-form";
 import { ResetPasswordForm } from "./reset-password-form";
 import { SignUpForm } from "./sign-up-form";
 
 const mocks = vi.hoisted(() => ({
+  changePasswordAction: vi.fn(),
   requestPasswordResetAction: vi.fn(),
   signInAction: vi.fn(),
   signUpAction: vi.fn(),
@@ -17,6 +19,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/features/auth/actions", () => ({
+  changePasswordAction: mocks.changePasswordAction,
   requestPasswordResetAction: mocks.requestPasswordResetAction,
   signInAction: mocks.signInAction,
   signUpAction: mocks.signUpAction,
@@ -73,6 +76,31 @@ describe("auth forms", () => {
     expect(screen.queryByText(/supabase|identity|registered/i)).not.toBeInTheDocument();
   });
 
+  it("renders form-level security feedback instead of an unhighlighted-field message", async () => {
+    mocks.signInAction.mockResolvedValue({
+      ok: false,
+      error: {
+        code: "VALIDATION_FAILED",
+        message: "Check the highlighted fields and try again.",
+        fields: { _form: ["Please complete the security check and try again."] },
+      },
+    });
+    const user = userEvent.setup();
+
+    render(<SignInForm />);
+
+    await user.type(screen.getByRole("textbox", { name: "Email address" }), "fan@example.com");
+    await user.type(screen.getByLabelText("Password"), "matchday-strong");
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Please complete the security check and try again.",
+    );
+    expect(
+      screen.queryByText("Check the highlighted fields and try again."),
+    ).not.toBeInTheDocument();
+  });
+
   it("submits a labelled recovery request and renders the non-enumerating response", async () => {
     mocks.requestPasswordResetAction.mockResolvedValue({
       ok: true,
@@ -113,5 +141,27 @@ describe("auth forms", () => {
 
     await waitFor(() => expect(mocks.updatePasswordAction).toHaveBeenCalledOnce());
     expect(await screen.findByText("Passwords must match.")).toBeVisible();
+  });
+
+  it("highlights the current-password field when reauthentication fails", async () => {
+    mocks.changePasswordAction.mockResolvedValue({
+      ok: false,
+      error: {
+        code: "VALIDATION_FAILED",
+        message: "Check the highlighted fields and try again.",
+        fields: { currentPassword: ["Current password is incorrect."] },
+      },
+    });
+    const user = userEvent.setup();
+
+    render(<ChangePasswordForm />);
+
+    await user.type(screen.getByLabelText("Current password"), "wrong-password");
+    await user.type(screen.getByLabelText("New password"), "new-matchday-password");
+    await user.type(screen.getByLabelText("Confirm new password"), "new-matchday-password");
+    await user.click(screen.getByRole("button", { name: "Change password" }));
+
+    expect(await screen.findByText("Current password is incorrect.")).toBeVisible();
+    expect(screen.getByLabelText("Current password")).toHaveAttribute("aria-invalid", "true");
   });
 });

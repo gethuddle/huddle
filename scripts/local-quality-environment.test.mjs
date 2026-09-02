@@ -32,6 +32,8 @@ describe("local quality environment", () => {
       PATH: ["/repo/node_modules/.bin", "/parent/bin"].join(path.delimiter),
       ASSISTED_DISCOVERY_ENABLED: "false",
       ASSISTED_DISCOVERY_TOKEN_SECRET: "local-playwright-assisted-discovery-token-secret",
+      AUTH_RECOVERY_TOKEN_SECRET: "local-password-recovery-secret-for-tests",
+      AUTH_TURNSTILE_ENABLED: "false",
       CLOUDFLARE_ACCOUNT_ID: "local-playwright-fake-account",
       CLOUDFLARE_WORKERS_AI_API_TOKEN: "local-playwright-fake-no-network-token",
     });

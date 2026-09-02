@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,10 +8,17 @@ import { Label } from "@/components/ui/label";
 import { signUpAction } from "@/features/auth/actions";
 import { FieldError, FormFeedback } from "@/features/auth/components/form-feedback";
 import { INITIAL_AUTH_ACTION_STATE } from "@/features/auth/state";
+import { TurnstileWidget } from "@/features/auth/components/turnstile-widget";
 
-export function SignUpForm() {
+export function SignUpForm({ turnstileSiteKey }: Readonly<{ turnstileSiteKey?: string }>) {
   const [state, formAction, pending] = useActionState(signUpAction, INITIAL_AUTH_ACTION_STATE);
   const fieldErrors = state?.ok === false ? state.error.fields : undefined;
+  const [turnstileReady, setTurnstileReady] = useState(turnstileSiteKey === undefined);
+
+  useEffect(() => {
+    if (state === null) return;
+    if (state.ok && state.data.redirectTo !== null) window.location.replace(state.data.redirectTo);
+  }, [state]);
 
   return (
     <form action={formAction} className="space-y-5" noValidate>
@@ -49,7 +56,7 @@ export function SignUpForm() {
           type="password"
         />
         <span className="mt-2 block text-xs text-muted-foreground" id="sign-up-password-help">
-          Use 8–72 characters.
+          Use 15–72 characters. A long passphrase works well.
         </span>
         <FieldError id="sign-up-password-error" messages={fieldErrors?.password} />
       </div>
@@ -73,7 +80,16 @@ export function SignUpForm() {
 
       <FormFeedback state={state} />
 
-      <Button className="w-full" disabled={pending} size="lg" type="submit">
+      {turnstileSiteKey === undefined ? null : (
+        <TurnstileWidget
+          action="signup"
+          onTokenChange={(token) => setTurnstileReady(token !== "")}
+          resetKey={state}
+          siteKey={turnstileSiteKey}
+        />
+      )}
+
+      <Button className="w-full" disabled={pending || !turnstileReady} size="lg" type="submit">
         {pending ? "Creating account…" : "Create account"}
       </Button>
     </form>

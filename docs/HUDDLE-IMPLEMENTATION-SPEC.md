@@ -80,6 +80,12 @@ Deferred behavior MUST NOT be represented by fake controls, placeholder entitlem
 ### 2.1 Accounts and trust
 
 - Supabase Auth MUST own credentials and email verification; Huddle MUST NOT store password hashes.
+- Signup and recovery requests MUST return the same public response for known, unknown, and already-confirmed addresses; Huddle MUST NOT perform a privileged account-existence lookup for browser copy.
+- New passwords MUST contain 15–72 characters without composition rules. Sign-in MUST continue accepting any existing non-empty password up to the provider's 72-character boundary.
+- One-time email credentials MUST remain in a URL fragment on a passive, no-store page and MUST be consumed only by an explicit same-origin POST. GET and prefetch requests MUST NOT verify them.
+- A password-recovery update MUST require a five-minute HMAC grant bound to the verified Supabase user and session. An ordinary signed-in session MUST NOT authorize the recovery form or update action.
+- A signed-in password change MUST require the current password, and every successful password replacement MUST globally sign out existing sessions and trigger the configured security notification.
+- Conditional Cloudflare Turnstile protection MAY gate signup, sign-in, and recovery requests. When enabled, server verification MUST fail closed and validate the expected action and production hostname.
 - The submitted MVP is 18+. Onboarding MUST record `adult_attested_at`; it MUST NOT collect a full date of birth merely to implement this attestation.
 - Anonymous visitors MAY read explicitly public projections.
 - Authentication is required for any mutation.
@@ -256,10 +262,13 @@ Authorization MUST be enforced twice for sensitive transitions: application logi
 | `/moderation` | Platform moderator | Report queue and moderation actions |
 | `/auth/sign-up` | Anonymous | Email/password signup |
 | `/auth/sign-in` | Anonymous | Sign in |
-| `/auth/forgot-password` | Anonymous | Request a non-enumerating password-recovery email |
-| `/auth/reset-password/callback` | Public callback | Consume one bounded recovery token/code, establish the short-lived recovery session, and redirect without retaining the secret in the URL |
-| `/auth/reset-password` | Recovery session | Choose a new password, end the local recovery session, and return to sign in |
+| `/auth/forgot-password` | Public, including signed-in accounts | Request a non-enumerating password-recovery email; signed-in visitors receive an account-switch warning |
+| `/auth/reset-password/confirm` | Public passive page | Strip the fragment from browser history and offer explicit confirmation; its nested `/consume` POST establishes the recovery session and issues the bound five-minute grant |
+| `/auth/reset-password/callback` | Public legacy GET | Never consume a credential; return one no-store expired-link state for old emails |
+| `/auth/reset-password` | Bound recovery session | Choose a new password, globally end sessions, and return to sign in |
 | `/auth/verify` | Public callback/instruction | Verification result and next action |
+| `/auth/verify/confirm` | Public passive page | Strip the fragment from browser history; its nested `/consume` POST verifies one bounded email token/code only after explicit confirmation |
+| `/account/security` | Signed-in | Change a known password after current-password reauthentication |
 
 On small screens, the active Fan bottom navigation is Home, Explore, Ask, My Huddle, and People when assisted discovery is enabled; Ask is omitted when disabled. The Venue bottom navigation is Today, Calendar, Events, and Venue. Account is not a bottom-navigation destination: every active workspace uses the same top-right workspace menu, whose final item opens Account settings. The signed-out mobile menu also remains aligned to the top-right edge.
 
@@ -269,7 +278,7 @@ Unauthorized access MUST render a clear `not found`, `sign in`, `finish safety s
 
 **Onboarding:** sign up → verify email → attest 18+ → accept the current community rules → choose Fan or Venue setup. Fan setup adds handle/display name and optional interests; Venue setup adds a confirmed public address, venue information, and a truthful business-representation attestation without publishing a Fan identity.
 
-**Recover access:** choose Forgot password → submit an email without receiving account-existence detail → follow the single-use recovery email → choose a new password → return to sign in with the recovery browser session ended.
+**Recover access:** choose Forgot password → submit an email without receiving account-existence detail → follow the single-use recovery email → explicitly continue on the passive Huddle page → choose a new password through the session-bound grant → globally end sessions → return to sign in.
 
 **Discover and attend:** use current location or choose a confirmed address → filter by date/team/competition/specific fixture → see who is showing it nearby → open event → sign in/activate Fan if needed → request or join → see stable result → download calendar when authorized.
 
@@ -1035,8 +1044,8 @@ This design follows the [OWASP Authorization Cheat Sheet](https://cheatsheetseri
 - Cookies must use secure production attributes (`HttpOnly` where controlled by the Auth flow, `Secure`, appropriate `SameSite`, narrow lifetime/scope).
 - Middleware refreshes sessions but application/server/database checks authorize resources.
 - Email verification, `adult_attested_at`, current `rules_version`, suspension, Fan activation, and active Venue membership gates are checked server-side according to the requested action.
-- Password-recovery requests MUST return the same public result for known, unknown, throttled, and temporarily unavailable addresses. The dedicated no-store callback accepts exactly one bounded recovery token-hash or PKCE code, redirects only to the canonical application origin, and never retains the credential in the destination URL.
-- A new password MUST be validated server-side, updated only for the authenticated recovery session, and followed by local sign-out plus workspace-cookie clearing before the user returns to sign in.
+- Password-recovery requests MUST return the same public result for known, unknown, throttled, and temporarily unavailable addresses. The passive no-store confirmation page strips one bounded recovery token-hash or PKCE code from its fragment, and its nested same-origin POST consumes that credential without retaining it in the destination URL. Legacy GET callbacks MUST NOT consume or forward credentials.
+- A new password MUST be validated server-side, updated only for the bound recovery session, and followed by global sign-out plus recovery/workspace-cookie clearing before the user returns to sign in.
 - Sign-out clears the session and private query cache.
 
 ### 11.2 Authorization

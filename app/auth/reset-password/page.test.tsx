@@ -3,36 +3,33 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({
-  createClient: vi.fn(),
-  getUser: vi.fn(),
-}));
+const mocks = vi.hoisted(() => ({ hasValidRecoveryGrant: vi.fn() }));
 
-vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
+vi.mock("@/features/auth/recovery-session", () => ({
+  hasValidRecoveryGrant: mocks.hasValidRecoveryGrant,
+}));
+vi.mock("@/features/auth/actions", () => ({
+  cancelRecoveryAction: vi.fn(),
+  updatePasswordAction: vi.fn(),
+}));
 
 import ResetPasswordPage from "./page";
 
 describe("reset-password page", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.createClient.mockResolvedValue({ auth: { getUser: mocks.getUser } });
-  });
+  beforeEach(() => vi.clearAllMocks());
 
-  it("renders the update form only for an authenticated recovery session", async () => {
-    mocks.getUser.mockResolvedValue({
-      data: { user: { id: "recovering-user" } },
-      error: null,
-    });
+  it("renders the update form only with a session-bound recovery grant", async () => {
+    mocks.hasValidRecoveryGrant.mockResolvedValue(true);
 
     render(await ResetPasswordPage());
 
     expect(screen.getByRole("heading", { name: "Choose a new password" })).toBeVisible();
-    expect(screen.getByLabelText("New password")).toBeVisible();
-    expect(screen.getByLabelText("Confirm new password")).toBeVisible();
+    expect(screen.getByText("Use 15–72 characters.")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Cancel reset and sign in" })).toBeVisible();
   });
 
-  it("fails closed to a fresh-link action without an authenticated session", async () => {
-    mocks.getUser.mockResolvedValue({ data: { user: null }, error: null });
+  it("fails closed for an ordinary signed-in session without a recovery grant", async () => {
+    mocks.hasValidRecoveryGrant.mockResolvedValue(false);
 
     render(await ResetPasswordPage());
 

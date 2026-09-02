@@ -17,9 +17,9 @@ npm run db:stop
 
 ## Local Auth verification
 
-`supabase/config.toml` requires email confirmation and loads the tracked Huddle confirmation template. Local Auth sends that message only to Mailpit at `http://127.0.0.1:54324`; it never sends external email. The template carries a one-time token hash to the fixed `/auth/verify/callback` route, which validates the query, verifies the token with Supabase Auth, writes the SSR session cookies, applies private no-store headers, and redirects without carrying the token forward.
+`supabase/config.toml` requires email confirmation, a 15-character minimum for new passwords, and tracked confirmation, recovery, and password-changed templates. Local Auth sends those messages only to Mailpit at `http://127.0.0.1:54324`; it never sends external email. Confirmation and recovery templates put the bounded token hash after `#` on a passive page. The browser removes the fragment, then an explicit same-origin POST verifies the credential with Supabase Auth and redirects without carrying it forward. Recovery additionally issues a five-minute HMAC grant bound to the verified user and session; ordinary signed-in sessions cannot use the recovery update.
 
-Use `npm run dev:local`, `npm run build:local`, and `npm run test:e2e` to inject the currently running local stack values without copying or printing them. Hosted redirect URLs and hosted email templates belong to the later environment/deployment milestone.
+Use `npm run dev:local`, `npm run build:local`, and `npm run test:e2e` to inject the currently running local stack values without copying or printing them. `npm run auth:config:check` is a read-only hosted drift check and requires an explicit access token, project reference, `AUTH_CONFIG_TARGET`, and `AUTH_CONFIG_SITE_URL`; `npm run auth:config:apply` uses the same target guard, is a hosted mutation, and requires separate current authorization. Production accepts only `https://huddle.co.il`; Preview accepts only one HTTPS `vercel.app` origin.
 
 ## Schema conventions
 

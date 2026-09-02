@@ -33,7 +33,7 @@ export function ResetPasswordForm() {
           type="password"
         />
         <span className="mt-2 block text-xs text-muted-foreground" id="new-password-help">
-          Use 8–72 characters.
+          Use 15–72 characters.
         </span>
         <FieldError id="new-password-error" messages={fieldErrors?.password} />
       </div>

@@ -32,7 +32,7 @@ derives the actor again rather than trusting hidden inputs.
 
 | Domain file | Mutations covered | Actor boundary |
 |---|---|---|
-| `features/auth/actions.ts` | sign up, sign in, password-recovery request/update, sign out | Supabase Auth; bounded credentials; generic recovery response; authenticated update followed by local sign-out |
+| `features/auth/actions.ts` | sign up, sign in, password-recovery request/update, known-password change, cancel recovery, sign out | Supabase Auth; bounded credentials; generic public responses; optional action-bound Turnstile; session-bound recovery grant or current-password reauthentication; global sign-out after replacement |
 | `features/profiles/actions.ts` | profile completion/update | onboarding actor plus profile RPC |
 | `features/safety/actions.ts` | block/unblock | current actor plus canonical-pair lock |
 | `features/friendships/actions.ts` | request/respond/remove | complete community actor plus pair/cooldown checks |
@@ -53,8 +53,9 @@ derives the actor again rather than trusting hidden inputs.
 | `/api/groups/search` | read-only `GET`; bounded Zod query | member-dependent results are `no-store` |
 | `/api/events/[eventId]/calendar.ics` | read-only `GET`; UUID route input | public venue calendar may cache; private output is authorized, audited and `no-store` |
 | `/api/internal/sports-sync` | `POST`; max 4 KB JSON plus Zod | constant-time server secret check, service role only after authorization, always `no-store` |
-| `/auth/verify/callback` | read-only auth `GET`; email-token schema | fixed internal redirect allowlist; token omitted from destination; `no-store` |
-| `/auth/reset-password/callback` | read-only auth `GET`; exactly one bounded recovery token-hash or PKCE code | canonical internal redirects only; recovery credential omitted from destination; `no-store` |
+| `/auth/verify/confirm` + `/consume` | passive `GET` page; explicit same-origin `POST`; exactly one bounded token hash or PKCE code | fragment stripped before POST; ambient local session switched; provider credential omitted from destination; `no-store` |
+| `/auth/reset-password/confirm` + `/consume` | passive `GET` page; explicit same-origin `POST`; exactly one bounded recovery token hash or PKCE code | fragment stripped before POST; verified Supabase user/session bound to a five-minute HMAC grant; `no-store` |
+| Legacy `/auth/*/callback` | read-only `GET` | never contacts Supabase Auth or consumes a one-time credential; redirects to one expired-link state with `no-store` |
 
 Normal page requests never call the sports provider. GET handlers do not mutate
 product state; the private-location calendar helper may write only its required
@@ -63,7 +64,8 @@ address-free security audit record.
 ## Browser and hosting controls
 
 - CSP restricts default, object, base, form, frame, connection, image, font, and
-  script/style sources. Development alone permits `unsafe-eval` for Next tooling.
+  script/style sources. Turnstile's script, frame, and connection origin is explicit;
+  development alone permits `unsafe-eval` for Next tooling.
 - `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, strict referrer
   policy, a minimal permissions policy, and same-origin opener policy apply to
   every route.
@@ -98,6 +100,8 @@ address-free security audit record.
 - Users can misstate location, profile, report, and event information.
 - Database cooldowns are suitable for the course pilot but are weaker than a
   distributed edge abuse-control service.
+- Conditional Turnstile reduces automated credential-form abuse but does not replace
+  Supabase throttles, non-enumerating copy, monitoring, or recovery-session binding.
 - There is no automated toxicity or media analysis and no staffed 24/7 emergency
   response. Immediate danger belongs with local emergency services first.
 - Static CSP uses `unsafe-inline` for current Next.js compatibility. A nonce-based

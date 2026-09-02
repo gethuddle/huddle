@@ -2,33 +2,65 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-function renderAuthTemplate(
-  filename: "confirmation.html" | "recovery.html",
-  values: { redirectTo: string; siteUrl: string; tokenHash: string },
-) {
-  return readFileSync(new URL(filename, import.meta.url), "utf8")
-    .replaceAll("{{ .RedirectTo }}", values.redirectTo)
-    .replaceAll("{{ .SiteURL }}", values.siteUrl)
-    .replaceAll("{{ .TokenHash }}", values.tokenHash);
+const templates = ["confirmation.html", "recovery.html", "password-changed.html"] as const;
+
+function source(filename: (typeof templates)[number]) {
+  return readFileSync(new URL(filename, import.meta.url), "utf8");
 }
 
-describe("hosted Supabase Auth templates", () => {
-  it.each([
-    ["confirmation.html", "/auth/verify/callback", "email"],
-    ["recovery.html", "/auth/reset-password/callback", "recovery"],
-  ] as const)(
-    "renders %s against the application-requested origin",
-    (filename, callbackPath, type) => {
-      const rendered = renderAuthTemplate(filename, {
-        redirectTo: `https://huddle-git-new-preview.vercel.app${callbackPath}`,
-        siteUrl: "https://obsolete-preview.vercel.app",
-        tokenHash: "bounded-token-hash",
-      });
+function count(value: string, pattern: RegExp) {
+  return [...value.matchAll(pattern)].length;
+}
 
-      expect(rendered).toContain(
-        `href="https://huddle-git-new-preview.vercel.app${callbackPath}?token_hash=bounded-token-hash&amp;type=${type}"`,
-      );
-      expect(rendered).not.toContain(`href="https://obsolete-preview.vercel.app${callbackPath}`);
+describe("Supabase Auth email templates", () => {
+  it.each(templates)("ships %s as one complete light branded document", (filename) => {
+    const html = source(filename);
+
+    expect(count(html, /<!doctype html>/gi)).toBe(1);
+    expect(count(html, /<html\b/gi)).toBe(1);
+    expect(count(html, /data-primary-action=/g)).toBe(1);
+    expect(html).toContain("{{ .SiteURL }}/brand/huddle-email-icon.png");
+    expect(html).toContain("Huddle");
+    expect(html).toContain("background: #f5f7f4");
+    expect(html).not.toContain("background: #0b1210");
+    expect(html).not.toMatch(/tracking[-_ ]?pixel|open[-_ ]?tracking/i);
+  });
+
+  it("keeps confirmation credentials in the URL fragment until explicit browser confirmation", () => {
+    const html = source("confirmation.html");
+
+    expect(html).toContain(
+      "{{ .SiteURL }}/auth/verify/confirm#token_hash={{ .TokenHash }}&amp;type=email",
+    );
+    expect(html).not.toContain("{{ .ConfirmationURL }}");
+    expect(html).not.toContain("{{ .RedirectTo }}");
+  });
+
+  it("keeps recovery credentials in the URL fragment until explicit browser confirmation", () => {
+    const html = source("recovery.html");
+
+    expect(html).toContain(
+      "{{ .SiteURL }}/auth/reset-password/confirm#token_hash={{ .TokenHash }}&amp;type=recovery",
+    );
+    expect(html).not.toContain("{{ .ConfirmationURL }}");
+    expect(html).not.toContain("{{ .RedirectTo }}");
+  });
+
+  it.each(["confirmation.html", "recovery.html"] as const)(
+    "gives accurate fallback-link instructions in %s",
+    (filename) => {
+      const html = source(filename);
+
+      expect(html).toContain("Copy link address");
+      expect(html).not.toContain("Copy this secure link into your browser");
     },
   );
+
+  it("sends a useful password-change warning without a one-time credential", () => {
+    const html = source("password-changed.html");
+
+    expect(html).toContain("If this wasn’t you");
+    expect(html).toContain("{{ .SiteURL }}/auth/forgot-password");
+    expect(html).not.toMatch(/TokenHash|ConfirmationURL|RedirectTo/);
+  });
 });

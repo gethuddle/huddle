@@ -69,6 +69,18 @@ export default async function AccountPage() {
       <div className="mt-5 grid gap-5 md:grid-cols-2">
         <Card className="rounded-[1.375rem] shadow-none">
           <CardHeader>
+            <CardTitle className="text-xl font-semibold">Account security</CardTitle>
+            <CardDescription>Change your password and sign out existing sessions.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline">
+              <Link href="/account/security">Manage password</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-[1.375rem] shadow-none">
+          <CardHeader>
             <CardTitle className="text-xl font-semibold">Fan identity</CardTitle>
             <CardDescription>
               {fan === undefined
