@@ -88,8 +88,9 @@ function casePasses(entry: AssistedDiscoveryEvaluationCase, actual: IntentDraft)
   if (!supportedIntentMatches(actual, entry.expected.intent)) return false;
   if (entry.expected.dateResult === undefined) return true;
   return (
-    JSON.stringify(resolveIntentDateRange(actual, ASSISTED_DISCOVERY_EVALUATION_NOW)) ===
-    JSON.stringify(entry.expected.dateResult)
+    JSON.stringify(
+      resolveIntentDateRange(actual, ASSISTED_DISCOVERY_EVALUATION_NOW, entry.query),
+    ) === JSON.stringify(entry.expected.dateResult)
   );
 }
 

@@ -146,6 +146,27 @@ function nextWeekdayDate(today: string, targetWeekday: number): string {
   return addDays(today, delta);
 }
 
+function nextMonthSearch(today: string) {
+  const date = new Date(`${today}T12:00:00.000Z`);
+  date.setUTCDate(1);
+  date.setUTCMonth(date.getUTCMonth() + 1);
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth() + 1;
+  const monthName = new Intl.DateTimeFormat("en", {
+    month: "long",
+    timeZone: "UTC",
+  }).format(date);
+  const monthShort = new Intl.DateTimeFormat("en", {
+    month: "short",
+    timeZone: "UTC",
+  }).format(date);
+  const finalDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return {
+    interpretation: `1–${finalDay} ${monthShort}`,
+    query: `Anything in Jerusalem in ${monthName} ${year}?`,
+  };
+}
+
 function kickoff(date: string): string {
   if (date === israelDate()) {
     return new Date(Date.now() + 30 * 60_000).toISOString();
@@ -477,8 +498,8 @@ async function signIn(page: Page, email: string) {
 }
 
 async function search(page: Page, query: string) {
-  const queryInput = page.getByRole("textbox", { name: "Describe the huddle you want" });
-  const submitButton = page.getByRole("button", { name: "Find huddles" });
+  const queryInput = page.getByRole("textbox", { name: "Ask Huddle what you want to watch" });
+  const submitButton = page.getByRole("button", { name: "Send question" });
 
   await expect(async () => {
     await queryInput.fill("");
@@ -512,10 +533,27 @@ test("the three core assisted-discovery examples find authorized seeded huddles"
       JSON.stringify({ lat: 32.8, lng: 35, label: "Haifa", kind: "address" }),
     );
   });
+  await page.setViewportSize({ width: 375, height: 812 });
   await signIn(page, viewer.email);
+  await page.goto("/ask");
+
+  const mobileNavigation = page.getByRole("navigation", { name: "Fan mobile navigation" });
+  await expect(mobileNavigation.getByRole("link")).toHaveText([
+    "Home",
+    "Explore",
+    "Ask",
+    "My Huddle",
+    "People",
+  ]);
+  await expect(mobileNavigation.getByRole("link", { name: "Ask" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await expect(mobileNavigation.getByRole("link", { name: "Account" })).toHaveCount(0);
   await expect(
-    page.getByRole("heading", { name: "What kind of huddle are you after?" }),
+    page.getByRole("banner").getByRole("button", { name: "Switch workspace" }),
   ).toBeVisible();
+  await expect(page.getByText("What kind of huddle are you after?", { exact: true })).toBeVisible();
 
   await search(page, "I want to go out tommorow to a premiere league game in a venue serving food");
   await expect(page.getByText(venueTitle, { exact: true })).toBeVisible();
@@ -544,9 +582,22 @@ test("the three core assisted-discovery examples find authorized seeded huddles"
     `/groups/assisted-group-${run}`,
   );
   await expect(page.getByText("From one of your groups", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("textbox", { name: "Ask Huddle what you want to watch" }),
+  ).toBeInViewport();
+  await expect(page.getByRole("banner")).toBeInViewport();
+  await expect(
+    page.getByRole("banner").getByRole("button", { name: "Switch workspace" }),
+  ).toBeInViewport();
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  const mobilePageHeight = await page.evaluate(() => ({
+    document: document.documentElement.scrollHeight,
+    viewport: window.innerHeight,
+  }));
+  expect(mobilePageHeight.document).toBeLessThanOrEqual(mobilePageHeight.viewport + 300);
 });
 
-test("a named place overrides the remembered origin and next Wednesday stays exact", async ({
+test("a named place overrides the remembered origin while dates stay exact and state stays ephemeral", async ({
   page,
 }) => {
   test.setTimeout(120_000);
@@ -569,22 +620,6 @@ test("a named place overrides the remembered origin and next Wednesday stays exa
     longitude: 35.224,
   });
 
-  await page.route("**/api/locations/search", async (route) => {
-    await route.fulfill({
-      contentType: "application/json",
-      status: 200,
-      body: JSON.stringify({
-        suggestions: [
-          {
-            id: "jerusalem-test",
-            label: "Jerusalem, Israel",
-            latitude: 31.778,
-            longitude: 35.225,
-          },
-        ],
-      }),
-    });
-  });
   await page.addInitScript(() => {
     window.sessionStorage.setItem(
       "huddle:discovery-origin",
@@ -592,16 +627,30 @@ test("a named place overrides the remembered origin and next Wednesday stays exa
     );
   });
   await signIn(page, viewer.email);
+  await page.goto("/ask");
 
   await search(page, "Any events in Jerusalem next Wednesday?");
-  await expect(
-    page.getByRole("heading", { name: "Confirm Jerusalem as the search area" }),
-  ).toBeVisible();
+  await expect(page.getByText("Jerusalem, Israel", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Use my current location" })).toHaveCount(0);
-  const locationInput = page.getByRole("combobox", { name: "Area or address" });
-  await expect(locationInput).toHaveValue("Jerusalem");
-  await page.getByRole("option", { name: "Jerusalem, Israel" }).click();
 
   await expect(page.getByText(title, { exact: true })).toBeVisible();
   await expect(page.getByText(decoyTitle, { exact: true })).toHaveCount(0);
+
+  const monthSearch = nextMonthSearch(israelDate());
+  await search(page, monthSearch.query);
+  await expect(
+    page.getByLabel("Ask Huddle messages").getByText(monthSearch.interpretation, { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText(monthSearch.query, { exact: true })).toBeVisible();
+
+  await page.goto("/discover");
+  await page
+    .getByRole("navigation", { name: "Fan navigation" })
+    .getByRole("link", { name: "Ask Huddle", exact: true })
+    .click();
+  await expect(page).toHaveURL(/^http:\/\/(?:localhost|127\.0\.0\.1):3000\/ask$/);
+  await expect(page.getByText(monthSearch.query, { exact: true })).toHaveCount(0);
+  await expect(
+    page.getByLabel("Ask Huddle messages").getByText(monthSearch.interpretation, { exact: true }),
+  ).toHaveCount(0);
 });

@@ -322,4 +322,44 @@ export const ASSISTED_DISCOVERY_EVALUATION_CORPUS = [
       traits: ["named_place"],
     },
   ),
+  supported(
+    "date-43",
+    "Anything in October?",
+    {},
+    {
+      requirements: ["date_boundary"],
+      traits: ["named_month"],
+      dateResult: { ok: true, fromDate: "2026-10-01", toDate: "2026-10-31" },
+    },
+  ),
+  supported(
+    "date-44",
+    "Anything on 5 October?",
+    {},
+    {
+      requirements: ["date_boundary"],
+      traits: ["single_date"],
+      dateResult: { ok: true, fromDate: "2026-10-05", toDate: "2026-10-05" },
+    },
+  ),
+  supported(
+    "date-45",
+    "Anything Wednesday?",
+    {},
+    {
+      requirements: ["date_boundary"],
+      traits: ["bare_weekday"],
+      dateResult: { ok: true, fromDate: "2026-09-02", toDate: "2026-09-02" },
+    },
+  ),
+  supported(
+    "date-46",
+    "Any huddles?",
+    {},
+    {
+      requirements: ["date_boundary"],
+      traits: ["date_free_default"],
+      dateResult: { ok: true, fromDate: "2026-09-01", toDate: "2026-09-15" },
+    },
+  ),
 ] as const satisfies readonly AssistedDiscoveryEvaluationCase[];

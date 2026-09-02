@@ -71,6 +71,7 @@ export function clarificationSummary(reason: ClarificationReason): string {
   if (reason === "past_date") return "The requested dates are in the past.";
   if (reason === "date_range_too_wide") return "Choose a date range of 31 days or fewer.";
   if (reason === "invalid_date") return "The requested date range needs clarification.";
+  if (reason === "unresolved_location") return "The search area needs clarification.";
   if (reason.includes("competition")) return "The competition name needs clarification.";
   return "The team name needs clarification.";
 }

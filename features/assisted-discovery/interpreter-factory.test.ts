@@ -73,6 +73,19 @@ const coreExamples = [
       requiredFacilities: [],
     },
   },
+  {
+    query: "Anything in Jerusalem in October 2026?",
+    expected: {
+      temporal: "unspecified",
+      weekday: null,
+      locationMention: "Jerusalem",
+      competitionMention: null,
+      teamMentions: [],
+      relationship: "any",
+      hostKind: "any",
+      requiredFacilities: [],
+    },
+  },
 ] as const;
 
 describe("createAssistedDiscoveryInterpreter", () => {

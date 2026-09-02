@@ -13,7 +13,10 @@ import {
   searchAssistedEvents,
 } from "@/features/assisted-discovery/database";
 import { createAssistedDiscoveryInterpreter } from "@/features/assisted-discovery/interpreter-factory";
+import { createAssistedDiscoveryNamedOriginResolver } from "@/features/assisted-discovery/named-origin";
 import { executeAssistedDiscovery } from "@/features/assisted-discovery/service";
+import { createPhotonPublicGeocoder } from "@/features/locations/photon";
+import { searchPublicAddress } from "@/features/locations/provider";
 import { getServerEnvironment } from "@/lib/env/server";
 import { DomainError, toHttpError } from "@/lib/errors";
 import { elapsedMilliseconds, safeLog } from "@/lib/observability/server";
@@ -64,12 +67,21 @@ export async function POST(request: NextRequest) {
       accountId: environment.CLOUDFLARE_ACCOUNT_ID!,
       apiToken: environment.CLOUDFLARE_WORKERS_AI_API_TOKEN!,
     });
+    const resolveNamedOrigin = createAssistedDiscoveryNamedOriginResolver(
+      {
+        environment: environment.HUDDLE_ENVIRONMENT,
+        accountId: environment.CLOUDFLARE_ACCOUNT_ID!,
+        apiToken: environment.CLOUDFLARE_WORKERS_AI_API_TOKEN!,
+      },
+      (place) => searchPublicAddress(createPhotonPublicGeocoder(), place),
+    );
     const result = await executeAssistedDiscovery(input, actor.user.id, {
       now: () => new Date(),
       tokenSecret: environment.ASSISTED_DISCOVERY_TOKEN_SECRET!,
       interpreter,
       claimInterpretation: () => claimAssistedDiscoveryInterpretation(actor.supabase),
       loadCatalog: () => loadAssistedDiscoveryCatalog(actor.supabase),
+      resolveNamedOrigin,
       search: (intent, origin) => searchAssistedEvents(actor.supabase, intent, origin),
       findSingleMatchId: (intent) => findSingleResolvedMatchId(actor.supabase, intent),
     });

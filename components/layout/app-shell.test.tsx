@@ -21,6 +21,9 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/features/workspaces/queries", () => ({
   getAppShellState: mocks.getAppShellState,
 }));
+vi.mock("@/lib/env/server", () => ({
+  getServerEnvironment: () => ({ ASSISTED_DISCOVERY_ENABLED: true }),
+}));
 
 const anonymousState: AppShellState = {
   isSignedIn: false,
@@ -43,6 +46,9 @@ describe("AppShell", () => {
       "#main-content",
     );
     expect(screen.getByRole("link", { name: "Huddle home" })).toHaveAttribute("href", "/");
+    expect(
+      screen.getByRole("link", { name: "Huddle home" }).parentElement?.parentElement,
+    ).toHaveClass("flex", "justify-between", "lg:grid");
     const navigation = screen.getByRole("navigation", { name: "Public navigation" });
     const publicExplore = within(navigation).getByRole("link", { name: "Explore" });
     expect(publicExplore).toHaveAttribute("href", "/discover");
@@ -72,7 +78,7 @@ describe("AppShell", () => {
     );
   });
 
-  it("uses the supplied Fan shell with four centered destinations and identity at the edge", async () => {
+  it("uses the supplied Fan shell with Ask centered and one workspace menu at the edge", async () => {
     mocks.pathname = "/dashboard";
     const fan = {
       kind: "fan" as const,
@@ -93,7 +99,7 @@ describe("AppShell", () => {
       within(navigation)
         .getAllByRole("link")
         .map((link) => link.textContent),
-    ).toEqual(["Home", "Explore", "My Huddle", "People"]);
+    ).toEqual(["Home", "Explore", "Ask Huddle", "My Huddle", "People"]);
     expect(within(navigation).getByRole("link", { name: "My Huddle" })).toHaveAttribute(
       "aria-current",
       "page",
@@ -147,7 +153,7 @@ describe("AppShell", () => {
       within(navigation)
         .getAllByRole("link")
         .map((link) => link.textContent),
-    ).toEqual(["Today", "Calendar", "Events", "Venue", "Account"]);
+    ).toEqual(["Today", "Calendar", "Events", "Venue"]);
     expect(within(navigation).getByRole("link", { name: "Calendar" })).toHaveAttribute(
       "aria-current",
       "page",

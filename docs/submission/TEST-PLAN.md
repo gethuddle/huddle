@@ -24,7 +24,7 @@ The 2026-08-29 B12 run passed 90 Vitest files / 403 tests (78.7% statements,
 and all 17 Playwright journeys. The PR/main CI run and second-computer reproduction
 remain separate evidence.
 
-The current inventory contains 175 Vitest files / 898 passing tests plus one skipped
+The current inventory contains 179 passing Vitest files / 938 passing tests plus one skipped
 live-model test, 36 ordered migrations, 41 pgTAP files / 1681 assertions, and 31
 Playwright scenarios.
 The complete acceptance command passes this combined inventory. The B12 numbers above are
@@ -65,9 +65,12 @@ redemption/revocation; group submission withdrawal/rejection; and Venue closure.
 complete Fan/Venue journey runs independently at 1280, 768, and 375 px. A final
 anonymous 1364×1440 regression verifies full-width shell geometry, centring, overflow,
 and shadow treatment. One fake-interpreter journey covers all three core AI-assisted
-discovery examples with authorized crests, group context, capacity, and facility detail;
-a second proves that a named Jerusalem origin overrides remembered Haifa state and that
-`next Wednesday` excludes a nearby-date decoy. This produces 31 Playwright scenarios in total. The supporting journeys exercise password
+discovery examples at phone width with authorized crests, group context, capacity, facility
+detail, the five-item Fan navigation, a viewport-bounded transcript, and a visible docked
+composer; a second proves that a named Jerusalem origin resolves automatically, overrides
+remembered Haifa state, that `next Wednesday` excludes a nearby-date decoy, that a named
+month does not use the 14-day default, and that leaving Ask clears the exchange. The local
+seam calls neither live AI nor a live geocoder. This produces 31 Playwright scenarios in total. The supporting journeys exercise password
 recovery through Mailpit and Supabase Auth, reversible blocking, and both venue/private
 event creation paths.
 Production smoke tests are deliberately separate under

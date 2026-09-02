@@ -49,7 +49,7 @@ derives the actor again rather than trusting hidden inputs.
 | Route | Method and input | Authorization/cache boundary |
 |---|---|---|
 | `/api/discovery` | read-only `GET`; bounded Zod query | personalized/browser-location responses are `no-store`; uncertain auth fails closed |
-| `/api/assisted-discovery` | read-only `POST`; max 4 KB JSON and 400-character sentence | active Fan only; `no-store`; Cloudflare sees sentence/time only; a named public place is confirmed through OpenStreetMap before its coordinate reaches Supabase; database re-authorizes every result |
+| `/api/assisted-discovery` | read-only `POST`; max 4 KB JSON and 400-character sentence | active Fan only; `no-store`; Cloudflare sees sentence/time only; Huddle resolves a named public place through its bounded server-side OpenStreetMap adapter and never sends the coordinate to Cloudflare; database re-authorizes every result |
 | `/api/groups/search` | read-only `GET`; bounded Zod query | member-dependent results are `no-store` |
 | `/api/events/[eventId]/calendar.ics` | read-only `GET`; UUID route input | public venue calendar may cache; private output is authorized, audited and `no-store` |
 | `/api/internal/sports-sync` | `POST`; max 4 KB JSON plus Zod | constant-time server secret check, service role only after authorization, always `no-store` |

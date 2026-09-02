@@ -37,6 +37,7 @@
     "security:audit": "node scripts/security-audit.mjs"
   },
   "dependencies": {
+    "@shadcn/react": "0.3.1",
     "@supabase/ssr": "0.12.5",
     "@supabase/supabase-js": "2.112.4",
     "@tanstack/react-query": "5.102.2",

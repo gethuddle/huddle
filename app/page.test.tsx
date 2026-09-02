@@ -8,7 +8,6 @@ const mocks = vi.hoisted(() => ({
   getFanHome: vi.fn(),
   getAppShellState: vi.fn(),
   redirect: vi.fn(),
-  assistedEnabled: false,
 }));
 
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
@@ -20,13 +19,6 @@ vi.mock("@/features/dashboard/queries", () => ({
   getFanHome: mocks.getFanHome,
 }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
-vi.mock("@/lib/env/server", () => ({
-  getServerEnvironment: () => ({ ASSISTED_DISCOVERY_ENABLED: mocks.assistedEnabled }),
-}));
-vi.mock("@/features/assisted-discovery/components/assisted-discovery", () => ({
-  AssistedDiscovery: () => <section aria-label="AI assisted huddle search" />,
-}));
-
 import Home from "./page";
 
 const venue = {
@@ -68,7 +60,6 @@ function mockViewer(sub: string | null, displayName: string | null = null) {
 describe("Home", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.assistedEnabled = false;
     mocks.redirect.mockImplementation(() => {
       throw new Error("NEXT_REDIRECT");
     });
@@ -187,8 +178,7 @@ describe("Home", () => {
     expect(screen.getAllByRole("link", { name: /Open My Huddle/ })).toHaveLength(1);
   });
 
-  it("shows assisted discovery only in the active Fan branch when the flag is enabled", async () => {
-    mocks.assistedEnabled = true;
+  it("keeps assisted discovery off Home now that Ask has its own destination", async () => {
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: true,
       workspace: { active: fan, available: [fan], isModerator: false },
@@ -197,7 +187,9 @@ describe("Home", () => {
 
     render(await Home());
 
-    expect(screen.getByRole("region", { name: "AI assisted huddle search" })).toBeVisible();
+    expect(
+      screen.queryByRole("region", { name: "AI assisted huddle search" }),
+    ).not.toBeInTheDocument();
   });
 
   it("routes a brand-new signed-in account with no workspace to setup choice", async () => {

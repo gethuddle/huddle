@@ -87,6 +87,7 @@ const clarificationReasonSchema = z.enum([
   "ambiguous_team",
   "unresolved_competition",
   "ambiguous_competition",
+  "unresolved_location",
 ]);
 
 export const assistedDiscoveryResponseSchema = z.discriminatedUnion("status", [
@@ -94,6 +95,7 @@ export const assistedDiscoveryResponseSchema = z.discriminatedUnion("status", [
     .object({
       status: z.literal("results"),
       interpretation: interpretationSchema,
+      locationLabel: z.string().trim().min(1).max(500).nullable(),
       results: z.array(assistedDiscoveryResultCardSchema).max(3),
     })
     .strict(),
@@ -123,6 +125,7 @@ export const assistedDiscoveryResponseSchema = z.discriminatedUnion("status", [
     .object({
       status: z.literal("no_results"),
       interpretation: interpretationSchema,
+      locationLabel: z.string().trim().min(1).max(500).nullable(),
       exploreHref: z.string().startsWith("/").max(2048),
       planHref: z.string().startsWith("/").max(2048).nullable(),
     })

@@ -661,6 +661,7 @@ async function expectProfileNavigation(page: Page) {
   const fanNavigation = page.getByRole("navigation", { name: "Fan navigation" });
   await expect(fanNavigation.getByRole("link", { name: "Home", exact: true })).toBeVisible();
   await expect(fanNavigation.getByRole("link", { name: "Explore", exact: true })).toBeVisible();
+  await expect(fanNavigation.getByRole("link", { name: "Ask Huddle", exact: true })).toBeVisible();
   await expect(fanNavigation.getByRole("link", { name: "My Huddle", exact: true })).toBeVisible();
   await expect(fanNavigation.getByRole("link", { name: "People", exact: true })).toBeVisible();
 
@@ -1596,7 +1597,6 @@ test("a Venue-only operator completes the real onboarding boundary and publishes
       "Calendar",
       "Events",
       "Venue",
-      "Account",
     ]);
     await expect(page.getByRole("navigation", { name: "Fan navigation" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Huddle home" })).toHaveAttribute(
@@ -2019,10 +2019,11 @@ test("16 a confidential report becomes an independently reviewed moderation appe
     });
     await expect(fanMobileNavigation).toBeVisible();
     await expect(fanMobileNavigation.getByRole("link")).toHaveCount(5);
-    await expect(fanMobileNavigation.getByRole("link", { name: "Account" })).toHaveAttribute(
+    await expect(fanMobileNavigation.getByRole("link", { name: "Ask" })).toHaveAttribute(
       "href",
-      "/account",
+      "/ask",
     );
+    await expect(fanMobileNavigation.getByRole("link", { name: "Account" })).toHaveCount(0);
     await expect(secondModeratorPage.getByRole("button", { name: "Menu" })).toHaveCount(0);
     expect(
       await secondModeratorPage.evaluate(
