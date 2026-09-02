@@ -14,7 +14,7 @@
       </p>
       <p style="margin: 28px 0">
         <a
-          href="{{ .SiteURL }}/auth/reset-password/callback?token_hash={{ .TokenHash }}&amp;type=recovery"
+          href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=recovery"
           style="
             display: inline-block;
             border-radius: 10px;

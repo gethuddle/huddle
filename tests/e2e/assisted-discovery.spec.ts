@@ -477,8 +477,15 @@ async function signIn(page: Page, email: string) {
 }
 
 async function search(page: Page, query: string) {
-  await page.getByRole("textbox", { name: "Describe the huddle you want" }).fill(query);
-  await page.getByRole("button", { name: "Find huddles" }).click();
+  const queryInput = page.getByRole("textbox", { name: "Describe the huddle you want" });
+  const submitButton = page.getByRole("button", { name: "Find huddles" });
+
+  await expect(async () => {
+    await queryInput.fill("");
+    await queryInput.fill(query);
+    await expect(submitButton).toBeEnabled({ timeout: 1_000 });
+  }).toPass({ timeout: 10_000 });
+  await submitButton.click();
 }
 
 test("the three core assisted-discovery examples find authorized seeded huddles", async ({

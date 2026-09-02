@@ -14,8 +14,19 @@ identify the exact Vercel and Supabase targets first.
 
 `next.config.ts` parses every required variable before a build starts. A hosted URL
 must be HTTPS, and Vercel's `VERCEL_ENV` must agree with `HUDDLE_ENVIRONMENT`.
-Safe key-name templates are in `.env.preview.example` and `.env.production.example`.
-Values belong only in Vercel/Supabase managed secret stores.
+Automatically exposed Vercel system variables supply the stable Preview branch hostname;
+the build validates that it is a `vercel.app` hostname, derives the HTTPS
+`NEXT_PUBLIC_APP_URL`, and injects that same public origin into the client build. The
+validated system hostname is authoritative even if a stale manual Preview URL is
+accidentally configured. Local and Production continue to require an explicit
+`NEXT_PUBLIC_APP_URL`.
+
+Every required Preview value must target the project-wide `Preview` environment. Do not
+attach `NEXT_PUBLIC_APP_URL`, Supabase credentials, or enabled feature credentials to an
+individual Git branch: branch-specific values override generic Preview values and make
+the next pull request non-reproducible. Safe key-name templates are in
+`.env.preview.example` and `.env.production.example`. Values belong only in
+Vercel/Supabase managed secret stores.
 
 ## One-time hosted setup order
 
@@ -28,14 +39,25 @@ Values belong only in Vercel/Supabase managed secret stores.
 4. Review the migration list. Apply all committed migrations to preview, verify parity,
    then apply the same ordered set to production **before** deploying code that uses it.
    Never hand-edit production schema or use `db reset` against a hosted project.
-5. Configure the Supabase Auth site URL and exact allowed redirects for each
-   environment's own HTTPS origin, including `/auth/verify/callback` and
-   `/auth/reset-password/callback`. Copy the repository confirmation and recovery
-   templates from `supabase/templates/` into the hosted Auth email-template settings;
-   the local file paths are not uploaded automatically. Preview redirects must not
+5. Configure the Supabase Auth site URL and allowed redirects for each environment.
+   The non-production Supabase project may use Vercel's documented
+   `https://*-<team-or-account-slug>.vercel.app/**` Preview wildcard; Production uses
+   exact paths for its own HTTPS origin, including `/auth/verify/callback` and
+   `/auth/reset-password/callback`, and never a Preview wildcard. Copy the repository
+   confirmation and recovery templates from `supabase/templates/` into the hosted Auth
+   email-template settings only when the hosted project permits customization; the local
+   file paths are not uploaded automatically. Newer Free projects using Supabase's
+   default email provider cannot customize templates. Keep the default templates in that
+   configuration—their confirmation URL honors Huddle's explicit redirect—and upload the
+   repository templates only after configuring custom SMTP or an eligible plan. The
+   default provider is suitable only for team-authorized course-demo addresses and its
+   small email limit; public delivery requires custom SMTP. Preview redirects must not
    point to production and production redirects must not contain wildcard preview hosts.
-6. Configure every required and conditionally enabled environment name from the matching example. Use different
-   service-role, sync, cursor, and provider secrets per environment.
+6. Enable Vercel's automatically exposed system environment variables. Configure every
+   required and conditionally enabled name from the matching example at the project-wide
+   Preview or Production scope. Use different service-role, sync, cursor, and signing
+   secrets per environment. Confirm the scope inventory with `vercel env ls preview` and
+   `vercel env ls production`; this command reports names/scopes without revealing values.
 7. Deploy preview and run anonymous/signed-in smoke checks without production data.
    Then deploy the exact accepted commit to production.
 8. Run `npm run test:production:session`. It creates Auth sessions and may update
@@ -67,4 +89,6 @@ verified backup and separate explicit approval from both owners.
 
 Sources: [Vercel limits](https://vercel.com/docs/limits),
 [Supabase local/migration workflow](https://supabase.com/docs/guides/local-development/cli/getting-started),
-and [Supabase Auth redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls).
+[Supabase Auth redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls),
+[Supabase default SMTP limits](https://supabase.com/docs/guides/auth/auth-smtp), and
+[Supabase Free template restrictions](https://supabase.com/changelog/46599-changes-to-email-template-customisation-on-free-tier).

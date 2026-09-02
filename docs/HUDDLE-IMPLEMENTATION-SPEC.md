@@ -1321,7 +1321,7 @@ Generated DB types are produced from local schema into `types/database.generated
 
 ### 15.4 Environments
 
-Use separate local, preview/staging, and production configuration. Preview deployments MUST NOT mutate the production database by default. Vercel hosts Next.js; Supabase hosts Auth/PostgreSQL/PostGIS. Environment URLs, Auth redirects, CORS/origin allowlists, secrets, and cron target must match the environment.
+Use separate local, preview/staging, and production configuration. Preview deployments MUST NOT mutate the production database by default. Vercel hosts Next.js; Supabase hosts Auth/PostgreSQL/PostGIS. Environment URLs, Auth redirects, CORS/origin allowlists, secrets, and cron target must match the environment. Required Vercel Preview variables apply project-wide rather than to individual feature branches. A Vercel Preview build derives its canonical application origin from a validated Vercel system branch/deployment hostname whenever one is available, so a stale manual branch value cannot override it; non-Vercel preview hosts may configure `NEXT_PUBLIC_APP_URL` explicitly. Local and production builds require an explicit canonical origin.
 
 ### 15.5 Production acceptance
 
