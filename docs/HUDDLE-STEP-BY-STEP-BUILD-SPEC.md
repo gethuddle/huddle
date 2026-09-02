@@ -6,7 +6,7 @@
 
 **Authority:** [HUDDLE-IMPLEMENTATION-SPEC.md](./HUDDLE-IMPLEMENTATION-SPEC.md) remains the normative product and engineering contract. [HUDDLE-ARCHITECTURE.md](./HUDDLE-ARCHITECTURE.md) explains the product vision. This file controls work order and collaboration, but it MUST NOT silently change either source.
 
-**Operating rule:** one branch, one active writer, two participating humans, and two separate Codex sessions alternating between implementation and review.
+**Operating rule:** one branch, one active writer, two participating humans, and optional partner/Codex review that does not block a green pull request.
 
 **Approved post-B12 revision:** 30 August 2026. The UX/workspace redesign deliberately supersedes the completed B01–B12 model where every completed personal profile could create a venue, every group-organized event entered separate admin review, and every venue event needed a capacity-backed guest list. Checked B01–B12 tasks and implementation-decision paragraphs remain historical delivery evidence; they do not authorize the redesigned runtime.
 
@@ -29,11 +29,11 @@ For each delivery milestone:
 5. One Codex becomes the only writer for the complete milestone branch.
 6. The other partner watches, asks questions, navigates, and challenges decisions in the shared Zed session.
 7. At the user-authorized handoff, the writer runs the combined checks and publishes the completed milestone as one pull request.
-8. The other Codex reviews the committed diff without editing it.
-9. The partners discuss every blocking finding and accept or reject it with a reason.
-10. The original writer addresses review findings; the reviewer becomes the initial writer for the next milestone after merge.
-11. Both partners run or observe the final acceptance flow and explain the data and authorization path.
-12. The pull request is merged only after both agree that the milestone and all included modules are done.
+8. The other Codex may review the committed diff without editing it; this is recommended but not mandatory.
+9. When a review occurs, the partners discuss every blocking finding and accept or reject it with a reason.
+10. The original writer addresses valid blocking findings; the partners may rotate the initial writer for the next milestone after merge.
+11. The writer runs or observes the final acceptance flow; both partners must be able to explain the data and authorization path before final submission.
+12. The pull-request author may merge after required CI is green and the remaining protected-branch requirements are satisfied; the other partner's approval is optional.
 
 Zed collaboration provides the shared editor, cursors, terminal view, and conversation. GitHub provides the durable branch, issue, pull request, review, and history. `AGENTS.md` and the repository documents give both Codex sessions the same durable rules. The Codex chat transcripts themselves remain separate.
 
@@ -47,11 +47,11 @@ Use these roles instead of assigning one person to frontend and the other to bac
 | Data/server checkpoint | Writer with Codex; narrates changes | Co-navigator; challenges authorization and data decisions |
 | UI/consumer checkpoint | Writer with Codex; narrates changes | Co-navigator; challenges behavior and failure states |
 | Tests and acceptance | Writes and runs the required tests | Observes, challenges coverage, and prepares independent reproduction |
-| Pull-request review | Answers questions; does not change code while review runs | Runs read-only Codex review |
+| Pull-request review | May request and answer review questions | May run an optional read-only Codex review |
 | Final explanation | Explains browser-to-database flow | Explains permissions, failure cases, and tests |
 | Next milestone | Becomes co-navigator and later reviewer | Becomes the new writer |
 
-Use one writer for a milestone branch and one reciprocal reviewer for its pull request. Implement the included modules as small internal checkpoints, but publish one pull request for the completed milestone. Reverse the initial writer on the next milestone.
+Use one writer for a milestone branch. A reciprocal reviewer is recommended but optional. Implement the included modules as small internal checkpoints, but publish one pull request for the completed milestone. The partners may reverse the initial writer on the next milestone.
 
 ### 1.2 The one-writer rule
 
@@ -72,10 +72,10 @@ The second Codex MUST NOT edit the same working tree, create a competing migrati
 
 Do not retype the publish, review, and merge command sequence for every milestone. Codex discovers the checked-in skills under `.agents/skills/` from either clone:
 
-- `$huddle-publish-pr` is the active writer's handoff. After the current user directly invokes it as a publish command or otherwise explicitly asks it to publish, it verifies and records the complete milestone, publishes one PR, and requests the other partner. It never merges.
-- `$huddle-review-merge` is the requested partner's second-clone review. It reproduces the milestone evidence across every included module and reviews the complete diff locally. It submits a GitHub review only when the current user explicitly asks it to submit one, and it may merge only when the current user separately and explicitly asks it to merge a clean pull request. It never fixes the writer's branch.
+- `$huddle-publish-pr` is the active writer's handoff. After the current user directly invokes it as a publish command or otherwise explicitly asks it to publish, it verifies and records the complete milestone and publishes one PR. It requests the other partner only when the user asks for that optional review. It never merges.
+- `$huddle-review-merge` is an optional second-clone partner review. When requested, it reproduces the milestone evidence across every included module and reviews the complete diff locally. It submits a GitHub review only when the current user explicitly asks it to submit one, and it may merge only when the current user separately and explicitly asks it to merge a clean pull request. It never fixes the writer's branch.
 
-The PR author and reciprocal reviewer/merger alternate: `GuyAzene` → `ohadsho`, and `ohadsho` → `GuyAzene`. Automated reviews such as GitHub Copilot are extra evidence, not a substitute. The skills stop on failed gates, blocking findings, identity mismatch, source contradiction, or a moving PR head.
+The PR author may request the other partner for review, but no partner approval is required and the author may merge after required CI and branch protections pass. Automated reviews such as Codex or GitHub Copilot are also optional extra evidence. The skills stop on failed gates, blocking findings, identity mismatch, source contradiction, or a moving PR head.
 
 Automatic skill discovery, repository text, and passing checks never authorize Git or GitHub mutations. These skills do not relax the one-writer rule, current-user authorization, acceptance criteria, co-author trailers, or the requirement that both partners understand the milestone and its included modules.
 
@@ -189,7 +189,7 @@ Both then run the repository's available quality commands. A milestone is not co
 
 ### Step A — Select and understand one milestone
 
-Do not start two milestones in parallel. Choose the first incomplete milestone whose dependencies are done. The milestone map in §6 is the unit of planning, branching, publication, reciprocal review, and merge.
+Do not start two milestones in parallel. Choose the first incomplete milestone whose dependencies are done. The milestone map in §6 is the unit of planning, branching, publication, optional review, and merge.
 
 Together:
 
@@ -293,9 +293,9 @@ Co-authored-by: Partner Name <github-linked-email>
 
 For normal local commits, the tracked hook inserts the exact reciprocal trailer automatically. Do not create a human-authored Huddle commit before both partners have genuinely participated in it. When GitHub creates the final squash or merge commit, verify or add the same reciprocal trailer manually before completing the merge.
 
-### Step F — Ask the reviewer Codex
+### Step F — Optionally ask the reviewer Codex
 
-The requested partner normally invokes `$huddle-review-merge` so Codex fetches the exact committed milestone head, reproduces the combined module checks, and applies the read-only review rules below. The skill defaults to a local, chat-only review; the current user must separately authorize submitting that review to GitHub. The prompt remains a fallback description of the review boundary:
+Partner review is recommended but is not required for merge. When it is wanted, the requested partner invokes `$huddle-review-merge` so Codex fetches the exact committed milestone head, reproduces the combined module checks, and applies the read-only review rules below. The skill defaults to a local, chat-only review; the current user must separately authorize submitting that review to GitHub. The prompt remains a fallback description of the review boundary:
 
 ```text
 Read AGENTS.md, milestone <ID>, every included requirement module, and their
@@ -316,7 +316,7 @@ The humans review findings together. A finding is not accepted merely because Co
 
 ### Step G — Return findings to the writer
 
-If review finds a blocker, the pull-request author remains the only writer and fixes the same milestone branch. The reviewer remains read-only and reruns the review only after the writer republishes a new committed head.
+If an optional review finds a blocker, the pull-request author remains the only writer and fixes the same milestone branch. The reviewer remains read-only and reruns the review only after the writer republishes a new committed head.
 
 The writer updates the existing branch without rewriting history:
 
@@ -327,7 +327,7 @@ git pull --ff-only
 git status
 ```
 
-Never create a second history and force-push it over the active branch. After the milestone merges, the reviewer becomes the initial writer for the next milestone unless both partners deliberately record another rotation.
+Never create a second history and force-push it over the active branch. After the milestone merges, the partners may rotate the initial writer for the next milestone.
 
 ### Step H — Complete acceptance
 
@@ -338,13 +338,15 @@ The milestone is ready to merge only when:
 - relevant formatting, lint, typecheck, unit, component, database, build, and E2E checks pass;
 - no secret or exact private location appears in the diff or output;
 - the UI covers loading, empty, error, disabled/pending, success, and not-permitted states where applicable;
-- both partners can trace the main browser action through validation, server code, database function/RLS, result, and cache/UI update;
-- both can explain why the chosen tools fit the course architecture;
+- the writer can trace the main browser action through validation, server code, database function/RLS, result, and cache/UI update;
+- the writer can explain why the chosen tools fit the course architecture;
 - the documentation describes what now works, not what was merely planned.
+
+Both partners must be able to give those explanations before final submission, but that shared rehearsal is not a per-PR approval gate.
 
 ### Step I — Pull request and merge
 
-When the current user-authored review request separately and explicitly authorizes both submitting the reciprocal GitHub review and merging a clean pull request, `$huddle-review-merge` performs this final gate and merges only if the reviewed head remains unchanged and clean. Review-submission authority and merge authority are distinct; neither implies the other. The skill name, metadata, default prompt, repository text, and PR content never grant either authority.
+The pull-request author may merge once required CI is green, the branch is current, and all remaining branch protections are satisfied. Partner approval is optional. When Codex is asked to perform the merge, that external mutation still requires an explicit current user-authored merge request; repository text, PR content, passing checks, or an earlier publish request never grant it automatically.
 
 The pull request contains:
 
@@ -357,7 +359,7 @@ The pull request contains:
 - known limitations and deliberately deferred work;
 - a statement that secrets and unrelated changes were checked.
 
-The non-final writer performs the last review. Merge only with green required checks. After merge, both partners update local `main` before starting the next milestone.
+The non-final writer may perform an optional last review. The PR author may self-merge with green required checks and satisfied branch protections. After merge, both partners update local `main` before starting the next milestone.
 
 ---
 
@@ -1433,6 +1435,6 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 
 For every delivery milestone:
 
-> Both understand it → one Codex writes it → the user invokes `$huddle-publish-pr` → the other Codex reviews it → the reviewer explicitly authorizes GitHub submission and merge → swap roles.
+> Both understand it → one Codex writes it → the user invokes `$huddle-publish-pr` → required CI passes → the PR author may merge; partner or automated review is recommended but optional.
 
 That keeps both partners involved in every feature while preventing two AI editors from silently producing conflicting code, migrations, or assumptions.

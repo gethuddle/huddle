@@ -259,7 +259,7 @@ The accepted B12 local run passed 403 Vitest/unit/component tests, 975 pgTAP ass
 
 Production smoke is intentionally separate from CI and requires dedicated credentials in ignored `.env.production-smoke.local`. Session-only and one-time product-mutation commands are documented in the [deployment runbook](./docs/operations/DEPLOYMENT.md); neither runs implicitly. Password recovery is implemented, while Supabase's default Free-plan mail provider remains course-demo infrastructure: it sends only to team-authorized addresses, has a small provider limit, and does not permit branded template updates on newer Free projects. General public email delivery therefore remains a B13 hosted-operations task requiring custom SMTP.
 
-The tracked GitHub Actions workflow runs the same local-only stack on pull requests and `main`. The protected `main` branch requires the `Repository gates` check, one approving partner review, resolution of review conversations, and an up-to-date branch before merge; force pushes and deletion are disabled.
+The tracked GitHub Actions workflow runs the same local-only stack on pull requests and `main`. The protected `main` branch requires the `Repository gates` check, resolution of review conversations, and an up-to-date branch before merge; partner and automated reviews are recommended but not required, and the pull-request author may merge after those gates pass. Force pushes and deletion are disabled.
 
 - [Product and architecture vision](./docs/HUDDLE-ARCHITECTURE.md)
 - [Implementation-ready engineering specification](./docs/HUDDLE-IMPLEMENTATION-SPEC.md)

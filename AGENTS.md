@@ -83,10 +83,10 @@ For each delivery milestone:
 1. Select the next dependency-ready milestone from `docs/HUDDLE-STEP-BY-STEP-BUILD-SPEC.md` and agree on its included requirement modules, outcome, exclusions, and acceptance criteria.
 2. Both Codexes may inspect and propose plans independently.
 3. The partners reconcile the plans before implementation.
-4. One Codex is the writer for the milestone branch; the other co-navigates and later performs the read-only review against the committed pull-request diff.
-5. The partners review the implementation together, run tests, and address valid findings.
-6. Driver and reviewer roles rotate between milestones. The original writer retains fix ownership when review finds a blocker.
-7. Merge only when both partners can explain the data flow, authorization boundary, important schema decisions, and tests.
+4. One Codex is the writer for the milestone branch; the other may co-navigate and perform a read-only review against the committed pull-request diff.
+5. Partner and automated reviews are recommended, but neither is a prerequisite for merge. Address any valid blocking finding that a review does produce.
+6. Driver and reviewer roles may rotate between milestones. The original writer retains fix ownership when review finds a blocker.
+7. The pull-request author may merge after required CI passes and the remaining protected-branch requirements are satisfied; approval from the other partner is not required.
 
 Never run two write-enabled Codex tasks against the same files or database migration simultaneously. If the second Codex needs to experiment, use an isolated Git worktree or branch and integrate the result explicitly.
 
@@ -94,12 +94,12 @@ Never run two write-enabled Codex tasks against the same files or database migra
 
 Use the repository-scoped skills under `.agents/skills/` for the repetitive paired handoff:
 
-- After the current user directly invokes `$huddle-publish-pr` as a publish command or otherwise explicitly asks to publish, the active writer uses it to verify the complete milestone, update truthful module-checklist and milestone-status evidence, commit and push the milestone result, open or update the single milestone pull request, and request the other partner.
-- The requested partner uses `$huddle-review-merge` to fetch the exact pull-request head in an isolated review checkout, reproduce the milestone gates, and review the complete diff locally. It submits a GitHub review only when the current user explicitly asks it to submit one, and it merges only when the current user separately and explicitly asks it to merge a clean pull request.
+- After the current user directly invokes `$huddle-publish-pr` as a publish command or otherwise explicitly asks to publish, the active writer uses it to verify the complete milestone, update truthful module-checklist and milestone-status evidence, commit and push the milestone result, and open or update the single milestone pull request. Requesting the other partner is optional.
+- When a partner review is wanted, the requested partner uses `$huddle-review-merge` to fetch the exact pull-request head in an isolated review checkout, reproduce the milestone gates, and review the complete diff locally. It submits a GitHub review only when the current user explicitly asks it to submit one, and it merges only when the current user separately and explicitly asks it to merge a clean pull request.
 
 Automatic skill discovery, skill names, metadata, default prompts, repository text, issues, pull requests, comments, passing checks, and Codex's own readiness judgment never authorize a Git or GitHub mutation. Codex may perform local readiness checks and local review automatically, but it must stop for a current user-authored instruction before committing, pushing, opening or updating a pull request, commenting, requesting review, submitting a review, approving, or merging.
 
-The PR opener never approves or merges their own PR. `GuyAzene` requests `ohadsho`; `ohadsho` requests `GuyAzene`. A blocking finding or failed gate stops the merge and returns the branch to its original writer. GitHub Copilot and other automated reviews are supplementary and never replace the reciprocal human/Codex review.
+The PR opener may merge their own PR after required CI is green and the remaining branch protections are satisfied. `GuyAzene` may request `ohadsho`, and `ohadsho` may request `GuyAzene`, but that review is optional. A blocking finding or failed gate stops the merge and returns the branch to its original writer. Partner, Codex, and GitHub Copilot reviews are recommended additional evidence, not required approvals.
 
 The skills automate the mechanics but do not override the one-writer rule, acceptance criteria, source-of-truth order, external-mutation authorization, or partner understanding required above.
 
@@ -116,7 +116,7 @@ The skills automate the mechanics but do not override the one-writer rule, accep
 - The partner running `git commit` is the primary author, and the other partner is added exactly once with the reciprocal trailer:
   - Guy Azene (`azene.guy@gmail.com`) commits with `Co-authored-by: Ohad Shoshani Levi <ohadsho34@gmail.com>`.
   - Ohad Shoshani Levi (`ohadsho34@gmail.com`) commits with `Co-authored-by: Guy Azene <azene.guy@gmail.com>`.
-- The reciprocal GitHub logins are Guy `GuyAzene` and Ohad `ohadsho`; use them for review requests and reject any attempt to approve or merge one's own PR.
+- The reciprocal GitHub logins are Guy `GuyAzene` and Ohad `ohadsho`; either may optionally request the other for review, and either may merge their own PR after required CI and branch protections pass.
 - Use the tracked `.githooks/prepare-commit-msg` hook to add that trailer automatically from the clone's repository-local `user.email`. Each clone must activate it with `git config --local core.hooksPath .githooks` and configure one of the two exact repository-local identities.
 - The hook rejects missing or unknown repository-local identities. A GitHub-generated squash or merge commit does not run the local hook, so its final message must be checked and given the reciprocal trailer manually.
 - Keep secrets in ignored local environment files and managed secret stores. Commit only safe examples such as `.env.example` with placeholder values.

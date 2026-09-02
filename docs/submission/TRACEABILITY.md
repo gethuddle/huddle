@@ -12,7 +12,7 @@
 | State/error/UX | Server Components, local form/dialog state, bounded TanStack Query, safe domain errors | RTL, keyboard dialogs, empty/error states | Ready locally; B13 VoiceOver smoke pending |
 | Location and global groups | Session-only browser/address origins, confirmed event/Venue points, protected home points, no profile/group city, global member-count group order | [`cityless-location/ACCEPTANCE.md`](../evidence/cityless-location/ACCEPTANCE.md), pgTAP cityless contract, three-viewport two-account journey | Ready locally; hosted Preview proof pending |
 | Next.js and TypeScript | App Router, strict `tsconfig`, pinned lockfile | typecheck and production build | Ready locally |
-| Test specification/code | submission test plan and repository suites | 943 Vitest tests; 1685 pgTAP assertions; 32 Playwright scenarios; `npm run test:acceptance` | Ready locally; reciprocal review remains required before merge |
+| Test specification/code | submission test plan and repository suites | 943 Vitest tests; 1685 pgTAP assertions; 32 Playwright scenarios; `npm run test:acceptance` | Ready locally; required CI gates merge, with partner review optional |
 | Basic scale | submission scalability plan, indexes, cursors, cache | query/concurrency tests; quota snapshot | B13 dashboard usage pending |
 | Basic security | security summary, B11 inventory/runbooks | secret audit, RLS/denial/race tests | B13 production inspection pending |
 | Local reproduction | root README and safe environment examples | second-computer fresh clone | B13 partner rehearsal pending |
