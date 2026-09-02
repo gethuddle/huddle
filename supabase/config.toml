@@ -56,10 +56,14 @@ site_url = "http://localhost:3000"
 additional_redirect_urls = [
   "http://127.0.0.1:3000",
   "http://127.0.0.1:3000/auth/reset-password/callback",
+  "http://127.0.0.1:3000/auth/reset-password/confirm",
   "http://127.0.0.1:3000/auth/verify/callback",
+  "http://127.0.0.1:3000/auth/verify/confirm",
   "http://localhost:3000",
   "http://localhost:3000/auth/reset-password/callback",
+  "http://localhost:3000/auth/reset-password/confirm",
   "http://localhost:3000/auth/verify/callback",
+  "http://localhost:3000/auth/verify/confirm",
 ]
 jwt_expiry = 3600
 enable_refresh_token_rotation = true
@@ -67,7 +71,7 @@ refresh_token_reuse_interval = 10
 enable_signup = true
 enable_anonymous_sign_ins = false
 enable_manual_linking = false
-minimum_password_length = 8
+minimum_password_length = 15
 password_requirements = ""
 
 [auth.email]
@@ -86,6 +90,11 @@ content_path = "./supabase/templates/confirmation.html"
 [auth.email.template.recovery]
 subject = "Reset your Huddle password"
 content_path = "./supabase/templates/recovery.html"
+
+[auth.email.notification.password_changed]
+enabled = true
+subject = "Your Huddle password was changed"
+content_path = "./supabase/templates/password-changed.html"
 
 [auth.sms]
 enable_signup = false

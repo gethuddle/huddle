@@ -2,34 +2,27 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { cancelRecoveryAction } from "@/features/auth/actions";
 import { AuthCard } from "@/features/auth/components/auth-card";
 import { ResetPasswordForm } from "@/features/auth/components/reset-password-form";
-import { createClient } from "@/lib/supabase/server";
+import { hasValidRecoveryGrant } from "@/features/auth/recovery-session";
 
 export const metadata: Metadata = {
   title: "Choose a new password — Huddle",
+  robots: { index: false, follow: false },
 };
 
 export default async function ResetPasswordPage() {
-  let hasSession = false;
-
-  try {
-    const supabase = await createClient();
-    const { data, error } = await supabase.auth.getUser();
-    hasSession = error === null && data.user !== null;
-  } catch {
-    hasSession = false;
-  }
-
-  if (!hasSession) {
+  if (!(await hasValidRecoveryGrant())) {
     return (
       <AuthCard
         description="Password reset links are short-lived and can be used only once."
         eyebrow="Link unavailable"
         footer={
-          <Link className="font-semibold text-forest hover:text-forest-hover" href="/auth/sign-in">
-            Back to sign in
-          </Link>
+          <Button asChild variant="link">
+            <Link href="/auth/sign-in">Back to sign in</Link>
+          </Button>
         }
         title="We couldn’t open that reset link"
       >
@@ -38,24 +31,23 @@ export default async function ResetPasswordPage() {
             Your reset session is no longer available. Request another reset link to continue.
           </AlertDescription>
         </Alert>
-        <Link
-          className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-court-hover"
-          href="/auth/forgot-password"
-        >
-          Request another reset link
-        </Link>
+        <Button asChild className="mt-5" size="lg">
+          <Link href="/auth/forgot-password">Request another reset link</Link>
+        </Button>
       </AuthCard>
     );
   }
 
   return (
     <AuthCard
-      description="Use a new password with 8–72 characters. After the update, you’ll return to sign in."
+      description="Use a new password with 15–72 characters. We’ll sign out every session after the update."
       eyebrow="Secure your account"
       footer={
-        <Link className="font-semibold text-forest hover:text-forest-hover" href="/auth/sign-in">
-          Back to sign in
-        </Link>
+        <form action={cancelRecoveryAction}>
+          <Button type="submit" variant="link">
+            Cancel reset and sign in
+          </Button>
+        </form>
       }
       title="Choose a new password"
     >

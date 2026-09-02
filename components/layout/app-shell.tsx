@@ -25,12 +25,18 @@ export async function AppShell({ children }: AppShellProps) {
       </a>
 
       <div className="flex min-h-screen w-full flex-col">
-        <SiteHeader
-          assistedDiscoveryEnabled={assistedDiscoveryEnabled}
-          context={state.workspace}
-          isSignedIn={state.isSignedIn}
-        />
-        <AppShellFrame hasWorkspaceNavigation={hasWorkspaceNavigation}>{children}</AppShellFrame>
+        <AppShellFrame
+          hasWorkspaceNavigation={hasWorkspaceNavigation}
+          header={
+            <SiteHeader
+              assistedDiscoveryEnabled={assistedDiscoveryEnabled}
+              context={state.workspace}
+              isSignedIn={state.isSignedIn}
+            />
+          }
+        >
+          {children}
+        </AppShellFrame>
       </div>
     </div>
   );

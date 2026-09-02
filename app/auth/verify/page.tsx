@@ -16,25 +16,15 @@ export default async function VerifyPage({ searchParams }: VerifyPageProps) {
   const parsedStatus = verificationStatusSchema.safeParse(query.status);
   const status = parsedStatus.success ? parsedStatus.data : "pending";
 
-  if (status === "success") {
-    return (
-      <VerificationState
-        actionHref="/settings/profile"
-        actionLabel="Complete your profile"
-        description="Your email is verified and your secure session is active. Complete your adult profile and accept the current community rules before using community actions."
-        eyebrow="Email verified"
-        title="You’re in."
-      />
-    );
-  }
-
   if (status === "expired") {
     return (
       <VerificationState
         actionHref="/auth/sign-up"
-        actionLabel="Create an account"
-        description="This verification link is invalid, expired, or has already been used. Start the signup flow again to request a fresh link."
+        actionLabel="Request another email"
+        description="This verification link is invalid, expired, or has already been used. Request a fresh email or sign in if this address is already verified."
         eyebrow="Link unavailable"
+        secondaryActionHref="/auth/sign-in"
+        secondaryActionLabel="Sign in"
         title="We couldn’t verify that link."
         tone="warning"
       />
@@ -45,7 +35,7 @@ export default async function VerifyPage({ searchParams }: VerifyPageProps) {
     <VerificationState
       actionHref="/auth/sign-in"
       actionLabel="Go to sign in"
-      description="We sent a verification link if the address can receive Huddle mail. Open that link in this browser to finish creating the session."
+      description="If that address can receive Huddle mail, a verification link is on its way. Open it in this browser to finish creating the session."
       eyebrow="Check your inbox"
       title="Verify your email."
     />
@@ -59,6 +49,8 @@ type VerificationStateProps = Readonly<{
   actionHref: string;
   actionLabel: string;
   tone?: "default" | "warning";
+  secondaryActionHref?: string;
+  secondaryActionLabel?: string;
 }>;
 
 function VerificationState({
@@ -68,6 +60,8 @@ function VerificationState({
   actionHref,
   actionLabel,
   tone = "default",
+  secondaryActionHref,
+  secondaryActionLabel,
 }: VerificationStateProps) {
   return (
     <section
@@ -82,13 +76,29 @@ function VerificationState({
         {eyebrow}
       </p>
       <h1 className="mt-4 text-4xl font-semibold tracking-[-0.045em] text-foreground">{title}</h1>
-      <p className="mx-auto mt-4 max-w-xl leading-7 text-muted-foreground">{description}</p>
-      <Link
-        className="mt-8 inline-flex rounded-xl bg-court px-6 py-3 text-sm font-semibold text-ink transition hover:bg-court-hover focus-visible:outline-2 focus-visible:outline-offset-2"
-        href={actionHref}
+      <p
+        aria-live={tone === "warning" ? undefined : "polite"}
+        className="mx-auto mt-4 max-w-xl leading-7 text-muted-foreground"
+        role={tone === "warning" ? undefined : "status"}
       >
-        {actionLabel}
-      </Link>
+        {description}
+      </p>
+      <div className="mt-8 flex flex-wrap justify-center gap-3">
+        <Link
+          className="inline-flex rounded-xl bg-court px-6 py-3 text-sm font-semibold text-ink transition hover:bg-court-hover focus-visible:outline-2 focus-visible:outline-offset-2"
+          href={actionHref}
+        >
+          {actionLabel}
+        </Link>
+        {secondaryActionHref === undefined || secondaryActionLabel === undefined ? null : (
+          <Link
+            className="inline-flex rounded-xl border border-border px-6 py-3 text-sm font-semibold text-foreground transition hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2"
+            href={secondaryActionHref}
+          >
+            {secondaryActionLabel}
+          </Link>
+        )}
+      </div>
     </section>
   );
 }

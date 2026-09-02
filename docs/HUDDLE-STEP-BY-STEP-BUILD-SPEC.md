@@ -544,10 +544,15 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 - [x] Add sign-out that clears private client query state.
 - [x] Keep community mutations unavailable until later completion gates exist.
 - [x] Add loading, submission, success, error, and expired-verification states.
+- [x] Harden signup/recovery against enumeration; keep GET passive; consume fragment credentials only through explicit same-origin POST.
+- [x] Bind recovery updates to a five-minute user/session HMAC grant; route ordinary signed-in changes through current-password reauthentication.
+- [x] Use the 15–72-character new-password policy, global post-change sign-out, a password-changed notification, isolated auth chrome, and conditional server-verified Turnstile.
 
 **Checkpoints:** auth/server/session first; forms and states after role swap.
 
 **Tests/evidence:** unit validation, component forms, and E2E signup/verification/password-recovery/sign-in/sign-out against local Supabase and Mailpit.
+
+**Approved hardening contract (2 September 2026):** the repository-owned email templates are full replacements, not dashboard snippets; confirmation and recovery links remain passive until the person explicitly continues; direct recovery by an ordinary session is denied; and `npm run auth:config:check` reports hosted drift using field names only. Production application remains a separately authorized B13 operation.
 
 ### A02 — Historical city catalog, profiles, adult attestation, and rules onboarding
 

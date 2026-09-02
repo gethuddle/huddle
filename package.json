@@ -34,7 +34,9 @@
     "db:types": "node scripts/database-types.mjs",
     "db:types:check": "node scripts/database-types.mjs --check",
     "sports:sync": "node --env-file-if-exists=.env.local scripts/run-sports-sync.mjs",
-    "security:audit": "node scripts/security-audit.mjs"
+    "security:audit": "node scripts/security-audit.mjs",
+    "auth:config:check": "node scripts/supabase-auth-config.mjs --check",
+    "auth:config:apply": "node scripts/supabase-auth-config.mjs --apply"
   },
   "dependencies": {
     "@shadcn/react": "0.3.1",

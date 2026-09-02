@@ -132,6 +132,29 @@ describe("AppShell", () => {
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
   });
 
+  it("isolates auth pages from signed-in workspace navigation and the ordinary footer", async () => {
+    mocks.pathname = "/auth/reset-password";
+    const fan = {
+      kind: "fan" as const,
+      id: "e4000000-0000-4000-8000-000000000101",
+      slug: "fan_one",
+      label: "Fan One",
+      role: "fan" as const,
+    };
+    mocks.getAppShellState.mockResolvedValue({
+      isSignedIn: true,
+      workspace: { active: fan, available: [fan], isModerator: false },
+    } satisfies AppShellState);
+
+    render(await AppShell({ children: <h1>Reset password</h1> }));
+
+    expect(screen.getByRole("main")).toHaveAttribute("data-shell-mode", "auth");
+    expect(screen.getByRole("banner")).toHaveTextContent("Huddle");
+    expect(screen.queryByRole("navigation", { name: "Fan navigation" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Switch workspace" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
+  });
+
   it("keeps a signed-in identity with no workspace focused on choosing setup", async () => {
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: true,

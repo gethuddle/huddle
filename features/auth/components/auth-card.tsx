@@ -15,9 +15,17 @@ type AuthCardProps = Readonly<{
   description: string;
   children: ReactNode;
   footer: ReactNode;
+  descriptionRole?: "status";
 }>;
 
-export function AuthCard({ eyebrow, title, description, children, footer }: AuthCardProps) {
+export function AuthCard({
+  eyebrow,
+  title,
+  description,
+  children,
+  footer,
+  descriptionRole,
+}: AuthCardProps) {
   return (
     <Card className="mx-auto my-14 w-full max-w-xl rounded-[2rem] sm:my-20">
       <CardHeader className="px-7 sm:px-10">
@@ -25,7 +33,13 @@ export function AuthCard({ eyebrow, title, description, children, footer }: Auth
         <CardTitle className="mt-3 text-4xl font-semibold tracking-[-0.045em] text-foreground">
           <h1>{title}</h1>
         </CardTitle>
-        <CardDescription className="mt-2 leading-7">{description}</CardDescription>
+        <CardDescription
+          aria-live={descriptionRole === "status" ? "polite" : undefined}
+          className="mt-2 leading-7"
+          role={descriptionRole}
+        >
+          {description}
+        </CardDescription>
       </CardHeader>
       <CardContent className="px-7 sm:px-10">{children}</CardContent>
       <CardFooter className="px-7 text-sm text-muted-foreground sm:px-10">{footer}</CardFooter>

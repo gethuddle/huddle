@@ -11,12 +11,13 @@ export default defineConfig({
   },
   test: {
     setupFiles: ["./tests/setup.ts"],
-    exclude: [...configDefaults.exclude, "tests/e2e/**", "tests/production/**"],
+    exclude: [...configDefaults.exclude, ".worktrees/**", "tests/e2e/**", "tests/production/**"],
     coverage: {
       provider: "v8",
       reporter: ["text", "json-summary", "html", "lcov"],
       exclude: [
         ".next/**",
+        ".worktrees/**",
         "coverage/**",
         "node_modules/**",
         "playwright.config.ts",

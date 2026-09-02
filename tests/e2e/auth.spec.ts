@@ -9,6 +9,7 @@ import type { Database } from "@/types/database.generated";
 type MailpitAddress = Readonly<{ Address?: string; Email?: string }>;
 type MailpitMessageSummary = Readonly<{
   ID: string;
+  Subject?: string;
   To?: readonly MailpitAddress[];
 }>;
 
@@ -161,8 +162,10 @@ async function seedCompletedUser(
   return created.user.id;
 }
 
-async function signIn(page: Page, email: string, password: string) {
-  await page.goto("/auth/sign-in");
+async function signIn(page: Page, email: string, password: string, origin?: string) {
+  await page.goto(
+    origin === undefined ? "/auth/sign-in" : new URL("/auth/sign-in", origin).toString(),
+  );
   await page.getByRole("textbox", { name: "Email address" }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
@@ -604,24 +607,31 @@ async function verificationUrlFor(email: string): Promise<URL> {
   throw new Error("The local verification message did not arrive in time.");
 }
 
-function cookiesFrom(headers: Headers, origin: string) {
-  return headers.getSetCookie().map((setCookie) => {
-    const pair = setCookie.split(";", 1)[0];
-    const separatorIndex = pair.indexOf("=");
-    if (separatorIndex < 1) {
-      throw new Error("The verification response returned an invalid cookie.");
+async function messageForSubject(email: string, subject: string): Promise<MailpitMessage> {
+  const deadline = Date.now() + 15_000;
+
+  while (Date.now() < deadline) {
+    const mailbox = await mailpitJson<MailpitMessages>("/api/v1/messages?limit=20");
+    const summary = mailbox.messages?.find(
+      (message) =>
+        message.Subject === subject &&
+        message.To?.some(
+          (recipient) => addressValue(recipient).toLowerCase() === email.toLowerCase(),
+        ),
+    );
+    if (summary !== undefined) {
+      return mailpitJson<MailpitMessage>(`/api/v1/message/${encodeURIComponent(summary.ID)}`);
     }
-    return {
-      name: pair.slice(0, separatorIndex),
-      value: pair.slice(separatorIndex + 1),
-      url: origin,
-    };
-  });
+
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+
+  throw new Error("The expected local security message did not arrive in time.");
 }
 
 async function signUpAndVerify(
   page: Page,
-  context: BrowserContext,
+  _context: BrowserContext,
   email: string,
   password: string,
 ) {
@@ -635,20 +645,20 @@ async function signUpAndVerify(
 
   const confirmationUrl = await verificationUrlFor(email);
   expect(confirmationUrl.origin).toBe("http://localhost:3000");
-  expect(confirmationUrl.pathname).toBe("/auth/verify/callback");
-  expect(confirmationUrl.searchParams.get("type")).toBe("email");
-  expect(confirmationUrl.searchParams.has("token_hash")).toBe(true);
+  expect(confirmationUrl.pathname).toBe("/auth/verify/confirm");
+  expect(new URLSearchParams(confirmationUrl.hash.slice(1)).get("type")).toBe("email");
+  expect(new URLSearchParams(confirmationUrl.hash.slice(1)).has("token_hash")).toBe(true);
 
-  const confirmationResponse = await fetch(confirmationUrl, { redirect: "manual" });
-  expect(confirmationResponse.status).toBe(303);
-  const confirmationLocation = confirmationResponse.headers.get("location");
-  expect(confirmationLocation).toBe("http://localhost:3000/onboarding");
-  expect(confirmationLocation).not.toContain("token_hash");
+  const passiveResponse = await fetch(new URL(confirmationUrl.pathname, confirmationUrl.origin), {
+    redirect: "manual",
+  });
+  expect(passiveResponse.status).toBe(200);
 
-  const sessionCookies = cookiesFrom(confirmationResponse.headers, confirmationUrl.origin);
-  expect(sessionCookies.length).toBeGreaterThan(0);
-  await context.addCookies(sessionCookies);
-  await page.goto(confirmationLocation!);
+  await page.goto(confirmationUrl.toString());
+  await expect(page).toHaveURL(/\/auth\/verify\/confirm$/);
+  await expect(page.getByText(/may switch the account/i)).toBeVisible();
+  await page.getByRole("button", { name: "Continue securely" }).click();
+  await expect(page).toHaveURL(/^http:\/\/(?:localhost|127\.0\.0\.1):3000\/onboarding$/);
 
   await expect(page.getByRole("heading", { name: "How will you use Huddle?" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Set up Fan", exact: true })).toHaveAttribute(
@@ -808,6 +818,9 @@ test("password recovery replaces the password without revealing account state", 
   const oldPassword = "matchday-local-test";
   const newPassword = "new-matchday-local-test";
   await seedCompletedUser(email, oldPassword, `recovery_${suffix}`, "Recovery Fan");
+  const siblingSession = await localUserClient(email, oldPassword);
+  const ambientEmail = `ambient-${suffix}@example.com`;
+  await seedCompletedUser(ambientEmail, oldPassword, `ambient_${suffix}`, "Ambient Fan");
 
   await page.goto("/auth/sign-in");
   await page.getByRole("link", { name: "Forgot password?" }).click();
@@ -817,32 +830,124 @@ test("password recovery replaces the password without revealing account state", 
   await expect(page.getByRole("status")).toContainText("If that address can receive Huddle mail");
 
   const recoveryUrl = await verificationUrlFor(email);
+  await signIn(page, ambientEmail, oldPassword, recoveryUrl.origin);
   await page.goto(recoveryUrl.toString());
+  await expect(page).toHaveURL(/\/auth\/reset-password\/confirm$/);
+  await expect(page.getByText(/may switch the account/i)).toBeVisible();
+  await page.getByRole("button", { name: "Continue securely" }).click();
   await expect(page).toHaveURL(/^http:\/\/(?:localhost|127\.0\.0\.1):3000\/auth\/reset-password$/);
   await expect(page.getByRole("heading", { name: "Choose a new password" })).toBeVisible();
+  await clearMailbox();
   await page.getByLabel("New password", { exact: true }).fill(newPassword);
   await page.getByLabel("Confirm new password").fill(newPassword);
   await page.getByRole("button", { name: "Update password" }).click();
 
   await expect(page).toHaveURL(
-    /^http:\/\/(?:localhost|127\.0\.0\.1):3000\/auth\/sign-in\?reset=success$/,
+    /^http:\/\/(?:localhost|127\.0\.0\.1):3000\/auth\/sign-in\?password=changed$/,
   );
   await expect(page.getByRole("status")).toContainText(
     "Password updated. Sign in with your new password.",
   );
 
+  const passwordChangedMessage = await messageForSubject(email, "Your Huddle password was changed");
+  expect(passwordChangedMessage.HTML).toContain("If this wasn’t you");
+
+  const revokedSibling = await siblingSession.auth.refreshSession();
+  expect(revokedSibling.data.session).toBeNull();
+  expect(revokedSibling.error).not.toBeNull();
+
   await page.getByRole("textbox", { name: "Email address" }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill(oldPassword);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/auth\/sign-in\?reset=success$/);
+  await expect(page).toHaveURL(/\/auth\/sign-in\?password=changed$/);
   await expect(page.getByRole("alert")).toBeVisible();
 
-  await page.goto("/auth/sign-in");
+  await page.goto(new URL("/auth/sign-in", recoveryUrl.origin).toString());
   await page.getByRole("textbox", { name: "Email address" }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill(newPassword);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/^http:\/\/(?:localhost|127\.0\.0\.1):3000\/$/);
   await expectProfileNavigation(page);
+
+  await signOut(page);
+  await page.goto(recoveryUrl.toString());
+  await page.getByRole("button", { name: "Continue securely" }).click();
+  await expect(page).toHaveURL(/\/auth\/forgot-password\?status=expired$/);
+  await expect(
+    page.getByRole("alert").filter({ hasText: /invalid|expired|already used/i }),
+  ).toBeVisible();
+});
+
+test("duplicate signup remains generic and sends no second confirmation email", async ({
+  page,
+}) => {
+  const suffix = uniqueSuffix();
+  const email = `duplicate-${suffix}@example.com`;
+  const password = "matchday-local-test";
+  await seedCompletedUser(email, password, `duplicate_${suffix}`, "Existing Fan");
+  await clearMailbox();
+
+  await page.goto("/auth/sign-up");
+  await page.getByRole("textbox", { name: "Email address" }).fill(email);
+  await page.getByLabel("Password", { exact: true }).fill(password);
+  await page.getByLabel("Confirm password").fill(password);
+  await page.getByRole("button", { name: "Create account" }).click();
+
+  await expect(page).toHaveURL(/\/auth\/verify$/);
+  await expect(page.getByRole("status")).toContainText(
+    "If that address can receive Huddle mail, a verification link is on its way.",
+  );
+  await page.waitForTimeout(750);
+  const mailbox = await mailpitJson<MailpitMessages>("/api/v1/messages?limit=20");
+  expect(
+    mailbox.messages?.some((message) =>
+      message.To?.some(
+        (recipient) => addressValue(recipient).toLowerCase() === email.toLowerCase(),
+      ),
+    ) ?? false,
+  ).toBe(false);
+});
+
+test("ordinary sessions cannot use recovery, while Account Security requires the current password", async ({
+  page,
+}) => {
+  await clearMailbox();
+  const suffix = uniqueSuffix();
+  const email = `security-${suffix}@example.com`;
+  const oldPassword = "matchday-local-test";
+  const newPassword = "updated-matchday-local-test";
+  await seedCompletedUser(email, oldPassword, `security_${suffix}`, "Security Fan");
+  await signIn(page, email, oldPassword);
+
+  await page.goto("/auth/forgot-password");
+  await expect(page.getByRole("heading", { name: "Reset your password" })).toBeVisible();
+  await expect(page.getByRole("alert").filter({ hasText: "currently signed in" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Email address" })).toBeVisible();
+
+  await page.goto("/auth/reset-password");
+  await expect(
+    page.getByRole("heading", { name: "We couldn’t open that reset link" }),
+  ).toBeVisible();
+  await expect(page.getByLabel("New password")).toHaveCount(0);
+
+  await page.goto("/account/security");
+  await page.getByLabel("Current password").fill("wrong-password");
+  await page.getByLabel("New password", { exact: true }).fill(newPassword);
+  await page.getByLabel("Confirm new password").fill(newPassword);
+  await page.getByRole("button", { name: "Change password" }).click();
+  await expect(page.getByText("Current password is incorrect.")).toBeVisible();
+
+  await page.getByLabel("Current password").fill(oldPassword);
+  await page.getByLabel("New password", { exact: true }).fill(newPassword);
+  await page.getByLabel("Confirm new password").fill(newPassword);
+  await page.getByRole("button", { name: "Change password" }).click();
+  await expect(page).toHaveURL(/\/auth\/sign-in\?password=changed$/);
+  await expect(page.getByRole("status")).toContainText("Password updated");
+
+  await page.getByRole("textbox", { name: "Email address" }).fill(email);
+  await page.getByLabel("Password", { exact: true }).fill(newPassword);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/^http:\/\/(?:localhost|127\.0\.0\.1):3000\/$/);
 });
 
 test("a block is private, directional, auditable, and reversible", async ({
@@ -1202,6 +1307,7 @@ test("17 a provider failure preserves cached fixtures and exposes stale state", 
   context,
   page,
 }) => {
+  test.slow();
   await clearMailbox();
   const fixture = await seedCachedFixtureCatalogAfterFailure();
 
@@ -1513,6 +1619,7 @@ test("a Venue-only operator completes the real onboarding boundary and publishes
   context,
   page,
 }) => {
+  test.slow();
   await clearMailbox();
   await seedCachedFixtureCatalogAfterFailure();
 

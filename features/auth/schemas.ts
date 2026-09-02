@@ -8,16 +8,23 @@ const emailSchema = z
   .pipe(z.email("Enter a valid email address."))
   .transform((email) => email.toLowerCase());
 
-const passwordSchema = z
+const existingPasswordSchema = z
   .string()
-  .min(8, "Use at least 8 characters.")
+  .min(1, "Enter your password.")
   .max(72, "Use 72 characters or fewer.");
+
+const newPasswordSchema = z
+  .string()
+  .min(15, "Use at least 15 characters.")
+  .max(72, "Use 72 characters or fewer.");
+
+const passwordConfirmationSchema = z.string().max(72, "Use 72 characters or fewer.");
 
 export const signUpSchema = z
   .object({
     email: emailSchema,
-    password: passwordSchema,
-    confirmPassword: z.string(),
+    password: newPasswordSchema,
+    confirmPassword: passwordConfirmationSchema,
   })
   .refine(({ password, confirmPassword }) => password === confirmPassword, {
     message: "Passwords must match.",
@@ -26,7 +33,7 @@ export const signUpSchema = z
 
 export const signInSchema = z.object({
   email: emailSchema,
-  password: passwordSchema,
+  password: existingPasswordSchema,
 });
 
 export const passwordResetRequestSchema = z.object({
@@ -35,8 +42,19 @@ export const passwordResetRequestSchema = z.object({
 
 export const passwordUpdateSchema = z
   .object({
-    password: passwordSchema,
-    confirmPassword: z.string(),
+    password: newPasswordSchema,
+    confirmPassword: passwordConfirmationSchema,
+  })
+  .refine(({ password, confirmPassword }) => password === confirmPassword, {
+    message: "Passwords must match.",
+    path: ["confirmPassword"],
+  });
+
+export const knownPasswordUpdateSchema = z
+  .object({
+    currentPassword: existingPasswordSchema,
+    password: newPasswordSchema,
+    confirmPassword: passwordConfirmationSchema,
   })
   .refine(({ password, confirmPassword }) => password === confirmPassword, {
     message: "Passwords must match.",
@@ -57,7 +75,8 @@ export const recoveryQuerySchema = z.object({
   type: z.literal("recovery"),
 });
 
-export const verificationStatusSchema = z.enum(["success", "expired"]);
+export const verificationStatusSchema = z.literal("expired");
 
 export type SignUpInput = z.infer<typeof signUpSchema>;
 export type SignInInput = z.infer<typeof signInSchema>;
+export type KnownPasswordUpdateInput = z.infer<typeof knownPasswordUpdateSchema>;

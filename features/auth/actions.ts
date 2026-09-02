@@ -1,15 +1,21 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import {
+  knownPasswordUpdateSchema,
   passwordResetRequestSchema,
   passwordUpdateSchema,
   signInSchema,
   signUpSchema,
 } from "@/features/auth/schemas";
+import {
+  RECOVERY_GRANT_COOKIE_NAME,
+  recoveryGrantCookieOptions,
+  verifyRecoveryGrant,
+} from "@/features/auth/recovery-grant";
 import type { AuthActionState } from "@/features/auth/state";
 import { parseWorkspaceCookie, workspaceRowsSchema } from "@/features/workspaces/schemas";
 import {
@@ -20,9 +26,27 @@ import {
   workspaceLanding,
 } from "@/features/workspaces/state";
 import { getPublicEnvironment } from "@/lib/env/public";
+import { getServerEnvironment } from "@/lib/env/server";
 import { actionFailure, actionSuccess, DomainError } from "@/lib/errors";
 import { safeInternalRedirect } from "@/lib/security/redirect";
 import { createClient } from "@/lib/supabase/server";
+import { verifyTurnstileToken, type TurnstileAction } from "@/features/auth/turnstile";
+
+async function verifyAuthTurnstile(formData: FormData, expectedAction: TurnstileAction) {
+  const environment = getServerEnvironment();
+  if (!environment.AUTH_TURNSTILE_ENABLED) return;
+
+  const requestHeaders = await headers();
+  const remoteIp = requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const token = formData.get("cf-turnstile-response");
+  await verifyTurnstileToken({
+    token: typeof token === "string" ? token : "",
+    expectedAction,
+    secret: environment.TURNSTILE_SECRET!,
+    expectedHostnames: environment.TURNSTILE_HOSTNAMES!,
+    ...(remoteIp === undefined || remoteIp === "" ? {} : { remoteIp }),
+  });
+}
 
 export async function signUpAction(
   _previousState: AuthActionState,
@@ -38,6 +62,12 @@ export async function signUpAction(
     return actionFailure(parsed.error);
   }
 
+  try {
+    await verifyAuthTurnstile(formData, "signup");
+  } catch (cause) {
+    return actionFailure(cause);
+  }
+
   const supabase = await createClient();
   const environment = getPublicEnvironment();
   try {
@@ -46,7 +76,7 @@ export async function signUpAction(
       password: parsed.data.password,
       options: {
         emailRedirectTo: new URL(
-          "/auth/verify/callback",
+          "/auth/verify/confirm",
           environment.NEXT_PUBLIC_APP_URL,
         ).toString(),
       },
@@ -61,7 +91,7 @@ export async function signUpAction(
   // only proof available to the person controlling the address.
   return actionSuccess({
     message: "If that address can receive Huddle mail, a verification link is on its way.",
-    redirectTo: null,
+    redirectTo: "/auth/verify",
   });
 }
 
@@ -78,11 +108,17 @@ export async function requestPasswordResetAction(
   }
 
   try {
+    await verifyAuthTurnstile(formData, "password_reset");
+  } catch (cause) {
+    return actionFailure(cause);
+  }
+
+  try {
     const supabase = await createClient();
     const environment = getPublicEnvironment();
     await supabase.auth.resetPasswordForEmail(parsed.data.email, {
       redirectTo: new URL(
-        "/auth/reset-password/callback",
+        "/auth/reset-password/confirm",
         environment.NEXT_PUBLIC_APP_URL,
       ).toString(),
     });
@@ -93,7 +129,7 @@ export async function requestPasswordResetAction(
 
   return actionSuccess({
     message: "If that address can receive Huddle mail, a password reset link is on its way.",
-    redirectTo: null,
+    redirectTo: "/auth/forgot-password?status=sent",
   });
 }
 
@@ -110,12 +146,22 @@ export async function updatePasswordAction(
     return actionFailure(parsed.error);
   }
 
-  const supabase = await createClient();
+  const [supabase, cookieStore] = await Promise.all([createClient(), cookies()]);
+  const environment = getServerEnvironment();
   try {
-    const { data, error } = await supabase.auth.getUser();
-    if (error !== null || data.user === null) {
+    const { data, error } = await supabase.auth.getClaims();
+    const userId = data?.claims.sub;
+    const sessionId = data?.claims.session_id;
+    const grant = cookieStore.get(RECOVERY_GRANT_COOKIE_NAME)?.value;
+    if (
+      error !== null ||
+      typeof userId !== "string" ||
+      typeof sessionId !== "string" ||
+      grant === undefined
+    ) {
       return actionFailure(new DomainError("AUTH_REQUIRED", { cause: error }));
     }
+    verifyRecoveryGrant(grant, { userId, sessionId }, environment.AUTH_RECOVERY_TOKEN_SECRET);
   } catch (cause) {
     return actionFailure(new DomainError("AUTH_REQUIRED", { cause }));
   }
@@ -126,7 +172,70 @@ export async function updatePasswordAction(
       return actionFailure(new DomainError("INTERNAL_ERROR", { cause: error }));
     }
 
-    const { error: signOutError } = await supabase.auth.signOut({ scope: "local" });
+    const { error: signOutError } = await supabase.auth.signOut({ scope: "global" });
+    if (signOutError !== null) {
+      return actionFailure(new DomainError("INTERNAL_ERROR", { cause: signOutError }));
+    }
+  } catch (cause) {
+    return actionFailure(new DomainError("UPSTREAM_UNAVAILABLE", { cause }));
+  }
+
+  cookieStore.set(RECOVERY_GRANT_COOKIE_NAME, "", {
+    ...recoveryGrantCookieOptions(environment.HUDDLE_ENVIRONMENT),
+    maxAge: 0,
+  });
+  cookieStore.set(WORKSPACE_COOKIE_NAME, "", {
+    ...workspaceCookieOptions(),
+    maxAge: 0,
+  });
+  revalidatePath("/", "layout");
+  redirect("/auth/sign-in?password=changed");
+}
+
+export async function changePasswordAction(
+  _previousState: AuthActionState,
+  formData: FormData,
+): Promise<AuthActionState> {
+  const parsed = knownPasswordUpdateSchema.safeParse({
+    currentPassword: formData.get("currentPassword"),
+    password: formData.get("password"),
+    confirmPassword: formData.get("confirmPassword"),
+  });
+  if (!parsed.success) return actionFailure(parsed.error);
+
+  const supabase = await createClient();
+  let email: string;
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (error !== null || data.user?.email === undefined) {
+      return actionFailure(new DomainError("AUTH_REQUIRED", { cause: error }));
+    }
+    email = data.user.email;
+  } catch (cause) {
+    return actionFailure(new DomainError("AUTH_REQUIRED", { cause }));
+  }
+
+  try {
+    const reauthentication = await supabase.auth.signInWithPassword({
+      email,
+      password: parsed.data.currentPassword,
+    });
+    if (reauthentication.error !== null || reauthentication.data.user === null) {
+      return actionFailure(
+        new DomainError("VALIDATION_FAILED", {
+          cause: reauthentication.error,
+          fields: { currentPassword: ["Current password is incorrect."] },
+        }),
+      );
+    }
+
+    const { error } = await supabase.auth.updateUser({
+      password: parsed.data.password,
+      current_password: parsed.data.currentPassword,
+    });
+    if (error !== null) return actionFailure(new DomainError("INTERNAL_ERROR", { cause: error }));
+
+    const { error: signOutError } = await supabase.auth.signOut({ scope: "global" });
     if (signOutError !== null) {
       return actionFailure(new DomainError("INTERNAL_ERROR", { cause: signOutError }));
     }
@@ -135,12 +244,38 @@ export async function updatePasswordAction(
   }
 
   const cookieStore = await cookies();
+  const environment = getServerEnvironment();
+  cookieStore.set(RECOVERY_GRANT_COOKIE_NAME, "", {
+    ...recoveryGrantCookieOptions(environment.HUDDLE_ENVIRONMENT),
+    maxAge: 0,
+  });
   cookieStore.set(WORKSPACE_COOKIE_NAME, "", {
     ...workspaceCookieOptions(),
     maxAge: 0,
   });
   revalidatePath("/", "layout");
-  redirect("/auth/sign-in?reset=success");
+  redirect("/auth/sign-in?password=changed");
+}
+
+export async function cancelRecoveryAction() {
+  const supabase = await createClient();
+  try {
+    await supabase.auth.signOut({ scope: "local" });
+  } catch {
+    // Local state is cleared below even when the provider session is unavailable.
+  }
+  const cookieStore = await cookies();
+  const environment = getServerEnvironment();
+  cookieStore.set(RECOVERY_GRANT_COOKIE_NAME, "", {
+    ...recoveryGrantCookieOptions(environment.HUDDLE_ENVIRONMENT),
+    maxAge: 0,
+  });
+  cookieStore.set(WORKSPACE_COOKIE_NAME, "", {
+    ...workspaceCookieOptions(),
+    maxAge: 0,
+  });
+  revalidatePath("/", "layout");
+  redirect("/auth/sign-in");
 }
 
 export async function signInAction(
@@ -154,6 +289,12 @@ export async function signInAction(
 
   if (!parsed.success) {
     return actionFailure(parsed.error);
+  }
+
+  try {
+    await verifyAuthTurnstile(formData, "login");
+  } catch (cause) {
+    return actionFailure(cause);
   }
 
   const supabase = await createClient();

@@ -53,6 +53,10 @@ describe("AccountPage", () => {
       "href",
       "/reports",
     );
+    expect(screen.getByRole("link", { name: "Manage password" })).toHaveAttribute(
+      "href",
+      "/account/security",
+    );
   });
 
   it("shows the moderation destination only after server authorization", async () => {

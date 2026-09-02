@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  knownPasswordUpdateSchema,
   passwordResetRequestSchema,
   passwordUpdateSchema,
   recoveryQuerySchema,
@@ -21,19 +22,36 @@ describe("auth schemas", () => {
     expect(result.email).toBe("fan@example.com");
   });
 
-  it("rejects short or mismatched signup passwords", () => {
-    const shortPassword = signUpSchema.safeParse({
-      email: "fan@example.com",
-      password: "short",
-      confirmPassword: "short",
-    });
+  it("requires 15–72 characters for new passwords without composition rules", () => {
+    expect(
+      signUpSchema.safeParse({
+        email: "fan@example.com",
+        password: "12345678901234",
+        confirmPassword: "12345678901234",
+      }).success,
+    ).toBe(false);
+    expect(
+      signUpSchema.safeParse({
+        email: "fan@example.com",
+        password: "123456789012345",
+        confirmPassword: "123456789012345",
+      }).success,
+    ).toBe(true);
+    expect(
+      signUpSchema.safeParse({
+        email: "fan@example.com",
+        password: "a".repeat(73),
+        confirmPassword: "a".repeat(73),
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects mismatched signup passwords", () => {
     const mismatchedPassword = signUpSchema.safeParse({
       email: "fan@example.com",
       password: "matchday-strong",
       confirmPassword: "something-else",
     });
-
-    expect(shortPassword.success).toBe(false);
     expect(mismatchedPassword.success).toBe(false);
     if (!mismatchedPassword.success) {
       expect(mismatchedPassword.error.flatten().fieldErrors.confirmPassword).toContain(
@@ -42,8 +60,18 @@ describe("auth schemas", () => {
     }
   });
 
-  it("rejects invalid sign-in input", () => {
-    const result = signInSchema.safeParse({ email: "not-an-email", password: "tiny" });
+  it("lets existing accounts submit any non-empty password up to 72 characters", () => {
+    expect(signInSchema.safeParse({ email: "fan@example.com", password: "old-pass" }).success).toBe(
+      true,
+    );
+    expect(signInSchema.safeParse({ email: "fan@example.com", password: "" }).success).toBe(false);
+    expect(
+      signInSchema.safeParse({ email: "fan@example.com", password: "a".repeat(73) }).success,
+    ).toBe(false);
+  });
+
+  it("rejects invalid sign-in email input", () => {
+    const result = signInSchema.safeParse({ email: "not-an-email", password: "old-pass" });
 
     expect(result.success).toBe(false);
   });
@@ -91,6 +119,55 @@ describe("auth schemas", () => {
         "Passwords must match.",
       );
     }
+  });
+
+  it("bounds every repeated password field to the provider password limit", () => {
+    const overlongConfirmation = "a".repeat(73);
+
+    for (const result of [
+      signUpSchema.safeParse({
+        email: "fan@example.com",
+        password: "new-matchday-password",
+        confirmPassword: overlongConfirmation,
+      }),
+      passwordUpdateSchema.safeParse({
+        password: "new-matchday-password",
+        confirmPassword: overlongConfirmation,
+      }),
+      knownPasswordUpdateSchema.safeParse({
+        currentPassword: "old-pass",
+        password: "new-matchday-password",
+        confirmPassword: overlongConfirmation,
+      }),
+    ]) {
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.flatten().fieldErrors.confirmPassword).toContain(
+          "Use 72 characters or fewer.",
+        );
+      }
+    }
+  });
+
+  it("requires the current password for an ordinary account password change", () => {
+    expect(
+      knownPasswordUpdateSchema.parse({
+        currentPassword: "old-pass",
+        password: "a new secure passphrase",
+        confirmPassword: "a new secure passphrase",
+      }),
+    ).toEqual({
+      currentPassword: "old-pass",
+      password: "a new secure passphrase",
+      confirmPassword: "a new secure passphrase",
+    });
+    expect(
+      knownPasswordUpdateSchema.safeParse({
+        currentPassword: "",
+        password: "a new secure passphrase",
+        confirmPassword: "a new secure passphrase",
+      }).success,
+    ).toBe(false);
   });
 
   it("accepts recovery token hashes only for the recovery OTP type", () => {
