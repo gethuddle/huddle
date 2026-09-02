@@ -21,6 +21,9 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/features/workspaces/queries", () => ({
   getAppShellState: mocks.getAppShellState,
 }));
+vi.mock("@/lib/env/server", () => ({
+  getServerEnvironment: () => ({ ASSISTED_DISCOVERY_ENABLED: true }),
+}));
 
 const anonymousState: AppShellState = {
   isSignedIn: false,
@@ -43,6 +46,9 @@ describe("AppShell", () => {
       "#main-content",
     );
     expect(screen.getByRole("link", { name: "Huddle home" })).toHaveAttribute("href", "/");
+    expect(
+      screen.getByRole("link", { name: "Huddle home" }).parentElement?.parentElement,
+    ).toHaveClass("flex", "justify-between", "lg:grid");
     const navigation = screen.getByRole("navigation", { name: "Public navigation" });
     const publicExplore = within(navigation).getByRole("link", { name: "Explore" });
     expect(publicExplore).toHaveAttribute("href", "/discover");
@@ -72,7 +78,7 @@ describe("AppShell", () => {
     );
   });
 
-  it("uses the supplied Fan shell with four centered destinations and identity at the edge", async () => {
+  it("uses the supplied Fan shell with Ask centered and one workspace menu at the edge", async () => {
     mocks.pathname = "/dashboard";
     const fan = {
       kind: "fan" as const,
@@ -93,7 +99,7 @@ describe("AppShell", () => {
       within(navigation)
         .getAllByRole("link")
         .map((link) => link.textContent),
-    ).toEqual(["Home", "Explore", "My Huddle", "People"]);
+    ).toEqual(["Home", "Explore", "Ask Huddle", "My Huddle", "People"]);
     expect(within(navigation).getByRole("link", { name: "My Huddle" })).toHaveAttribute(
       "aria-current",
       "page",
@@ -103,6 +109,27 @@ describe("AppShell", () => {
     expect(screen.getByRole("button", { name: "Switch workspace" })).toBeVisible();
     expect(screen.queryByRole("link", { name: "Create venue" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Host event" })).not.toBeInTheDocument();
+  });
+
+  it("gives Ask the full shell viewport and removes the ordinary page footer", async () => {
+    mocks.pathname = "/ask";
+    const fan = {
+      kind: "fan" as const,
+      id: "e4000000-0000-4000-8000-000000000101",
+      slug: "fan_one",
+      label: "Fan One",
+      role: "fan" as const,
+    };
+    mocks.getAppShellState.mockResolvedValue({
+      isSignedIn: true,
+      workspace: { active: fan, available: [fan], isModerator: false },
+    } satisfies AppShellState);
+
+    render(await AppShell({ children: <section>Ask conversation</section> }));
+
+    expect(screen.getByRole("main")).toHaveAttribute("data-shell-mode", "immersive");
+    expect(screen.getByRole("main")).toHaveClass("max-w-none", "overflow-hidden", "px-0");
+    expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
   });
 
   it("keeps a signed-in identity with no workspace focused on choosing setup", async () => {
@@ -147,7 +174,7 @@ describe("AppShell", () => {
       within(navigation)
         .getAllByRole("link")
         .map((link) => link.textContent),
-    ).toEqual(["Today", "Calendar", "Events", "Venue", "Account"]);
+    ).toEqual(["Today", "Calendar", "Events", "Venue"]);
     expect(within(navigation).getByRole("link", { name: "Calendar" })).toHaveAttribute(
       "aria-current",
       "page",

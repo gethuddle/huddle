@@ -25,7 +25,7 @@ type WorkspaceSwitcherProps = Readonly<{
   active: WorkspaceSummary | null;
   available: readonly WorkspaceSummary[];
   align?: "start" | "center" | "end";
-  appearance?: "compact" | "identity" | "venue";
+  appearance?: "compact" | "identity" | "venue" | "shell";
 }>;
 
 function initials(label: string) {
@@ -72,16 +72,16 @@ export function WorkspaceSwitcher({
             {appearance === "compact" ? null : (
               <span
                 aria-hidden="true"
-                className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-ink ${appearance === "venue" ? "bg-sand" : "bg-court"}`}
+                className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-ink ${active?.kind === "venue" ? "bg-sand" : "bg-court"}`}
               >
                 {initials(active?.label ?? "Huddle") || "H"}
               </span>
             )}
             <span
-              className={`min-w-0 text-left ${appearance === "venue" ? "hidden sm:block" : ""}`}
+              className={`min-w-0 text-left ${appearance === "venue" || appearance === "shell" ? "hidden sm:block" : ""}`}
             >
               <span className="block truncate">{active?.label ?? "Choose workspace"}</span>
-              {appearance === "venue" ? (
+              {appearance === "venue" || (appearance === "shell" && active?.kind === "venue") ? (
                 <span className="block text-[0.68rem] font-medium leading-none text-sand">
                   Venue
                 </span>

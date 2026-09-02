@@ -22,6 +22,9 @@ export type AssistedDiscoveryServiceDependencies = Readonly<{
   claimInterpretation: () => Promise<void>;
   interpreter: IntentInterpreter;
   loadCatalog: () => Promise<AssistedDiscoveryCatalog>;
+  resolveNamedOrigin: (
+    place: string,
+  ) => Promise<Readonly<{ origin: AssistedDiscoveryOrigin; label: string }> | null>;
   search: (
     intent: ResolvedAssistedDiscoveryIntent,
     origin: AssistedDiscoveryOrigin | undefined,
@@ -70,6 +73,7 @@ async function searchResponse(
   intent: ResolvedAssistedDiscoveryIntent,
   origin: AssistedDiscoveryOrigin | undefined,
   dependencies: AssistedDiscoveryServiceDependencies,
+  locationLabel: string | null = null,
 ): Promise<AssistedDiscoveryResponse> {
   const interpretation = interpretationSummary(intent);
   const results = await dependencies.search(intent, origin);
@@ -77,6 +81,7 @@ async function searchResponse(
     return assistedDiscoveryResponseSchema.parse({
       status: "results",
       interpretation,
+      locationLabel,
       results,
     });
   }
@@ -85,6 +90,7 @@ async function searchResponse(
   return assistedDiscoveryResponseSchema.parse({
     status: "no_results",
     interpretation,
+    locationLabel,
     exploreHref: exploreHref(intent),
     planHref: matchId === null ? null : `/events/new?matchId=${matchId}`,
   });
@@ -131,7 +137,7 @@ export async function executeAssistedDiscovery(
     });
   }
 
-  const range = resolveIntentDateRange(draft, now);
+  const range = resolveIntentDateRange(draft, now, request.query);
   if (!range.ok) {
     const reason = dateClarificationReason(range.reason);
     return assistedDiscoveryResponseSchema.parse({
@@ -158,10 +164,19 @@ export async function executeAssistedDiscovery(
     });
   }
 
-  if (
-    resolution.intent.requiresOrigin &&
-    (request.origin === undefined || draft.locationMention !== null)
-  ) {
+  if (draft.locationMention !== null) {
+    const namedOrigin = await dependencies.resolveNamedOrigin(draft.locationMention);
+    if (namedOrigin === null) {
+      return assistedDiscoveryResponseSchema.parse({
+        status: "clarification",
+        reason: "unresolved_location",
+        interpretation: clarificationSummary("unresolved_location"),
+      });
+    }
+    return searchResponse(resolution.intent, namedOrigin.origin, dependencies, namedOrigin.label);
+  }
+
+  if (resolution.intent.requiresOrigin && request.origin === undefined) {
     return assistedDiscoveryResponseSchema.parse({
       status: "needs_location",
       interpretation: interpretationSummary(resolution.intent),

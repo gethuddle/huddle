@@ -25,9 +25,14 @@ import { cn } from "@/lib/utils";
 import { MobileNavigation } from "./mobile-navigation";
 
 export function SiteHeader({
+  assistedDiscoveryEnabled,
   context,
   isSignedIn,
-}: Readonly<{ context: WorkspaceShellContext; isSignedIn: boolean }>) {
+}: Readonly<{
+  assistedDiscoveryEnabled: boolean;
+  context: WorkspaceShellContext;
+  isSignedIn: boolean;
+}>) {
   const pathname = usePathname();
   const routeVenue = context.available.find(
     (workspace) =>
@@ -49,7 +54,7 @@ export function SiteHeader({
           venueActive && "bg-card/95",
         )}
       >
-        <div className="relative mx-auto grid min-h-[4.75rem] w-full max-w-7xl grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-5 sm:px-8 lg:px-10">
+        <div className="relative mx-auto flex min-h-[4.75rem] w-full max-w-7xl items-center justify-between gap-3 px-5 sm:px-8 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:px-10">
           <div className="flex min-w-0 items-center gap-2.5 justify-self-start">
             <Link
               aria-label="Huddle home"
@@ -64,7 +69,9 @@ export function SiteHeader({
           <div className="hidden min-w-0 items-center justify-center lg:flex">
             {fanActive ? (
               <nav aria-label="Fan navigation" className="flex items-center gap-1.5">
-                {FAN_NAVIGATION.filter(({ href }) => href !== "/account").map(({ label, href }) => {
+                {FAN_NAVIGATION.filter(
+                  ({ href }) => assistedDiscoveryEnabled || href !== "/ask",
+                ).map(({ desktopLabel, href }) => {
                   const current = fanDestinationIsCurrent(pathname, href);
                   return (
                     <Link
@@ -77,7 +84,7 @@ export function SiteHeader({
                       href={href}
                       key={href}
                     >
-                      {label}
+                      {desktopLabel}
                     </Link>
                   );
                 })}
@@ -133,21 +140,12 @@ export function SiteHeader({
                 <Link href="/onboarding">Choose setup</Link>
               </Button>
             ) : null}
-            {isSignedIn && fanActive && displayContext.available.length > 0 ? (
-              <div className="hidden max-w-[13rem] lg:block">
-                <WorkspaceSwitcher
-                  active={displayContext.active}
-                  appearance="identity"
-                  available={displayContext.available}
-                />
-              </div>
-            ) : null}
-            {venueActive ? (
+            {isSignedIn && displayContext.active !== null && displayContext.available.length > 0 ? (
               <div className="max-w-[11rem] sm:max-w-[14rem]">
                 <WorkspaceSwitcher
                   active={displayContext.active}
                   align="end"
-                  appearance="venue"
+                  appearance="shell"
                   available={displayContext.available}
                 />
               </div>
@@ -171,7 +169,10 @@ export function SiteHeader({
           ) : null}
         </div>
       </header>
-      <MobileNavigation context={displayContext} />
+      <MobileNavigation
+        assistedDiscoveryEnabled={assistedDiscoveryEnabled}
+        context={displayContext}
+      />
     </>
   );
 }

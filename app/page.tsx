@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AttentionList } from "@/features/attention/components/attention-list";
-import { AssistedDiscovery } from "@/features/assisted-discovery/components/assisted-discovery";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { getFanHome } from "@/features/dashboard/queries";
@@ -11,7 +10,6 @@ import { formatIsraelDateValue, formatIsraelKickoff } from "@/features/sports/ti
 import { getAppShellState } from "@/features/workspaces/queries";
 import { workspaceLanding } from "@/features/workspaces/state";
 import { DomainError } from "@/lib/errors";
-import { getServerEnvironment } from "@/lib/env/server";
 import { createClient } from "@/lib/supabase/server";
 
 const journey = [
@@ -69,7 +67,6 @@ export default async function Home() {
   }
 
   if (workspace.active?.kind === "fan") {
-    const assistedDiscoveryEnabled = getServerEnvironment().ASSISTED_DISCOVERY_ENABLED;
     const nextEvent = fanHome?.nextEvent ?? null;
     const suggestion = fanHome?.suggestion ?? null;
     return (
@@ -95,8 +92,6 @@ export default async function Home() {
             </Button>
           </div>
         </section>
-
-        {assistedDiscoveryEnabled ? <AssistedDiscovery /> : null}
 
         <section aria-labelledby="next-event-heading" className="border-t border-border py-10">
           <p className="text-sm font-medium text-forest">Up next</p>

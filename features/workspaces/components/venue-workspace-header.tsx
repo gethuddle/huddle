@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, CalendarDays, CircleUserRound, Clock3, ListVideo } from "lucide-react";
+import { Building2, CalendarDays, Clock3, ListVideo } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -18,13 +18,11 @@ function venueNavigation(slug: string) {
     { label: "Calendar", href: `${root}/calendar`, icon: CalendarDays },
     { label: "Events", href: `${root}/events`, icon: ListVideo },
     { label: "Venue", href: `${root}/settings`, icon: Building2 },
-    { label: "Account", href: "/account", icon: CircleUserRound },
   ] as const;
 }
 
 function isCurrent(pathname: string, href: string, root: string) {
   if (href === root) return pathname === root;
-  if (href === "/account") return pathname === href || pathname.startsWith("/account/");
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -66,7 +64,7 @@ export function VenueMobileNavigation({ slug }: Pick<VenueWorkspaceHeaderProps, 
   return (
     <nav
       aria-label="Venue mobile navigation"
-      className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-border bg-card/98 px-1 pb-[max(env(safe-area-inset-bottom),0.25rem)] pt-1 [box-shadow:var(--shadow-docked)] lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-border bg-card/98 px-1 pb-[max(env(safe-area-inset-bottom),0.25rem)] pt-1 [box-shadow:var(--shadow-docked)] lg:hidden"
     >
       {navigation.map(({ label, href, icon: Icon }) => {
         const current = isCurrent(pathname, href, root);

@@ -16,21 +16,26 @@ describe("FanBottomNavigation", () => {
   });
 
   it("contains exactly the five approved destinations with current-route semantics", () => {
-    render(<FanBottomNavigation />);
+    render(<FanBottomNavigation assistedDiscoveryEnabled />);
 
     const navigation = screen.getByRole("navigation", { name: "Fan mobile navigation" });
     const links = within(navigation).getAllByRole("link");
     expect(links.map((link) => link.textContent)).toEqual([
       "Home",
       "Explore",
+      "Ask",
       "My Huddle",
       "People",
-      "Account",
     ]);
     expect(within(navigation).getByRole("link", { name: "My Huddle" })).toHaveAttribute(
       "aria-current",
       "page",
     );
+    expect(
+      within(navigation)
+        .getByRole("link", { name: "Ask" })
+        .querySelector('[data-slot="ask-navigation-mark"]'),
+    ).toHaveClass("bg-primary");
     expect(within(navigation).queryByText(/create venue/i)).not.toBeInTheDocument();
   });
 });

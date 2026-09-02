@@ -2,6 +2,8 @@ import type { IntentDraft } from "./schemas";
 
 import { formatIsraelDateValue } from "@/features/sports/time";
 
+import { resolveQueryDateRange } from "./query-date";
+
 type DateInput = Pick<
   IntentDraft,
   "temporal" | "weekday" | "explicitStartDate" | "explicitEndDate"
@@ -36,8 +38,21 @@ function addDays(dateValue: string, days: number): string {
   ].join("-");
 }
 
-export function resolveIntentDateRange(input: DateInput, now: Date): IntentDateRangeResult {
+export function resolveIntentDateRange(
+  input: DateInput,
+  now: Date,
+  query?: string,
+): IntentDateRangeResult {
   const today = formatIsraelDateValue(now);
+
+  if (query !== undefined) {
+    const queryRange = resolveQueryDateRange(query, now);
+    if (queryRange.kind === "invalid") return { ok: false, reason: queryRange.reason };
+    if (queryRange.kind === "resolved") {
+      return { ok: true, fromDate: queryRange.fromDate, toDate: queryRange.toDate };
+    }
+    return { ok: true, fromDate: today, toDate: addDays(today, 14) };
+  }
 
   if (input.temporal === "explicit_range") {
     if (input.explicitStartDate === null || input.explicitEndDate === null) {

@@ -521,12 +521,14 @@ async function expectFanNavigation(page: Page, width: number, currentLabel: stri
   const navigation = page.getByRole("navigation", {
     name: width < 1024 ? "Fan mobile navigation" : "Fan navigation",
   });
-  await expect(navigation.getByRole("link")).toHaveText(
-    width < 1024
-      ? ["Home", "Explore", "My Huddle", "People", "Account"]
-      : ["Home", "Explore", "My Huddle", "People"],
-  );
-  if (width >= 1024 && currentLabel === "Account") {
+  await expect(navigation.getByRole("link")).toHaveText([
+    "Home",
+    "Explore",
+    width < 1024 ? "Ask" : "Ask Huddle",
+    "My Huddle",
+    "People",
+  ]);
+  if (currentLabel === "Account") {
     await expect(navigation.locator('a[aria-current="page"]')).toHaveCount(0);
     await page.getByRole("banner").getByRole("button", { name: "Switch workspace" }).click();
     await expect(page.getByRole("menuitem", { name: "Account settings" })).toBeVisible();
@@ -565,17 +567,18 @@ async function expectVenueNavigation(page: Page, width: number, currentLabel: st
     name: width < 1024 ? "Venue mobile navigation" : "Venue navigation",
   });
   await expect(navigation).toBeVisible();
-  await expect(navigation.getByRole("link")).toHaveText([
-    "Today",
-    "Calendar",
-    "Events",
-    "Venue",
-    "Account",
-  ]);
-  await expect(navigation.getByRole("link", { name: currentLabel, exact: true })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
+  await expect(navigation.getByRole("link")).toHaveText(["Today", "Calendar", "Events", "Venue"]);
+  if (currentLabel === "Account") {
+    await expect(navigation.locator('a[aria-current="page"]')).toHaveCount(0);
+    await page.getByRole("banner").getByRole("button", { name: "Switch workspace" }).click();
+    await expect(page.getByRole("menuitem", { name: "Account settings" })).toBeVisible();
+    await page.keyboard.press("Escape");
+  } else {
+    await expect(navigation.getByRole("link", { name: currentLabel, exact: true })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  }
   const boxes = await navigation.getByRole("link").evaluateAll((links) =>
     links.map((link) => {
       const box = link.getBoundingClientRect();

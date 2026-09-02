@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 
 import { getAppShellState } from "@/features/workspaces/queries";
+import { getServerEnvironment } from "@/lib/env/server";
 
-import { SiteFooter } from "./site-footer";
+import { AppShellFrame } from "./app-shell-frame";
 import { SiteHeader } from "./site-header";
 
 type AppShellProps = Readonly<{
@@ -11,6 +12,7 @@ type AppShellProps = Readonly<{
 
 export async function AppShell({ children }: AppShellProps) {
   const state = await getAppShellState();
+  const assistedDiscoveryEnabled = getServerEnvironment().ASSISTED_DISCOVERY_ENABLED;
   const hasWorkspaceNavigation = state.workspace.active !== null;
 
   return (
@@ -23,14 +25,12 @@ export async function AppShell({ children }: AppShellProps) {
       </a>
 
       <div className="flex min-h-screen w-full flex-col">
-        <SiteHeader context={state.workspace} isSignedIn={state.isSignedIn} />
-        <main
-          className={`mx-auto flex w-full max-w-7xl flex-1 flex-col px-5 sm:px-8 lg:px-10 ${hasWorkspaceNavigation ? "pb-20 lg:pb-0" : ""}`}
-          id="main-content"
-        >
-          {children}
-        </main>
-        <SiteFooter />
+        <SiteHeader
+          assistedDiscoveryEnabled={assistedDiscoveryEnabled}
+          context={state.workspace}
+          isSignedIn={state.isSignedIn}
+        />
+        <AppShellFrame hasWorkspaceNavigation={hasWorkspaceNavigation}>{children}</AppShellFrame>
       </div>
     </div>
   );

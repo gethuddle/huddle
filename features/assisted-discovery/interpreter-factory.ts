@@ -106,9 +106,35 @@ const CORE_EXAMPLE_INTENTS = new Map<string, IntentDraft>([
   ],
 ]);
 
+const LOCAL_NAMED_MONTH_QUERY =
+  /^anything in jerusalem in (?:january|february|march|april|may|june|july|august|september|october|november|december) \d{4}\?$/u;
+
+function localNamedMonthIntent(query: string): IntentDraft | null {
+  if (!LOCAL_NAMED_MONTH_QUERY.test(query)) return null;
+  return intentDraftSchema.parse({
+    support: "supported",
+    unsupportedReason: null,
+    temporal: "unspecified",
+    weekday: null,
+    explicitStartDate: null,
+    explicitEndDate: null,
+    locationMention: "Jerusalem",
+    teamMentions: [],
+    competitionMention: null,
+    relationship: "any",
+    hostKind: "any",
+    proximity: "none",
+    requiredFacilities: [],
+  });
+}
+
 class LocalCoreExamplesInterpreter implements IntentInterpreter {
   async interpret(input: InterpretIntentInput): Promise<IntentDraft> {
-    const intent = CORE_EXAMPLE_INTENTS.get(input.query.trim().toLocaleLowerCase("en"));
+    const normalizedQuery = input.query.trim().toLocaleLowerCase("en");
+    const intent =
+      CORE_EXAMPLE_INTENTS.get(normalizedQuery) ??
+      localNamedMonthIntent(normalizedQuery) ??
+      undefined;
     if (intent === undefined) throw new IntentInterpreterError("invalid_request");
     return intentDraftSchema.parse(intent);
   }

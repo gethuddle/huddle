@@ -68,6 +68,8 @@ Provider team crests remain outside Huddle's owned brand-asset set. Product inte
 ## Product hierarchy rules
 
 - Current navigation uses Forest text and a quiet underline/background, not a filled Court Green pill.
+- On small screens, the workspace switcher is always the top-right account/workspace control. Account settings lives in that menu rather than the bottom bar. Fan navigation uses Home, Explore, Ask, My Huddle, and People; Venue navigation uses Today, Calendar, Events, and Venue.
+- Ask uses repository-owned shadcn Message, Bubble, MessageScroller, InputGroup, and Card primitives as a compact single-exchange surface. Each match is a clearly bordered, phone-dense ticket card with a short header, facts body, and action footer; it must not expand into a full-page event card.
 - One filled green action leads each visible task area; secondary actions are ghost, outline, text, menu, or disclosure controls.
 - Use no more than three visible type levels on a page. Product page titles cap at 40px desktop and 32px mobile.
 - Product headings and labels use sentence case. Uppercase eyebrow labels are collateral-only.

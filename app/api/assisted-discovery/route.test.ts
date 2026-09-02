@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   executeAssistedDiscovery: vi.fn(),
   safeLog: vi.fn(),
   interpreterConstructor: vi.fn(),
+  searchPublicAddress: vi.fn(),
 }));
 
 vi.mock("@/lib/env/server", () => ({
@@ -25,6 +26,12 @@ vi.mock("@/lib/env/server", () => ({
 vi.mock("@/features/auth/actor", () => ({ requireActor: mocks.requireActor }));
 vi.mock("@/features/assisted-discovery/service", () => ({
   executeAssistedDiscovery: mocks.executeAssistedDiscovery,
+}));
+vi.mock("@/features/locations/photon", () => ({
+  createPhotonPublicGeocoder: () => ({ search: vi.fn() }),
+}));
+vi.mock("@/features/locations/provider", () => ({
+  searchPublicAddress: mocks.searchPublicAddress,
 }));
 vi.mock("@/features/assisted-discovery/cloudflare-interpreter", () => ({
   ASSISTED_DISCOVERY_MODEL: "@cf/meta/llama-3.1-8b-instruct-fast",
@@ -60,9 +67,18 @@ describe("POST /api/assisted-discovery", () => {
     mocks.executeAssistedDiscovery.mockResolvedValue({
       status: "no_results",
       interpretation: "2 Sep · Arsenal FC",
+      locationLabel: null,
       exploreHref: "/discover?from=2026-09-02",
       planHref: null,
     });
+    mocks.searchPublicAddress.mockResolvedValue([
+      {
+        id: "city:jerusalem",
+        label: "Jerusalem, Israel",
+        latitude: 31.778,
+        longitude: 35.235,
+      },
+    ]);
   });
 
   it("requires an activated Fan and always returns private no-store JSON", async () => {
@@ -96,6 +112,19 @@ describe("POST /api/assisted-discovery", () => {
     expect(mocks.requireActor).not.toHaveBeenCalled();
     expect(mocks.interpreterConstructor).not.toHaveBeenCalled();
     expect(mocks.executeAssistedDiscovery).not.toHaveBeenCalled();
+  });
+
+  it("provides a bounded server-side named-place resolver", async () => {
+    await POST(request({ kind: "interpret", query: "Anything in Jerusalem?" }));
+
+    const dependencies = mocks.executeAssistedDiscovery.mock.calls[0]?.[2] as {
+      resolveNamedOrigin?: (place: string) => Promise<unknown>;
+    };
+    await expect(dependencies.resolveNamedOrigin?.("Jerusalem")).resolves.toEqual({
+      origin: { lat: 31.778, lng: 35.235 },
+      label: "Jerusalem, Israel",
+    });
+    expect(mocks.searchPublicAddress).toHaveBeenCalledWith(expect.any(Object), "Jerusalem");
   });
 
   it("rejects malformed and oversized bodies before authentication", async () => {

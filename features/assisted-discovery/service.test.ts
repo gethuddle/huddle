@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { DomainError } from "@/lib/errors";
+
 import { IntentInterpreterError } from "./cloudflare-interpreter";
 import type { AssistedDiscoveryResultCard } from "./contracts";
 import { executeAssistedDiscovery, type AssistedDiscoveryServiceDependencies } from "./service";
@@ -81,6 +83,10 @@ function dependencies(
     claimInterpretation: vi.fn(async () => undefined),
     interpreter: { interpret: vi.fn(async () => nearbyDraft) },
     loadCatalog: vi.fn(async () => catalog),
+    resolveNamedOrigin: vi.fn(async () => ({
+      origin: { lat: 31.778, lng: 35.235 },
+      label: "Jerusalem, Israel",
+    })),
     search: vi.fn(async () => [card]),
     findSingleMatchId: vi.fn(async () => card.match.id),
     ...overrides,
@@ -144,6 +150,7 @@ describe("executeAssistedDiscovery", () => {
     expect(response).toEqual({
       status: "results",
       interpretation: first.interpretation,
+      locationLabel: null,
       results: [card],
     });
     expect(deps.claimInterpretation).not.toHaveBeenCalled();
@@ -154,7 +161,7 @@ describe("executeAssistedDiscovery", () => {
     );
   });
 
-  it("requires confirmation for a named place instead of using a remembered origin", async () => {
+  it("resolves a named place automatically and overrides a remembered origin", async () => {
     const deps = dependencies({
       now: () => new Date("2026-09-02T09:00:00.000Z"),
       interpreter: {
@@ -178,12 +185,70 @@ describe("executeAssistedDiscovery", () => {
       deps,
     );
 
-    expect(response).toMatchObject({
-      status: "needs_location",
+    expect(response).toEqual({
+      status: "results",
       interpretation: "9 Sep · Arsenal FC · Premier League · venue-hosted · venue lists food",
-      locationQuery: "Jerusalem",
-      token: expect.any(String),
+      locationLabel: "Jerusalem, Israel",
+      results: [card],
     });
+    expect(deps.resolveNamedOrigin).toHaveBeenCalledWith("Jerusalem");
+    expect(deps.search).toHaveBeenCalledWith(
+      expect.objectContaining({ fromDate: "2026-09-09", toDate: "2026-09-09" }),
+      { lat: 31.778, lng: 35.235 },
+    );
+  });
+
+  it("asks for clarification when a named place has no Israel result", async () => {
+    const deps = dependencies({
+      interpreter: {
+        interpret: vi.fn(async () => ({
+          ...nearbyDraft,
+          locationMention: "Not A Real Place",
+          proximity: "none" as const,
+        })),
+      },
+      resolveNamedOrigin: vi.fn(async () => null),
+    });
+
+    await expect(
+      executeAssistedDiscovery(
+        { kind: "interpret", query: "Anything in Not A Real Place?" },
+        actorId,
+        deps,
+      ),
+    ).resolves.toEqual({
+      status: "clarification",
+      reason: "unresolved_location",
+      interpretation: "The search area needs clarification.",
+    });
+    expect(deps.search).not.toHaveBeenCalled();
+  });
+
+  it("does not broaden a named-place search when geocoding fails", async () => {
+    const deps = dependencies({
+      interpreter: {
+        interpret: vi.fn(async () => ({
+          ...nearbyDraft,
+          locationMention: "Jerusalem",
+          proximity: "none" as const,
+        })),
+      },
+      resolveNamedOrigin: vi.fn(async () => {
+        throw new DomainError("UPSTREAM_UNAVAILABLE");
+      }),
+    });
+
+    await expect(
+      executeAssistedDiscovery(
+        {
+          kind: "interpret",
+          query: "Anything in Jerusalem?",
+          origin: { lat: 32.8, lng: 35 },
+        },
+        actorId,
+        deps,
+      ),
+    ).rejects.toMatchObject({ code: "UPSTREAM_UNAVAILABLE" });
     expect(deps.search).not.toHaveBeenCalled();
   });
 
@@ -217,6 +282,36 @@ describe("executeAssistedDiscovery", () => {
     expect(deps.search).toHaveBeenCalledWith(
       expect.objectContaining({ relationship: "friend_host", requiresOrigin: false }),
       undefined,
+    );
+  });
+
+  it("uses a named month instead of silently applying the no-date default", async () => {
+    const deps = dependencies({
+      now: () => new Date("2026-09-02T09:00:00.000Z"),
+      interpreter: {
+        interpret: vi.fn(async () => ({
+          ...nearbyDraft,
+          temporal: "unspecified" as const,
+          locationMention: null,
+          proximity: "none" as const,
+        })),
+      },
+    });
+
+    const response = await executeAssistedDiscovery(
+      {
+        kind: "interpret",
+        query: "anything in jerusalem in october",
+        origin: { lat: 31.778, lng: 35.235 },
+      },
+      actorId,
+      deps,
+    );
+
+    expect(response.status).toBe("results");
+    expect(deps.search).toHaveBeenCalledWith(
+      expect.objectContaining({ fromDate: "2026-10-01", toDate: "2026-10-31" }),
+      { lat: 31.778, lng: 35.235 },
     );
   });
 
@@ -286,6 +381,7 @@ describe("executeAssistedDiscovery", () => {
       status: "no_results",
       interpretation:
         "2 Sep · Arsenal FC · Premier League · venue-hosted · within 15 km · venue lists food",
+      locationLabel: null,
       exploreHref: `/discover?from=2026-09-02&to=2026-09-02&team=${arsenalId}&competition=33333333-3333-4333-8333-333333333333`,
       planHref: `/events/new?matchId=${card.match.id}`,
     });

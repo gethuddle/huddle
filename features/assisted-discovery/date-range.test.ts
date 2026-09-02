@@ -20,6 +20,76 @@ describe("assisted-discovery Israel date ranges", () => {
     ).toEqual({ ok: true, fromDate, toDate });
   });
 
+  it("uses the 14-day default only when the query has no date signal", () => {
+    const input = {
+      temporal: "unspecified",
+      weekday: null,
+      explicitStartDate: null,
+      explicitEndDate: null,
+    } as const;
+
+    expect(resolveIntentDateRange(input, tuesday, "Arsenal at a venue with food")).toEqual({
+      ok: true,
+      fromDate: "2026-09-01",
+      toDate: "2026-09-15",
+    });
+    expect(resolveIntentDateRange(input, tuesday, "Anything in October")).toEqual({
+      ok: true,
+      fromDate: "2026-10-01",
+      toDate: "2026-10-31",
+    });
+    expect(resolveIntentDateRange(input, tuesday, "Anything in three weeks")).toEqual({
+      ok: false,
+      reason: "invalid",
+    });
+  });
+
+  it.each(["tommorow", "tomorow"])(
+    "preserves tomorrow intent for the common misspelling %s",
+    (misspelling) => {
+      expect(
+        resolveIntentDateRange(
+          {
+            temporal: "tomorrow",
+            weekday: null,
+            explicitStartDate: null,
+            explicitEndDate: null,
+          },
+          tuesday,
+          `Anything to watch ${misspelling}?`,
+        ),
+      ).toEqual({ ok: true, fromDate: "2026-09-02", toDate: "2026-09-02" });
+    },
+  );
+
+  it("treats the typed query as authoritative over model-issued date fields", () => {
+    expect(
+      resolveIntentDateRange(
+        {
+          temporal: "explicit_range",
+          weekday: null,
+          explicitStartDate: "2026-09-03",
+          explicitEndDate: "2026-09-04",
+        },
+        tuesday,
+        "Anything in October",
+      ),
+    ).toEqual({ ok: true, fromDate: "2026-10-01", toDate: "2026-10-31" });
+
+    expect(
+      resolveIntentDateRange(
+        {
+          temporal: "tomorrow",
+          weekday: null,
+          explicitStartDate: null,
+          explicitEndDate: null,
+        },
+        tuesday,
+        "Arsenal at a venue with food",
+      ),
+    ).toEqual({ ok: true, fromDate: "2026-09-01", toDate: "2026-09-15" });
+  });
+
   it("clamps this weekend to today once the weekend has started", () => {
     expect(
       resolveIntentDateRange(

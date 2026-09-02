@@ -1,17 +1,17 @@
 "use client";
 
-import { Compass, Home, Library, Search, UserRound } from "lucide-react";
+import { Compass, Home, Library, MessageCircleQuestion, Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 
 const FAN_NAVIGATION = [
-  { label: "Home", href: "/", icon: Home },
-  { label: "Explore", href: "/discover", icon: Compass },
-  { label: "My Huddle", href: "/dashboard", icon: Library },
-  { label: "People", href: "/people", icon: Search },
-  { label: "Account", href: "/account", icon: UserRound },
+  { label: "Home", desktopLabel: "Home", href: "/", icon: Home },
+  { label: "Explore", desktopLabel: "Explore", href: "/discover", icon: Compass },
+  { label: "Ask", desktopLabel: "Ask Huddle", href: "/ask", icon: MessageCircleQuestion },
+  { label: "My Huddle", desktopLabel: "My Huddle", href: "/dashboard", icon: Library },
+  { label: "People", desktopLabel: "People", href: "/people", icon: Search },
 ] as const;
 
 function fanDestinationIsCurrent(pathname: string, href: string) {
@@ -21,39 +21,50 @@ function fanDestinationIsCurrent(pathname: string, href: string) {
       (route) => pathname === route || pathname.startsWith(`${route}/`),
     );
   }
-  if (href === "/account") {
-    return (
-      pathname === href ||
-      pathname.startsWith("/account/") ||
-      pathname.startsWith("/settings/") ||
-      pathname === "/reports" ||
-      pathname === "/moderation"
-    );
-  }
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function FanBottomNavigation() {
+export function FanBottomNavigation({
+  assistedDiscoveryEnabled,
+}: Readonly<{ assistedDiscoveryEnabled: boolean }>) {
   const pathname = usePathname();
+  const navigation = FAN_NAVIGATION.filter(
+    ({ href }) => assistedDiscoveryEnabled || href !== "/ask",
+  );
 
   return (
     <nav
       aria-label="Fan mobile navigation"
-      className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-border bg-card/98 px-1 pb-[max(env(safe-area-inset-bottom),0.25rem)] pt-1 [box-shadow:var(--shadow-docked)] lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 grid border-t border-border bg-card/98 px-1 pb-[max(env(safe-area-inset-bottom),0.25rem)] pt-1 [box-shadow:var(--shadow-docked)] lg:hidden"
+      style={{ gridTemplateColumns: `repeat(${navigation.length}, minmax(0, 1fr))` }}
     >
-      {FAN_NAVIGATION.map(({ label, href, icon: Icon }) => {
+      {navigation.map(({ label, href, icon: Icon }) => {
         const current = fanDestinationIsCurrent(pathname, href);
+        const emphasized = href === "/ask";
         return (
           <Link
             aria-current={current ? "page" : undefined}
             className={cn(
               "flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[0.68rem] font-semibold text-muted-foreground outline-none transition focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
-              current && "bg-muted text-forest",
+              emphasized && "text-forest",
+              current && "text-forest",
+              current && !emphasized && "bg-muted",
             )}
             href={href}
             key={href}
           >
-            <Icon aria-hidden="true" className="size-5" />
+            <span
+              aria-hidden="true"
+              className={cn(
+                "flex size-5 items-center justify-center",
+                emphasized &&
+                  "size-9 rounded-full bg-primary text-primary-foreground [box-shadow:var(--shadow-search)]",
+                current && emphasized && "ring-2 ring-forest ring-offset-2 ring-offset-card",
+              )}
+              data-slot={emphasized ? "ask-navigation-mark" : undefined}
+            >
+              <Icon className={emphasized ? "size-[1.125rem]" : "size-5"} />
+            </span>
             <span className="truncate">{label}</span>
           </Link>
         );

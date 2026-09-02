@@ -12,7 +12,7 @@
 
 **Approved discovery consistency revision:** 31 August 2026. Current runtime and acceptance evidence supersede the historical B09 activity-quota gate: discoverable groups require an active owner plus description; eligible signed-in Fans may preview public-place events from those groups but must join before attending; group home events remain private; Fan Explore retains public listings from managed Venues; fixture details list currently visible linked events; and owner deletion is an audited archive with retained history.
 
-**Approved AI-assisted discovery revision:** 1 September 2026. `AI01` is one bounded post-B12 implementation module before hosted B13 acceptance. It adds a default-off active-Fan Home search in which Cloudflare extracts only a strict intent and the existing Vercel/Supabase application authorizes and ranks at most three results. It does not renumber B13 or approve agents, RAG, generated event content, or AI moderation.
+**Approved AI-assisted discovery revision:** 1 September 2026, with the Ask/navigation/date/location follow-up approved 2 September 2026. `AI01` is one bounded post-B12 implementation module before hosted B13 acceptance. It adds a default-off active-Fan Ask destination in which Cloudflare extracts only a strict intent and the existing Vercel/Supabase application authorizes and ranks at most three results. It does not renumber B13 or approve agents, conversational context, RAG, generated event content, or AI moderation.
 
 ---
 
@@ -1263,24 +1263,24 @@ evidence for merge; hosted checks remain B13 (`D02`–`D04`).
 **Tasks:**
 
 - [x] Add the versioned Cloudflare JSON-schema interpreter and strict Zod/provider failure boundary.
-- [x] Resolve Israel date semantics, including one exact future `next <weekday>` date, and local team/competition aliases without model-issued IDs.
-- [x] Treat a named public Israel place as a transient confirmation hint: verify it came from the sentence, override any remembered origin, prefill the existing OpenStreetMap picker, and search only after the Fan confirms a provider coordinate.
+- [x] Resolve Israel date semantics, including dates, weekdays, named months, bounded explicit ranges, and a 14-day default only for truly date-free text, plus local team/competition aliases without model-issued IDs.
+- [x] Resolve a named public Israel place server-side through the bounded Photon/OpenStreetMap adapter, override any remembered origin, and fail closed on no suggestion or provider failure without a second AI call or manual confirmation click.
 - [x] Add Fan/global inference cooldowns that retain counts only, plus the Fan-only authorization-filtered search RPC and facility index.
 - [x] Add five-minute actor-bound continuation tokens so location collection never repeats inference.
-- [x] Add the private no-store Route Handler and active-Fan Home UI with result, location, ambiguity, unsupported, empty, rate, and provider-failure states.
+- [x] Add the private no-store Route Handler and dedicated active-Fan Ask UI with result, location, ambiguity, unsupported, empty, rate, and provider-failure states; retain only one local exchange and clear it on navigation.
 - [x] Keep sentences, origins, private account data, provider payloads, and result IDs out of logs and AI storage products.
-- [x] Add pgTAP, Vitest/RTL, deterministic E2E, and a checked-in 42-case live-model evaluation harness; CI never receives live model authority.
+- [x] Add pgTAP, Vitest/RTL, deterministic E2E, and a checked-in 46-case live-model evaluation harness; CI never receives live model authority.
 - [x] Run the credentialed live-model evaluation and meet the core, privacy, unsupported-scope, date-boundary, and 90% supported-intent gates before enabling production.
 - [x] Rerun the credentialed 42-case evaluation after the exact-weekday/named-place schema change before merging that follow-up.
 - [x] Update the normative implementation, architecture, build, security, environment, and README sources truthfully.
 
-**Tests/evidence:** red/green unit and component coverage; Fan/friend/group/block/ban/capacity/facility/private-location pgTAP; the three deterministic core examples plus an exact-weekday/named-place E2E journey without live AI traffic; at least 42 synthetic live-model cases with all safety cases passing and at least 90% exact supported-intent extraction.
+**Tests/evidence:** red/green unit and component coverage; Fan/friend/group/block/ban/capacity/facility/private-location pgTAP; the three deterministic core examples plus an exact-weekday/named-place E2E journey without live AI or geocoder traffic; at least 40 synthetic live-model cases with all safety cases passing and at least 90% exact supported-intent extraction. The checked-in 46-case corpus also marks deterministic named-month, single-date, bare-weekday, and date-free-default regressions.
 
 **Exit evidence:** full repository acceptance gates, generated database types with no drift, safe aggregate provider-usage evidence, and both partners able to explain why Cloudflare never authorizes or receives private account context.
 
 **Accepted evidence (1–2 September 2026):** PR [#46](https://github.com/gethuddle/huddle/pull/46) passed the complete local/CI gates and reciprocal partner review, then merged to `main` as [`93293fbc`](https://github.com/gethuddle/huddle/commit/93293fbc03a52e835771b9234abdd7eba6a02a40). The credentialed 40-case live-model evaluation passed every required gate with prompt `ai01-v3`, and production was explicitly enabled after merge. Checked-in environment examples remain safely disabled by default.
 
-**Current follow-up status (2 September 2026):** the compact shadcn result UI, password recovery, exact-weekday semantics, named-place confirmation, 42-case corpus, and deterministic browser coverage are implemented on the follow-up branch. The credentialed 42-case live-model evaluation passed every core, privacy, unsupported-scope, date-boundary, and supported-intent gate with prompt `ai01-v5`; the provider-facing schema now uses independent single-value scope and temporal fields before mapping into Huddle's stricter internal intent contract.
+**Current follow-up status (2 September 2026):** the dedicated viewport-bounded shadcn Ask UI, unified mobile workspace navigation, password recovery, expanded deterministic date semantics, automatic named-place resolution, 46-case corpus, and no-network browser seam are implemented on the unmerged follow-up branch. Its complete local acceptance command passes 943 Vitest assertions plus the skipped opt-in live test, all 1,681 pgTAP assertions, schema/type/build gates, all 32 Playwright journeys, the secret audit, and diff hygiene. The last credentialed 42-case live-model evaluation passed every core, privacy, unsupported-scope, date-boundary, and supported-intent gate with prompt `ai01-v5`; the four added cases exercise deterministic application parsing and do not change the provider schema or fixed model.
 
 ### D02 — Preview and production environments
 

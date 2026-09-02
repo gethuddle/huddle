@@ -62,12 +62,14 @@ describe("assisted discovery HTTP contracts", () => {
       {
         status: "no_results",
         interpretation: "Tomorrow nearby.",
+        locationLabel: null,
         exploreHref: "/discover?from=2026-09-02",
         planHref: null,
       },
       {
         status: "results",
         interpretation: "Tomorrow nearby.",
+        locationLabel: "Jerusalem, Israel",
         results: [],
       },
     ];

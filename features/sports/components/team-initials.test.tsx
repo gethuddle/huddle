@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { TeamInitials, teamInitials } from "./team-initials";
@@ -23,7 +23,7 @@ describe("TeamInitials", () => {
     expect(screen.getByRole("img", { name: "Legacy United" })).toHaveTextContent("LU");
   });
 
-  it("renders a synchronized crest and falls back to initials when it cannot load", () => {
+  it("renders a synchronized crest and falls back to initials when it cannot load", async () => {
     const { rerender } = render(
       <TeamInitials
         crestUrl="https://crests.football-data.org/57.png"
@@ -33,7 +33,11 @@ describe("TeamInitials", () => {
     );
 
     const crest = screen.getByRole("img", { name: "Arsenal FC" });
+    const loadingInitials = screen.getByText("ARS");
     expect(crest).toHaveAttribute("src", expect.stringContaining("crests.football-data.org"));
+    expect(loadingInitials).not.toHaveClass("opacity-0");
+    fireEvent.load(crest);
+    await waitFor(() => expect(loadingInitials).toHaveClass("opacity-0"));
     fireEvent.error(crest);
     expect(screen.getByRole("img", { name: "Arsenal FC" })).toHaveTextContent("ARS");
 

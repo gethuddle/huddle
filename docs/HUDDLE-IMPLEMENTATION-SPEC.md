@@ -16,7 +16,7 @@
 
 **Approved cityless location and catalog revision:** 31 August 2026. Explore accepts a privacy-safe session origin from browser location or a confirmed OpenStreetMap/Photon address suggestion and ranks eligible results by coordinate distance across municipal borders. Profiles and groups have no location; events and Venues use confirmed coordinates, with exact homes isolated in the protected location domain. The scheduled football-data sync may store a tightly validated provider crest URL for display with an accessible Huddle initials fallback; normal page requests still never call the sports provider.
 
-**Approved AI-assisted discovery revision:** 1 September 2026. Active Fans may describe a desired watch event in one short sentence on Home. Cloudflare Workers AI extracts only a bounded search intent; it receives no account, relationship, location, attendance, event, or private-address data. Huddle validates and resolves that intent against its local sports catalog, while one authenticated Supabase function remains the sole authorization, filtering, and ranking boundary. This revision does not approve generative answers, chat history, autonomous tools, RAG, AI event creation, or AI moderation.
+**Approved AI-assisted discovery revision:** 1 September 2026, with the Ask/navigation/date/location follow-up approved 2 September 2026. Active Fans may describe a desired watch event in one short sentence on the dedicated `/ask` route. Its full-height, shadcn-composed chat UI retains only the current exchange, avoids a nested page-card shell, and clears when the route unmounts. Cloudflare Workers AI extracts only a bounded search intent; it receives no account, relationship, coordinate, attendance, event, or private-address data. Huddle deterministically resolves dates and named public places, validates sports entities against its local catalog, and keeps one authenticated Supabase function as the sole authorization, filtering, and ranking boundary. This revision does not approve generative answers, conversational context, autonomous tools, RAG, AI event creation, or AI moderation.
 
 The keywords **MUST**, **MUST NOT**, **SHOULD**, and **MAY** express implementation priority. A MUST is part of acceptance for the submitted MVP unless this specification is deliberately revised.
 
@@ -231,6 +231,7 @@ Authorization MUST be enforced twice for sensitive transitions: application logi
 |---|---|---|
 | `/` | Public with workspace-aware signed-in view | Value proposition for visitors; direct continuation into the last valid Fan or Venue workspace |
 | `/discover` | Public with richer signed-in view | Unified event/fixture discovery by area, date, competition, team, or specific fixture, with list/map results and venue listings |
+| `/ask` | Active Fan when assisted discovery is enabled | One current natural-language question and at most three authorization-filtered huddle results; no retained conversation |
 | `/matches` | Public redirect | Compatibility redirect into `/discover`; not a separate primary destination |
 | `/matches/[matchId]` | Public | Stable fixture object inside the Explore navigation context, with all linked events currently visible to the viewer |
 | `/events` | Active Fan | Personal invitation and attendance dashboard |
@@ -260,6 +261,8 @@ Authorization MUST be enforced twice for sensitive transitions: application logi
 | `/auth/reset-password` | Recovery session | Choose a new password, end the local recovery session, and return to sign in |
 | `/auth/verify` | Public callback/instruction | Verification result and next action |
 
+On small screens, the active Fan bottom navigation is Home, Explore, Ask, My Huddle, and People when assisted discovery is enabled; Ask is omitted when disabled. The Venue bottom navigation is Today, Calendar, Events, and Venue. Account is not a bottom-navigation destination: every active workspace uses the same top-right workspace menu, whose final item opens Account settings. The signed-out mobile menu also remains aligned to the top-right edge.
+
 Unauthorized access MUST render a clear `not found`, `sign in`, `finish safety setup`, `activate Fan`, `switch workspace`, or `not permitted` outcome as appropriate; it MUST NOT reveal that a private event exists through different error detail.
 
 ### 4.2 Main user journeys
@@ -269,6 +272,8 @@ Unauthorized access MUST render a clear `not found`, `sign in`, `finish safety s
 **Recover access:** choose Forgot password → submit an email without receiving account-existence detail → follow the single-use recovery email → choose a new password → return to sign in with the recovery browser session ended.
 
 **Discover and attend:** use current location or choose a confirmed address → filter by date/team/competition/specific fixture → see who is showing it nearby → open event → sign in/activate Fan if needed → request or join → see stable result → download calendar when authorized.
+
+**Ask Huddle:** open Ask → enter one standalone sentence containing any supported match, date, public place, relationship, venue, or facility constraints → receive at most three exact authorized results → ask a new independent question or open a result. Leaving Ask clears the current exchange.
 
 **Private home event:** choose fixture → home → choose group/friends/invite-only → enter protected address → set capacity up to 12 → publish/submit → invite or review registered users → approved attendee receives exact details. No plus-ones are available.
 
@@ -281,6 +286,7 @@ Unauthorized access MUST render a clear `not found`, `sign in`, `finish safety s
 Server Components SHOULD own page composition and initial reads. Client Components SHOULD be limited to interactive boundaries:
 
 - `DiscoveryFilters` and `DiscoveryResults`;
+- `AssistedDiscoveryChat` and its shared full-detail result ticket card;
 - `LocationConsent`;
 - `FollowButton`;
 - `FriendshipControl`;
@@ -807,7 +813,9 @@ The private, no-store route is available only to an authenticated active Fan. It
 
 Cloudflare receives only the sentence, current Israel date/time, and the fixed intent schema. It MUST NOT receive an actor identifier, profile, friendship/group data, attendance, coordinates, event rows, or private location. Model output is untrusted and MUST pass a strict Zod schema before Huddle resolves team/competition aliases, date semantics, relationship mode, host kind, proximity, and the existing venue-facility enum. The bounded schema may extract `next <weekday>` and a named public Israel place phrase, but never a coordinate. Huddle accepts the place phrase only when its normalized text is present in the original sentence; it does not trust a model-invented place.
 
-`Next <weekday>` resolves to exactly one future Israel calendar date; when today already has that weekday it means seven days later. A named place overrides any remembered session origin and returns `needs_location` with the transient phrase so the existing OpenStreetMap suggestion control can be prefilled. Search continues only after the Fan confirms one provider suggestion, whose coordinate then uses the ordinary 15 km PostGIS boundary. The raw place phrase is not placed in the continuation token, URL, log, cache, or database, and Cloudflare never geocodes it.
+The today-through-following-14-days window is used only when the sentence contains no date-like expression. Huddle resolves today, tomorrow, this weekend, next week, bare or qualified weekdays, one calendar date, named months, and explicit future ranges in Israel time. A bare or `this` weekday includes today; `next <weekday>` is strictly future and moves seven days when today already has that weekday. Named months use the future-facing occurrence and clamp the current month to today. Explicit ranges may span no more than 31 calendar dates. A date-like expression that cannot be resolved returns clarification instead of silently applying the default.
+
+A named public place overrides any remembered session origin. Huddle verifies that the extracted phrase occurs in the sentence, resolves the first bounded Israel suggestion server-side through the existing Photon/OpenStreetMap adapter, and immediately applies that coordinate to the ordinary 15 km PostGIS search. No manual suggestion click or second AI call is required. An unresolved place returns clarification, and a geocoder failure fails closed rather than broadening the search. The raw place phrase is sent only to the bounded geocoder request; it is not placed in a client URL, continuation token, application log, cache, or database, and Cloudflare never receives the resolved coordinate.
 
 The route returns exactly one of `results`, `needs_location`, `clarification`, `unsupported`, or `no_results`. It never invents event copy, silently broadens a date or other filter, or asks the model to rank database rows. Results contain at most three safe event summaries produced by `search_assisted_events`; explanation strings and matched reasons are deterministic application copy.
 
@@ -1058,7 +1066,7 @@ This design follows the [OWASP Authorization Cheat Sheet](https://cheatsheetseri
 | `FOOTBALL_DATA_API_TOKEN` | Server-only | Provider authentication |
 | `SPORTS_SYNC_SECRET` | Server-only + Supabase Vault copy | Authenticate cron call |
 | `DISCOVERY_CURSOR_SECRET` | Server-only | Sign and verify filter-bound group/event pagination cursors |
-| `ASSISTED_DISCOVERY_ENABLED` | Server-only | Default-off rollout gate for the assisted Home search |
+| `ASSISTED_DISCOVERY_ENABLED` | Server-only | Default-off rollout gate for the Ask destination and assisted-search route |
 | `ASSISTED_DISCOVERY_TOKEN_SECRET` | Server-only | Sign five-minute actor-bound resolved-intent continuations |
 | `CLOUDFLARE_ACCOUNT_ID` | Server-only | Address the Workers AI REST endpoint |
 | `CLOUDFLARE_WORKERS_AI_API_TOKEN` | Server-only | Invoke Workers AI from Vercel |

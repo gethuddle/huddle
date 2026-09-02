@@ -10,7 +10,7 @@ vi.mock("next/navigation", () => ({
 import { VenueWorkspaceHeader } from "./venue-workspace-header";
 
 describe("VenueWorkspaceHeader", () => {
-  it("contains exactly five live destinations and no Fan tools", () => {
+  it("contains exactly four live destinations and no Fan or Account tools", () => {
     render(<VenueWorkspaceHeader slug="match-corner" venueName="Match Corner" />);
 
     const navigation = screen.getByRole("navigation", { name: "Venue navigation" });
@@ -18,7 +18,7 @@ describe("VenueWorkspaceHeader", () => {
       within(navigation)
         .getAllByRole("link")
         .map((link) => link.textContent),
-    ).toEqual(["Today", "Calendar", "Events", "Venue", "Account"]);
+    ).toEqual(["Today", "Calendar", "Events", "Venue"]);
     expect(within(navigation).getByRole("link", { name: "Calendar" })).toHaveAttribute(
       "aria-current",
       "page",
