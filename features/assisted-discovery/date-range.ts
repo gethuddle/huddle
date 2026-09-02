@@ -2,13 +2,25 @@ import type { IntentDraft } from "./schemas";
 
 import { formatIsraelDateValue } from "@/features/sports/time";
 
-type DateInput = Pick<IntentDraft, "temporal" | "explicitStartDate" | "explicitEndDate">;
+type DateInput = Pick<
+  IntentDraft,
+  "temporal" | "weekday" | "explicitStartDate" | "explicitEndDate"
+>;
 
 export type IntentDateRangeResult =
   | Readonly<{ ok: true; fromDate: string; toDate: string }>
   | Readonly<{ ok: false; reason: "invalid" | "past" | "too_wide" }>;
 
 const DAY_MS = 86_400_000;
+const WEEKDAY_INDEX = {
+  sunday: 0,
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6,
+} as const;
 
 function dateEpoch(dateValue: string): number {
   const [year, month, day] = dateValue.split("-").map(Number);
@@ -52,6 +64,13 @@ export function resolveIntentDateRange(input: DateInput, now: Date): IntentDateR
   }
 
   const weekday = new Date(`${today}T00:00:00.000Z`).getUTCDay();
+  if (input.temporal === "next_weekday") {
+    if (input.weekday === null) return { ok: false, reason: "invalid" };
+    const targetWeekday = WEEKDAY_INDEX[input.weekday];
+    const daysUntilTarget = (targetWeekday - weekday + 7) % 7 || 7;
+    const targetDate = addDays(today, daysUntilTarget);
+    return { ok: true, fromDate: targetDate, toDate: targetDate };
+  }
   if (input.temporal === "this_weekend") {
     if (weekday === 0) return { ok: true, fromDate: today, toDate: today };
     if (weekday === 5) return { ok: true, fromDate: today, toDate: addDays(today, 2) };

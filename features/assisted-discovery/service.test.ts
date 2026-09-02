@@ -25,8 +25,10 @@ const nearbyDraft: IntentDraft = {
   support: "supported",
   unsupportedReason: null,
   temporal: "tomorrow",
+  weekday: null,
   explicitStartDate: null,
   explicitEndDate: null,
+  locationMention: null,
   teamMentions: ["Arsenal"],
   competitionMention: "EPL",
   relationship: "any",
@@ -48,8 +50,13 @@ const card: AssistedDiscoveryResultCard = {
     id: "55555555-5555-4555-8555-555555555555",
     competitionName: "Premier League",
     homeTeamName: "Arsenal FC",
+    homeTeamTla: "ARS",
+    homeTeamCrestUrl: "https://crests.football-data.org/57.png",
     awayTeamName: "Chelsea FC",
+    awayTeamTla: "CHE",
+    awayTeamCrestUrl: "https://crests.football-data.org/61.png",
   },
+  group: null,
   startsAt: "2026-09-02T17:00:00Z",
   endsAt: "2026-09-02T20:00:00Z",
   placeKind: "venue",
@@ -145,6 +152,39 @@ describe("executeAssistedDiscovery", () => {
       expect.objectContaining({ requiresOrigin: true, teamIds: [arsenalId] }),
       { lat: 32.8, lng: 35 },
     );
+  });
+
+  it("requires confirmation for a named place instead of using a remembered origin", async () => {
+    const deps = dependencies({
+      now: () => new Date("2026-09-02T09:00:00.000Z"),
+      interpreter: {
+        interpret: vi.fn(async () => ({
+          ...nearbyDraft,
+          temporal: "next_weekday" as const,
+          weekday: "wednesday" as const,
+          locationMention: "Jerusalem",
+          proximity: "none" as const,
+        })),
+      },
+    });
+
+    const response = await executeAssistedDiscovery(
+      {
+        kind: "interpret",
+        query: "Anything in Jerusalem next Wednesday?",
+        origin: { lat: 32.8, lng: 35 },
+      },
+      actorId,
+      deps,
+    );
+
+    expect(response).toMatchObject({
+      status: "needs_location",
+      interpretation: "9 Sep · Arsenal FC · Premier League · venue-hosted · venue lists food",
+      locationQuery: "Jerusalem",
+      token: expect.any(String),
+    });
+    expect(deps.search).not.toHaveBeenCalled();
   });
 
   it("searches friend-host intent nationally without requesting a location", async () => {

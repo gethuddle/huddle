@@ -28,7 +28,14 @@ const assistedDiscoveryRowSchema = z
     match_id: z.uuid(),
     competition_name: z.string().min(1).max(120),
     home_team_name: z.string().min(1).max(120),
+    home_team_tla: z.string().min(1).max(12).nullable(),
+    home_team_crest_url: z.url().nullable(),
     away_team_name: z.string().min(1).max(120),
+    away_team_tla: z.string().min(1).max(12).nullable(),
+    away_team_crest_url: z.url().nullable(),
+    group_name: z.string().min(1).max(120).nullable(),
+    group_slug: z.string().min(1).max(80).nullable(),
+    group_relationship: z.enum(["organizer", "audience"]).nullable(),
     starts_at: z.string(),
     ends_at: z.string(),
     place_kind: z.enum(["home", "venue", "public_place"]),
@@ -58,7 +65,23 @@ const assistedDiscoveryRowSchema = z
     matched_friend_host: z.boolean(),
     matched_my_group: z.boolean(),
   })
-  .strict();
+  .strict()
+  .superRefine((row, context) => {
+    if ((row.group_name === null) !== (row.group_relationship === null)) {
+      context.addIssue({
+        code: "custom",
+        message: "Group name and relationship must be returned together.",
+        path: ["group_name"],
+      });
+    }
+    if (row.group_name === null && row.group_slug !== null) {
+      context.addIssue({
+        code: "custom",
+        message: "A group slug cannot be returned without a group name.",
+        path: ["group_slug"],
+      });
+    }
+  });
 
 const assistedDiscoveryRowsSchema = z.array(assistedDiscoveryRowSchema).max(3);
 
@@ -91,8 +114,20 @@ export function mapAssistedDiscoveryRows(
           id: row.match_id,
           competitionName: row.competition_name,
           homeTeamName: row.home_team_name,
+          homeTeamTla: row.home_team_tla,
+          homeTeamCrestUrl: row.home_team_crest_url,
           awayTeamName: row.away_team_name,
+          awayTeamTla: row.away_team_tla,
+          awayTeamCrestUrl: row.away_team_crest_url,
         },
+        group:
+          row.group_name === null || row.group_relationship === null
+            ? null
+            : {
+                name: row.group_name,
+                slug: row.group_slug,
+                relationship: row.group_relationship,
+              },
         startsAt: row.starts_at,
         endsAt: row.ends_at,
         placeKind: row.place_kind,

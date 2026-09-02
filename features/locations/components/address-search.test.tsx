@@ -2,6 +2,7 @@
 
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ComponentProps, ComponentType } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AddressSearch } from "./address-search";
@@ -18,6 +19,30 @@ afterEach(() => {
 });
 
 describe("AddressSearch", () => {
+  it("prefills and searches a named area supplied by assisted discovery", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ suggestions: [suggestion] }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const PrefillableAddressSearch = AddressSearch as ComponentType<
+      ComponentProps<typeof AddressSearch> & { initialQuery?: string }
+    >;
+
+    render(
+      <PrefillableAddressSearch initialQuery="Jerusalem" purpose="origin" onConfirm={vi.fn()} />,
+    );
+
+    expect(screen.getByRole("combobox", { name: "Area or address" })).toHaveValue("Jerusalem");
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
+      query: "Jerusalem",
+      purpose: "origin",
+    });
+  });
+
   it("opens suggestions while typing and confirms a keyboard selection", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ suggestions: [suggestion] }), {

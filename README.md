@@ -14,7 +14,7 @@ The current Calm Explore revision replaces the dark, route-heavy interface with 
 
 The approved cityless-location revision removes the redundant city catalog and every city selector. Explore uses either the browser's current position or a confirmed OpenStreetMap/Photon address for session-only distance ranking; public places and venues store confirmed coordinates, while exact home coordinates stay in the protected location domain. Groups have no locality and public groups are ranked globally by active-member count. Official football-data crest URLs flow through the local catalog to every shared team-mark surface, with accessible initials when artwork is unavailable.
 
-The approved AI-assisted discovery revision adds a one-shot active-Fan Home search. Cloudflare Workers AI sees only the short sentence and current Israel time and returns a bounded intent; Huddle's local catalog and Supabase authorization resolve friendships, group membership, event visibility, location, facilities, capacity, and the deterministic top three. There is no chat history, RAG, AI-written event content, or private account context in the model request.
+The approved AI-assisted discovery revision adds a one-shot active-Fan Home search. Cloudflare Workers AI sees only the short sentence and current Israel time and returns a bounded intent; Huddle's local catalog and Supabase authorization resolve friendships, group membership, event visibility, location, facilities, capacity, and the deterministic top three. Exact weekday requests stay on one future Israel date. A named public place merely prefills the existing OpenStreetMap picker and must be confirmed before its coordinate is used, so the model never geocodes or selects an origin. Compact shadcn-composed results retain team crests, related group context, attendance detail, and safe fallbacks without turning the feature into a persistent chat. There is no chat history, RAG, AI-written event content, or private account context in the model request.
 
 ## The problem
 
@@ -26,7 +26,7 @@ Huddle answers:
 
 ## The core experience
 
-1. Create and verify an account, attest that you are 18+, accept the current community rules, and choose Fan or Venue setup.
+1. Create and verify an account, recover a forgotten password when needed, attest that you are 18+, accept the current community rules, and choose Fan or Venue setup.
 2. Optionally activate Fan to follow interests, attend, use friendships and groups, and host private events.
 3. Browse synchronized upcoming fixtures and discover eligible watch events nearby.
 4. See that a venue is open for a fixture, reserve a place when that venue uses reservations, or request access to an eligible private event.
@@ -122,7 +122,7 @@ The submitted implementation remains **football-first**: [football-data.org](htt
 
 ## Submitted MVP
 
-- Email/password authentication with common safety eligibility, optional Fan activation, and self-serve Unverified Venue activation.
+- Email/password authentication, verification, non-enumerating password recovery, common safety eligibility, optional Fan activation, and self-serve Unverified Venue activation.
 - Football catalog and upcoming fixtures synchronized from an external provider.
 - Follows for sports, competitions, teams, and venues.
 - Mutual friendships with no friends-of-friends visibility.
@@ -136,7 +136,7 @@ The submitted implementation remains **football-first**: [football-data.org](htt
 - Protected home locations, blocking, reporting, moderation, and audit records.
 - RFC 5545 `.ics` calendar download.
 - A personal My Huddle home for actively owned/joined groups plus hosted, submitted, invited, requested, and attending events.
-- A one-shot AI-assisted active-Fan Home search for fixture, date, relationship, venue, and venue-facility intent, returning at most three authorized event cards.
+- A one-shot AI-assisted active-Fan Home search for fixture, exact weekday/date, named public search area, relationship, venue, and venue-facility intent, returning at most three authorized event cards.
 - Automated tests, CI, public Vercel deployment, and Supabase-managed Auth/PostgreSQL.
 
 ## Architecture and course stack
@@ -166,7 +166,7 @@ There is no separate Express service, ORM, Redis cache, WebSocket layer, payment
 - Attendance approval is atomic, so concurrent approvals cannot exceed capacity.
 - Reports are confidential from the reported user and group administrators; moderation actions are auditable and appealable.
 - Provider keys, service credentials, private addresses, session data, and invite-token digests are never sent to the browser or committed to Git. A group-invite plaintext secret is shown once to its authorized creator, travels only through the intended join URL, and is never persisted or logged.
-- Assisted discovery never sends the model an actor ID, friend/group list, coordinate, attendance state, event row, result, or private address; raw sentences are not retained in Huddle logs or tables.
+- Assisted discovery never sends the model an actor ID, friend/group list, coordinate, attendance state, event row, result, or private address; raw sentences and named-place phrases are not retained in Huddle logs, tokens, or tables.
 
 ## Deferred beyond the MVP
 
@@ -182,7 +182,7 @@ The database and provider boundaries may be future-ready, but deferred features 
 
 ## Project status
 
-The merged baseline includes B01–B12: repository CI; account verification and onboarding; the normalized sports catalog; Huddle-styled shadcn/Radix UI; fixture browsing and follows; friendships and supporter groups; venue and private/group event hosting; safe geospatial discovery; invitations, atomic attendance, protected locations and calendars; confidential reporting, moderation, appeals, hardening, accessibility, and operational runbooks; and the B12 release-candidate and automated-acceptance milestone, including its complete 17-journey gate and production-found corrections to navigation, verification/onboarding, city availability, discovery failure handling, and fixture pagination. [PR #33](https://github.com/gethuddle/huddle/pull/33) merged as accepted SHA [`94c99156011ae20fdcdbe14b807b5884cfe77555`](https://github.com/gethuddle/huddle/commit/94c99156011ae20fdcdbe14b807b5884cfe77555) and closed [issue #32](https://github.com/gethuddle/huddle/issues/32). B13 owns the remaining hosted production acceptance, scheduled-sync failure drill, final submission evidence, and presentation rehearsal. The candidate production URL is [huddle-navy-five.vercel.app](https://huddle-navy-five.vercel.app). The B12 baseline originally contained 12 migrations; current post-B12 repository inventory is tracked in the submission test plan, while B13 exit evidence remains pending. Local development does not mutate a hosted Supabase project.
+The merged baseline includes B01–B12: repository CI; account verification and onboarding; the normalized sports catalog; Huddle-styled shadcn/Radix UI; fixture browsing and follows; friendships and supporter groups; venue and private/group event hosting; safe geospatial discovery; invitations, atomic attendance, protected locations and calendars; confidential reporting, moderation, appeals, hardening, accessibility, and operational runbooks; and the B12 release-candidate and automated-acceptance milestone, including its complete 17-journey gate and production-found corrections to navigation, verification/onboarding, city availability, discovery failure handling, and fixture pagination. [PR #33](https://github.com/gethuddle/huddle/pull/33) merged as accepted SHA [`94c99156011ae20fdcdbe14b807b5884cfe77555`](https://github.com/gethuddle/huddle/commit/94c99156011ae20fdcdbe14b807b5884cfe77555) and closed [issue #32](https://github.com/gethuddle/huddle/issues/32). AI01 then merged through [PR #46](https://github.com/gethuddle/huddle/pull/46) as [`93293fbc`](https://github.com/gethuddle/huddle/commit/93293fbc03a52e835771b9234abdd7eba6a02a40) and was explicitly enabled in production. B13 owns the remaining hosted production acceptance, scheduled-sync failure drill, final submission evidence, and presentation rehearsal. The candidate production URL is [huddle-navy-five.vercel.app](https://huddle-navy-five.vercel.app). The B12 baseline originally contained 12 migrations; current post-B12 repository inventory is tracked in the submission test plan, while B13 exit evidence remains pending. Local development does not mutate a hosted Supabase project.
 
 ### Visual system
 
@@ -210,7 +210,7 @@ The first database start downloads the pinned local images. Repository scripts u
 npm run dev
 ```
 
-`HUDDLE_ENVIRONMENT` labels the configuration as `local`, `preview`, or `production`. Hosted builds must also agree with Vercel's own environment label and use HTTPS. `.env.preview.example` and `.env.production.example` enumerate separate safe key names; preview must use its own non-production Supabase project. `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `NEXT_PUBLIC_APP_URL` are browser-safe. `SUPABASE_SERVICE_ROLE_KEY`, `FOOTBALL_DATA_API_TOKEN`, `SPORTS_SYNC_SECRET`, `DISCOVERY_CURSOR_SECRET`, `ASSISTED_DISCOVERY_TOKEN_SECRET`, `CLOUDFLARE_ACCOUNT_ID`, and `CLOUDFLARE_WORKERS_AI_API_TOKEN` are server-only and must never enter Client Components or logs. B03 creates a service-role client only after the internal route authenticates `SPORTS_SYNC_SECRET`; ordinary sessions cannot trigger a sync or mutate the catalog. B09 uses a separate high-entropy `DISCOVERY_CURSOR_SECRET` only to sign and verify filter-bound pagination cursors. AI01 remains disabled unless its conditional provider variables are configured. The repository-managed local stack remains unlinked, so these commands do not mutate the shared Supabase organization.
+`HUDDLE_ENVIRONMENT` labels the configuration as `local`, `preview`, or `production`. Hosted builds must also agree with Vercel's own environment label and use HTTPS. `.env.preview.example` and `.env.production.example` enumerate separate safe key names; preview must use its own non-production Supabase project. Vercel Preview builds derive `NEXT_PUBLIC_APP_URL` from the validated stable branch URL whenever Vercel supplies one, so a stale manual value cannot pin the next pull request to an old branch; non-Vercel preview hosts, local, and production configure an explicit canonical origin. Required Preview variables are project-wide so a new pull request cannot lose configuration merely because its branch name changed. `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `NEXT_PUBLIC_APP_URL` are browser-safe. `SUPABASE_SERVICE_ROLE_KEY`, `FOOTBALL_DATA_API_TOKEN`, `SPORTS_SYNC_SECRET`, `DISCOVERY_CURSOR_SECRET`, `ASSISTED_DISCOVERY_TOKEN_SECRET`, `CLOUDFLARE_ACCOUNT_ID`, and `CLOUDFLARE_WORKERS_AI_API_TOKEN` are server-only and must never enter Client Components or logs. B03 creates a service-role client only after the internal route authenticates `SPORTS_SYNC_SECRET`; ordinary sessions cannot trigger a sync or mutate the catalog. B09 uses a separate high-entropy `DISCOVERY_CURSOR_SECRET` only to sign and verify filter-bound pagination cursors. AI01 remains disabled unless its conditional provider variables are configured; the build validates the entire enabled-provider contract before deployment. The repository-managed local stack remains unlinked, so these commands do not mutate the shared Supabase organization.
 
 B03's automated tests use only the sanitized fixtures under `tests/fixtures/football-data` and never call the provider. To perform a deliberate real-provider sync locally, put the intended local Supabase values, provider token, and a matching high-entropy sync secret in `.env.local`, run the application with `npm run dev`, and invoke:
 
@@ -243,7 +243,7 @@ B12 also provides one fail-fast local acceptance command that runs the entire se
 npm run test:acceptance
 ```
 
-AI01 adds an opt-in manual evaluation command for the fixed 40-query synthetic corpus. It is intentionally excluded from CI and consumes Workers AI quota, so run it only with deliberate local Cloudflare credentials:
+AI01 adds an opt-in manual evaluation command for the fixed 42-query synthetic corpus. It is intentionally excluded from CI and consumes Workers AI quota, so run it only with deliberate local Cloudflare credentials:
 
 ```bash
 CLOUDFLARE_ACCOUNT_ID=... \
@@ -251,11 +251,11 @@ CLOUDFLARE_WORKERS_AI_API_TOKEN=... \
 npm run test:assisted-discovery:live
 ```
 
-The local AI01 verification currently passes 860 automated Vitest assertions with the live evaluation skipped, all 1,675 pgTAP assertions, and all 29 Playwright journeys. On 1 September 2026, the credentialed 40-case evaluation passed every core, privacy, unsupported-scope, date-boundary, and supported-intent gate with prompt `ai01-v3`. `ASSISTED_DISCOVERY_ENABLED` remains `false` in every checked-in environment example pending reciprocal partner review and explicit production enablement.
+The current local verification passes 905 Vitest assertions with the one live-model test skipped, all 1,681 pgTAP assertions, generated-type drift, schema lint, production build, and all 31 Playwright journeys. On 2 September 2026, the credentialed 42-case evaluation passed every core, privacy, unsupported-scope, date-boundary, and supported-intent gate with prompt `ai01-v5`, including exact next-weekday and named-place queries. AI01 merged through PR #46 and was explicitly enabled in production; checked-in environment examples remain safely disabled by default.
 
 The accepted B12 local run passed 403 Vitest/unit/component tests, 975 pgTAP assertions, the generated-type check, the production build, and all 17 Playwright journeys. The current post-B12 inventory is maintained in the [submission test plan](./docs/submission/TEST-PLAN.md). Hosted acceptance and rehearsal evidence belong to B13 and remain pending.
 
-Production smoke is intentionally separate from CI and requires dedicated credentials in ignored `.env.production-smoke.local`. Session-only and one-time product-mutation commands are documented in the [deployment runbook](./docs/operations/DEPLOYMENT.md); neither runs implicitly.
+Production smoke is intentionally separate from CI and requires dedicated credentials in ignored `.env.production-smoke.local`. Session-only and one-time product-mutation commands are documented in the [deployment runbook](./docs/operations/DEPLOYMENT.md); neither runs implicitly. Password recovery is implemented, while Supabase's default Free-plan mail provider remains course-demo infrastructure: it sends only to team-authorized addresses, has a small provider limit, and does not permit branded template updates on newer Free projects. General public email delivery therefore remains a B13 hosted-operations task requiring custom SMTP.
 
 The tracked GitHub Actions workflow runs the same local-only stack on pull requests and `main`. The protected `main` branch requires the `Repository gates` check, one approving partner review, resolution of review conversations, and an up-to-date branch before merge; force pushes and deletion are disabled.
 

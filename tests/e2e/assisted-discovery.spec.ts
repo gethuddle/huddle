@@ -1,6 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createClient as createSupabaseClient, type SupabaseClient } from "@supabase/supabase-js";
+import { execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
+import path from "node:path";
 
 import type { Database } from "@/types/database.generated";
 
@@ -16,6 +18,12 @@ type FanSeed = Readonly<{
 type FixtureSeed = Readonly<{
   matchId: string;
   startsAt: string;
+}>;
+
+type VenueLocation = Readonly<{
+  address: string;
+  latitude: number;
+  longitude: number;
 }>;
 
 function suffix() {
@@ -45,6 +53,38 @@ async function localUserClient(email: string) {
   const { error } = await client.auth.signInWithPassword({ email, password });
   if (error !== null) throw error;
   return client;
+}
+
+function localDatabaseQuery(sql: string) {
+  const executable = path.join(
+    process.cwd(),
+    "node_modules",
+    ".bin",
+    process.platform === "win32" ? "supabase.cmd" : "supabase",
+  );
+  execFileSync(executable, ["db", "query", "--local", sql], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    stdio: "pipe",
+  });
+}
+
+function cancelPriorAssistedDiscoveryEvents() {
+  localDatabaseQuery(`
+    update public.events
+    set status = 'cancelled',
+        cancelled_at = statement_timestamp(),
+        cancel_reason = 'Playwright fixture superseded',
+        updated_at = statement_timestamp()
+    where status <> 'cancelled'
+      and (
+        title like 'Food venue huddle %'
+        or title like 'Friend Arsenal Chelsea huddle %'
+        or title like 'Group UCL huddle %'
+        or title like 'Jerusalem weekday huddle %'
+        or title like 'Jerusalem weekday decoy %'
+      );
+  `);
 }
 
 async function seedFan(run: string, role: string): Promise<FanSeed> {
@@ -100,6 +140,12 @@ function nextWeekDate(today: string): string {
   return addDays(today, daysUntilSunday + 1);
 }
 
+function nextWeekdayDate(today: string, targetWeekday: number): string {
+  const weekday = new Date(`${today}T12:00:00.000Z`).getUTCDay();
+  const delta = (targetWeekday - weekday + 7) % 7 || 7;
+  return addDays(today, delta);
+}
+
 function kickoff(date: string): string {
   if (date === israelDate()) {
     return new Date(Date.now() + 30 * 60_000).toISOString();
@@ -113,11 +159,13 @@ async function seedFixtures(run: string, catalogClient: SupabaseClient<Database>
   const dates = {
     tomorrow: addDays(today, 1),
     nextWeek: nextWeekDate(today),
+    nextWednesday: nextWeekdayDate(today, 3),
     weekend: weekendDate(today),
   };
   const matchExternalIds = {
     tomorrow: `assisted-${run}-tomorrow`,
     nextWeek: `assisted-${run}-next-week`,
+    nextWednesday: `assisted-${run}-next-wednesday`,
     weekend: `assisted-${run}-weekend`,
   };
   const started = await admin.rpc("begin_sports_sync", {
@@ -150,6 +198,7 @@ async function seedFixtures(run: string, catalogClient: SupabaseClient<Database>
         name: "Arsenal FC",
         short_name: "Arsenal",
         tla: "ARS",
+        crest_url: "https://crests.football-data.org/57.png",
         country_name: "England",
       },
       {
@@ -157,6 +206,7 @@ async function seedFixtures(run: string, catalogClient: SupabaseClient<Database>
         name: "Chelsea FC",
         short_name: "Chelsea",
         tla: "CHE",
+        crest_url: "https://crests.football-data.org/61.png",
         country_name: "England",
       },
     ],
@@ -204,6 +254,17 @@ async function seedFixtures(run: string, catalogClient: SupabaseClient<Database>
         stage: "LEAGUE_STAGE",
         season_label: "2026",
       },
+      {
+        provider_external_id: matchExternalIds.nextWednesday,
+        competition_external_id: "2021",
+        home_team_external_id: "57",
+        away_team_external_id: "61",
+        starts_at: kickoff(dates.nextWednesday),
+        status: "timed",
+        matchday: 4,
+        stage: "REGULAR_SEASON",
+        season_label: "2026",
+      },
     ],
     input_request_count: 1,
     input_retry_count: 0,
@@ -229,6 +290,7 @@ async function seedFixtures(run: string, catalogClient: SupabaseClient<Database>
   return {
     tomorrow: required("tomorrow"),
     nextWeek: required("nextWeek"),
+    nextWednesday: required("nextWednesday"),
     weekend: required("weekend"),
   };
 }
@@ -273,17 +335,27 @@ function eventInput(
   };
 }
 
-async function createVenueEvent(owner: FanSeed, fixture: FixtureSeed, run: string, title: string) {
+async function createVenueEvent(
+  owner: FanSeed,
+  fixture: FixtureSeed,
+  run: string,
+  title: string,
+  location: VenueLocation = {
+    address: `12 Assisted ${run} Street, Haifa`,
+    latitude: 32.8,
+    longitude: 35,
+  },
+) {
   const venue = await owner.client.rpc("create_venue_workspace_v2", {
-    input_address_text: `12 Assisted ${run} Street, Haifa`,
+    input_address_text: location.address,
     input_adult_attested: true,
     input_default_attendance_mode: "reservations",
     input_default_requires_approval: false,
     input_description: "A local browser-test venue with self-reported food.",
     input_facilities: ["food", "drinks"],
     input_house_information: "Use the main entrance.",
-    input_latitude: 32.8,
-    input_longitude: 35,
+    input_latitude: location.latitude,
+    input_longitude: location.longitude,
     input_main_space_capacity: 80,
     input_main_space_name: "Main screen",
     input_name: `Assisted Venue ${run}`,
@@ -405,14 +477,22 @@ async function signIn(page: Page, email: string) {
 }
 
 async function search(page: Page, query: string) {
-  await page.getByRole("textbox", { name: "Describe the huddle you want" }).fill(query);
-  await page.getByRole("button", { name: "Find huddles" }).click();
+  const queryInput = page.getByRole("textbox", { name: "Describe the huddle you want" });
+  const submitButton = page.getByRole("button", { name: "Find huddles" });
+
+  await expect(async () => {
+    await queryInput.fill("");
+    await queryInput.fill(query);
+    await expect(submitButton).toBeEnabled({ timeout: 1_000 });
+  }).toPass({ timeout: 10_000 });
+  await submitButton.click();
 }
 
 test("the three core assisted-discovery examples find authorized seeded huddles", async ({
   page,
 }) => {
   test.setTimeout(120_000);
+  cancelPriorAssistedDiscoveryEvents();
   const run = suffix();
   const viewer = await seedFan(run, "viewer");
   const friend = await seedFan(run, "friend");
@@ -439,6 +519,14 @@ test("the three core assisted-discovery examples find authorized seeded huddles"
 
   await search(page, "I want to go out tommorow to a premiere league game in a venue serving food");
   await expect(page.getByText(venueTitle, { exact: true })).toBeVisible();
+  await expect(page.getByRole("img", { name: "Arsenal FC" }).first()).toBeVisible();
+  await expect(page.getByRole("img", { name: "Chelsea FC" }).first()).toBeVisible();
+  await expect(page.getByText("0 going · 40 places left", { exact: true }).first()).toBeVisible();
+  await expect(
+    page
+      .getByText("Self-listed venue · business identity not checked by Huddle", { exact: true })
+      .first(),
+  ).toBeVisible();
   await expect(page.getByText("Venue lists food.", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Self-reported: Food", { exact: true }).first()).toBeVisible();
 
@@ -451,5 +539,69 @@ test("the three core assisted-discovery examples find authorized seeded huddles"
 
   await search(page, "is there groups im a part of that have UCL games planned for this weekend");
   await expect(page.getByText(groupTitle, { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: `Assisted Group ${run}` })).toHaveAttribute(
+    "href",
+    `/groups/assisted-group-${run}`,
+  );
   await expect(page.getByText("From one of your groups", { exact: true })).toBeVisible();
+});
+
+test("a named place overrides the remembered origin and next Wednesday stays exact", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  cancelPriorAssistedDiscoveryEvents();
+  const run = suffix();
+  const viewer = await seedFan(run, "jerusalem-viewer");
+  const venueOwner = await seedFan(run, "jerusalem-venue-owner");
+  const decoyVenueOwner = await seedFan(run, "jerusalem-decoy-owner");
+  const fixtures = await seedFixtures(run, viewer.client);
+  const title = `Jerusalem weekday huddle ${run}`;
+  const decoyTitle = `Jerusalem weekday decoy ${run}`;
+  await createVenueEvent(venueOwner, fixtures.nextWednesday, run, title, {
+    address: "1 Jaffa Street, Jerusalem",
+    latitude: 31.778,
+    longitude: 35.225,
+  });
+  await createVenueEvent(decoyVenueOwner, fixtures.nextWeek, `${run}-decoy`, decoyTitle, {
+    address: "2 Jaffa Street, Jerusalem",
+    latitude: 31.779,
+    longitude: 35.224,
+  });
+
+  await page.route("**/api/locations/search", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      status: 200,
+      body: JSON.stringify({
+        suggestions: [
+          {
+            id: "jerusalem-test",
+            label: "Jerusalem, Israel",
+            latitude: 31.778,
+            longitude: 35.225,
+          },
+        ],
+      }),
+    });
+  });
+  await page.addInitScript(() => {
+    window.sessionStorage.setItem(
+      "huddle:discovery-origin",
+      JSON.stringify({ lat: 32.8, lng: 35, label: "Haifa", kind: "address" }),
+    );
+  });
+  await signIn(page, viewer.email);
+
+  await search(page, "Any events in Jerusalem next Wednesday?");
+  await expect(
+    page.getByRole("heading", { name: "Confirm Jerusalem as the search area" }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Use my current location" })).toHaveCount(0);
+  const locationInput = page.getByRole("combobox", { name: "Area or address" });
+  await expect(locationInput).toHaveValue("Jerusalem");
+  await page.getByRole("option", { name: "Jerusalem, Israel" }).click();
+
+  await expect(page.getByText(title, { exact: true })).toBeVisible();
+  await expect(page.getByText(decoyTitle, { exact: true })).toHaveCount(0);
 });

@@ -8,7 +8,18 @@ export const temporalIntentSchema = z.enum([
   "tomorrow",
   "this_weekend",
   "next_week",
+  "next_weekday",
   "explicit_range",
+]);
+
+export const weekdayIntentSchema = z.enum([
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
 ]);
 
 export const relationshipIntentSchema = z.enum(["any", "friend_host", "my_groups"]);
@@ -27,8 +38,10 @@ export const intentDraftSchema = z
     support: z.enum(["supported", "unsupported"]),
     unsupportedReason: unsupportedReasonSchema.nullable(),
     temporal: temporalIntentSchema,
+    weekday: weekdayIntentSchema.nullable(),
     explicitStartDate: z.iso.date().nullable(),
     explicitEndDate: z.iso.date().nullable(),
+    locationMention: z.string().trim().min(1).max(120).nullable(),
     teamMentions: z.array(z.string().trim().min(1).max(80)).max(2),
     competitionMention: z.string().trim().min(1).max(100).nullable(),
     relationship: relationshipIntentSchema,
@@ -58,6 +71,14 @@ export const intentDraftSchema = z
         code: "custom",
         path: ["explicitEndDate"],
         message: "Explicit dates are required only for an explicit range",
+      });
+    }
+    const usesWeekday = value.temporal === "next_weekday";
+    if (usesWeekday !== (value.weekday !== null)) {
+      context.addIssue({
+        code: "custom",
+        path: ["weekday"],
+        message: "A weekday is required only for next-weekday searches",
       });
     }
     if ((value.support === "unsupported") !== (value.unsupportedReason !== null)) {

@@ -32,7 +32,7 @@ derives the actor again rather than trusting hidden inputs.
 
 | Domain file | Mutations covered | Actor boundary |
 |---|---|---|
-| `features/auth/actions.ts` | sign up, sign in, sign out | Supabase Auth; bounded credentials |
+| `features/auth/actions.ts` | sign up, sign in, password-recovery request/update, sign out | Supabase Auth; bounded credentials; generic recovery response; authenticated update followed by local sign-out |
 | `features/profiles/actions.ts` | profile completion/update | onboarding actor plus profile RPC |
 | `features/safety/actions.ts` | block/unblock | current actor plus canonical-pair lock |
 | `features/friendships/actions.ts` | request/respond/remove | complete community actor plus pair/cooldown checks |
@@ -49,11 +49,12 @@ derives the actor again rather than trusting hidden inputs.
 | Route | Method and input | Authorization/cache boundary |
 |---|---|---|
 | `/api/discovery` | read-only `GET`; bounded Zod query | personalized/browser-location responses are `no-store`; uncertain auth fails closed |
-| `/api/assisted-discovery` | read-only `POST`; max 4 KB JSON and 400-character sentence | active Fan only; `no-store`; Cloudflare sees sentence/time only; database re-authorizes every result |
+| `/api/assisted-discovery` | read-only `POST`; max 4 KB JSON and 400-character sentence | active Fan only; `no-store`; Cloudflare sees sentence/time only; a named public place is confirmed through OpenStreetMap before its coordinate reaches Supabase; database re-authorizes every result |
 | `/api/groups/search` | read-only `GET`; bounded Zod query | member-dependent results are `no-store` |
 | `/api/events/[eventId]/calendar.ics` | read-only `GET`; UUID route input | public venue calendar may cache; private output is authorized, audited and `no-store` |
 | `/api/internal/sports-sync` | `POST`; max 4 KB JSON plus Zod | constant-time server secret check, service role only after authorization, always `no-store` |
 | `/auth/verify/callback` | read-only auth `GET`; email-token schema | fixed internal redirect allowlist; token omitted from destination; `no-store` |
+| `/auth/reset-password/callback` | read-only auth `GET`; exactly one bounded recovery token-hash or PKCE code | canonical internal redirects only; recovery credential omitted from destination; `no-store` |
 
 Normal page requests never call the sports provider. GET handlers do not mutate
 product state; the private-location calendar helper may write only its required
@@ -75,7 +76,7 @@ address-free security audit record.
   outcome/code/status, duration/count/age/quota metrics. They do not accept user
   text, tokens, cookies, report details, or addresses.
 - Discovery and calendar/search/sync routes log bounded duration and outcome.
-- Assisted discovery logs only fixed route/outcome/provider-failure fields, duration, and result count. It never logs the sentence, entity names, actor, origin, model payload, or result identifiers.
+- Assisted discovery logs only fixed route/outcome/provider-failure fields, duration, and result count. It never logs the sentence, named-place phrase, entity names, actor, origin, model payload, or result identifiers; the continuation token also excludes the phrase and origin.
   Fixture reads log the age/status of the last successful catalog import. Sports
   sync logs request/retry counts and the provider's numeric remaining-quota
   response header when present; the durable sync row also retains run outcome.

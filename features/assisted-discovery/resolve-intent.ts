@@ -119,7 +119,8 @@ export function resolveAssistedDiscoveryIntent(
 
   const relationship = draft.relationship;
   const hostKind = relationship === "friend_host" ? "person" : draft.hostKind;
-  const requiresOrigin = relationship === "any" || draft.proximity === "nearby";
+  const requiresOrigin =
+    relationship === "any" || draft.proximity === "nearby" || draft.locationMention !== null;
 
   return {
     status: "resolved",

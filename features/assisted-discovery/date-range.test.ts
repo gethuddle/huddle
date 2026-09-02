@@ -13,17 +13,43 @@ describe("assisted-discovery Israel date ranges", () => {
     ["next_week", "2026-09-06", "2026-09-12"],
   ] as const)("resolves %s without trusting model-issued dates", (temporal, fromDate, toDate) => {
     expect(
-      resolveIntentDateRange({ temporal, explicitStartDate: null, explicitEndDate: null }, tuesday),
+      resolveIntentDateRange(
+        { temporal, weekday: null, explicitStartDate: null, explicitEndDate: null },
+        tuesday,
+      ),
     ).toEqual({ ok: true, fromDate, toDate });
   });
 
   it("clamps this weekend to today once the weekend has started", () => {
     expect(
       resolveIntentDateRange(
-        { temporal: "this_weekend", explicitStartDate: null, explicitEndDate: null },
+        {
+          temporal: "this_weekend",
+          weekday: null,
+          explicitStartDate: null,
+          explicitEndDate: null,
+        },
         new Date("2026-09-05T09:00:00.000Z"),
       ),
     ).toEqual({ ok: true, fromDate: "2026-09-05", toDate: "2026-09-06" });
+  });
+
+  it.each([
+    ["2026-09-01T09:00:00.000Z", "2026-09-02"],
+    ["2026-09-02T09:00:00.000Z", "2026-09-09"],
+  ])("resolves next Wednesday from %s to one exact future day", (clock, expectedDate) => {
+    const input = {
+      temporal: "next_weekday",
+      weekday: "wednesday",
+      explicitStartDate: null,
+      explicitEndDate: null,
+    } as const;
+
+    expect(resolveIntentDateRange(input, new Date(clock))).toEqual({
+      ok: true,
+      fromDate: expectedDate,
+      toDate: expectedDate,
+    });
   });
 
   it("accepts a future explicit range of at most 31 calendar days", () => {
@@ -31,6 +57,7 @@ describe("assisted-discovery Israel date ranges", () => {
       resolveIntentDateRange(
         {
           temporal: "explicit_range",
+          weekday: null,
           explicitStartDate: "2026-09-02",
           explicitEndDate: "2026-10-02",
         },
@@ -46,7 +73,12 @@ describe("assisted-discovery Israel date ranges", () => {
   ] as const)("rejects the explicit range %s through %s", (start, end, reason) => {
     expect(
       resolveIntentDateRange(
-        { temporal: "explicit_range", explicitStartDate: start, explicitEndDate: end },
+        {
+          temporal: "explicit_range",
+          weekday: null,
+          explicitStartDate: start,
+          explicitEndDate: end,
+        },
         tuesday,
       ),
     ).toEqual({ ok: false, reason });

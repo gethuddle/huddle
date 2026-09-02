@@ -55,8 +55,10 @@ enabled = true
 site_url = "http://localhost:3000"
 additional_redirect_urls = [
   "http://127.0.0.1:3000",
+  "http://127.0.0.1:3000/auth/reset-password/callback",
   "http://127.0.0.1:3000/auth/verify/callback",
   "http://localhost:3000",
+  "http://localhost:3000/auth/reset-password/callback",
   "http://localhost:3000/auth/verify/callback",
 ]
 jwt_expiry = 3600
@@ -80,6 +82,10 @@ otp_expiry = 3600
 [auth.email.template.confirmation]
 subject = "Confirm your Huddle account"
 content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Reset your Huddle password"
+content_path = "./supabase/templates/recovery.html"
 
 [auth.sms]
 enable_signup = false

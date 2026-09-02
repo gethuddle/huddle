@@ -9,13 +9,14 @@ import { addressSuggestionsSchema } from "@/features/locations/schemas";
 import type { AddressSuggestion, LocationSearchPurpose } from "@/features/locations/types";
 
 type AddressSearchProps = Readonly<{
+  initialQuery?: string;
   onConfirm: (suggestion: AddressSuggestion | null) => void;
   purpose: LocationSearchPurpose;
 }>;
 
-export function AddressSearch({ onConfirm, purpose }: AddressSearchProps) {
+export function AddressSearch({ initialQuery = "", onConfirm, purpose }: AddressSearchProps) {
   const listboxId = useId();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery);
   const [suggestions, setSuggestions] = useState<readonly AddressSuggestion[]>([]);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [retry, setRetry] = useState(0);

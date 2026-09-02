@@ -77,6 +77,14 @@ select has_function(
   'assisted discovery uses one bounded authorized search RPC'
 );
 select ok(
+  not has_function_privilege(
+    'authenticated',
+    'private.search_assisted_events_core(date,date,uuid[],uuid,text,text,text[],double precision,double precision)',
+    'execute'
+  ),
+  'authenticated clients cannot bypass the bounded assisted-result projection'
+);
+select ok(
   has_function_privilege(
     'authenticated',
     'public.claim_assisted_discovery_interpretation()',
@@ -119,6 +127,19 @@ select ok(
     ))
   ) = 0,
   'the result type structurally omits private and exact location fields'
+);
+select ok(
+  position(
+    'home_team_crest_url text' in lower(pg_get_function_result(
+      'public.search_assisted_events(date,date,uuid[],uuid,text,text,text[],double precision,double precision)'::regprocedure
+    ))
+  ) > 0
+  and position(
+    'group_name text' in lower(pg_get_function_result(
+      'public.search_assisted_events(date,date,uuid[],uuid,text,text,text[],double precision,double precision)'::regprocedure
+    ))
+  ) > 0,
+  'the safe result type includes team visuals and bounded group context'
 );
 select has_index(
   'public',
@@ -258,6 +279,17 @@ values
   ('aa100000-0000-4000-8000-000000000202', '00000000-0000-4000-8000-000000000020', 'ai-test', 'ai-team-a', 'AI Arsenal', 'Arsenal', 'AIA', 'England', statement_timestamp()),
   ('aa100000-0000-4000-8000-000000000203', '00000000-0000-4000-8000-000000000020', 'ai-test', 'ai-team-b', 'AI Chelsea', 'Chelsea', 'AIC', 'England', statement_timestamp()),
   ('aa100000-0000-4000-8000-000000000204', '00000000-0000-4000-8000-000000000020', 'ai-test', 'ai-team-c', 'AI United', 'United', 'AIU', 'England', statement_timestamp());
+
+update public.teams
+set crest_url = case id
+  when 'aa100000-0000-4000-8000-000000000202' then 'https://crests.football-data.org/ai-arsenal.png'
+  when 'aa100000-0000-4000-8000-000000000203' then 'https://crests.football-data.org/ai-chelsea.png'
+  else null
+end
+where id in (
+  'aa100000-0000-4000-8000-000000000202',
+  'aa100000-0000-4000-8000-000000000203'
+);
 
 insert into public.matches (
   id, provider, provider_external_id, competition_id, home_team_id, away_team_id,
@@ -401,6 +433,18 @@ select ok(
   'every returned facility match is explicitly self-reported by the Venue'
 );
 select ok(
+  (
+    select bool_and(
+      home_team_tla = 'AIA'
+      and home_team_crest_url = 'https://crests.football-data.org/ai-arsenal.png'
+      and away_team_tla = 'AIC'
+      and away_team_crest_url = 'https://crests.football-data.org/ai-chelsea.png'
+    )
+    from ai_general_results
+  ),
+  'result rows expose only the synchronized team visual projection'
+);
+select ok(
   (select bool_and(row_to_json(result)::text not like '%Hidden Public Address%') from ai_general_results as result),
   'safe result cards never expose a Venue address or coordinates'
 );
@@ -450,6 +494,21 @@ select is(
 select ok(
   (select bool_and(matched_my_group) from ai_group_results),
   'group results carry a deterministic matched-reason flag'
+);
+select is(
+  (select group_name from ai_group_results where event_id = 'aa100000-0000-4000-8000-000000000607'),
+  'AI Active Group',
+  'an authorized group result identifies the related group'
+);
+select is(
+  (select group_slug from ai_group_results where event_id = 'aa100000-0000-4000-8000-000000000607'),
+  'ai-active-group',
+  'an active member receives the unlisted group route'
+);
+select is(
+  (select group_relationship from ai_group_results where event_id = 'aa100000-0000-4000-8000-000000000607'),
+  'organizer',
+  'organizing-group context is distinguished from audience-group context'
 );
 
 update public.group_memberships

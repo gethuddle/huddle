@@ -797,6 +797,53 @@ test("01 signup, verification, required onboarding, and a team follow", async ({
   await expect(page.getByRole("link", { name: "Sign up" })).toBeVisible();
 });
 
+test("password recovery replaces the password without revealing account state", async ({
+  page,
+}) => {
+  await clearMailbox();
+
+  const suffix = uniqueSuffix();
+  const email = `recovery-${suffix}@example.com`;
+  const oldPassword = "matchday-local-test";
+  const newPassword = "new-matchday-local-test";
+  await seedCompletedUser(email, oldPassword, `recovery_${suffix}`, "Recovery Fan");
+
+  await page.goto("/auth/sign-in");
+  await page.getByRole("link", { name: "Forgot password?" }).click();
+  await expect(page.getByRole("heading", { name: "Reset your password" })).toBeVisible();
+  await page.getByRole("textbox", { name: "Email address" }).fill(email);
+  await page.getByRole("button", { name: "Send reset link" }).click();
+  await expect(page.getByRole("status")).toContainText("If that address can receive Huddle mail");
+
+  const recoveryUrl = await verificationUrlFor(email);
+  await page.goto(recoveryUrl.toString());
+  await expect(page).toHaveURL(/^http:\/\/(?:localhost|127\.0\.0\.1):3000\/auth\/reset-password$/);
+  await expect(page.getByRole("heading", { name: "Choose a new password" })).toBeVisible();
+  await page.getByLabel("New password", { exact: true }).fill(newPassword);
+  await page.getByLabel("Confirm new password").fill(newPassword);
+  await page.getByRole("button", { name: "Update password" }).click();
+
+  await expect(page).toHaveURL(
+    /^http:\/\/(?:localhost|127\.0\.0\.1):3000\/auth\/sign-in\?reset=success$/,
+  );
+  await expect(page.getByRole("status")).toContainText(
+    "Password updated. Sign in with your new password.",
+  );
+
+  await page.getByRole("textbox", { name: "Email address" }).fill(email);
+  await page.getByLabel("Password", { exact: true }).fill(oldPassword);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/\/auth\/sign-in\?reset=success$/);
+  await expect(page.getByRole("alert")).toBeVisible();
+
+  await page.goto("/auth/sign-in");
+  await page.getByRole("textbox", { name: "Email address" }).fill(email);
+  await page.getByLabel("Password", { exact: true }).fill(newPassword);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/^http:\/\/(?:localhost|127\.0\.0\.1):3000\/$/);
+  await expectProfileNavigation(page);
+});
+
 test("a block is private, directional, auditable, and reversible", async ({
   browser,
   context,

@@ -53,7 +53,12 @@ describe("assisted discovery HTTP contracts", () => {
         interpretation: "A sports name needs clarification.",
         reason: "unresolved_team",
       },
-      { status: "needs_location", interpretation: "Tomorrow nearby.", token: "signed.token" },
+      {
+        status: "needs_location",
+        interpretation: "Tomorrow nearby.",
+        token: "signed.token",
+        locationQuery: null,
+      },
       {
         status: "no_results",
         interpretation: "Tomorrow nearby.",

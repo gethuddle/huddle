@@ -158,10 +158,14 @@ export async function executeAssistedDiscovery(
     });
   }
 
-  if (resolution.intent.requiresOrigin && request.origin === undefined) {
+  if (
+    resolution.intent.requiresOrigin &&
+    (request.origin === undefined || draft.locationMention !== null)
+  ) {
     return assistedDiscoveryResponseSchema.parse({
       status: "needs_location",
       interpretation: interpretationSummary(resolution.intent),
+      locationQuery: draft.locationMention,
       token: encodeContinuationToken(
         { actorId, intent: resolution.intent },
         dependencies.tokenSecret,

@@ -1,21 +1,32 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { signInAction, signOutAction, signUpAction } from "./actions";
+import {
+  requestPasswordResetAction,
+  signInAction,
+  signOutAction,
+  signUpAction,
+  updatePasswordAction,
+} from "./actions";
 
 const mocks = vi.hoisted(() => ({
   cookieGet: vi.fn(),
   cookieSet: vi.fn(),
   cookies: vi.fn(),
   createClient: vi.fn(),
+  getUser: vi.fn(),
+  redirect: vi.fn(),
   revalidatePath: vi.fn(),
+  resetPasswordForEmail: vi.fn(),
   rpc: vi.fn(),
   signInWithPassword: vi.fn(),
   signOut: vi.fn(),
   signUp: vi.fn(),
+  updateUser: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock("next/headers", () => ({ cookies: mocks.cookies }));
+vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 
 vi.mock("@/lib/env/public", () => ({
   getPublicEnvironment: () => ({
@@ -43,9 +54,12 @@ describe("auth Server Actions", () => {
     mocks.rpc.mockResolvedValue({ data: [], error: null });
     mocks.createClient.mockResolvedValue({
       auth: {
+        getUser: mocks.getUser,
+        resetPasswordForEmail: mocks.resetPasswordForEmail,
         signInWithPassword: mocks.signInWithPassword,
         signOut: mocks.signOut,
         signUp: mocks.signUp,
+        updateUser: mocks.updateUser,
       },
       rpc: mocks.rpc,
     });
@@ -282,5 +296,74 @@ describe("auth Server Actions", () => {
     );
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/", "layout");
     expect(result).toMatchObject({ ok: true, data: { redirectTo: "/" } });
+  });
+
+  it("requests a recovery email through the dedicated callback and never exposes identity state", async () => {
+    mocks.resetPasswordForEmail.mockResolvedValue({
+      data: {},
+      error: new Error("User not found"),
+    });
+
+    const result = await requestPasswordResetAction(null, formData({ email: " Fan@Example.com " }));
+
+    expect(mocks.resetPasswordForEmail).toHaveBeenCalledWith("fan@example.com", {
+      redirectTo: "https://huddle.test/auth/reset-password/callback",
+    });
+    expect(result).toEqual({
+      ok: true,
+      data: {
+        message: "If that address can receive Huddle mail, a password reset link is on its way.",
+        redirectTo: null,
+      },
+    });
+    expect(JSON.stringify(result)).not.toContain("User not found");
+  });
+
+  it("keeps the recovery-request response identical during an upstream failure", async () => {
+    mocks.resetPasswordForEmail.mockRejectedValue(new Error("private transport detail"));
+
+    const result = await requestPasswordResetAction(null, formData({ email: "fan@example.com" }));
+
+    expect(result).toMatchObject({ ok: true, data: { redirectTo: null } });
+    expect(JSON.stringify(result)).not.toContain("private transport detail");
+  });
+
+  it("rejects a password update without an authenticated recovery session", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: null }, error: null });
+
+    const result = await updatePasswordAction(
+      null,
+      formData({
+        password: "new-matchday-password",
+        confirmPassword: "new-matchday-password",
+      }),
+    );
+
+    expect(result).toMatchObject({ ok: false, error: { code: "AUTH_REQUIRED" } });
+    expect(mocks.updateUser).not.toHaveBeenCalled();
+  });
+
+  it("updates the password, clears workspace state, and ends the recovery browser session", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: { id: "recovering-user" } }, error: null });
+    mocks.updateUser.mockResolvedValue({ data: { user: { id: "recovering-user" } }, error: null });
+    mocks.signOut.mockResolvedValue({ error: null });
+
+    await updatePasswordAction(
+      null,
+      formData({
+        password: "new-matchday-password",
+        confirmPassword: "new-matchday-password",
+      }),
+    );
+
+    expect(mocks.updateUser).toHaveBeenCalledWith({ password: "new-matchday-password" });
+    expect(mocks.signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(mocks.cookieSet).toHaveBeenCalledWith(
+      "huddle-workspace",
+      "",
+      expect.objectContaining({ maxAge: 0 }),
+    );
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/", "layout");
+    expect(mocks.redirect).toHaveBeenCalledWith("/auth/sign-in?reset=success");
   });
 });

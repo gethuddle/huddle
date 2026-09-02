@@ -2,8 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
-import { signInSchema, signUpSchema } from "@/features/auth/schemas";
+import {
+  passwordResetRequestSchema,
+  passwordUpdateSchema,
+  signInSchema,
+  signUpSchema,
+} from "@/features/auth/schemas";
 import type { AuthActionState } from "@/features/auth/state";
 import { parseWorkspaceCookie, workspaceRowsSchema } from "@/features/workspaces/schemas";
 import {
@@ -57,6 +63,84 @@ export async function signUpAction(
     message: "If that address can receive Huddle mail, a verification link is on its way.",
     redirectTo: null,
   });
+}
+
+export async function requestPasswordResetAction(
+  _previousState: AuthActionState,
+  formData: FormData,
+): Promise<AuthActionState> {
+  const parsed = passwordResetRequestSchema.safeParse({
+    email: formData.get("email"),
+  });
+
+  if (!parsed.success) {
+    return actionFailure(parsed.error);
+  }
+
+  try {
+    const supabase = await createClient();
+    const environment = getPublicEnvironment();
+    await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+      redirectTo: new URL(
+        "/auth/reset-password/callback",
+        environment.NEXT_PUBLIC_APP_URL,
+      ).toString(),
+    });
+  } catch {
+    // The response remains identical for unknown accounts, provider throttling,
+    // and temporary transport failures so the form cannot enumerate identities.
+  }
+
+  return actionSuccess({
+    message: "If that address can receive Huddle mail, a password reset link is on its way.",
+    redirectTo: null,
+  });
+}
+
+export async function updatePasswordAction(
+  _previousState: AuthActionState,
+  formData: FormData,
+): Promise<AuthActionState> {
+  const parsed = passwordUpdateSchema.safeParse({
+    password: formData.get("password"),
+    confirmPassword: formData.get("confirmPassword"),
+  });
+
+  if (!parsed.success) {
+    return actionFailure(parsed.error);
+  }
+
+  const supabase = await createClient();
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (error !== null || data.user === null) {
+      return actionFailure(new DomainError("AUTH_REQUIRED", { cause: error }));
+    }
+  } catch (cause) {
+    return actionFailure(new DomainError("AUTH_REQUIRED", { cause }));
+  }
+
+  try {
+    const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
+    if (error !== null) {
+      return actionFailure(new DomainError("INTERNAL_ERROR", { cause: error }));
+    }
+
+    const { error: signOutError } = await supabase.auth.signOut({ scope: "local" });
+    if (signOutError !== null) {
+      return actionFailure(new DomainError("INTERNAL_ERROR", { cause: signOutError }));
+    }
+  } catch (cause) {
+    return actionFailure(new DomainError("UPSTREAM_UNAVAILABLE", { cause }));
+  }
+
+  const cookieStore = await cookies();
+  cookieStore.set(WORKSPACE_COOKIE_NAME, "", {
+    ...workspaceCookieOptions(),
+    maxAge: 0,
+  });
+  revalidatePath("/", "layout");
+  redirect("/auth/sign-in?reset=success");
 }
 
 export async function signInAction(
