@@ -55,4 +55,19 @@ describe("TurnstileWidget", () => {
     await waitFor(() => expect(mocks.reset).toHaveBeenCalledWith("widget-id"));
     expect(screen.getByDisplayValue("")).toBeInTheDocument();
   });
+
+  it("stays safe when the Turnstile API is unavailable after rendering", async () => {
+    const { rerender, unmount } = render(
+      <TurnstileWidget action="login" resetKey={0} siteKey="site-key" />,
+    );
+    await screen.findByDisplayValue("fresh-turnstile-token");
+
+    delete window.turnstile;
+
+    expect(() =>
+      rerender(<TurnstileWidget action="login" resetKey={1} siteKey="site-key" />),
+    ).not.toThrow();
+    expect(screen.getByDisplayValue("")).toBeInTheDocument();
+    expect(() => unmount()).not.toThrow();
+  });
 });

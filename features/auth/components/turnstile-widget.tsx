@@ -24,7 +24,7 @@ type TurnstileApi = Readonly<{
 
 declare global {
   interface Window {
-    turnstile: TurnstileApi;
+    turnstile?: TurnstileApi;
   }
 }
 
@@ -67,7 +67,7 @@ export function TurnstileWidget({
   useEffect(() => {
     if (previousResetKey.current === resetKey) return;
     previousResetKey.current = resetKey;
-    if (widgetId.current !== null) window.turnstile.reset(widgetId.current);
+    if (widgetId.current !== null) window.turnstile?.reset(widgetId.current);
     updateToken("");
   }, [resetKey, updateToken]);
 
