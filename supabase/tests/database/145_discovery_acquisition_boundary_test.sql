@@ -618,6 +618,13 @@ values
     '64500000-0000-4000-8000-000000000105',
     'revoked',
     statement_timestamp()
+  ),
+  (
+    '64500000-0000-4000-8000-000000000606',
+    '64500000-0000-4000-8000-000000000101',
+    '64500000-0000-4000-8000-000000000105',
+    'accepted',
+    statement_timestamp()
   );
 
 insert into public.event_attendance (
@@ -628,8 +635,9 @@ values
   ('64500000-0000-4000-8000-000000000603', '64500000-0000-4000-8000-000000000101', 'requested', 'self_request', null, null, null, null, null, null),
   ('64500000-0000-4000-8000-000000000604', '64500000-0000-4000-8000-000000000101', 'approved', 'self_request', '64500000-0000-4000-8000-000000000105', statement_timestamp(), null, null, null, null),
   ('64500000-0000-4000-8000-000000000605', '64500000-0000-4000-8000-000000000101', 'declined', 'self_request', '64500000-0000-4000-8000-000000000105', statement_timestamp(), null, null, null, null),
-  ('64500000-0000-4000-8000-000000000606', '64500000-0000-4000-8000-000000000101', 'left', 'self_request', '64500000-0000-4000-8000-000000000105', statement_timestamp(), statement_timestamp(), null, null, null),
+  ('64500000-0000-4000-8000-000000000606', '64500000-0000-4000-8000-000000000101', 'left', 'direct_invite', '64500000-0000-4000-8000-000000000105', statement_timestamp(), statement_timestamp(), null, null, null),
   ('64500000-0000-4000-8000-000000000607', '64500000-0000-4000-8000-000000000101', 'removed', 'self_request', '64500000-0000-4000-8000-000000000105', statement_timestamp(), null, '64500000-0000-4000-8000-000000000105', statement_timestamp(), 'Removed for the Task 6 matrix.'),
+  ('64500000-0000-4000-8000-000000000622', '64500000-0000-4000-8000-000000000101', 'left', 'direct_invite', '64500000-0000-4000-8000-000000000105', statement_timestamp(), statement_timestamp(), null, null, null),
   ('64500000-0000-4000-8000-000000000611', '64500000-0000-4000-8000-000000000108', 'approved', 'self_request', '64500000-0000-4000-8000-000000000105', statement_timestamp(), null, null, null, null);
 
 set local role authenticated;
@@ -656,6 +664,7 @@ reset role;
 select is(
   (select array_agg(title order by title) from task6_fan_results),
   array[
+    'Attendance left event',
     'Eligible friends opportunity',
     'Eligible group opportunity',
     'Eligible public opportunity',
@@ -667,6 +676,11 @@ select is(
   'a signed-in Fan receives new opportunities plus events they created or manage'
 );
 select is(
+  (select count(*) from task6_fan_results where event_id = '64500000-0000-4000-8000-000000000606'),
+  1::bigint,
+  'retained left attendance does not permanently hide an otherwise-actionable event'
+);
+select is(
   (select count(*) from task6_fan_results where audience = 'invite_only'),
   0::bigint,
   'invite-only events are categorically absent from acquisition discovery'
@@ -674,7 +688,7 @@ select is(
 select is(
   (select count(*) from task6_fan_results where event_id = '64500000-0000-4000-8000-000000000622'),
   0::bigint,
-  'a pending invitation independently excludes an otherwise-visible public opportunity'
+  'a current pending invitation still excludes an otherwise-visible event with retained left attendance'
 );
 select ok(
   (
@@ -819,7 +833,7 @@ reset role;
 
 select is((select count(*) from task6_fan_first_page), 4::bigint, 'the first acquisition page is full');
 select ok((select bool_and(has_more) from task6_fan_first_page), 'the first acquisition page reports more eligible rows');
-select is((select count(*) from task6_fan_second_page), 3::bigint, 'the second page contains the remaining owned and acquisition rows');
+select is((select count(*) from task6_fan_second_page), 4::bigint, 'the second page contains the remaining owned and acquisition rows');
 select ok((select not bool_or(has_more) from task6_fan_second_page), 'the final acquisition page reports the true end');
 select is(
   (
@@ -840,6 +854,7 @@ select is(
     ) as page
   ),
   array[
+    'Attendance left event',
     'Eligible friends opportunity',
     'Eligible group opportunity',
     'Eligible public opportunity',

@@ -4,6 +4,8 @@
 **Date:** 30 August 2026
 **Inputs:** production UX audit F01–F40, the approved Huddle product-design sheet, the implementation and architecture specifications, and the user-approved Fan/Venue decisions in this task
 
+**Attendance-discovery correction (2 September 2026):** the original F21 wording treated retained `left` history like current participation. The approved current-state contract instead returns an otherwise actionable event to Explore and general Ask discovery after the attendee leaves; `requested`, `approved`, `declined`, `removed`, and current pending invitations remain excluded.
+
 ## 1. Outcome
 
 Huddle will become one coherent, task-led product instead of a collection of administration screens. The redesign must close every finding in `docs/UX-AUDIT-PRODUCTION-2026-08-29.md`, preserve the established Huddle identity, and make the submitted product understandable to a first-time fan or venue operator without knowledge of its database model.
@@ -414,7 +416,7 @@ The protected synchronization continues to write the local provider-neutral spor
 | F18 | 44px product target convention | Component CSS and browser measurement tests |
 | F19 | Contextual Find first friend recovery | Empty social-graph E2E |
 | F20 | Unified People search, suggestions, and relationships | Search/recommendation data and E2E coverage |
-| F21 | Removed/left/declined excluded from discovery | Transition matrix pgTAP and two-account E2E |
+| F21 | Current/non-rejoinable participation excluded; retained `left` attendance rediscoverable | Attend-then-leave transition pgTAP across Explore and Ask |
 | F22 | Applying groups appear in My Huddle | Pending application projection tests |
 | F23 | Cross-account work enters attention immediately | Two-session request/application tests |
 | F24 | Mutation returns authoritative state and invalidates cache | Remove-attendee component/E2E without reload |

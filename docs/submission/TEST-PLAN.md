@@ -25,7 +25,7 @@ and all 17 Playwright journeys. The PR/main CI run and second-computer reproduct
 remain separate evidence.
 
 The current inventory contains 179 passing Vitest files / 943 passing tests plus one skipped
-live-model test, 36 ordered migrations, 41 pgTAP files / 1681 assertions, and 32
+live-model test, 37 ordered migrations, 41 pgTAP files / 1685 assertions, and 32
 Playwright scenarios.
 The complete acceptance command passes this combined inventory. The B12 numbers above are
 retained as historical accepted evidence rather than presented as the current repository
@@ -86,8 +86,8 @@ inventory, CHECK/unique/FK invariants, minimum grants, safe reads, denied reads 
 mutations, lifecycle transitions, cooldowns, exact-address authorization, capacity,
 moderation, workspace membership, protected drafts, current-state projections,
 public-address caching and autocomplete, global group discovery, direct group invitations and member removal, team crest normalization, fixture coverage, open-door venue events, the public map
-projection, managed-Venue discovery continuity, fixture/event consistency, assisted-event
-authorization and safe crest/group projection, secure event
+projection, managed-Venue discovery continuity, fixture/event consistency, attend-then-leave
+rediscovery across Explore and assisted search, assisted-event authorization and safe crest/group projection, secure event
 invite links, audited group archive, and audited Venue closure. Dedicated two-connection regressions cover friendship/block,
 application/block, group invite, event creation, group review/block, attendance,
 onboarding/workspace activation, protected drafts, and suspension/mutation races.
