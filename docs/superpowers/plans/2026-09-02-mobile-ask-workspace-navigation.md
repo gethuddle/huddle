@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-02-mobile-ask-workspace-navigation-design.md`
 
-**Implementation status:** Complete and locally verified on 2 September 2026. `npm run test:acceptance` passes 938 Vitest assertions plus the skipped opt-in live test, 1,681 pgTAP assertions, the production build, all 31 Playwright journeys, the secret audit, and diff hygiene. The result is ready for reciprocal partner review; Git and GitHub remain the authority for its publication state.
+**Implementation status:** Complete and locally verified on 2 September 2026. `npm run test:acceptance` passes 943 Vitest assertions plus the skipped opt-in live test, 1,681 pgTAP assertions, the production build, all 32 Playwright journeys, the secret audit, and diff hygiene. The result is ready for reciprocal partner review; Git and GitHub remain the authority for its publication state.
 
 ## Global Constraints
 

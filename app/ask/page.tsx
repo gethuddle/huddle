@@ -37,19 +37,8 @@ export default async function AskPage() {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-9.75rem)] min-h-[30rem] flex-col py-4 sm:py-6 lg:h-[calc(100dvh-10rem)] lg:max-h-[48rem] lg:min-h-[36rem] lg:py-8">
-      <div className="lg:mb-4">
-        <p className="hidden text-sm font-medium text-forest lg:block">Assisted discovery</p>
-        <h1 className="sr-only mt-1 text-3xl font-semibold tracking-[-0.04em] text-foreground lg:not-sr-only">
-          Ask Huddle
-        </h1>
-        <p className="mt-2 hidden text-sm text-muted-foreground lg:block">
-          One question, up to three exact matches. Every question starts fresh.
-        </p>
-      </div>
-      <div className="flex min-h-0 flex-1">
-        <AssistedDiscoveryChat />
-      </div>
+    <div className="flex min-h-0 flex-1 flex-col" data-shell-mode="immersive">
+      <AssistedDiscoveryChat />
     </div>
   );
 }

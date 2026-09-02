@@ -16,7 +16,7 @@
 
 **Approved cityless location and catalog revision:** 31 August 2026. Explore accepts a privacy-safe session origin from browser location or a confirmed OpenStreetMap/Photon address suggestion and ranks eligible results by coordinate distance across municipal borders. Profiles and groups have no location; events and Venues use confirmed coordinates, with exact homes isolated in the protected location domain. The scheduled football-data sync may store a tightly validated provider crest URL for display with an accessible Huddle initials fallback; normal page requests still never call the sports provider.
 
-**Approved AI-assisted discovery revision:** 1 September 2026, with the Ask/navigation/date/location follow-up approved 2 September 2026. Active Fans may describe a desired watch event in one short sentence on the dedicated `/ask` route. Its chat-shaped UI retains only the current exchange and clears it when the route unmounts. Cloudflare Workers AI extracts only a bounded search intent; it receives no account, relationship, coordinate, attendance, event, or private-address data. Huddle deterministically resolves dates and named public places, validates sports entities against its local catalog, and keeps one authenticated Supabase function as the sole authorization, filtering, and ranking boundary. This revision does not approve generative answers, conversational context, autonomous tools, RAG, AI event creation, or AI moderation.
+**Approved AI-assisted discovery revision:** 1 September 2026, with the Ask/navigation/date/location follow-up approved 2 September 2026. Active Fans may describe a desired watch event in one short sentence on the dedicated `/ask` route. Its full-height, shadcn-composed chat UI retains only the current exchange, avoids a nested page-card shell, and clears when the route unmounts. Cloudflare Workers AI extracts only a bounded search intent; it receives no account, relationship, coordinate, attendance, event, or private-address data. Huddle deterministically resolves dates and named public places, validates sports entities against its local catalog, and keeps one authenticated Supabase function as the sole authorization, filtering, and ranking boundary. This revision does not approve generative answers, conversational context, autonomous tools, RAG, AI event creation, or AI moderation.
 
 The keywords **MUST**, **MUST NOT**, **SHOULD**, and **MAY** express implementation priority. A MUST is part of acceptance for the submitted MVP unless this specification is deliberately revised.
 
@@ -286,7 +286,7 @@ Unauthorized access MUST render a clear `not found`, `sign in`, `finish safety s
 Server Components SHOULD own page composition and initial reads. Client Components SHOULD be limited to interactive boundaries:
 
 - `DiscoveryFilters` and `DiscoveryResults`;
-- `AssistedDiscoveryChat` and its shared full-detail result item;
+- `AssistedDiscoveryChat` and its shared full-detail result ticket card;
 - `LocationConsent`;
 - `FollowButton`;
 - `FriendshipControl`;

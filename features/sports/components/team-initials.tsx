@@ -40,6 +40,7 @@ export function TeamMark({
   size = "md",
 }: TeamInitialsProps) {
   const [failedCrestUrl, setFailedCrestUrl] = useState<string | null>(null);
+  const [loadedCrestUrl, setLoadedCrestUrl] = useState<string | null>(null);
 
   const sharedClassName = cn(
     "shrink-0 rounded-full border border-border bg-muted",
@@ -51,15 +52,33 @@ export function TeamMark({
 
   if (crestUrl !== null && failedCrestUrl !== crestUrl) {
     return (
-      <Image
-        alt={name}
-        className={cn(sharedClassName, "object-contain p-1")}
-        height={56}
-        onError={() => setFailedCrestUrl(crestUrl)}
-        src={crestUrl}
-        unoptimized
-        width={56}
-      />
+      <span className={cn("relative inline-flex", sharedClassName, className)}>
+        <span
+          aria-hidden="true"
+          className={cn(
+            "absolute inset-0 inline-flex items-center justify-center font-bold tracking-[0.06em] text-forest transition-opacity",
+            size === "sm" && "text-[0.65rem]",
+            size === "md" && "text-xs",
+            size === "lg" && "text-sm",
+            loadedCrestUrl === crestUrl && "opacity-0",
+          )}
+        >
+          {teamInitials(name, tla ?? null)}
+        </span>
+        <Image
+          alt={name}
+          className={cn(
+            "relative size-full rounded-full object-contain p-1 opacity-0 transition-opacity",
+            loadedCrestUrl === crestUrl && "opacity-100",
+          )}
+          height={56}
+          onError={() => setFailedCrestUrl(crestUrl)}
+          onLoad={() => setLoadedCrestUrl(crestUrl)}
+          src={crestUrl}
+          unoptimized
+          width={56}
+        />
+      </span>
     );
   }
 

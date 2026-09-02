@@ -111,6 +111,27 @@ describe("AppShell", () => {
     expect(screen.queryByRole("link", { name: "Host event" })).not.toBeInTheDocument();
   });
 
+  it("gives Ask the full shell viewport and removes the ordinary page footer", async () => {
+    mocks.pathname = "/ask";
+    const fan = {
+      kind: "fan" as const,
+      id: "e4000000-0000-4000-8000-000000000101",
+      slug: "fan_one",
+      label: "Fan One",
+      role: "fan" as const,
+    };
+    mocks.getAppShellState.mockResolvedValue({
+      isSignedIn: true,
+      workspace: { active: fan, available: [fan], isModerator: false },
+    } satisfies AppShellState);
+
+    render(await AppShell({ children: <section>Ask conversation</section> }));
+
+    expect(screen.getByRole("main")).toHaveAttribute("data-shell-mode", "immersive");
+    expect(screen.getByRole("main")).toHaveClass("max-w-none", "overflow-hidden", "px-0");
+    expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
+  });
+
   it("keeps a signed-in identity with no workspace focused on choosing setup", async () => {
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: true,

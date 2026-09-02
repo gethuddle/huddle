@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -82,13 +82,41 @@ describe("AssistedDiscoveryChat", () => {
 
   afterEach(() => vi.unstubAllGlobals());
 
-  it("starts as a compact shadcn chat with no retained exchange", () => {
+  it("starts as a full-screen shadcn conversation with no retained exchange", () => {
     const first = render(<AssistedDiscoveryChat />);
 
+    const conversation = screen.getByRole("region", { name: "Ask Huddle conversation" });
+    expect(conversation).toHaveAttribute("data-layout", "immersive");
+    expect(conversation).not.toHaveClass("rounded-3xl", "border", "shadow-sm");
+    expect(screen.getByRole("heading", { name: "Ask Huddle" })).toHaveClass("sr-only");
+    expect(conversation.querySelector("header")).toBeNull();
     expect(screen.getByText("What kind of huddle are you after?")).toBeVisible();
+    const resetButton = screen.getByRole("button", { name: "Start a new search" });
+    expect(resetButton).toBeDisabled();
+    expect(resetButton).toHaveClass("size-11");
+    expect(resetButton.closest('[data-slot="input-group"]')).not.toBeNull();
+    expect(screen.getByRole("form", { name: "Ask Huddle question" })).toBeVisible();
+    const composer = document.querySelector('[data-slot="chat-composer"]');
+    expect(composer).not.toHaveClass("border-t", "bg-gradient-to-t");
+    expect(composer?.querySelector('[data-slot="input-group"]')).toHaveClass(
+      "rounded-[1.5rem]",
+      "border-foreground/25",
+      "shadow-none",
+    );
+    expect(
+      composer?.querySelector('[data-slot="input-group-addon"][data-align="block-end"]'),
+    ).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Send question" })).toHaveClass("size-11");
+    expect(screen.getByLabelText("Ask Huddle what you want to watch")).toHaveClass(
+      "placeholder:text-muted-foreground",
+    );
     expect(document.querySelector('[data-slot="message-scroller"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-slot="message-scroller-viewport"]')).toHaveClass(
+      "scroll-fade-b",
+      "contain-content",
+    );
     expect(document.querySelector('[data-slot="message"]')).toBeInTheDocument();
-    expect(document.querySelector('[data-slot="bubble"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-slot="bubble"]')).toHaveAttribute("data-variant", "ghost");
     expect(screen.queryByRole("list", { name: "Matching huddles" })).not.toBeInTheDocument();
 
     first.unmount();
@@ -110,13 +138,47 @@ describe("AssistedDiscoveryChat", () => {
     );
     render(<AssistedDiscoveryChat />);
 
-    await submit("Anything in Jerusalem on 2 September?");
+    const query = "Anything in Jerusalem on 2 September?";
+    await submit(query);
 
-    expect(await screen.findByText("Anything in Jerusalem on 2 September?")).toBeVisible();
-    expect(await screen.findByRole("heading", { name: "North London watch" })).toBeVisible();
+    const question = await screen.findByText(query);
+    expect(question.closest('[data-slot="bubble"]')).toHaveAttribute("data-variant", "muted");
+    expect(question.closest('[data-slot="message-scroller-item"]')).toHaveAttribute(
+      "data-scroll-anchor",
+      "true",
+    );
+    const resultHeading = await screen.findByRole("heading", { name: "North London watch" });
+    expect(resultHeading.closest('[data-slot="bubble"]')).toHaveAttribute("data-variant", "ghost");
+    expect(resultHeading.closest('[data-slot="message-scroller-item"]')).toHaveAttribute(
+      "data-scroll-anchor",
+      "false",
+    );
+    expect(resultHeading.closest('[data-presentation="ticket-card"]')).not.toBeNull();
+    expect(resultHeading.closest('[data-slot="card"]')).toHaveClass("border-foreground/25");
+    expect(resultHeading.closest('[data-slot="card"]')).toHaveClass("gap-0", "py-0");
+    expect(
+      resultHeading.closest('[data-slot="card"]')?.querySelector('[data-slot="card-header"]'),
+    ).toBeInTheDocument();
+    expect(
+      resultHeading.closest('[data-slot="card"]')?.querySelector('[data-slot="card-content"]'),
+    ).toBeInTheDocument();
+    expect(
+      resultHeading.closest('[data-slot="card"]')?.querySelector('[data-slot="card-footer"]'),
+    ).toBeInTheDocument();
+    expect(
+      resultHeading.closest('[data-slot="card"]')?.querySelector('[data-slot="card-footer"]'),
+    ).toHaveClass("h-11", "py-0");
+    expect(resultHeading.closest('[data-slot="item"]')).toBeNull();
+    expect(document.querySelector('[data-slot="badge"]')).toBeNull();
+    expect(
+      screen.getByText("2 Sep · Arsenal FC · venue lists food").closest('[data-slot="marker"]'),
+    ).toHaveAttribute("data-variant", "border");
+    expect(screen.getByText("Arsenal FC vs Chelsea FC", { exact: true })).toBeVisible();
     expect(screen.getByText("Jerusalem, Israel")).toBeVisible();
     expect(screen.getByText("You are going")).toBeVisible();
-    expect(screen.getByText("Self-reported: Food")).toBeVisible();
+    expect(screen.getByText("You are going")).toHaveClass("text-xs");
+    expect(screen.getByText("Premier League")).toHaveClass("text-xs");
+    expect(screen.getByText("Self-reported venue: Food")).toBeVisible();
     expect(screen.getByText("Hosted by The Corner")).toBeVisible();
     expect(screen.getByRole("img", { name: "Arsenal FC" })).toBeVisible();
     expect(screen.getByRole("img", { name: "Chelsea FC" })).toBeVisible();
@@ -125,6 +187,68 @@ describe("AssistedDiscoveryChat", () => {
       "/groups/north-london-supporters",
     );
     expect(screen.getByText("4 going · 36 places left")).toBeVisible();
+    expect(screen.getByRole("link", { name: "Open huddle" })).toHaveClass("text-forest");
+  });
+
+  it("renders three matches as three separately bordered tickets", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        apiResponse({
+          status: "results",
+          interpretation: "2–16 Sep · Premier League",
+          locationLabel: "Jerusalem, Israel",
+          results: [
+            resultCard,
+            {
+              ...resultCard,
+              id: "33333333-3333-4333-8333-333333333333",
+              title: "Derby night downtown",
+              viewerParticipationState: null,
+            },
+            {
+              ...resultCard,
+              id: "44444444-4444-4444-8444-444444444444",
+              title: "Supporters club screening",
+              viewerParticipationState: "invited",
+            },
+          ],
+        }),
+      ),
+    );
+    render(<AssistedDiscoveryChat />);
+
+    await submit("Premier League huddles in Jerusalem");
+
+    const list = await screen.findByRole("list", { name: "Matching huddles" });
+    expect(within(list).getAllByRole("listitem")).toHaveLength(3);
+    expect(list.querySelectorAll('[data-slot="card"]')).toHaveLength(3);
+    expect(list.querySelectorAll('[data-presentation="ticket-card"]')).toHaveLength(3);
+  });
+
+  it("resets the current exchange from the chat header", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        apiResponse({
+          status: "results",
+          interpretation: "2 Sep · Arsenal FC",
+          locationLabel: null,
+          results: [resultCard],
+        }),
+      ),
+    );
+    render(<AssistedDiscoveryChat />);
+
+    await submit("Arsenal tomorrow");
+    expect(await screen.findByRole("heading", { name: "North London watch" })).toBeVisible();
+
+    await userEvent.click(screen.getByRole("button", { name: "Start a new search" }));
+
+    expect(screen.queryByText("Arsenal tomorrow")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "North London watch" })).not.toBeInTheDocument();
+    expect(screen.getByText("What kind of huddle are you after?")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Start a new search" })).toBeDisabled();
   });
 
   it("replaces the previous exchange as soon as a new standalone question is sent", async () => {
@@ -187,6 +311,8 @@ describe("AssistedDiscoveryChat", () => {
 
     expect(screen.getByRole("status")).toHaveTextContent("Finding the best matches");
     expect(screen.getByRole("button", { name: "Send question" })).toBeDisabled();
+    expect(document.querySelector('[data-slot="marker-content"]')).toHaveClass("shimmer");
+    expect(document.querySelector('[data-slot="spinner"]')).not.toBeInTheDocument();
     expect(JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body))).toEqual({
       kind: "interpret",
       query: "Arsenal tomorrow",
@@ -236,7 +362,12 @@ describe("AssistedDiscoveryChat", () => {
     render(<AssistedDiscoveryChat />);
 
     const user = await submit("Anything nearby tomorrow?");
-    expect(await screen.findByText("Choose a search origin")).toBeVisible();
+    const locationHeading = await screen.findByText("Choose a search origin");
+    expect(locationHeading.closest('[data-surface="assistant-state"]')).not.toHaveClass(
+      "rounded-2xl",
+      "border",
+      "bg-card",
+    );
     await user.click(screen.getByRole("button", { name: "Use my current location" }));
 
     expect(await screen.findByRole("heading", { name: "North London watch" })).toBeVisible();
@@ -336,7 +467,13 @@ describe("AssistedDiscoveryChat", () => {
 
     await submit("question");
 
-    expect((await screen.findAllByText(expected)).length).toBeGreaterThan(0);
+    const messages = await screen.findAllByText(expected);
+    expect(messages.length).toBeGreaterThan(0);
+    expect(messages[0]?.closest('[data-surface="assistant-state"]')).not.toHaveClass(
+      "rounded-2xl",
+      "border",
+      "bg-card",
+    );
     expect(screen.getByRole("status")).toHaveTextContent(body.interpretation);
   });
 
@@ -357,7 +494,12 @@ describe("AssistedDiscoveryChat", () => {
 
     await submit("Arsenal in Jerusalem on 5 October");
 
-    expect(await screen.findByText("No exact matches this time.")).toBeVisible();
+    const noResultsHeading = await screen.findByText("No exact matches this time.");
+    expect(noResultsHeading.closest('[data-surface="assistant-state"]')).not.toHaveClass(
+      "rounded-2xl",
+      "border",
+      "bg-card",
+    );
     expect(screen.getByText("Jerusalem, Israel")).toBeVisible();
     expect(screen.getByRole("link", { name: "Open Explore" })).toHaveAttribute(
       "href",
@@ -381,7 +523,9 @@ describe("AssistedDiscoveryChat", () => {
 
     await submit("Arsenal tomorrow");
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(message);
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(message);
+    expect(alert.closest('[data-slot="bubble"]')).toHaveAttribute("data-variant", "destructive");
     expect(screen.getByRole("status")).toHaveTextContent(message);
   });
 
@@ -403,6 +547,8 @@ describe("AssistedDiscoveryChat", () => {
     input.focus();
     expect(input).toHaveFocus();
     await user.type(input, "weather tomorrow");
+    await user.tab();
+    expect(screen.getByRole("button", { name: "Start a new search" })).toHaveFocus();
     await user.tab();
     expect(screen.getByRole("button", { name: "Send question" })).toHaveFocus();
     await user.keyboard("{Enter}");

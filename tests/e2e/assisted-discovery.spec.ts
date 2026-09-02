@@ -83,6 +83,11 @@ function cancelPriorAssistedDiscoveryEvents() {
         or title like 'Group UCL huddle %'
         or title like 'Jerusalem weekday huddle %'
         or title like 'Jerusalem weekday decoy %'
+        or title = 'Match night at The Corner'
+        or title = 'Arsenal vs Chelsea with friends'
+        or title = 'Champions League supporters watch'
+        or title = 'Jerusalem midweek watch'
+        or title = 'Jerusalem date decoy'
       );
   `);
 }
@@ -95,10 +100,19 @@ async function seedFan(run: string, role: string): Promise<FanSeed> {
   const created = await admin.auth.admin.createUser({ email, password, email_confirm: true });
   if (created.error !== null) throw created.error;
   const client = await localUserClient(email);
+  const displayNames: Record<string, string> = {
+    viewer: "Alex Morgan",
+    friend: "Daniel Cohen",
+    "group-owner": "Maya Levi",
+    "venue-owner": "The Corner Team",
+    "jerusalem-viewer": "Noa Ben-David",
+    "jerusalem-venue-owner": "Jerusalem Host",
+    "jerusalem-decoy-owner": "Jerusalem Decoy Host",
+  };
   const activated = await client.rpc("activate_fan_workspace", {
     input_adult_attested: true,
     input_bio: "",
-    input_display_name: `Assisted ${role} ${run}`,
+    input_display_name: displayNames[role] ?? `Assisted ${role}`,
     input_handle: handle,
     input_rules_version: 1,
   });
@@ -338,7 +352,7 @@ function eventInput(
     input_ends_at: new Date(startsAt.getTime() + 3 * 3_600_000).toISOString(),
     input_place_kind: "public_place",
     input_venue_id: null as unknown as string,
-    input_public_place_name: "Assisted Test Hall",
+    input_public_place_name: "The Green Room",
     input_public_address_text: "1 Browser Test Street, Haifa",
     input_public_longitude: 35,
     input_public_latitude: 32.8,
@@ -379,7 +393,7 @@ async function createVenueEvent(
     input_longitude: location.longitude,
     input_main_space_capacity: 80,
     input_main_space_name: "Main screen",
-    input_name: `Assisted Venue ${run}`,
+    input_name: "The Corner",
     input_representation_attested: true,
     input_rules_version: 1,
     input_slug: `assisted-venue-${run}`,
@@ -433,7 +447,7 @@ async function createGroupEvent(
 ) {
   const group = await owner.client.rpc("create_group", {
     input_description: "An unlisted group for deterministic assisted-discovery coverage.",
-    input_name: `Assisted Group ${run}`,
+    input_name: "North London Supporters",
     input_slug: `assisted-group-${run}`,
     input_team_id: null as unknown as string,
     input_visibility: "unlisted",
@@ -509,6 +523,80 @@ async function search(page: Page, query: string) {
   await submitButton.click();
 }
 
+async function expectAskViewportIntegrity(page: Page, mobileNavigationVisible: boolean) {
+  const layout = await page.evaluate(() => {
+    const required = (selector: string) => {
+      const element = document.querySelector<HTMLElement>(selector);
+      if (element === null) throw new Error(`Missing ${selector}`);
+      return element;
+    };
+    const rectangle = (element: HTMLElement) => {
+      const bounds = element.getBoundingClientRect();
+      return {
+        bottom: bounds.bottom,
+        height: bounds.height,
+        left: bounds.left,
+        right: bounds.right,
+        top: bounds.top,
+        width: bounds.width,
+      };
+    };
+    const composer = required('[data-slot="input-group"]');
+    const composerStyle = getComputedStyle(composer);
+    const navigation = document.querySelector<HTMLElement>(
+      'nav[aria-label="Fan mobile navigation"]',
+    );
+
+    return {
+      composer: rectangle(composer),
+      composerStyle: {
+        backgroundColor: composerStyle.backgroundColor,
+        borderColor: composerStyle.borderTopColor,
+        borderStyle: composerStyle.borderTopStyle,
+        borderWidth: composerStyle.borderTopWidth,
+      },
+      documentHeight: document.documentElement.scrollHeight,
+      documentWidth: document.documentElement.scrollWidth,
+      navigation:
+        navigation === null || getComputedStyle(navigation).display === "none"
+          ? null
+          : rectangle(navigation),
+      region: rectangle(required('[aria-label="Ask Huddle conversation"]')),
+      reset: rectangle(required('button[aria-label="Start a new search"]')),
+      scrollerOverflow: getComputedStyle(required('[data-slot="message-scroller-viewport"]'))
+        .overflowY,
+      send: rectangle(required('button[aria-label="Send question"]')),
+      viewportHeight: window.innerHeight,
+      viewportWidth: window.innerWidth,
+      windowScrollY: window.scrollY,
+    };
+  });
+
+  expect(layout.windowScrollY).toBe(0);
+  expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
+  expect(layout.documentHeight).toBeLessThanOrEqual(layout.viewportHeight + 2);
+  expect(layout.region.left).toBeLessThanOrEqual(1);
+  expect(layout.region.right).toBeGreaterThanOrEqual(layout.viewportWidth - 1);
+  expect(layout.scrollerOverflow).toBe("auto");
+  expect(layout.composerStyle.borderWidth).toBe("1px");
+  expect(layout.composerStyle.borderStyle).toBe("solid");
+  expect(layout.composerStyle.borderColor).not.toBe("rgba(0, 0, 0, 0)");
+  expect(layout.composerStyle.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+  expect(layout.reset.width).toBeGreaterThanOrEqual(44);
+  expect(layout.reset.height).toBeGreaterThanOrEqual(44);
+  expect(layout.send.width).toBeGreaterThanOrEqual(44);
+  expect(layout.send.height).toBeGreaterThanOrEqual(44);
+
+  if (mobileNavigationVisible) {
+    expect(layout.navigation).not.toBeNull();
+    expect(layout.navigation!.bottom).toBeGreaterThanOrEqual(layout.viewportHeight - 1);
+    expect(layout.composer.bottom).toBeLessThanOrEqual(layout.navigation!.top + 1);
+  } else {
+    expect(layout.navigation).toBeNull();
+    expect(layout.composer.bottom).toBeLessThanOrEqual(layout.viewportHeight + 1);
+  }
+}
+
 test("the three core assisted-discovery examples find authorized seeded huddles", async ({
   page,
 }) => {
@@ -520,9 +608,9 @@ test("the three core assisted-discovery examples find authorized seeded huddles"
   const groupOwner = await seedFan(run, "group-owner");
   const venueOwner = await seedFan(run, "venue-owner");
   const fixtures = await seedFixtures(run, viewer.client);
-  const venueTitle = `Food venue huddle ${run}`;
-  const friendTitle = `Friend Arsenal Chelsea huddle ${run}`;
-  const groupTitle = `Group UCL huddle ${run}`;
+  const venueTitle = "Match night at The Corner";
+  const friendTitle = "Arsenal vs Chelsea with friends";
+  const groupTitle = "Champions League supporters watch";
   await createVenueEvent(venueOwner, fixtures.tomorrow, run, venueTitle);
   await createFriendEvent(viewer, friend, fixtures.nextWeek, friendTitle);
   await createGroupEvent(viewer, groupOwner, fixtures.weekend, run, groupTitle);
@@ -536,6 +624,14 @@ test("the three core assisted-discovery examples find authorized seeded huddles"
   await page.setViewportSize({ width: 375, height: 812 });
   await signIn(page, viewer.email);
   await page.goto("/ask");
+
+  const conversation = page.getByRole("region", { name: "Ask Huddle conversation" });
+  await expect(conversation).toHaveAttribute("data-layout", "immersive");
+  await expect(page.locator("main#main-content")).toHaveAttribute("data-shell-mode", "immersive");
+  await expect(page.getByRole("contentinfo")).toHaveCount(0);
+  const conversationBox = await conversation.boundingBox();
+  expect(conversationBox?.x).toBeLessThanOrEqual(1);
+  expect(conversationBox?.width).toBeGreaterThanOrEqual(374);
 
   const mobileNavigation = page.getByRole("navigation", { name: "Fan mobile navigation" });
   await expect(mobileNavigation.getByRole("link")).toHaveText([
@@ -566,7 +662,9 @@ test("the three core assisted-discovery examples find authorized seeded huddles"
       .first(),
   ).toBeVisible();
   await expect(page.getByText("Venue lists food.", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("Self-reported: Food", { exact: true }).first()).toBeVisible();
+  await expect(
+    page.getByText("Self-reported venue: Food · Drinks", { exact: true }).first(),
+  ).toBeVisible();
 
   await search(
     page,
@@ -577,7 +675,7 @@ test("the three core assisted-discovery examples find authorized seeded huddles"
 
   await search(page, "is there groups im a part of that have UCL games planned for this weekend");
   await expect(page.getByText(groupTitle, { exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: `Assisted Group ${run}` })).toHaveAttribute(
+  await expect(page.getByRole("link", { name: "North London Supporters" })).toHaveAttribute(
     "href",
     `/groups/assisted-group-${run}`,
   );
@@ -594,7 +692,145 @@ test("the three core assisted-discovery examples find authorized seeded huddles"
     document: document.documentElement.scrollHeight,
     viewport: window.innerHeight,
   }));
-  expect(mobilePageHeight.document).toBeLessThanOrEqual(mobilePageHeight.viewport + 300);
+  expect(mobilePageHeight.document).toBeLessThanOrEqual(mobilePageHeight.viewport + 2);
+
+  await expectAskViewportIntegrity(page, true);
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await expectAskViewportIntegrity(page, true);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expectAskViewportIntegrity(page, false);
+});
+
+test("three result responses stay separated as individual tickets", async ({ page }) => {
+  test.setTimeout(60_000);
+  const run = suffix();
+  const viewer = await seedFan(run, "viewer");
+  const startsAt = kickoff(addDays(israelDate(), 2));
+  const endsAt = new Date(new Date(startsAt).getTime() + 3 * 60 * 60_000).toISOString();
+  const baseResult = {
+    id: "11111111-1111-4111-8111-111111111111",
+    title: "Champions League supporters watch",
+    host: {
+      kind: "venue" as const,
+      displayName: "The Green Room",
+      venueSlug: "the-green-room",
+      verificationStatus: "unverified" as const,
+    },
+    match: {
+      id: "22222222-2222-4222-8222-222222222222",
+      competitionName: "UEFA Champions League",
+      homeTeamName: "Arsenal FC",
+      homeTeamTla: "ARS",
+      homeTeamCrestUrl: "https://crests.football-data.org/57.png",
+      awayTeamName: "Chelsea FC",
+      awayTeamTla: "CHE",
+      awayTeamCrestUrl: "https://crests.football-data.org/61.png",
+    },
+    group: {
+      name: "North London Supporters",
+      slug: `assisted-group-${run}`,
+      relationship: "organizer" as const,
+    },
+    startsAt,
+    endsAt,
+    placeKind: "venue" as const,
+    locationSummary: "The Green Room",
+    audience: "group" as const,
+    attendanceMode: "reservations" as const,
+    capacity: 24,
+    approvedAttendeeCount: 8,
+    remainingCapacity: 16,
+    requiresApproval: true,
+    viewerParticipationState: null,
+    venueFacilities: ["food", "drinks"] as const,
+    matchedReasons: ["From one of your groups"],
+  };
+
+  await page.route("**/api/assisted-discovery", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      json: {
+        status: "results",
+        interpretation: "4–6 Sep · UEFA Champions League · from one of your groups",
+        locationLabel: null,
+        results: [
+          baseResult,
+          {
+            ...baseResult,
+            id: "33333333-3333-4333-8333-333333333333",
+            title: "Late kickoff at The Corner",
+            host: {
+              ...baseResult.host,
+              displayName: "The Corner",
+              venueSlug: "the-corner",
+            },
+            locationSummary: "The Corner · 1–5 km away",
+            approvedAttendeeCount: 12,
+            remainingCapacity: 12,
+            viewerParticipationState: "invited",
+          },
+          {
+            ...baseResult,
+            id: "44444444-4444-4444-8444-444444444444",
+            title: "Supporters club screening",
+            host: {
+              kind: "person",
+              displayName: "Maya Levi",
+              venueSlug: null,
+              verificationStatus: null,
+            },
+            placeKind: "public_place",
+            locationSummary: "City centre",
+            capacity: 18,
+            approvedAttendeeCount: 6,
+            remainingCapacity: 12,
+            venueFacilities: [],
+            matchedReasons: ["Hosted by a friend", "From one of your groups"],
+          },
+        ],
+      },
+      status: 200,
+    });
+  });
+
+  await page.setViewportSize({ width: 375, height: 812 });
+  await signIn(page, viewer.email);
+  await page.goto("/ask");
+  await search(page, "UCL games from my groups this weekend");
+
+  const tickets = page.locator('[data-presentation="ticket-card"]');
+  await expect(tickets).toHaveCount(3);
+  await expect(page.getByRole("img", { name: "Arsenal FC" }).first()).toHaveCSS("opacity", "1");
+  await expect(page.getByRole("img", { name: "Chelsea FC" }).first()).toHaveCSS("opacity", "1");
+  await expect(tickets.nth(0)).toBeVisible();
+  await expect(tickets.nth(1)).toBeVisible();
+  await expect(tickets.nth(2)).toBeVisible();
+  for (const ticket of await tickets.all()) {
+    await expect(ticket).toHaveCSS("border-top-style", "solid");
+    await expect(ticket).not.toHaveCSS("border-top-color", "rgba(0, 0, 0, 0)");
+  }
+  await expect(page.getByRole("navigation", { name: "Fan mobile navigation" })).toBeVisible();
+
+  const ticketHeights = await tickets.evaluateAll((elements) =>
+    elements.map((element) => element.getBoundingClientRect().height),
+  );
+  expect(Math.max(...ticketHeights)).toBeLessThanOrEqual(325);
+
+  const scroller = page.locator('[data-slot="message-scroller-viewport"]');
+  await scroller.evaluate((element) => {
+    element.scrollTop = 0;
+  });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(page.getByRole("banner")).toBeInViewport();
+
+  await scroller.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await expect(tickets.nth(2)).toBeInViewport();
+  await expect(page.getByRole("banner")).toBeInViewport();
+  await expect(page.locator('[data-slot="chat-composer"]')).toBeInViewport();
+  await expect(page.getByRole("navigation", { name: "Fan mobile navigation" })).toBeInViewport();
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
 });
 
 test("a named place overrides the remembered origin while dates stay exact and state stays ephemeral", async ({
@@ -607,8 +843,8 @@ test("a named place overrides the remembered origin while dates stay exact and s
   const venueOwner = await seedFan(run, "jerusalem-venue-owner");
   const decoyVenueOwner = await seedFan(run, "jerusalem-decoy-owner");
   const fixtures = await seedFixtures(run, viewer.client);
-  const title = `Jerusalem weekday huddle ${run}`;
-  const decoyTitle = `Jerusalem weekday decoy ${run}`;
+  const title = "Jerusalem midweek watch";
+  const decoyTitle = "Jerusalem date decoy";
   await createVenueEvent(venueOwner, fixtures.nextWednesday, run, title, {
     address: "1 Jaffa Street, Jerusalem",
     latitude: 31.778,

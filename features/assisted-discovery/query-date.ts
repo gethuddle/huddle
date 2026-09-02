@@ -198,7 +198,10 @@ function combineDateRange(
 }
 
 export function resolveQueryDateRange(query: string, now: Date): QueryDateRangeResult {
-  const normalized = query.normalize("NFKC").toLocaleLowerCase("en");
+  const normalized = query
+    .normalize("NFKC")
+    .toLocaleLowerCase("en")
+    .replace(/\b(?:tommorow|tomorow)\b/gu, "tomorrow");
   const today = formatIsraelDateValue(now);
 
   if (/\btoday\b/u.test(normalized)) {

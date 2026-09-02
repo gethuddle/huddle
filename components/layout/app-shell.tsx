@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { getAppShellState } from "@/features/workspaces/queries";
 import { getServerEnvironment } from "@/lib/env/server";
 
-import { SiteFooter } from "./site-footer";
+import { AppShellFrame } from "./app-shell-frame";
 import { SiteHeader } from "./site-header";
 
 type AppShellProps = Readonly<{
@@ -30,13 +30,7 @@ export async function AppShell({ children }: AppShellProps) {
           context={state.workspace}
           isSignedIn={state.isSignedIn}
         />
-        <main
-          className={`mx-auto flex w-full max-w-7xl flex-1 flex-col px-5 sm:px-8 lg:px-10 ${hasWorkspaceNavigation ? "pb-20 lg:pb-0" : ""}`}
-          id="main-content"
-        >
-          {children}
-        </main>
-        <SiteFooter />
+        <AppShellFrame hasWorkspaceNavigation={hasWorkspaceNavigation}>{children}</AppShellFrame>
       </div>
     </div>
   );

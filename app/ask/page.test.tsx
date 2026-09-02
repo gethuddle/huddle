@@ -17,7 +17,11 @@ vi.mock("@/lib/env/server", () => ({
 }));
 vi.mock("@/features/auth/actor", () => ({ requireActor: mocks.requireActor }));
 vi.mock("@/features/assisted-discovery/components/assisted-discovery-chat", () => ({
-  AssistedDiscoveryChat: () => <section aria-label="Ask Huddle conversation" />,
+  AssistedDiscoveryChat: () => (
+    <section aria-label="Ask Huddle conversation">
+      <h1>Ask Huddle</h1>
+    </section>
+  ),
 }));
 
 import AskPage from "./page";
@@ -38,6 +42,9 @@ describe("AskPage", () => {
     expect(mocks.requireActor).toHaveBeenCalledWith("fan");
     expect(screen.getByRole("heading", { name: "Ask Huddle" })).toBeVisible();
     expect(screen.getByRole("region", { name: "Ask Huddle conversation" })).toBeVisible();
+    expect(
+      screen.getByRole("region", { name: "Ask Huddle conversation" }).parentElement,
+    ).toHaveAttribute("data-shell-mode", "immersive");
   });
 
   it("stays undiscoverable when the feature flag is disabled", async () => {

@@ -28,14 +28,14 @@ The same revision will make workspace navigation consistent on phones, fix the p
 
 - `/ask` is available only when assisted discovery is enabled and the current session has an active Fan workspace.
 - Fan Home no longer imports or renders the assisted-discovery form.
-- The route renders a height-bounded conversation surface on mobile and a centered conversation panel on larger screens.
-- Repository-owned Radix-compatible shadcn `Message`, `Bubble`, and `MessageScroller` primitives provide the conversation layout. Existing Huddle `Marker`, `InputGroup`, `Button`, `Item`, and brand tokens provide status, input, and result presentation.
+- The route is a full-height, edge-to-edge conversation canvas inside the application chrome at every breakpoint; it never adds a nested popup or page-card shell. Message content and the docked composer use a readable centered measure on larger screens.
+- Repository-owned Radix-compatible shadcn `Message`, `Bubble`, and `MessageScroller` primitives provide the conversation layout. Existing Huddle `Marker`, block-end `InputGroup`, `Button`, `Card`, and brand tokens provide status, the two-row composer, and result presentation.
 - The initial state contains a short assistant greeting and example prompts, with a docked composer.
 - Submitting a sentence shows that sentence as the sole user message, then a polite pending marker, then the sole assistant response.
 - A later submission replaces the prior exchange instead of appending history. Every request continues to use the existing `POST /api/assisted-discovery` contract and contains only the new sentence plus an optional session origin.
 - Component state is local to the `/ask` page. It is not placed in a URL, cookie, local storage, session storage, database row, analytics payload, or server cache. Leaving `/ask` and returning starts empty.
 - The API remains non-streaming and one-shot. Chat styling must not introduce the Vercel AI SDK, an agent, tools, RAG, or conversational context.
-- Result replies reuse the complete existing result row: both crests, competition and kickoff, title, host, venue-verification state, group context, coarse location, attendance/capacity state, approval mode, match reasons, self-reported facilities, participation state, and `Open huddle` action.
+- Result replies render each match as a separate, clearly bordered, phone-dense `Card` ticket with header, body, and footer. Every ticket retains both crests, competition and kickoff, title, host, venue-verification state, group context, coarse location, attendance/capacity state, approval mode, match reasons, self-reported facilities, participation state, and `Open huddle` action.
 - Clarification, unsupported, no-result, rate-limit, provider-outage, and location-needed responses appear as assistant messages and remain accessible through polite live-region announcements.
 
 ### Date interpretation

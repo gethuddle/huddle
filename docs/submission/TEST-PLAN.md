@@ -24,14 +24,14 @@ The 2026-08-29 B12 run passed 90 Vitest files / 403 tests (78.7% statements,
 and all 17 Playwright journeys. The PR/main CI run and second-computer reproduction
 remain separate evidence.
 
-The current inventory contains 179 passing Vitest files / 938 passing tests plus one skipped
-live-model test, 36 ordered migrations, 41 pgTAP files / 1681 assertions, and 31
+The current inventory contains 179 passing Vitest files / 943 passing tests plus one skipped
+live-model test, 36 ordered migrations, 41 pgTAP files / 1681 assertions, and 32
 Playwright scenarios.
 The complete acceptance command passes this combined inventory. The B12 numbers above are
 retained as historical accepted evidence rather than presented as the current repository
 inventory. Hosted migration and production acceptance remain separately evidenced operations.
 
-## Thirty-one deterministic Playwright scenarios
+## Thirty-two deterministic Playwright scenarios
 
 All numbered journeys are in `tests/e2e/auth.spec.ts`. Provider input is a saved,
 normalized fixture inserted through the real sync transaction; identifiers are
@@ -70,7 +70,7 @@ detail, the five-item Fan navigation, a viewport-bounded transcript, and a visib
 composer; a second proves that a named Jerusalem origin resolves automatically, overrides
 remembered Haifa state, that `next Wednesday` excludes a nearby-date decoy, that a named
 month does not use the 14-day default, and that leaving Ask clears the exchange. The local
-seam calls neither live AI nor a live geocoder. This produces 31 Playwright scenarios in total. The supporting journeys exercise password
+seam calls neither live AI nor a live geocoder. This produces 32 Playwright scenarios in total. The supporting journeys exercise password
 recovery through Mailpit and Supabase Auth, reversible blocking, and both venue/private
 event creation paths.
 Production smoke tests are deliberately separate under

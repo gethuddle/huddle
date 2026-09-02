@@ -1,6 +1,6 @@
 "use client";
 
-import { LocateFixed, MapPin, Send, Sparkles } from "lucide-react";
+import { ArrowUp, LocateFixed, MapPin, RotateCw } from "lucide-react";
 import Link from "next/link";
 import { type FormEvent, useState } from "react";
 
@@ -10,11 +10,11 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
-  InputGroupInput,
+  InputGroupTextarea,
 } from "@/components/ui/input-group";
 import { ItemGroup } from "@/components/ui/item";
-import { Marker, MarkerContent, MarkerIcon } from "@/components/ui/marker";
-import { Message, MessageAvatar, MessageContent } from "@/components/ui/message";
+import { Marker, MarkerContent } from "@/components/ui/marker";
+import { Message, MessageContent } from "@/components/ui/message";
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -23,7 +23,6 @@ import {
   MessageScrollerProvider,
   MessageScrollerViewport,
 } from "@/components/ui/message-scroller";
-import { Spinner } from "@/components/ui/spinner";
 import { readSessionOrigin, writeSessionOrigin } from "@/features/discovery/session-origin";
 import { AddressSearch } from "@/features/locations/components/address-search";
 import type { AddressSuggestion } from "@/features/locations/types";
@@ -84,14 +83,6 @@ function clarificationHelp(
   return "Try the official team or competition name.";
 }
 
-function AssistantAvatar() {
-  return (
-    <MessageAvatar aria-hidden="true" className="size-8 bg-primary/12 text-forest">
-      <Sparkles className="size-4" />
-    </MessageAvatar>
-  );
-}
-
 type OriginActions = Readonly<{
   loading: boolean;
   locating: boolean;
@@ -105,12 +96,11 @@ function AssistantResponse({
 }: Readonly<{ actions: OriginActions; response: AssistedDiscoveryResponse }>) {
   return (
     <Message>
-      <AssistantAvatar />
-      <MessageContent>
+      <MessageContent className="gap-3">
         <Bubble className="max-w-full" variant="ghost">
           <BubbleContent className="w-full">
             {response.status === "needs_location" ? (
-              <div className="rounded-2xl border border-border bg-card p-4">
+              <div className="max-w-xl" data-surface="assistant-state">
                 <p className="font-semibold text-foreground">Choose a search origin</p>
                 <p className="mt-1 text-sm leading-6 text-muted-foreground">
                   {response.interpretation}. Use your current location or choose an area below. It
@@ -127,11 +117,11 @@ function AssistantResponse({
                   <LocateFixed aria-hidden="true" />
                   {actions.locating ? "Requesting location…" : "Use my current location"}
                 </Button>
-                <details className="mt-3 rounded-xl border border-border px-3 py-2.5">
+                <details className="mt-4 border-t border-border pt-3">
                   <summary className="cursor-pointer text-sm font-semibold text-foreground">
                     Search an area or address
                   </summary>
-                  <div className="mt-3 border-t border-border pt-3">
+                  <div className="mt-3">
                     <AddressSearch
                       key={response.token}
                       onConfirm={actions.useAddressOrigin}
@@ -143,25 +133,29 @@ function AssistantResponse({
             ) : null}
 
             {response.status === "clarification" ? (
-              <div className="rounded-2xl border border-border bg-card p-4">
+              <div className="max-w-xl" data-surface="assistant-state">
                 <p className="font-semibold text-foreground">{response.interpretation}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{clarificationHelp(response)}</p>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  {clarificationHelp(response)}
+                </p>
               </div>
             ) : null}
 
             {response.status === "unsupported" ? (
-              <div className="rounded-2xl border border-border bg-card p-4">
+              <div className="max-w-xl" data-surface="assistant-state">
                 <p className="font-semibold text-foreground">{response.interpretation}</p>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
                   Ask for huddles by match, date, place, friends, groups, or venue facilities.
                 </p>
               </div>
             ) : null}
 
             {response.status === "no_results" ? (
-              <div className="rounded-2xl border border-border bg-card p-4">
+              <div className="max-w-xl" data-surface="assistant-state">
                 <p className="font-semibold text-foreground">No exact matches this time.</p>
-                <p className="mt-1 text-sm text-muted-foreground">{response.interpretation}</p>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  {response.interpretation}
+                </p>
                 {response.locationLabel === null ? null : (
                   <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
                     <MapPin aria-hidden="true" className="size-3.5" />
@@ -183,16 +177,18 @@ function AssistantResponse({
 
             {response.status === "results" ? (
               <div className="min-w-0">
-                <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <p className="text-sm font-medium text-forest">{response.interpretation}</p>
+                <Marker className="mb-3 text-xs" variant="border">
+                  <MarkerContent className="font-medium text-forest">
+                    {response.interpretation}
+                  </MarkerContent>
                   {response.locationLabel === null ? null : (
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
                       <MapPin aria-hidden="true" className="size-3.5" />
                       {response.locationLabel}
                     </span>
                   )}
-                </div>
-                <ItemGroup aria-label="Matching huddles" className="gap-2.5">
+                </Marker>
+                <ItemGroup aria-label="Matching huddles" className="gap-3">
                   {response.results.map((result) => (
                     <AssistedDiscoveryResult key={result.id} result={result} />
                   ))}
@@ -319,156 +315,191 @@ export function AssistedDiscoveryChat() {
     );
   }
 
+  function resetConversation() {
+    setQuery("");
+    setSubmittedQuery(null);
+    setResponse(null);
+    setError(null);
+    setLiveMessage("Ask for a huddle by match, date, place, friends, groups, or venue facilities.");
+  }
+
+  const canReset =
+    !loading &&
+    (query.length > 0 || submittedQuery !== null || response !== null || error !== null);
+
   return (
     <section
       aria-label="Ask Huddle conversation"
-      className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-sm"
+      className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background"
+      data-layout="immersive"
     >
-      <MessageScrollerProvider autoScroll defaultScrollPosition="end">
-        <MessageScroller>
-          <MessageScrollerViewport aria-label="Ask Huddle messages">
-            <MessageScrollerContent className="justify-end p-4 sm:p-6">
-              <MessageScrollerItem messageId="welcome">
-                <Message>
-                  <AssistantAvatar />
-                  <MessageContent>
-                    <Bubble variant="muted">
-                      <BubbleContent>
-                        <p className="font-semibold text-foreground">
-                          What kind of huddle are you after?
-                        </p>
-                        <p className="mt-1 text-muted-foreground">
-                          Tell me the match, date, city, friends, group, or venue facilities. Each
-                          question is a fresh search.
-                        </p>
-                      </BubbleContent>
-                    </Bubble>
-                    {submittedQuery === null ? (
-                      <div className="flex flex-wrap gap-2">
-                        {EXAMPLE_QUESTIONS.map((example) => (
-                          <Button
-                            key={example}
-                            onClick={() => setQuery(example)}
-                            size="xs"
-                            type="button"
-                            variant="outline"
-                          >
-                            {example}
-                          </Button>
-                        ))}
-                      </div>
-                    ) : null}
-                  </MessageContent>
-                </Message>
-              </MessageScrollerItem>
+      <h1 className="sr-only">Ask Huddle</h1>
 
-              {submittedQuery === null ? null : (
-                <MessageScrollerItem messageId="question">
-                  <Message align="end">
-                    <MessageContent>
-                      <Bubble align="end">
-                        <BubbleContent>{submittedQuery}</BubbleContent>
-                      </Bubble>
-                    </MessageContent>
-                  </Message>
-                </MessageScrollerItem>
-              )}
+      <div className="min-h-0 flex-1">
+        <MessageScrollerProvider autoScroll defaultScrollPosition="end">
+          <MessageScroller>
+            <MessageScrollerViewport aria-label="Ask Huddle messages">
+              <MessageScrollerContent className="mx-auto w-full max-w-2xl gap-7 px-5 pt-14 pb-6 sm:px-8 sm:pt-16 sm:pb-10">
+                {submittedQuery === null ? (
+                  <MessageScrollerItem className="my-auto" messageId="welcome">
+                    <Message>
+                      <MessageContent className="items-start gap-5">
+                        <Bubble className="max-w-full" variant="ghost">
+                          <BubbleContent className="w-full">
+                            <div className="max-w-md">
+                              <p className="text-xl leading-tight font-semibold tracking-tight text-foreground">
+                                What kind of huddle are you after?
+                              </p>
+                              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                                Ask about a match, date, place, friend, group, or venue feature.
+                                Every question starts fresh.
+                              </p>
+                            </div>
+                            <div className="mt-5 grid max-w-md gap-2">
+                              {EXAMPLE_QUESTIONS.map((example) => (
+                                <Button
+                                  key={example}
+                                  className="h-auto justify-start px-0 py-1 text-left text-xs font-normal text-muted-foreground hover:bg-transparent hover:text-foreground"
+                                  onClick={() => setQuery(example)}
+                                  size="xs"
+                                  type="button"
+                                  variant="ghost"
+                                >
+                                  <span aria-hidden="true" className="text-forest">
+                                    ↗
+                                  </span>
+                                  {example}
+                                </Button>
+                              ))}
+                            </div>
+                          </BubbleContent>
+                        </Bubble>
+                      </MessageContent>
+                    </Message>
+                  </MessageScrollerItem>
+                ) : null}
 
-              {loading ? (
-                <MessageScrollerItem messageId="loading" scrollAnchor>
-                  <Message>
-                    <AssistantAvatar />
-                    <MessageContent>
-                      <Bubble variant="muted">
-                        <BubbleContent>
-                          <Marker aria-hidden="true" className="text-forest">
-                            <MarkerIcon>
-                              <Spinner aria-hidden="true" role="presentation" />
-                            </MarkerIcon>
-                            <MarkerContent>Finding the best matches…</MarkerContent>
-                          </Marker>
-                        </BubbleContent>
-                      </Bubble>
-                    </MessageContent>
-                  </Message>
-                </MessageScrollerItem>
-              ) : null}
+                {submittedQuery === null ? null : (
+                  <MessageScrollerItem messageId="question" scrollAnchor>
+                    <Message align="end">
+                      <MessageContent>
+                        <Bubble align="end" className="max-w-[min(78%,28rem)]" variant="muted">
+                          <BubbleContent className="rounded-2xl px-4 py-2.5">
+                            {submittedQuery}
+                          </BubbleContent>
+                        </Bubble>
+                      </MessageContent>
+                    </Message>
+                  </MessageScrollerItem>
+                )}
 
-              {error === null ? null : (
-                <MessageScrollerItem messageId="error" scrollAnchor>
-                  <Message>
-                    <AssistantAvatar />
-                    <MessageContent>
-                      <Bubble variant="destructive">
-                        <BubbleContent role="alert">
-                          <p>{error}</p>
-                          <Button asChild className="mt-2" size="xs" variant="outline">
-                            <Link href="/discover">Open Explore</Link>
-                          </Button>
-                        </BubbleContent>
-                      </Bubble>
-                    </MessageContent>
-                  </Message>
-                </MessageScrollerItem>
-              )}
+                {loading ? (
+                  <MessageScrollerItem messageId="loading">
+                    <Message>
+                      <MessageContent>
+                        <Marker aria-hidden="true" className="text-forest">
+                          <MarkerContent className="shimmer">
+                            Finding the best matches…
+                          </MarkerContent>
+                        </Marker>
+                      </MessageContent>
+                    </Message>
+                  </MessageScrollerItem>
+                ) : null}
 
-              {response === null ? null : (
-                <MessageScrollerItem messageId="answer" scrollAnchor>
-                  <AssistantResponse
-                    actions={{
-                      loading,
-                      locating,
-                      requestCurrentLocation,
-                      useAddressOrigin,
-                    }}
-                    response={response}
-                  />
-                </MessageScrollerItem>
-              )}
-            </MessageScrollerContent>
-          </MessageScrollerViewport>
-          <MessageScrollerButton />
-        </MessageScroller>
-      </MessageScrollerProvider>
+                {error === null ? null : (
+                  <MessageScrollerItem messageId="error">
+                    <Message>
+                      <MessageContent>
+                        <Bubble className="max-w-xl" variant="destructive">
+                          <BubbleContent className="px-4 py-3" role="alert">
+                            <p>{error}</p>
+                            <Button asChild className="mt-2" size="xs" variant="outline">
+                              <Link href="/discover">Open Explore</Link>
+                            </Button>
+                          </BubbleContent>
+                        </Bubble>
+                      </MessageContent>
+                    </Message>
+                  </MessageScrollerItem>
+                )}
 
-      <div className="border-t border-border bg-background/95 p-3 sm:p-4">
-        <form onSubmit={submit}>
+                {response === null ? null : (
+                  <MessageScrollerItem messageId="answer">
+                    <AssistantResponse
+                      actions={{
+                        loading,
+                        locating,
+                        requestCurrentLocation,
+                        useAddressOrigin,
+                      }}
+                      response={response}
+                    />
+                  </MessageScrollerItem>
+                )}
+              </MessageScrollerContent>
+            </MessageScrollerViewport>
+            <MessageScrollerButton />
+          </MessageScroller>
+        </MessageScrollerProvider>
+      </div>
+
+      <div
+        className="shrink-0 bg-background px-4 pt-2.5 pb-3 sm:px-8 sm:pt-3 sm:pb-4"
+        data-slot="chat-composer"
+      >
+        <form
+          aria-label="Ask Huddle question"
+          className="mx-auto w-full max-w-2xl"
+          onSubmit={submit}
+        >
           <label className="sr-only" htmlFor="huddle-chat-query">
             Ask Huddle what you want to watch
           </label>
-          <InputGroup className="min-h-12 rounded-2xl bg-card">
-            <InputGroupInput
+          <InputGroup className="rounded-[1.5rem] border-foreground/25 bg-card shadow-none">
+            <InputGroupTextarea
               autoComplete="off"
+              className="h-12 min-h-12 max-h-28 overflow-y-auto px-4 pt-3 pb-1 placeholder:text-muted-foreground"
               disabled={loading}
               id="huddle-chat-query"
               maxLength={400}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Ask about a match, date, place, friends, or groups…"
+              placeholder="Ask for a huddle…"
+              rows={1}
               value={query}
             />
-            <InputGroupAddon align="inline-end" className="pr-1.5">
+            <InputGroupAddon align="block-end" className="px-2 pt-1 pb-2">
+              <InputGroupButton
+                aria-label="Start a new search"
+                className="size-11 rounded-full"
+                disabled={!canReset}
+                onClick={resetConversation}
+                size="icon-sm"
+                type="button"
+                variant="outline"
+              >
+                <RotateCw aria-hidden="true" />
+              </InputGroupButton>
               <InputGroupButton
                 aria-label="Send question"
-                className="rounded-xl bg-primary text-primary-foreground hover:bg-court-hover"
+                className="ml-auto size-11 rounded-full bg-primary text-primary-foreground hover:bg-court-hover"
                 disabled={loading || query.trim().length === 0}
                 size="icon-sm"
                 type="submit"
                 variant="default"
               >
-                {loading ? (
-                  <Spinner aria-hidden="true" role="presentation" />
-                ) : (
-                  <Send aria-hidden="true" />
-                )}
+                <ArrowUp aria-hidden="true" />
               </InputGroupButton>
             </InputGroupAddon>
           </InputGroup>
+          {query.length > 320 ? (
+            <p className="mt-1 px-2 text-right text-[0.68rem] text-muted-foreground">
+              {query.length}/400
+            </p>
+          ) : null}
         </form>
         <p aria-live="polite" className="sr-only" role="status">
           {liveMessage}
-        </p>
-        <p className="mt-1.5 px-1 text-right text-[0.68rem] text-muted-foreground">
-          {query.length}/400 · One question at a time
         </p>
       </div>
     </section>

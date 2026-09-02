@@ -44,6 +44,24 @@ describe("assisted-discovery Israel date ranges", () => {
     });
   });
 
+  it.each(["tommorow", "tomorow"])(
+    "preserves tomorrow intent for the common misspelling %s",
+    (misspelling) => {
+      expect(
+        resolveIntentDateRange(
+          {
+            temporal: "tomorrow",
+            weekday: null,
+            explicitStartDate: null,
+            explicitEndDate: null,
+          },
+          tuesday,
+          `Anything to watch ${misspelling}?`,
+        ),
+      ).toEqual({ ok: true, fromDate: "2026-09-02", toDate: "2026-09-02" });
+    },
+  );
+
   it("treats the typed query as authoritative over model-issued date fields", () => {
     expect(
       resolveIntentDateRange(
