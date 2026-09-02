@@ -40,8 +40,10 @@ function supported(
         support: "supported",
         unsupportedReason: null,
         temporal: "unspecified",
+        weekday: null,
         explicitStartDate: null,
         explicitEndDate: null,
+        locationMention: null,
         teamMentions: [],
         competitionMention: null,
         relationship: "any",
@@ -300,6 +302,24 @@ export const ASSISTED_DISCOVERY_EVALUATION_CORPUS = [
     {
       requirements: ["date_boundary"],
       dateResult: { ok: false, reason: "too_wide" },
+    },
+  ),
+  supported(
+    "date-41",
+    "Anything to watch next Wednesday?",
+    { temporal: "next_weekday", weekday: "wednesday" },
+    {
+      requirements: ["date_boundary"],
+      traits: ["exact_weekday"],
+      dateResult: { ok: true, fromDate: "2026-09-02", toDate: "2026-09-02" },
+    },
+  ),
+  supported(
+    "location-42",
+    "Any events in Jerusalem?",
+    { locationMention: "Jerusalem" },
+    {
+      traits: ["named_place"],
     },
   ),
 ] as const satisfies readonly AssistedDiscoveryEvaluationCase[];

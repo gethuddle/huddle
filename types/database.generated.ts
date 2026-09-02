@@ -3643,13 +3643,20 @@ export type Database = {
           approved_attendee_count: number
           attendance_mode: string
           audience: string
+          away_team_crest_url: string
           away_team_name: string
+          away_team_tla: string
           capacity: number
           competition_name: string
           distance_band: number
           ends_at: string
           event_id: string
+          group_name: string
+          group_relationship: string
+          group_slug: string
+          home_team_crest_url: string
           home_team_name: string
+          home_team_tla: string
           host_display_name: string
           host_kind: string
           host_venue_slug: string

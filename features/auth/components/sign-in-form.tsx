@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect } from "react";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,9 +44,17 @@ export function SignInForm({ nextPath = null }: Readonly<{ nextPath?: string | n
       </div>
 
       <div>
-        <Label className="text-foreground" htmlFor="sign-in-password">
-          Password
-        </Label>
+        <div className="flex items-center justify-between gap-3">
+          <Label className="text-foreground" htmlFor="sign-in-password">
+            Password
+          </Label>
+          <Link
+            className="text-sm font-semibold text-forest hover:text-forest-hover hover:underline"
+            href="/auth/forgot-password"
+          >
+            Forgot password?
+          </Link>
+        </div>
         <Input
           aria-describedby="sign-in-password-error"
           aria-invalid={fieldErrors?.password === undefined ? undefined : true}

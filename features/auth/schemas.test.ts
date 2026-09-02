@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  passwordResetRequestSchema,
+  passwordUpdateSchema,
+  recoveryQuerySchema,
   signInSchema,
   signUpSchema,
   verificationCodeQuerySchema,
@@ -59,5 +62,41 @@ describe("auth schemas", () => {
     expect(verificationCodeQuerySchema.safeParse({ code: "auth-code" }).success).toBe(true);
     expect(verificationCodeQuerySchema.safeParse({ code: "" }).success).toBe(false);
     expect(verificationCodeQuerySchema.safeParse({ code: null }).success).toBe(false);
+  });
+
+  it("normalizes a valid password-reset email and rejects malformed addresses", () => {
+    expect(passwordResetRequestSchema.parse({ email: " Fan@Example.COM " })).toEqual({
+      email: "fan@example.com",
+    });
+    expect(passwordResetRequestSchema.safeParse({ email: "not-an-email" }).success).toBe(false);
+  });
+
+  it("requires a bounded new password and matching confirmation", () => {
+    expect(
+      passwordUpdateSchema.parse({
+        password: "new-matchday-password",
+        confirmPassword: "new-matchday-password",
+      }),
+    ).toEqual({
+      password: "new-matchday-password",
+      confirmPassword: "new-matchday-password",
+    });
+    const mismatch = passwordUpdateSchema.safeParse({
+      password: "new-matchday-password",
+      confirmPassword: "different-password",
+    });
+    expect(mismatch.success).toBe(false);
+    if (!mismatch.success) {
+      expect(mismatch.error.flatten().fieldErrors.confirmPassword).toContain(
+        "Passwords must match.",
+      );
+    }
+  });
+
+  it("accepts recovery token hashes only for the recovery OTP type", () => {
+    expect(recoveryQuerySchema.safeParse({ tokenHash: "hash", type: "recovery" }).success).toBe(
+      true,
+    );
+    expect(recoveryQuerySchema.safeParse({ tokenHash: "hash", type: "email" }).success).toBe(false);
   });
 });

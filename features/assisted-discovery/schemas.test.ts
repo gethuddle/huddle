@@ -6,8 +6,10 @@ const validDraft = {
   support: "supported",
   unsupportedReason: null,
   temporal: "tomorrow",
+  weekday: null,
   explicitStartDate: null,
   explicitEndDate: null,
+  locationMention: null,
   teamMentions: ["Arsenal", "Chelsea"],
   competitionMention: "Premier League",
   relationship: "friend_host",
@@ -49,5 +51,24 @@ describe("assisted-discovery intent draft", () => {
         requiredFacilities: ["food", "food"],
       }),
     ).toThrow();
+  });
+
+  it("accepts a named public place with one exact next weekday", () => {
+    expect(
+      intentDraftSchema.parse({
+        ...validDraft,
+        temporal: "next_weekday",
+        weekday: "wednesday",
+        locationMention: "Jerusalem",
+      }),
+    ).toMatchObject({
+      temporal: "next_weekday",
+      weekday: "wednesday",
+      locationMention: "Jerusalem",
+    });
+  });
+
+  it("rejects a weekday unless the temporal mode is next_weekday", () => {
+    expect(() => intentDraftSchema.parse({ ...validDraft, weekday: "wednesday" })).toThrow();
   });
 });

@@ -45,9 +45,21 @@ export const assistedDiscoveryResultCardSchema = z
         id: z.uuid(),
         competitionName: z.string().min(1).max(120),
         homeTeamName: z.string().min(1).max(120),
+        homeTeamTla: z.string().min(1).max(12).nullable(),
+        homeTeamCrestUrl: z.url().nullable(),
         awayTeamName: z.string().min(1).max(120),
+        awayTeamTla: z.string().min(1).max(12).nullable(),
+        awayTeamCrestUrl: z.url().nullable(),
       })
       .strict(),
+    group: z
+      .object({
+        name: z.string().min(1).max(120),
+        slug: z.string().min(1).max(80).nullable(),
+        relationship: z.enum(["organizer", "audience"]),
+      })
+      .strict()
+      .nullable(),
     startsAt: z.string(),
     endsAt: z.string(),
     placeKind: z.enum(["home", "venue", "public_place"]),
@@ -90,6 +102,7 @@ export const assistedDiscoveryResponseSchema = z.discriminatedUnion("status", [
       status: z.literal("needs_location"),
       interpretation: interpretationSchema,
       token: z.string().min(1).max(4096),
+      locationQuery: z.string().trim().min(1).max(120).nullable(),
     })
     .strict(),
   z

@@ -14,6 +14,7 @@ private addresses, report content, invite tokens, or raw provider payloads here.
 - [x] The hosted reference catalog contains all 13 active reviewed Israel cities.
 - [ ] Signed-out home/fixtures/discovery work in a clean browser.
 - [ ] Verification email returns to the production origin with no token in the final URL.
+- [ ] Password-recovery email returns to the production origin, replaces the password, ends the recovery session, and permits a fresh sign-in without leaving a token/code in the final URL.
 - [ ] Two dedicated complete accounts establish independent sessions.
 - [ ] Preview uses a different Supabase project and cannot mutate production.
 - [ ] `npm run test:production:session` passes (Auth-session metadata may update; no product mutation).

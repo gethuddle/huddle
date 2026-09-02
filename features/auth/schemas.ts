@@ -29,6 +29,20 @@ export const signInSchema = z.object({
   password: passwordSchema,
 });
 
+export const passwordResetRequestSchema = z.object({
+  email: emailSchema,
+});
+
+export const passwordUpdateSchema = z
+  .object({
+    password: passwordSchema,
+    confirmPassword: z.string(),
+  })
+  .refine(({ password, confirmPassword }) => password === confirmPassword, {
+    message: "Passwords must match.",
+    path: ["confirmPassword"],
+  });
+
 export const verificationQuerySchema = z.object({
   tokenHash: z.string().min(1).max(2048),
   type: z.literal("email"),
@@ -36,6 +50,11 @@ export const verificationQuerySchema = z.object({
 
 export const verificationCodeQuerySchema = z.object({
   code: z.string().min(1).max(2048),
+});
+
+export const recoveryQuerySchema = z.object({
+  tokenHash: z.string().min(1).max(2048),
+  type: z.literal("recovery"),
 });
 
 export const verificationStatusSchema = z.enum(["success", "expired"]);

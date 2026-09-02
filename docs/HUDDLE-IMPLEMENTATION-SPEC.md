@@ -255,6 +255,9 @@ Authorization MUST be enforced twice for sensitive transitions: application logi
 | `/moderation` | Platform moderator | Report queue and moderation actions |
 | `/auth/sign-up` | Anonymous | Email/password signup |
 | `/auth/sign-in` | Anonymous | Sign in |
+| `/auth/forgot-password` | Anonymous | Request a non-enumerating password-recovery email |
+| `/auth/reset-password/callback` | Public callback | Consume one bounded recovery token/code, establish the short-lived recovery session, and redirect without retaining the secret in the URL |
+| `/auth/reset-password` | Recovery session | Choose a new password, end the local recovery session, and return to sign in |
 | `/auth/verify` | Public callback/instruction | Verification result and next action |
 
 Unauthorized access MUST render a clear `not found`, `sign in`, `finish safety setup`, `activate Fan`, `switch workspace`, or `not permitted` outcome as appropriate; it MUST NOT reveal that a private event exists through different error detail.
@@ -262,6 +265,8 @@ Unauthorized access MUST render a clear `not found`, `sign in`, `finish safety s
 ### 4.2 Main user journeys
 
 **Onboarding:** sign up → verify email → attest 18+ → accept the current community rules → choose Fan or Venue setup. Fan setup adds handle/display name and optional interests; Venue setup adds a confirmed public address, venue information, and a truthful business-representation attestation without publishing a Fan identity.
+
+**Recover access:** choose Forgot password → submit an email without receiving account-existence detail → follow the single-use recovery email → choose a new password → return to sign in with the recovery browser session ended.
 
 **Discover and attend:** use current location or choose a confirmed address → filter by date/team/competition/specific fixture → see who is showing it nearby → open event → sign in/activate Fan if needed → request or join → see stable result → download calendar when authorized.
 
@@ -800,9 +805,11 @@ Sort is deterministic: eligible published future events by match/interest releva
 
 The private, no-store route is available only to an authenticated active Fan. It accepts either a bounded `interpret` request containing a maximum-400-character sentence and optional session origin, or a `continue` request containing a five-minute actor-bound signed intent token plus an origin. `GET` is rejected, and neither the sentence nor origin may enter URLs, application logs, database rows, or caches.
 
-Cloudflare receives only the sentence, current Israel date/time, and the fixed intent schema. It MUST NOT receive an actor identifier, profile, friendship/group data, attendance, coordinates, event rows, or private location. Model output is untrusted and MUST pass a strict Zod schema before Huddle resolves team/competition aliases, date semantics, relationship mode, host kind, proximity, and the existing venue-facility enum.
+Cloudflare receives only the sentence, current Israel date/time, and the fixed intent schema. It MUST NOT receive an actor identifier, profile, friendship/group data, attendance, coordinates, event rows, or private location. Model output is untrusted and MUST pass a strict Zod schema before Huddle resolves team/competition aliases, date semantics, relationship mode, host kind, proximity, and the existing venue-facility enum. The bounded schema may extract `next <weekday>` and a named public Israel place phrase, but never a coordinate. Huddle accepts the place phrase only when its normalized text is present in the original sentence; it does not trust a model-invented place.
 
-The route returns exactly one of `results`, `needs_location`, `clarification`, `unsupported`, or `no_results`. It never invents event copy, silently relaxes a filter, or asks the model to rank database rows. Results contain at most three safe event summaries produced by `search_assisted_events`; explanation strings and matched reasons are deterministic application copy.
+`Next <weekday>` resolves to exactly one future Israel calendar date; when today already has that weekday it means seven days later. A named place overrides any remembered session origin and returns `needs_location` with the transient phrase so the existing OpenStreetMap suggestion control can be prefilled. Search continues only after the Fan confirms one provider suggestion, whose coordinate then uses the ordinary 15 km PostGIS boundary. The raw place phrase is not placed in the continuation token, URL, log, cache, or database, and Cloudflare never geocodes it.
+
+The route returns exactly one of `results`, `needs_location`, `clarification`, `unsupported`, or `no_results`. It never invents event copy, silently broadens a date or other filter, or asks the model to rank database rows. Results contain at most three safe event summaries produced by `search_assisted_events`; explanation strings and matched reasons are deterministic application copy.
 
 #### `GET /api/groups/search`
 
@@ -1020,6 +1027,8 @@ This design follows the [OWASP Authorization Cheat Sheet](https://cheatsheetseri
 - Cookies must use secure production attributes (`HttpOnly` where controlled by the Auth flow, `Secure`, appropriate `SameSite`, narrow lifetime/scope).
 - Middleware refreshes sessions but application/server/database checks authorize resources.
 - Email verification, `adult_attested_at`, current `rules_version`, suspension, Fan activation, and active Venue membership gates are checked server-side according to the requested action.
+- Password-recovery requests MUST return the same public result for known, unknown, throttled, and temporarily unavailable addresses. The dedicated no-store callback accepts exactly one bounded recovery token-hash or PKCE code, redirects only to the canonical application origin, and never retains the credential in the destination URL.
+- A new password MUST be validated server-side, updated only for the authenticated recovery session, and followed by local sign-out plus workspace-cookie clearing before the user returns to sign in.
 - Sign-out clears the session and private query cache.
 
 ### 11.2 Authorization
@@ -1319,6 +1328,7 @@ Use separate local, preview/staging, and production configuration. Preview deplo
 - Public Vercel URL works on a signed-out browser.
 - Supabase migrations match the committed schema.
 - Auth email verification and redirect work on production domain.
+- Auth password-recovery email, callback, password replacement, recovery-session sign-out, and fresh sign-in work on the production domain.
 - Cron reaches only the protected sync route and a successful run is visible.
 - Production has provider attribution and no service secret in client bundles/network responses.
 - GitHub repository includes setup/env documentation without secret values.

@@ -39,7 +39,16 @@ const resultCard = {
     id: "22222222-2222-4222-8222-222222222222",
     competitionName: "Premier League",
     homeTeamName: "Arsenal FC",
+    homeTeamTla: "ARS",
+    homeTeamCrestUrl: "https://crests.football-data.org/57.png",
     awayTeamName: "Chelsea FC",
+    awayTeamTla: "CHE",
+    awayTeamCrestUrl: "https://crests.football-data.org/61.png",
+  },
+  group: {
+    name: "North London Supporters",
+    slug: "north-london-supporters",
+    relationship: "organizer",
   },
   startsAt: "2026-09-02T17:00:00Z",
   endsAt: "2026-09-02T20:00:00Z",
@@ -86,8 +95,9 @@ describe("AssistedDiscovery", () => {
 
     await submitQuery();
 
-    expect(screen.getByRole("status")).toHaveTextContent("Looking for matching huddles");
-    expect(screen.getByRole("button", { name: "Looking…" })).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent("Finding the best matches");
+    expect(screen.getByRole("status")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Find huddles" })).toBeDisabled();
 
     await act(async () => {
       resolveRequest(
@@ -109,6 +119,7 @@ describe("AssistedDiscovery", () => {
           status: "needs_location",
           interpretation: "2 Sep · venue-hosted · within 15 km",
           token: "signed.token",
+          locationQuery: null,
         }),
       )
       .mockImplementationOnce(() =>
@@ -142,12 +153,41 @@ describe("AssistedDiscovery", () => {
     expect(window.sessionStorage.getItem("huddle:discovery-origin")).toContain("Current location");
   });
 
+  it("asks to confirm a named place instead of offering the remembered or current origin", async () => {
+    window.sessionStorage.setItem(
+      "huddle:discovery-origin",
+      JSON.stringify({ lat: 32.8, lng: 35, label: "Haifa", kind: "address" }),
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        apiResponse({
+          status: "needs_location",
+          interpretation: "9 Sep",
+          token: "signed.token",
+          locationQuery: "Jerusalem",
+        }),
+      ),
+    );
+    render(<AssistedDiscovery />);
+
+    await submitQuery("Anything in Jerusalem next Wednesday?");
+
+    expect(
+      await screen.findByRole("heading", { name: "Confirm Jerusalem as the search area" }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: "Use my current location" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("rejects browser coordinates outside the Israel pilot without continuing", async () => {
     const fetcher = vi.fn(() =>
       apiResponse({
         status: "needs_location",
         interpretation: "2 Sep · venue-hosted · within 15 km",
         token: "signed.token",
+        locationQuery: null,
       }),
     );
     vi.stubGlobal("fetch", fetcher);
@@ -178,6 +218,7 @@ describe("AssistedDiscovery", () => {
           status: "needs_location",
           interpretation: "2 Sep · within 15 km",
           token: "signed.token",
+          locationQuery: null,
         }),
       )
       .mockImplementationOnce(() =>
@@ -201,7 +242,7 @@ describe("AssistedDiscovery", () => {
     });
   });
 
-  it("renders safe result cards, own state, and self-reported facility labels", async () => {
+  it("renders one compact result list with crests, group context, and useful event details", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(() =>
@@ -220,10 +261,66 @@ describe("AssistedDiscovery", () => {
     expect(screen.getByText("You are going")).toBeVisible();
     expect(screen.getByText("Self-reported: Food")).toBeVisible();
     expect(screen.getByText("Hosted by The Corner")).toBeVisible();
+    expect(
+      screen.getByText("Self-listed venue · business identity not checked by Huddle"),
+    ).toBeVisible();
+    expect(screen.getByRole("img", { name: "Arsenal FC" })).toBeVisible();
+    expect(screen.getByRole("img", { name: "Chelsea FC" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "North London Supporters" })).toHaveAttribute(
+      "href",
+      "/groups/north-london-supporters",
+    );
+    expect(screen.getByText("4 going · 36 places left")).toBeVisible();
+    expect(screen.getByRole("list", { name: "Matching huddles" })).toBeVisible();
+    expect(screen.getAllByRole("listitem")).toHaveLength(1);
+    expect(document.querySelectorAll('[data-slot="card"]')).toHaveLength(1);
     expect(screen.getByRole("link", { name: "Open huddle" })).toHaveAttribute(
       "href",
       `/events/${resultCard.id}`,
     );
+  });
+
+  it("keeps existing results mounted while a new search loads", async () => {
+    let resolveSecondRequest!: (response: Response) => void;
+    const fetcher = vi
+      .fn()
+      .mockImplementationOnce(() =>
+        apiResponse({
+          status: "results",
+          interpretation: "2 Sep · Arsenal FC",
+          results: [resultCard],
+        }),
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolveSecondRequest = resolve;
+          }),
+      );
+    vi.stubGlobal("fetch", fetcher);
+    render(<AssistedDiscovery />);
+
+    const user = await submitQuery();
+    expect(await screen.findByRole("heading", { name: "North London watch" })).toBeVisible();
+
+    const input = screen.getByLabelText("Describe the huddle you want");
+    await user.clear(input);
+    await user.type(input, "Chelsea next week");
+    await user.click(screen.getByRole("button", { name: "Find huddles" }));
+
+    expect(screen.getByRole("heading", { name: "North London watch" })).toBeVisible();
+    expect(screen.getByRole("status")).toHaveTextContent("Finding the best matches");
+
+    await act(async () => {
+      resolveSecondRequest(
+        await apiResponse({
+          status: "no_results",
+          interpretation: "Next week · Chelsea FC",
+          exploreHref: "/discover?team=chelsea",
+          planHref: null,
+        }),
+      );
+    });
   });
 
   it.each([

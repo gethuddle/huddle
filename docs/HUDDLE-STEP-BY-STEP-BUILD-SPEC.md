@@ -531,7 +531,7 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 
 **Authority:** implementation spec §§2.1, 4.1–4.2, 5.3, 11.1.
 
-**Outcome:** a user can sign up, verify email through the local test path, sign in, refresh a server session, and sign out.
+**Outcome:** a user can sign up, verify email through the local test path, recover a forgotten password without account enumeration, sign in, refresh a server session, and sign out.
 
 **Tasks:**
 
@@ -540,13 +540,14 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 - [x] Configure allowed auth redirects and a safe callback/verification route.
 - [x] Use cookie-based SSR sessions.
 - [x] Show generic auth errors without account enumeration.
+- [x] Add a generic password-recovery request, dedicated no-store callback, authenticated new-password form, and local recovery-session sign-out.
 - [x] Add sign-out that clears private client query state.
 - [x] Keep community mutations unavailable until later completion gates exist.
 - [x] Add loading, submission, success, error, and expired-verification states.
 
 **Checkpoints:** auth/server/session first; forms and states after role swap.
 
-**Tests/evidence:** unit validation, component forms, and E2E signup/verification/sign-in/sign-out against local Supabase.
+**Tests/evidence:** unit validation, component forms, and E2E signup/verification/password-recovery/sign-in/sign-out against local Supabase and Mailpit.
 
 ### A02 — Historical city catalog, profiles, adult attestation, and rules onboarding
 
@@ -1262,20 +1263,24 @@ evidence for merge; hosted checks remain B13 (`D02`–`D04`).
 **Tasks:**
 
 - [x] Add the versioned Cloudflare JSON-schema interpreter and strict Zod/provider failure boundary.
-- [x] Resolve Israel date semantics and local team/competition aliases without model-issued IDs.
+- [x] Resolve Israel date semantics, including one exact future `next <weekday>` date, and local team/competition aliases without model-issued IDs.
+- [x] Treat a named public Israel place as a transient confirmation hint: verify it came from the sentence, override any remembered origin, prefill the existing OpenStreetMap picker, and search only after the Fan confirms a provider coordinate.
 - [x] Add Fan/global inference cooldowns that retain counts only, plus the Fan-only authorization-filtered search RPC and facility index.
 - [x] Add five-minute actor-bound continuation tokens so location collection never repeats inference.
 - [x] Add the private no-store Route Handler and active-Fan Home UI with result, location, ambiguity, unsupported, empty, rate, and provider-failure states.
 - [x] Keep sentences, origins, private account data, provider payloads, and result IDs out of logs and AI storage products.
-- [x] Add pgTAP, Vitest/RTL, deterministic E2E, and a checked-in 40-case live-model evaluation harness; CI never receives live model authority.
+- [x] Add pgTAP, Vitest/RTL, deterministic E2E, and a checked-in 42-case live-model evaluation harness; CI never receives live model authority.
 - [x] Run the credentialed live-model evaluation and meet the core, privacy, unsupported-scope, date-boundary, and 90% supported-intent gates before enabling production.
+- [x] Rerun the credentialed 42-case evaluation after the exact-weekday/named-place schema change before merging that follow-up.
 - [x] Update the normative implementation, architecture, build, security, environment, and README sources truthfully.
 
-**Tests/evidence:** red/green unit and component coverage; Fan/friend/group/block/ban/capacity/facility/private-location pgTAP; three deterministic example E2E journeys without live AI traffic; at least 40 synthetic live-model cases with all safety cases passing and at least 90% exact supported-intent extraction.
+**Tests/evidence:** red/green unit and component coverage; Fan/friend/group/block/ban/capacity/facility/private-location pgTAP; the three deterministic core examples plus an exact-weekday/named-place E2E journey without live AI traffic; at least 42 synthetic live-model cases with all safety cases passing and at least 90% exact supported-intent extraction.
 
 **Exit evidence:** full repository acceptance gates, generated database types with no drift, safe aggregate provider-usage evidence, and both partners able to explain why Cloudflare never authorizes or receives private account context.
 
-**Current local evidence (1 September 2026):** 860 automated Vitest assertions passed with the one live-model test deliberately skipped; all 1,675 pgTAP assertions, generated-type drift, schema lint, production build, 29 Playwright journeys, formatting, lint, typecheck, security audit, and diff hygiene passed. The credentialed 40-case live-model evaluation passed every required gate with prompt `ai01-v3`. Reciprocal partner review and explicit production enablement remain pending, so the production flag remains off.
+**Accepted evidence (1–2 September 2026):** PR [#46](https://github.com/gethuddle/huddle/pull/46) passed the complete local/CI gates and reciprocal partner review, then merged to `main` as [`93293fbc`](https://github.com/gethuddle/huddle/commit/93293fbc03a52e835771b9234abdd7eba6a02a40). The credentialed 40-case live-model evaluation passed every required gate with prompt `ai01-v3`, and production was explicitly enabled after merge. Checked-in environment examples remain safely disabled by default.
+
+**Current follow-up status (2 September 2026):** the compact shadcn result UI, password recovery, exact-weekday semantics, named-place confirmation, 42-case corpus, and deterministic browser coverage are implemented on the follow-up branch. The credentialed 42-case live-model evaluation passed every core, privacy, unsupported-scope, date-boundary, and supported-intent gate with prompt `ai01-v5`; the provider-facing schema now uses independent single-value scope and temporal fields before mapping into Huddle's stricter internal intent contract.
 
 ### D02 — Preview and production environments
 
@@ -1417,7 +1422,7 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 | B10 Invitations, attendance, and calendar | `T01`–`T04` | done | [#28](https://github.com/gethuddle/huddle/issues/28) / [PR #29](https://github.com/gethuddle/huddle/pull/29) |
 | B11 Moderation, security, and accessibility | `M01`–`M04` | done | [#30](https://github.com/gethuddle/huddle/issues/30) / [PR #31](https://github.com/gethuddle/huddle/pull/31) |
 | B12 Release candidate and automated acceptance | `D01` | done | [#32](https://github.com/gethuddle/huddle/issues/32) / [PR #33](https://github.com/gethuddle/huddle/pull/33) |
-| AI-assisted event discovery | `AI01` | review | Local gates and credentialed evaluation pass; partner review pending |
+| AI-assisted event discovery | `AI01` | done | [PR #46](https://github.com/gethuddle/huddle/pull/46) |
 | B13 Production acceptance and submission | `D02`–`D04` | not started | — |
 
 ---

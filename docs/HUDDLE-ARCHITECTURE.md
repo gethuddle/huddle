@@ -163,6 +163,8 @@ There is no second Express application. Next.js is both the web frontend and the
 
 Supabase Auth owns passwords, email verification, and cookie-based sessions. Huddle owns the one-to-one human trust record: adult attestation, community-rules acceptance, suspension state, and optional public Fan identity. The course MVP is 18+; it records the attestation time rather than collecting a full birth date.
 
+Password recovery stays inside the same boundary. The public request form always returns one generic result, a dedicated no-store callback exchanges a one-time recovery token or code for a short-lived Supabase session, and the new-password action ends that local session before returning the person to sign in. Huddle never looks up or stores password material itself.
+
 Common safety eligibility means verified email, adult attestation, current community-rules acceptance, and a non-suspended account. Fan activation is optional and adds a public display name and unique handle; it stores no city or default location. Following, attendance, friendships, groups, and private hosting require Fan activation. Venue-only onboarding may satisfy common safety eligibility while leaving Fan identity fields incomplete and non-public; commercial venue mutations require active Venue membership instead of an invented Fan identity.
 
 This is the first trust layer. It is deliberately simple: no social login in the MVP and no application-managed password table.
@@ -252,9 +254,9 @@ The feed combines location, future time, followed interests, audience eligibilit
 
 ### 5.10.1 AI-assisted discovery
 
-The active Fan Home adds a one-shot natural-language search, not a persistent chatbot. A Vercel Route Handler sends only the bounded sentence and current Israel date/time to Cloudflare Workers AI in JSON-schema mode. The provider returns text mentions and intent categories, never database IDs or authorized results. Huddle validates that response, applies deterministic Israel-calendar rules, resolves sports aliases against the locally synchronized catalog, and calls one Fan-only Supabase function through the ordinary request session.
+The active Fan Home adds a one-shot natural-language search, not a persistent chatbot. A Vercel Route Handler sends only the bounded sentence and current Israel date/time to Cloudflare Workers AI in JSON-schema mode. The provider returns text mentions and intent categories, never database IDs, coordinates, or authorized results. Huddle validates that response, applies deterministic Israel-calendar rules, resolves sports aliases against the locally synchronized catalog, and calls one Fan-only Supabase function through the ordinary request session. `Next <weekday>` is one exact future Israel date, including a seven-day step when today is that weekday, rather than an approximate week range.
 
-General discovery requires the same 15 km session origin as Explore. Friend-host and current-group lookups may work nationally unless proximity was requested. The database checks accepted friendship, active group membership, current event visibility, blocks, bans, suspension, capacity, venue facilities, and the current viewer's own event state before returning at most three rows. Exact home addresses and coordinates never enter this result shape. Cloudflare never receives the actor, friend/group lists, origin, attendance, events, results, or protected locations.
+General discovery requires the same 15 km session origin as Explore. Friend-host and current-group lookups may work nationally unless proximity was requested. When the sentence names a public Israel place, Huddle verifies that the extracted phrase came from the sentence, ignores any remembered origin, and prefills the existing OpenStreetMap search so the Fan—not the model—confirms a suggestion. Only that confirmed suggestion's coordinate reaches the existing discovery search, while the raw phrase stays out of URLs, logs, tokens, caches, and tables. The database checks accepted friendship, active group membership, current event visibility, blocks, bans, suspension, capacity, venue facilities, and the current viewer's own event state before returning at most three rows. Exact home addresses and coordinates never enter this result shape. Cloudflare never receives the actor, friend/group lists, origin, attendance, events, results, or protected locations.
 
 The model does not answer the user, call tools, access a vector store, or rank rows. Huddle produces the interpretation chips, match reasons, empty state, and Explore/Plan actions from validated application data. Missing location uses a short-lived actor-bound signed intent so adding the origin does not trigger a second inference. Invalid output, ambiguity, timeout, rate exhaustion, or provider failure fails closed without broadening the search.
 
@@ -353,7 +355,7 @@ Each phase should finish with working tests and updated documentation before the
 
 ### Phase 2 — Authentication and onboarding
 
-- Implement email/password signup, verification, sign-in/out, SSR sessions, common safety eligibility, optional Fan activation without a saved location, self-serve Venue activation with a confirmed public address, and protected actions.
+- Implement email/password signup, verification, non-enumerating password recovery, sign-in/out, SSR sessions, common safety eligibility, optional Fan activation without a saved location, self-serve Venue activation with a confirmed public address, and protected actions.
 - Add safe public profile projection, account blocks, and authorization tests.
 
 **Exit:** a verified user can complete common safety setup and activate either workspace; anonymous, ineligible, and workspace-unauthorized users are correctly limited.

@@ -24,13 +24,14 @@ The 2026-08-29 B12 run passed 90 Vitest files / 403 tests (78.7% statements,
 and all 17 Playwright journeys. The PR/main CI run and second-computer reproduction
 remain separate evidence.
 
-The current cityless-location inventory contains 154 Vitest files / 765 tests,
-34 ordered migrations, 40 pgTAP files / 1642 assertions, and 28 Playwright scenarios.
+The current inventory contains 175 Vitest files / 898 passing tests plus one skipped
+live-model test, 36 ordered migrations, 41 pgTAP files / 1681 assertions, and 31
+Playwright scenarios.
 The complete acceptance command passes this combined inventory. The B12 numbers above are
 retained as historical accepted evidence rather than presented as the current repository
 inventory. Hosted migration and production acceptance remain separately evidenced operations.
 
-## Twenty-eight deterministic Playwright scenarios
+## Thirty-one deterministic Playwright scenarios
 
 All numbered journeys are in `tests/e2e/auth.spec.ts`. Provider input is a saved,
 normalized fixture inserted through the real sync transaction; identifiers are
@@ -57,14 +58,18 @@ depend on execution order, wall-clock equality, a provider network, or hosted da
 | 16 | Confidential report, proportional action, independent appeal, and responsive/accessible moderation | moderation functions and Radix confirmation UI |
 | 17 | Provider failure preserves last-good fixtures and exposes stale state | sync transaction and freshness projection |
 
-The 17 numbered contract journeys plus two supporting unnumbered journeys run once
+The 17 numbered contract journeys plus three supporting unnumbered journeys run once
 in the acceptance project. Five focused Calm Explore journeys add exact-fixture return
 context; friendship cancellation, decline, acceptance, and removal; secure event-link
 redemption/revocation; group submission withdrawal/rejection; and Venue closure. One
 complete Fan/Venue journey runs independently at 1280, 768, and 375 px. A final
 anonymous 1364×1440 regression verifies full-width shell geometry, centring, overflow,
-and shadow treatment, producing 28 Playwright scenarios in total. The supporting
-journeys exercise reversible blocking and both venue/private event creation paths.
+and shadow treatment. One fake-interpreter journey covers all three core AI-assisted
+discovery examples with authorized crests, group context, capacity, and facility detail;
+a second proves that a named Jerusalem origin overrides remembered Haifa state and that
+`next Wednesday` excludes a nearby-date decoy. This produces 31 Playwright scenarios in total. The supporting journeys exercise password
+recovery through Mailpit and Supabase Auth, reversible blocking, and both venue/private
+event creation paths.
 Production smoke tests are deliberately separate under
 `tests/production/`: `npm run test:production:session` creates only ordinary Auth
 sessions (which may update Auth sign-in metadata), while `npm run test:production`
@@ -73,12 +78,13 @@ accounts and a fresh event.
 
 ## Database coverage
 
-The 40 pgTAP files under `supabase/tests/database/` cover all exposed-table RLS
+The 41 pgTAP files under `supabase/tests/database/` cover all exposed-table RLS
 inventory, CHECK/unique/FK invariants, minimum grants, safe reads, denied reads and
 mutations, lifecycle transitions, cooldowns, exact-address authorization, capacity,
 moderation, workspace membership, protected drafts, current-state projections,
 public-address caching and autocomplete, global group discovery, direct group invitations and member removal, team crest normalization, fixture coverage, open-door venue events, the public map
-projection, managed-Venue discovery continuity, fixture/event consistency, secure event
+projection, managed-Venue discovery continuity, fixture/event consistency, assisted-event
+authorization and safe crest/group projection, secure event
 invite links, audited group archive, and audited Venue closure. Dedicated two-connection regressions cover friendship/block,
 application/block, group invite, event creation, group review/block, attendance,
 onboarding/workspace activation, protected drafts, and suspension/mutation races.
@@ -86,7 +92,7 @@ onboarding/workspace activation, protected drafts, and suspension/mutation races
 ## Manual and hosted acceptance
 
 The final pass adds keyboard-only and VoiceOver checks, phone/desktop review,
-Israel-time DST display, public attribution, unauthorized HTML/network/cache/log
+Israel-time DST display, public attribution, password recovery, unauthorized HTML/network/cache/log
 inspection, and the production smoke described in
 [`PRODUCTION-ACCEPTANCE.md`](../operations/PRODUCTION-ACCEPTANCE.md). Hosted checks
 are evidence, not CI dependencies.

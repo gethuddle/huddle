@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 import { ASSISTED_DISCOVERY_EVALUATION_CORPUS } from "./evaluation-corpus";
 
 describe("assisted-discovery evaluation corpus", () => {
-  it("contains forty unique synthetic cases and the three product examples", () => {
-    expect(ASSISTED_DISCOVERY_EVALUATION_CORPUS).toHaveLength(40);
-    expect(new Set(ASSISTED_DISCOVERY_EVALUATION_CORPUS.map((entry) => entry.id)).size).toBe(40);
+  it("contains forty-two unique synthetic cases and the three product examples", () => {
+    expect(ASSISTED_DISCOVERY_EVALUATION_CORPUS).toHaveLength(42);
+    expect(new Set(ASSISTED_DISCOVERY_EVALUATION_CORPUS.map((entry) => entry.id)).size).toBe(42);
     expect(
       ASSISTED_DISCOVERY_EVALUATION_CORPUS.filter((entry) => entry.requirements.includes("core")),
     ).toHaveLength(3);
@@ -30,6 +30,9 @@ describe("assisted-discovery evaluation corpus", () => {
       ASSISTED_DISCOVERY_EVALUATION_CORPUS.some((entry) =>
         entry.traits.includes("malformed_output_request"),
       ),
+    ).toBe(true);
+    expect(
+      ASSISTED_DISCOVERY_EVALUATION_CORPUS.some((entry) => entry.traits.includes("named_place")),
     ).toBe(true);
   });
 });

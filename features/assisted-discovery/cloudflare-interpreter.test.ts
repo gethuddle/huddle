@@ -12,8 +12,24 @@ const validIntent = {
   support: "supported",
   unsupportedReason: null,
   temporal: "tomorrow",
+  weekday: null,
   explicitStartDate: null,
   explicitEndDate: null,
+  locationMention: null,
+  teamMentions: ["Arsenal", "Chelsea"],
+  competitionMention: "premiere league",
+  relationship: "any",
+  hostKind: "venue",
+  proximity: "nearby",
+  requiredFacilities: ["food"],
+};
+
+const independentProviderIntent = {
+  scope: "supported",
+  temporal: "tomorrow",
+  explicitStartDate: null,
+  explicitEndDate: null,
+  locationMention: null,
   teamMentions: ["Arsenal", "Chelsea"],
   competitionMention: "premiere league",
   relationship: "any",
@@ -30,9 +46,101 @@ function response(body: unknown, status = 200): Response {
 }
 
 describe("CloudflareWorkersAiInterpreter", () => {
+  it("maps one provider scope into the paired internal support contract", async () => {
+    const fetcher = vi.fn<Fetcher>(async () =>
+      response({ success: true, result: { response: independentProviderIntent } }),
+    );
+    const interpreter = new CloudflareWorkersAiInterpreter({
+      accountId: "account-id",
+      apiToken: "secret-token",
+      fetcher,
+    });
+
+    await expect(
+      interpreter.interpret({
+        query: "I want food near an Arsenal premiere league match tomorrow",
+        currentIsraelDateTime: "2026-09-01T12:00:00+03:00",
+      }),
+    ).resolves.toEqual(validIntent);
+  });
+
+  it("maps one provider weekday temporal into the paired internal date contract", async () => {
+    const providerIntent = {
+      ...independentProviderIntent,
+      temporal: "next_wednesday",
+      locationMention: "Jerusalem",
+      teamMentions: [],
+      competitionMention: null,
+      hostKind: "any",
+      proximity: "none",
+      requiredFacilities: [],
+    };
+    const fetcher = vi.fn<Fetcher>(async () =>
+      response({ success: true, result: { response: providerIntent } }),
+    );
+    const interpreter = new CloudflareWorkersAiInterpreter({
+      accountId: "account-id",
+      apiToken: "secret-token",
+      fetcher,
+    });
+
+    await expect(
+      interpreter.interpret({
+        query: "Anything in Jerusalem next Wednesday?",
+        currentIsraelDateTime: "2026-09-02T12:00:00+03:00",
+      }),
+    ).resolves.toEqual({
+      ...validIntent,
+      temporal: "next_weekday",
+      weekday: "wednesday",
+      locationMention: "Jerusalem",
+      teamMentions: [],
+      competitionMention: null,
+      hostKind: "any",
+      proximity: "none",
+      requiredFacilities: [],
+    });
+  });
+
+  it("maps one unsupported provider scope into the paired internal support contract", async () => {
+    const fetcher = vi.fn<Fetcher>(async () =>
+      response({
+        success: true,
+        result: {
+          response: {
+            ...independentProviderIntent,
+            scope: "tickets_or_payments",
+            temporal: "unspecified",
+            teamMentions: [],
+            competitionMention: null,
+            relationship: "any",
+            hostKind: "any",
+            proximity: "none",
+            requiredFacilities: [],
+          },
+        },
+      }),
+    );
+    const interpreter = new CloudflareWorkersAiInterpreter({
+      accountId: "account-id",
+      apiToken: "secret-token",
+      fetcher,
+    });
+
+    await expect(
+      interpreter.interpret({
+        query: "Buy two tickets",
+        currentIsraelDateTime: "2026-09-01T12:00:00+03:00",
+      }),
+    ).resolves.toMatchObject({
+      support: "unsupported",
+      unsupportedReason: "tickets_or_payments",
+    });
+  });
+
   it("sends only the bounded query, Israel clock, and fixed extraction contract", async () => {
     const fetcher = vi.fn<Fetcher>(async () =>
-      response({ success: true, result: { response: validIntent } }),
+      response({ success: true, result: { response: independentProviderIntent } }),
     );
     const interpreter = new CloudflareWorkersAiInterpreter({
       accountId: "account-id",
@@ -68,6 +176,13 @@ describe("CloudflareWorkersAiInterpreter", () => {
     expect(JSON.stringify(payload.response_format.json_schema.schema)).not.toContain(
       '"uniqueItems"',
     );
+    expect(payload.response_format.json_schema.schema.required).toContain("scope");
+    expect(payload.response_format.json_schema.schema.required).not.toContain("support");
+    expect(payload.response_format.json_schema.schema.required).not.toContain("unsupportedReason");
+    expect(payload.response_format.json_schema.schema.required).not.toContain("weekday");
+    expect(payload.response_format.json_schema.schema.properties.temporal.enum).toContain(
+      "next_wednesday",
+    );
     expect(payload.messages).toHaveLength(2);
     expect(payload.messages[1]).toEqual({
       role: "user",
@@ -79,12 +194,15 @@ describe("CloudflareWorkersAiInterpreter", () => {
     expect(JSON.stringify(payload)).not.toContain("actorId");
     expect(JSON.stringify(payload)).not.toContain("latitude");
     expect(JSON.stringify(payload)).not.toContain("friendIds");
-    expect(ASSISTED_DISCOVERY_PROMPT_VERSION).toBe("ai01-v3");
+    expect(ASSISTED_DISCOVERY_PROMPT_VERSION).toBe("ai01-v5");
   });
 
   it("accepts a JSON-string structured response and validates it strictly", async () => {
     const fetcher = vi.fn<Fetcher>(async () =>
-      response({ success: true, result: { response: JSON.stringify(validIntent) } }),
+      response({
+        success: true,
+        result: { response: JSON.stringify(independentProviderIntent) },
+      }),
     );
     const interpreter = new CloudflareWorkersAiInterpreter({
       accountId: "account-id",
@@ -106,7 +224,7 @@ describe("CloudflareWorkersAiInterpreter", () => {
         success: true,
         result: {
           response: {
-            ...validIntent,
+            ...independentProviderIntent,
             explicitStartDate: "2026-09-02",
             explicitEndDate: "2026-09-02",
           },
@@ -127,9 +245,77 @@ describe("CloudflareWorkersAiInterpreter", () => {
     ).resolves.toEqual(validIntent);
   });
 
+  it("extracts an exact next weekday and a stated public place", async () => {
+    const providerIntent = {
+      ...independentProviderIntent,
+      temporal: "next_wednesday",
+      locationMention: "Jerusalem",
+      teamMentions: [],
+      competitionMention: null,
+      hostKind: "any",
+      proximity: "none",
+      requiredFacilities: [],
+    };
+    const fetcher = vi.fn<Fetcher>(async () =>
+      response({ success: true, result: { response: providerIntent } }),
+    );
+    const interpreter = new CloudflareWorkersAiInterpreter({
+      accountId: "account-id",
+      apiToken: "secret-token",
+      fetcher,
+    });
+
+    await expect(
+      interpreter.interpret({
+        query: "Anything in Jerusalem next Wednesday?",
+        currentIsraelDateTime: "2026-09-02T12:00:00+03:00",
+      }),
+    ).resolves.toEqual({
+      ...validIntent,
+      temporal: "next_weekday",
+      weekday: "wednesday",
+      locationMention: "Jerusalem",
+      teamMentions: [],
+      competitionMention: null,
+      hostKind: "any",
+      proximity: "none",
+      requiredFacilities: [],
+    });
+  });
+
+  it("discards a public place that the model inferred but the user did not state", async () => {
+    const providerIntent = {
+      ...independentProviderIntent,
+      competitionMention: null,
+      locationMention: "Jerusalem",
+    };
+    const fetcher = vi.fn<Fetcher>(async () =>
+      response({
+        success: true,
+        result: { response: providerIntent },
+      }),
+    );
+    const interpreter = new CloudflareWorkersAiInterpreter({
+      accountId: "account-id",
+      apiToken: "secret-token",
+      fetcher,
+    });
+
+    await expect(
+      interpreter.interpret({
+        query: "Any huddles tomorrow?",
+        currentIsraelDateTime: "2026-09-01T12:00:00+03:00",
+      }),
+    ).resolves.toEqual({
+      ...validIntent,
+      competitionMention: null,
+      locationMention: null,
+    });
+  });
+
   it("discards a competition that the model inferred from team names", async () => {
     const fetcher = vi.fn<Fetcher>(async () =>
-      response({ success: true, result: { response: validIntent } }),
+      response({ success: true, result: { response: independentProviderIntent } }),
     );
     const interpreter = new CloudflareWorkersAiInterpreter({
       accountId: "account-id",
@@ -147,7 +333,7 @@ describe("CloudflareWorkersAiInterpreter", () => {
 
   it("canonicalizes a friend-host relationship to a person host", async () => {
     const providerIntent = {
-      ...validIntent,
+      ...independentProviderIntent,
       competitionMention: null,
       relationship: "friend_host",
       hostKind: "any",
@@ -166,12 +352,20 @@ describe("CloudflareWorkersAiInterpreter", () => {
         query: "Are friends hosting tomorrow?",
         currentIsraelDateTime: "2026-09-01",
       }),
-    ).resolves.toEqual({ ...providerIntent, hostKind: "person" });
+    ).resolves.toEqual({
+      ...validIntent,
+      competitionMention: null,
+      relationship: "friend_host",
+      hostKind: "person",
+    });
   });
 
   it("classifies malformed schema output without retrying", async () => {
     const fetcher = vi.fn<Fetcher>(async () =>
-      response({ success: true, result: { response: { ...validIntent, secret: "ignore" } } }),
+      response({
+        success: true,
+        result: { response: { ...independentProviderIntent, secret: "ignore" } },
+      }),
     );
     const interpreter = new CloudflareWorkersAiInterpreter({
       accountId: "account-id",

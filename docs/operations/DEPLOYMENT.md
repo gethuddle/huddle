@@ -28,10 +28,13 @@ Values belong only in Vercel/Supabase managed secret stores.
 4. Review the migration list. Apply all committed migrations to preview, verify parity,
    then apply the same ordered set to production **before** deploying code that uses it.
    Never hand-edit production schema or use `db reset` against a hosted project.
-5. Configure Supabase Auth site URL, allowed redirects, and Huddle confirmation email
-   template for each environment's own HTTPS origin. Preview redirects must not point
-   to production and production redirects must not contain wildcard preview hosts.
-6. Configure all eight environment names from the matching example. Use different
+5. Configure the Supabase Auth site URL and exact allowed redirects for each
+   environment's own HTTPS origin, including `/auth/verify/callback` and
+   `/auth/reset-password/callback`. Copy the repository confirmation and recovery
+   templates from `supabase/templates/` into the hosted Auth email-template settings;
+   the local file paths are not uploaded automatically. Preview redirects must not
+   point to production and production redirects must not contain wildcard preview hosts.
+6. Configure every required and conditionally enabled environment name from the matching example. Use different
    service-role, sync, cursor, and provider secrets per environment.
 7. Deploy preview and run anonymous/signed-in smoke checks without production data.
    Then deploy the exact accepted commit to production.
@@ -42,6 +45,11 @@ Values belong only in Vercel/Supabase managed secret stores.
    for forbidden secrets/private data. Record only safe request/run IDs and outcomes.
 10. Configure scheduled sync from [`configure-sports-sync.sql`](../../supabase/production/configure-sports-sync.sql),
     then follow [`PRODUCTION-ACCEPTANCE.md`](./PRODUCTION-ACCEPTANCE.md).
+
+The production Auth smoke must include a dedicated test account: request a reset,
+open the received link on the production origin, replace the password, confirm the
+recovery session returns to sign in, and sign in with the new password. Do not record
+the email link, token, code, password, or Auth cookies as evidence.
 
 ## Migration parity evidence
 
