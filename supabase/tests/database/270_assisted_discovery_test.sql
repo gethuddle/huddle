@@ -403,16 +403,49 @@ from (
     ('aa100000-0000-4000-8000-000000000609'::uuid, 'aa100000-0000-4000-8000-000000000104'::uuid, 'aa100000-0000-4000-8000-000000000303'::uuid, 'Banned group event', 'group', interval '8 days 45 minutes', 20)
 ) as fixture(id, host_id, group_id, title, audience, start_offset, capacity);
 
-insert into public.event_attendance (
-  event_id, user_id, status, source, reviewed_by, reviewed_at
+insert into public.event_invitations (
+  event_id, invitee_id, invited_by, status, responded_at
 )
 values
-  ('aa100000-0000-4000-8000-000000000506', 'aa100000-0000-4000-8000-000000000108', 'approved', 'self_request', 'aa100000-0000-4000-8000-000000000105', statement_timestamp()),
-  ('aa100000-0000-4000-8000-000000000605', 'aa100000-0000-4000-8000-000000000101', 'approved', 'self_request', 'aa100000-0000-4000-8000-000000000102', statement_timestamp()),
-  ('aa100000-0000-4000-8000-000000000606', 'aa100000-0000-4000-8000-000000000108', 'approved', 'self_request', 'aa100000-0000-4000-8000-000000000102', statement_timestamp());
+  (
+    'aa100000-0000-4000-8000-000000000501',
+    'aa100000-0000-4000-8000-000000000101',
+    'aa100000-0000-4000-8000-000000000105',
+    'accepted',
+    statement_timestamp()
+  ),
+  (
+    'aa100000-0000-4000-8000-000000000502',
+    'aa100000-0000-4000-8000-000000000101',
+    'aa100000-0000-4000-8000-000000000105',
+    'pending',
+    null
+  );
+
+insert into public.event_attendance (
+  id, event_id, user_id, status, source, reviewed_by, reviewed_at, left_at
+)
+values
+  ('aa100000-0000-4000-8000-000000000701', 'aa100000-0000-4000-8000-000000000501', 'aa100000-0000-4000-8000-000000000101', 'approved', 'direct_invite', 'aa100000-0000-4000-8000-000000000105', statement_timestamp(), null),
+  ('aa100000-0000-4000-8000-000000000705', 'aa100000-0000-4000-8000-000000000502', 'aa100000-0000-4000-8000-000000000101', 'left', 'direct_invite', 'aa100000-0000-4000-8000-000000000105', statement_timestamp(), statement_timestamp()),
+  ('aa100000-0000-4000-8000-000000000702', 'aa100000-0000-4000-8000-000000000506', 'aa100000-0000-4000-8000-000000000108', 'approved', 'self_request', 'aa100000-0000-4000-8000-000000000105', statement_timestamp(), null),
+  ('aa100000-0000-4000-8000-000000000703', 'aa100000-0000-4000-8000-000000000605', 'aa100000-0000-4000-8000-000000000101', 'approved', 'self_request', 'aa100000-0000-4000-8000-000000000102', statement_timestamp(), null),
+  ('aa100000-0000-4000-8000-000000000704', 'aa100000-0000-4000-8000-000000000606', 'aa100000-0000-4000-8000-000000000108', 'approved', 'self_request', 'aa100000-0000-4000-8000-000000000102', statement_timestamp(), null);
 
 set local role authenticated;
 set local "request.jwt.claim.sub" = 'aa100000-0000-4000-8000-000000000101';
+create temporary table ai_general_while_attending on commit drop as
+select * from public.search_assisted_events(
+  (statement_timestamp() at time zone 'Asia/Jerusalem')::date,
+  (statement_timestamp() at time zone 'Asia/Jerusalem')::date + 14,
+  array['aa100000-0000-4000-8000-000000000202','aa100000-0000-4000-8000-000000000203']::uuid[],
+  'aa100000-0000-4000-8000-000000000201',
+  'any', 'venue', array['food'], 32.800, 35.000
+);
+select public.leave_event(
+  'aa100000-0000-4000-8000-000000000701',
+  null
+);
 create temporary table ai_general_results on commit drop as
 select * from public.search_assisted_events(
   (statement_timestamp() at time zone 'Asia/Jerusalem')::date,
@@ -424,9 +457,24 @@ select * from public.search_assisted_events(
 reset role;
 
 select is(
+  (select count(*) from ai_general_while_attending where event_id = 'aa100000-0000-4000-8000-000000000501'),
+  0::bigint,
+  'general assisted discovery excludes an event while the viewer is attending'
+);
+select is(
   (select array_agg(title order by starts_at, event_id) from ai_general_results),
-  array['Food event one','Food event two','Food event three']::text[],
+  array['Food event one','Food event three','Food event four']::text[],
   'two-team and facility filters produce a stable top three without relaxation'
+);
+select is(
+  (select viewer_participation_state from ai_general_results where event_id = 'aa100000-0000-4000-8000-000000000501'),
+  'left',
+  'leaving retains the viewer history while making the event discoverable again'
+);
+select is(
+  (select count(*) from ai_general_results where event_id = 'aa100000-0000-4000-8000-000000000502'),
+  0::bigint,
+  'a current pending invitation still excludes an event with retained left attendance'
 );
 select ok(
   (select bool_and(venue_facilities @> array['food']::text[]) from ai_general_results),

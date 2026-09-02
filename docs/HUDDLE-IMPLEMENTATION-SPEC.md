@@ -805,7 +805,7 @@ type DiscoveryResponse = {
 };
 ```
 
-Sort is deterministic: eligible published future events by match/interest relevance for signed-in users, then distance/time, then ID tie-breaker. Signed-in Fan results merge ordinary eligible events, open-door listings, and public listings from Venues the same account manages, deduplicated by event ID. Anonymous users receive only public business-venue events, ordered deterministically by distance/time without personalization. Eligible signed-in home results include only a safe coarse distance summary before approval.
+Sort is deterministic: eligible published future events by match/interest relevance for signed-in users, then distance/time, then ID tie-breaker. Signed-in Fan results merge ordinary eligible events, open-door listings, and public listings from Venues the same account manages, deduplicated by event ID. Anonymous users receive only public business-venue events, ordered deterministically by distance/time without personalization. Eligible signed-in home results include only a safe coarse distance summary before approval. Acquisition discovery MUST exclude current `requested` or `approved` attendance and closed `declined` or `removed` attendance, but retained `left` history MUST NOT permanently suppress an otherwise visible, actionable event. A current pending invitation still excludes the event; a historical accepted invitation does not keep it hidden after its attendance has moved to `left`.
 
 #### `POST /api/assisted-discovery`
 
@@ -817,7 +817,7 @@ The today-through-following-14-days window is used only when the sentence contai
 
 A named public place overrides any remembered session origin. Huddle verifies that the extracted phrase occurs in the sentence, resolves the first bounded Israel suggestion server-side through the existing Photon/OpenStreetMap adapter, and immediately applies that coordinate to the ordinary 15 km PostGIS search. No manual suggestion click or second AI call is required. An unresolved place returns clarification, and a geocoder failure fails closed rather than broadening the search. The raw place phrase is sent only to the bounded geocoder request; it is not placed in a client URL, continuation token, application log, cache, or database, and Cloudflare never receives the resolved coordinate.
 
-The route returns exactly one of `results`, `needs_location`, `clarification`, `unsupported`, or `no_results`. It never invents event copy, silently broadens a date or other filter, or asks the model to rank database rows. Results contain at most three safe event summaries produced by `search_assisted_events`; explanation strings and matched reasons are deterministic application copy.
+The route returns exactly one of `results`, `needs_location`, `clarification`, `unsupported`, or `no_results`. It never invents event copy, silently broadens a date or other filter, or asks the model to rank database rows. Results contain at most three safe event summaries produced by `search_assisted_events`; explanation strings and matched reasons are deterministic application copy. General assisted discovery uses the same current-participation boundary as Explore, so leaving an event makes it eligible for exact-match discovery again without deleting its attendance history.
 
 #### `GET /api/groups/search`
 
