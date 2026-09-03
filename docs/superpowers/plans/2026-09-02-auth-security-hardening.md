@@ -192,7 +192,7 @@ Run: `npm test -- features/auth/link-consumption.test.ts features/auth/component
 
 - [x] **Step 3: Implement passive pages, POST handlers, and legacy endpoints**
 
-The fragment reader accepts exactly one `token_hash/type` pair or one PKCE `code`, caps each credential at 2048 characters, removes the fragment with `history.replaceState`, and renders a native POST. Route handlers validate `Origin` against `NEXT_PUBLIC_APP_URL`, use private no-store headers, and keep invalid/expired/used failures indistinguishable.
+The fragment reader accepts exactly one `token_hash/type` pair or one PKCE `code`, caps each credential at 2048 characters, removes the fragment with `history.replaceState`, and renders a native POST. Route handlers validate `Origin` against `NEXT_PUBLIC_APP_URL`, require an exchanged PKCE code's redirect purpose to match its verification or recovery boundary, use private no-store headers, and keep invalid/expired/used failures indistinguishable.
 
 - [x] **Step 4: Run focused tests to green**
 
@@ -233,7 +233,7 @@ Run: `npm test -- lib/supabase/session.test.ts features/auth/actions.test.ts fea
 
 - [x] **Step 3: Implement recovery and known-password actions**
 
-Use `getClaims()` to obtain `sub` and `session_id`. `updatePasswordAction` refuses ordinary sessions even when `getUser()` succeeds. `changePasswordAction` reauthenticates with the current user's verified email, passes `current_password` to `updateUser`, and maps mismatch to one field-safe message. Both success paths call global sign-out, clear recovery/workspace cookies, revalidate the layout, and hard-redirect to `/auth/sign-in?password=changed`.
+Use `getClaims()` to obtain `sub` and `session_id`. `updatePasswordAction` refuses ordinary sessions even when `getUser()` succeeds. `changePasswordAction` reauthenticates with the current user's verified email, passes `current_password` to `updateUser`, and maps mismatch to one field-safe message. Both success paths request global sign-out, always clear local Supabase/recovery/workspace and namespaced browser state, revalidate the layout, and hard-redirect to sign in. A confirmed revocation uses `/auth/sign-in?password=changed`; an unconfirmed provider result adds `sessions=unconfirmed` and an honest warning without undoing the completed password update.
 
 - [x] **Step 4: Implement Proxy recovery gate**
 
@@ -241,7 +241,7 @@ While a valid grant is present, allow only the reset/auth endpoints required to 
 
 - [x] **Step 5: Run focused tests to green and inspect cookies**
 
-Run the Step 2 command and require exit 0. Assert cookie flags and global sign-out explicitly.
+Run the Step 2 command and require exit 0. Assert cookie flags, requested global sign-out, mandatory local cleanup, and the unconfirmed-revocation path explicitly.
 
 ### Task 6: Complete branded email templates and drift-safe deployment
 

@@ -36,11 +36,19 @@ describe("AccountSecurityPage", () => {
     render(await AccountSecurityPage());
 
     expect(screen.getByRole("heading", { name: "Change your password." })).toBeVisible();
+    expect(screen.getByText(/asks Supabase to revoke the rest/i)).toBeVisible();
+    expect(screen.queryByText(/signs out every session/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText("Current password")).toBeVisible();
     expect(screen.getByRole("button", { name: "Change password" })).toBeVisible();
     expect(screen.getByRole("link", { name: "Forgot your current password?" })).toHaveAttribute(
       "href",
       "/auth/forgot-password",
     );
+    expect(screen.getByRole("heading", { name: "Delete account" })).toBeVisible();
+    expect(screen.getByText(/owned groups and venues archived/i)).toBeVisible();
+    expect(
+      screen.getByText(/pseudonymous attendance and safety history is retained/i),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Delete account" })).toBeVisible();
   });
 });

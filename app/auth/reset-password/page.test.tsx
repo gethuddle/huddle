@@ -24,6 +24,8 @@ describe("reset-password page", () => {
     render(await ResetPasswordPage());
 
     expect(screen.getByRole("heading", { name: "Choose a new password" })).toBeVisible();
+    expect(screen.getByText(/ask Supabase to revoke the rest/i)).toBeVisible();
+    expect(screen.queryByText(/sign out every session/i)).not.toBeInTheDocument();
     expect(screen.getByText("Use 15–72 characters.")).toBeVisible();
     expect(screen.getByRole("button", { name: "Cancel reset and sign in" })).toBeVisible();
   });

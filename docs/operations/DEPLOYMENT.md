@@ -99,8 +99,9 @@ Vercel/Supabase managed secret stores.
 The production Auth smoke must include dedicated accounts: prove a duplicate signup sends
 no second confirmation; prove GET/prefetch leaves a fresh link usable; explicitly Continue;
 open recovery while another account is signed in; prove direct reset is denied; replace the
-password; confirm every session is signed out; receive the password-changed notification;
-and sign in with the new password. Do not record email links, tokens, codes, passwords,
+password; confirm the current session is always cleared and either prove the other sessions are revoked or
+observe the honest unconfirmed-revocation warning; receive the password-changed notification; and
+sign in with the new password. Do not record email links, tokens, codes, passwords,
 Turnstile responses, actor IDs, or Auth cookies as evidence.
 
 ## Migration parity evidence

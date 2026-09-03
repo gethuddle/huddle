@@ -24,19 +24,20 @@ The 2026-08-29 B12 run passed 90 Vitest files / 403 tests (78.7% statements,
 and all 17 Playwright journeys. The PR/main CI run and second-computer reproduction
 remain separate evidence.
 
-The current inventory contains 179 passing Vitest files / 943 passing tests plus one skipped
-live-model test, 37 ordered migrations, 41 pgTAP files / 1685 assertions, and 32
+The current inventory contains 199 passing Vitest files / 1,057 passing tests plus one skipped
+live-model test, 38 ordered migrations, 43 pgTAP files / 1,746 assertions, and 35
 Playwright scenarios.
 The complete acceptance command passes this combined inventory. The B12 numbers above are
 retained as historical accepted evidence rather than presented as the current repository
 inventory. Hosted migration and production acceptance remain separately evidenced operations.
 
-## Thirty-two deterministic Playwright scenarios
+## Thirty-five deterministic Playwright scenarios
 
-All numbered journeys are in `tests/e2e/auth.spec.ts`. Provider input is a saved,
-normalized fixture inserted through the real sync transaction; identifiers are
-random values used only to prevent test collisions. Product assertions do not
-depend on execution order, wall-clock equality, a provider network, or hosted data.
+Numbered journeys 01–17 and 19 are in `tests/e2e/auth.spec.ts`; journey 18 is in
+`tests/e2e/assisted-discovery.spec.ts`. Provider input is a saved, normalized fixture inserted
+through the real sync transaction; identifiers are random values used only to prevent test
+collisions. Product assertions do not depend on execution order, wall-clock equality, a provider
+network, or hosted data.
 
 | # | Acceptance journey | Principal enforcement |
 |---:|---|---|
@@ -57,22 +58,22 @@ depend on execution order, wall-clock equality, a provider network, or hosted da
 | 15 | RFC 5545 calendar includes location only while currently authorized | calendar route and audited location function |
 | 16 | Confidential report, proportional action, independent appeal, and responsive/accessible moderation | moderation functions and Radix confirmation UI |
 | 17 | Provider failure preserves last-good fixtures and exposes stale state | sync transaction and freshness projection |
+| 18 | The three approved assisted-discovery examples return authorized seeded huddles without live AI | fake interpreter, real authorized search RPC, safe result projection |
+| 19 | Account Security rejects wrong password/non-exact confirmation, erases the account, clears Huddle tab state, retains pseudonymous history, and denies stale reads/mutations | same-user reauthentication, erasure transaction, marker-backed cleanup, RLS and Auth invalidation |
 
-The 17 numbered contract journeys plus three supporting unnumbered journeys run once
-in the acceptance project. Five focused Calm Explore journeys add exact-fixture return
+Fifteen tests in the acceptance project cover numbered journeys 01–17, including intentionally
+combined lifecycle checks; one covers journey 19; and seven supporting Auth/product journeys cover
+password recovery, duplicate signup, known-password security, blocking, correction persistence,
+and both Venue/private event paths. Five focused Calm CRUD journeys add exact-fixture return
 context; friendship cancellation, decline, acceptance, and removal; secure event-link
-redemption/revocation; group submission withdrawal/rejection; and Venue closure. One
-complete Fan/Venue journey runs independently at 1280, 768, and 375 px. A final
-anonymous 1364×1440 regression verifies full-width shell geometry, centring, overflow,
-and shadow treatment. One fake-interpreter journey covers all three core AI-assisted
-discovery examples at phone width with authorized crests, group context, capacity, facility
-detail, the five-item Fan navigation, a viewport-bounded transcript, and a visible docked
-composer; a second proves that a named Jerusalem origin resolves automatically, overrides
-remembered Haifa state, that `next Wednesday` excludes a nearby-date decoy, that a named
-month does not use the 14-day default, and that leaving Ask clears the exchange. The local
-seam calls neither live AI nor a live geocoder. This produces 32 Playwright scenarios in total. The supporting journeys exercise password
-recovery through Mailpit and Supabase Auth, reversible blocking, and both venue/private
-event creation paths.
+redemption/revocation; group submission withdrawal/rejection; and Venue closure. One complete
+Fan/Venue journey runs independently at 1280, 768, and 375 px. A final anonymous 1364×1440
+regression verifies full-width shell geometry, centring, overflow, and shadow treatment. One
+fake-interpreter journey covers numbered journey 18 at phone width with authorized crests, group
+context, capacity, facility detail, the five-item Fan navigation, a viewport-bounded transcript,
+and a visible docked composer. Two additional assisted-discovery journeys prove distinct result
+tickets plus named-place/date accuracy and ephemeral state. The local seam calls neither live AI
+nor a live geocoder. These suites produce 35 Playwright scenarios in total.
 Production smoke tests are deliberately separate under
 `tests/production/`: `npm run test:production:session` creates only ordinary Auth
 sessions (which may update Auth sign-in metadata), while `npm run test:production`
@@ -81,16 +82,18 @@ accounts and a fresh event.
 
 ## Database coverage
 
-The 41 pgTAP files under `supabase/tests/database/` cover all exposed-table RLS
+The 43 pgTAP files under `supabase/tests/database/` cover all exposed-table RLS
 inventory, CHECK/unique/FK invariants, minimum grants, safe reads, denied reads and
 mutations, lifecycle transitions, cooldowns, exact-address authorization, capacity,
 moderation, workspace membership, protected drafts, current-state projections,
 public-address caching and autocomplete, global group discovery, direct group invitations and member removal, team crest normalization, fixture coverage, open-door venue events, the public map
 projection, managed-Venue discovery continuity, fixture/event consistency, attend-then-leave
 rediscovery across Explore and assisted search, assisted-event authorization and safe crest/group projection, secure event
-invite links, audited group archive, and audited Venue closure. Dedicated two-connection regressions cover friendship/block,
-application/block, group invite, event creation, group review/block, attendance,
-onboarding/workspace activation, protected drafts, and suspension/mutation races.
+invite links, audited group archive, audited Venue closure, and account-erasure cleanup, retained
+pseudonymous history, stale-JWT denial, idempotency, the narrow location exception, and canonical
+actor concurrency. Dedicated two-connection regressions cover friendship/block, application/block,
+group invite, event creation, group review/block, attendance, onboarding/workspace activation,
+protected drafts, suspension/mutation races, and account erasure.
 
 ## Manual and hosted acceptance
 

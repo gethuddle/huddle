@@ -683,10 +683,44 @@ async function expectProfileNavigation(page: Page) {
   await page.keyboard.press("Escape");
 }
 
+async function expectSessionCleanupMarkerConsumed(page: Page) {
+  await expect
+    .poll(async () => {
+      const cookies = await page.context().cookies();
+      return cookies.some((cookie) => cookie.name === "huddle-session-cleanup");
+    })
+    .toBe(false);
+}
+
 async function signOut(page: Page) {
   await page.goto(new URL("/account", page.url()).toString());
+  await page.evaluate(() => {
+    window.sessionStorage.setItem("huddle:discovery-origin", "private-sign-out-location");
+    window.sessionStorage.setItem("huddle:future-sign-out-state", "private-state");
+    window.sessionStorage.setItem("unrelated:sign-out-e2e", "keep-me");
+  });
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page.getByRole("banner").getByRole("link", { name: "Sign in" })).toBeVisible();
+  const browserState = await page.evaluate(() => ({
+    discoveryOrigin: window.sessionStorage.getItem("huddle:discovery-origin"),
+    futureHuddleState: window.sessionStorage.getItem("huddle:future-sign-out-state"),
+    unrelated: window.sessionStorage.getItem("unrelated:sign-out-e2e"),
+  }));
+  expect(browserState).toEqual({
+    discoveryOrigin: null,
+    futureHuddleState: null,
+    unrelated: "keep-me",
+  });
+  await expectSessionCleanupMarkerConsumed(page);
+  await page.evaluate(() =>
+    window.sessionStorage.setItem("huddle:post-sign-out-state", "keep-after-consumption"),
+  );
+  await page.reload();
+  expect(
+    await page.evaluate(() => window.sessionStorage.getItem("huddle:post-sign-out-state")),
+  ).toBe("keep-after-consumption");
+  await page.evaluate(() => window.sessionStorage.removeItem("unrelated:sign-out-e2e"));
+  await page.evaluate(() => window.sessionStorage.removeItem("huddle:post-sign-out-state"));
 }
 
 async function completeProfile(
@@ -838,6 +872,10 @@ test("password recovery replaces the password without revealing account state", 
   await expect(page).toHaveURL(/^http:\/\/(?:localhost|127\.0\.0\.1):3000\/auth\/reset-password$/);
   await expect(page.getByRole("heading", { name: "Choose a new password" })).toBeVisible();
   await clearMailbox();
+  await page.evaluate(() => {
+    window.sessionStorage.setItem("huddle:password-recovery-state", "private-state");
+    window.sessionStorage.setItem("unrelated:password-recovery-e2e", "keep-me");
+  });
   await page.getByLabel("New password", { exact: true }).fill(newPassword);
   await page.getByLabel("Confirm new password").fill(newPassword);
   await page.getByRole("button", { name: "Update password" }).click();
@@ -848,6 +886,24 @@ test("password recovery replaces the password without revealing account state", 
   await expect(page.getByRole("status")).toContainText(
     "Password updated. Sign in with your new password.",
   );
+  expect(
+    await page.evaluate(() => ({
+      huddle: window.sessionStorage.getItem("huddle:password-recovery-state"),
+      unrelated: window.sessionStorage.getItem("unrelated:password-recovery-e2e"),
+    })),
+  ).toEqual({ huddle: null, unrelated: "keep-me" });
+  await expectSessionCleanupMarkerConsumed(page);
+  await page.evaluate(() =>
+    window.sessionStorage.setItem("huddle:post-password-state", "keep-after-consumption"),
+  );
+  await page.reload();
+  expect(
+    await page.evaluate(() => window.sessionStorage.getItem("huddle:post-password-state")),
+  ).toBe("keep-after-consumption");
+  await page.evaluate(() => {
+    window.sessionStorage.removeItem("unrelated:password-recovery-e2e");
+    window.sessionStorage.removeItem("huddle:post-password-state");
+  });
 
   const passwordChangedMessage = await messageForSubject(email, "Your Huddle password was changed");
   expect(passwordChangedMessage.HTML).toContain("If this wasn’t you");
@@ -948,6 +1004,189 @@ test("ordinary sessions cannot use recovery, while Account Security requires the
   await page.getByLabel("Password", { exact: true }).fill(newPassword);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/^http:\/\/(?:localhost|127\.0\.0\.1):3000\/$/);
+});
+
+test("account deletion removes identity and rejects a stale session", async ({ page }) => {
+  await page.setViewportSize({ height: 520, width: 390 });
+  const suffix = uniqueSuffix();
+  const email = `delete-${suffix}@example.com`;
+  const password = "matchday-local-test";
+  const userId = await seedCompletedUser(
+    email,
+    password,
+    `delete_${suffix}`,
+    "Deletion Journey Fan",
+  );
+  const retainedGroupSlug = await seedGroupOwner(userId, suffix);
+  const staleSession = await localUserClient(email, password);
+
+  await signIn(page, email, password);
+  await page.goto("/account/security");
+  await page.evaluate((ownerId) => {
+    window.sessionStorage.setItem(
+      "huddle:discovery-origin",
+      JSON.stringify({
+        kind: "address",
+        label: "Private deletion-test location",
+        lat: 32.794,
+        lng: 34.989,
+      }),
+    );
+    window.sessionStorage.setItem(
+      `huddle:onboarding:${ownerId}:fan:v1`,
+      JSON.stringify({
+        checked: {},
+        extra: null,
+        values: { displayName: "Private deletion-test draft" },
+      }),
+    );
+    window.sessionStorage.setItem("huddle:future-account-state", "private-state");
+    window.sessionStorage.setItem("unrelated:account-erasure-e2e", "keep-me");
+  }, userId);
+  await page.getByRole("button", { name: "Delete account" }).click();
+
+  const dialog = page.getByRole("alertdialog");
+  await expect(dialog).toContainText("cannot be undone");
+  const currentPassword = dialog.getByLabel("Current password");
+  const confirmation = dialog.getByRole("textbox", { name: "Type DELETE to confirm" });
+  const submit = dialog.getByRole("button", { name: "Delete account permanently" });
+  await currentPassword.fill(password);
+  await confirmation.fill("delete");
+  await submit.scrollIntoViewIfNeeded();
+  await submit.click();
+
+  const confirmationError = dialog.getByText("Type DELETE exactly to confirm.");
+  await confirmationError.scrollIntoViewIfNeeded();
+  await expect(confirmationError).toBeInViewport();
+  await expect(confirmation).toHaveAttribute("aria-invalid", "true");
+  await expect(dialog).toBeVisible();
+  await expect(page).toHaveURL(/\/account\/security$/);
+
+  await currentPassword.fill("wrong-password");
+  await confirmation.fill("DELETE");
+  await submit.scrollIntoViewIfNeeded();
+  await expect(submit).toBeInViewport();
+  await submit.click();
+
+  const passwordError = dialog.getByText("Current password is incorrect.");
+  await passwordError.scrollIntoViewIfNeeded();
+  await expect(passwordError).toBeInViewport();
+  await currentPassword.fill(password);
+  await confirmation.fill("DELETE");
+  await submit.scrollIntoViewIfNeeded();
+  await submit.click();
+
+  await expect(page).toHaveURL(/\/auth\/sign-in\?account=deleted$/);
+  await expect(page.getByRole("status")).toContainText("Account deleted");
+  const browserState = await page.evaluate((ownerId) => {
+    return {
+      discoveryOrigin: window.sessionStorage.getItem("huddle:discovery-origin"),
+      futureHuddleState: window.sessionStorage.getItem("huddle:future-account-state"),
+      onboardingDraft: window.sessionStorage.getItem(`huddle:onboarding:${ownerId}:fan:v1`),
+      unrelated: window.sessionStorage.getItem("unrelated:account-erasure-e2e"),
+    };
+  }, userId);
+  expect(browserState).toEqual({
+    discoveryOrigin: null,
+    futureHuddleState: null,
+    onboardingDraft: null,
+    unrelated: "keep-me",
+  });
+  await expectSessionCleanupMarkerConsumed(page);
+  await page.evaluate(() =>
+    window.sessionStorage.setItem("huddle:post-erasure-state", "keep-after-consumption"),
+  );
+  await page.reload();
+  expect(
+    await page.evaluate(() => window.sessionStorage.getItem("huddle:post-erasure-state")),
+  ).toBe("keep-after-consumption");
+  await page.evaluate(() => window.sessionStorage.removeItem("huddle:post-erasure-state"));
+
+  const productState = localDatabaseRows<{
+    bio_removed: boolean;
+    deleted: boolean;
+    display_name: string;
+    fan_disabled: boolean;
+    handle_removed: boolean;
+  }>(`
+    select
+      bio is null as bio_removed,
+      deleted_at is not null as deleted,
+      display_name,
+      fan_enabled_at is null as fan_disabled,
+      handle is null as handle_removed
+    from public.profiles
+    where id = ${sqlLiteral(userId)}::uuid;
+  `);
+  expect(productState).toEqual([
+    {
+      bio_removed: true,
+      deleted: true,
+      display_name: "Deleted account",
+      fan_disabled: true,
+      handle_removed: true,
+    },
+  ]);
+
+  const authState = localDatabaseRows<{ deleted: boolean }>(`
+    select deleted_at is not null as deleted
+    from auth.users
+    where id = ${sqlLiteral(userId)}::uuid;
+  `);
+  expect(authState).toEqual([{ deleted: true }]);
+
+  const retainedOwnerHistory = localDatabaseRows<{
+    deleted: boolean;
+    display_name: string;
+    handle_removed: boolean;
+    lifecycle: string;
+    role: string;
+    status: string;
+  }>(`
+    select
+      profile.deleted_at is not null as deleted,
+      profile.display_name,
+      profile.handle is null as handle_removed,
+      supporter_group.lifecycle::text as lifecycle,
+      membership.role::text as role,
+      membership.status::text as status
+    from public.group_memberships as membership
+    join public.groups as supporter_group on supporter_group.id = membership.group_id
+    join public.profiles as profile on profile.id = membership.user_id
+    where membership.user_id = ${sqlLiteral(userId)}::uuid
+      and supporter_group.slug = ${sqlLiteral(retainedGroupSlug)};
+  `);
+  expect(retainedOwnerHistory).toEqual([
+    {
+      deleted: true,
+      display_name: "Deleted account",
+      handle_removed: true,
+      lifecycle: "archived",
+      role: "owner",
+      status: "active",
+    },
+  ]);
+
+  const staleHistoryRead = await staleSession
+    .from("group_memberships")
+    .select("group_id, role, status")
+    .eq("user_id", userId);
+  expect(staleHistoryRead.error).toBeNull();
+  expect(staleHistoryRead.data).toEqual([]);
+
+  const staleMutation = await staleSession.rpc("activate_fan_workspace", {
+    input_adult_attested: true,
+    input_bio: "",
+    input_display_name: "Should not return",
+    input_handle: `return_${suffix}`,
+    input_rules_version: 1,
+  });
+  expect(staleMutation.data).toBeNull();
+  expect(staleMutation.error).not.toBeNull();
+
+  const refresh = await staleSession.auth.refreshSession();
+  expect(refresh.data.session).toBeNull();
+  expect(refresh.error).not.toBeNull();
 });
 
 test("a block is private, directional, auditable, and reversible", async ({
@@ -1311,9 +1550,11 @@ test("17 a provider failure preserves cached fixtures and exposes stale state", 
   await clearMailbox();
   const fixture = await seedCachedFixtureCatalogAfterFailure();
 
-  const providerRequests: string[] = [];
+  const providerApiRequests: string[] = [];
   page.on("request", (request) => {
-    if (request.url().includes("football-data.org")) providerRequests.push(request.url());
+    if (new URL(request.url()).hostname === "api.football-data.org") {
+      providerApiRequests.push(request.url());
+    }
   });
 
   await page.goto(`/matches/${fixture.matchId}?returnTo=${encodeURIComponent("/discover")}`);
@@ -1324,7 +1565,7 @@ test("17 a provider failure preserves cached fixtures and exposes stale state", 
     "href",
     "/discover",
   );
-  expect(providerRequests).toEqual([]);
+  expect(providerApiRequests).toEqual([]);
 
   const suffix = uniqueSuffix();
   const email = `follow-${suffix}@example.com`;

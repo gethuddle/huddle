@@ -18,6 +18,8 @@
 
 **Approved AI-assisted discovery revision:** 1 September 2026, with the Ask/navigation/date/location follow-up approved 2 September 2026. An active Fan may describe the desired fixture, timing, public place, relationship, venue type, or venue facility in one sentence on the dedicated Ask route. Cloudflare extracts only a bounded intent. Huddle deterministically resolves dates and public-place coordinates, while its local catalog and authenticated PostgreSQL boundary authorize, filter, and rank the results; private account context never enters the model.
 
+**Approved account-erasure revision:** 3 September 2026. Account Security now covers both known-password changes and immediate, irreversible self-service deletion. The flow requires current-password reauthentication and exact `DELETE`, atomically removes identity/private state while retaining only required pseudonymous history, and uses a tightly isolated server-only Supabase Auth soft deletion after database preparation. Its new migration remains a separate production-deployment gate.
+
 The source of truth for the course deliverables is the [official project brief](<../course-roadmap/project instructions.pdf>). The [course roadmap](../course-roadmap/ROADMAP.md) is a wider technology menu, not a requirement to use every tool mentioned in the lectures.
 
 ---
@@ -64,6 +66,7 @@ Promotion must never bypass distance, audience, privacy, moderation, or match re
 ### Submitted MVP
 
 - Email/password authentication, common safety eligibility, optional Fan activation, and self-serve Venue activation.
+- Immediate self-service account erasure with explicit removed/retained-data disclosure and no recovery window.
 - Public browsing of information that is safe to expose.
 - A football catalog and synchronized future fixtures.
 - Follows for sports, competitions, teams, and venues.
@@ -163,7 +166,13 @@ There is no second Express application. Next.js is both the web frontend and the
 
 Supabase Auth owns passwords, email verification, and cookie-based sessions. Huddle owns the one-to-one human trust record: adult attestation, community-rules acceptance, suspension state, and optional public Fan identity. The course MVP is 18+; it records the attestation time rather than collecting a full birth date.
 
-Password recovery stays inside the same boundary. Signup and recovery requests always return a generic, non-enumerating result. Branded emails place the bounded token hash after `#`, so the initial passive GET and mail scanners cannot consume it or send it to server logs. The browser removes the fragment and an explicit same-origin POST switches any ambient local session, verifies the credential, and issues a five-minute HMAC grant bound to the resulting Supabase user and session. Only that grant can open or submit the recovery form; ordinary signed-in sessions use Account Security and must reauthenticate with the current password. Every successful replacement globally signs out sessions and emits a password-changed notification. Huddle never looks up, stores, or logs password material itself. Optional Cloudflare Turnstile gates the three public credential-entry forms and is verified server-side before Supabase is called.
+Password recovery stays inside the same boundary. Signup and recovery requests always return a generic, non-enumerating result. Branded emails place the bounded token hash after `#`, so the initial passive GET and mail scanners cannot consume it or send it to server logs. The browser removes the fragment and an explicit same-origin POST switches any ambient local session, verifies the credential, and issues a five-minute HMAC grant bound to the resulting Supabase user and session. Opaque PKCE exchanges are accepted only when Supabase's redirect purpose matches the verification or recovery boundary. Only the recovery grant can open or submit the recovery form; ordinary signed-in sessions use Account Security and must reauthenticate with the current password. A completed password replacement requests global session revocation, always clears local cookies and Huddle tab state, and emits a password-changed notification; if global revocation cannot be confirmed, sign in explains that honestly instead of presenting the irreversible update as a failure. Huddle never looks up, stores, or logs password material itself. Optional Cloudflare Turnstile gates the three public credential-entry forms and is verified server-side before Supabase is called.
+
+Account Security also contains a separate deletion Danger zone. Its dialog explains what is removed and what pseudonymous history remains, then requires a bounded current password and exact uppercase `DELETE`. A Server Action resolves the current SSR user, reauthenticates that exact same email/user pair, invokes the authenticated product-data preparation RPC, and only then calls `auth.admin.deleteUser(user.id, true)` through the existing `server-only` service-role client. The soft-delete flag removes Auth identities and sessions while leaving a sanitized, non-reversible Auth tombstone for foreign-key history; Huddle retains neither the email nor an email digest. Success clears Supabase, recovery, and workspace cookies, sets a short-lived host-only HttpOnly completion marker, and returns to isolated sign in. That marker—not the forgeable status query—allows a client boundary to clear every namespaced Huddle `sessionStorage` value while preserving unrelated tab state; a narrow Server Action consumes it only after the browser verifies cleanup, so a blocked storage API can retry and later anonymous state survives after success. Ordinary sign-out guarantees local cookie clearing and redirect even when provider logout transport fails, and uses the same one-time cleanup mechanism on Home. A provider failure after database preparation exposes only a generic retryable error and leaves the profile erased and ineligible while the same live session can retry.
+
+The product-data transaction cancels future live activity hosted directly or through owned groups/Venues; archives those owned objects instead of transferring them; leaves current attendance as retained `left` history; revokes pending invitations and only still-active invite tokens; deletes follows, relationships, blocks, roles/counters, drafts, and exact hosted-home locations; clears every group-membership application message; and replaces the public identity with `Deleted account` plus `deleted_at`. Required owner rows remain attached only to archived objects. Historical attendance, membership lifecycle, authorship, reports, moderation, appeals, and audit rows retain the profile UUID without the former identity or application prose.
+
+Erasure and ordinary actor mutations share one canonical database serialization boundary, including subscription and Venue-follow writes. An idempotent retry reruns cleanup but never duplicates the preparation audit. The exact-location guards have only a narrow exception after the direct host is tombstoned in the erasure transaction; normal live-home invariants remain intact. Because a previously issued JWT may outlive Auth deletion, central mutation gates and direct RLS reads of retained group/Venue membership, invitation, and attendance history all require a non-deleted profile. The erased user can read only their sanitized own-profile tombstone and cannot reactivate it.
 
 Common safety eligibility means verified email, adult attestation, current community-rules acceptance, and a non-suspended account. Fan activation is optional and adds a public display name and unique handle; it stores no city or default location. Following, attendance, friendships, groups, and private hosting require Fan activation. Venue-only onboarding may satisfy common safety eligibility while leaving Fan identity fields incomplete and non-public; commercial venue mutations require active Venue membership instead of an invented Fan identity.
 
@@ -236,6 +245,8 @@ For a normal home-event request, the host must approve attendance before a prote
 
 After the first attendee approval, a host cannot change the event's host type, audience, place kind, or home address. A material change requires cancellation and creation of a new event so every attendee makes a fresh consent decision.
 
+Account erasure first tombstones the direct host and then deletes that host's exact location. The database permits that one tombstoned-host deletion even when the cancelled event and approved-attendance history remain; it still rejects deleting or materially changing an ordinary non-erased home event's location.
+
 ### 5.9 Attendance and capacity
 
 Reservation-mode venue events normally allow immediate Fan attendance, although their host can require approval. Private-person events require host approval unless the attendee was directly invited. A venue is never an attendee and never consumes capacity. The same human may attend only through a separately activated Fan identity, where one account still reserves exactly one place.
@@ -280,9 +291,9 @@ Important decisions—attendance approval/removal, group approval, bans, moderat
 
 The testing pyramid matches the risks:
 
-- pgTAP verifies host/audience constraints, common safety and workspace gates, RLS, address revocation, roles, blocks, bans, and capacity concurrency;
-- Vitest verifies domain rules, Zod schemas, provider normalization, and calendar output;
-- React Testing Library verifies forms, permission-aware controls, and accessible UI states;
+- pgTAP verifies host/audience constraints, common safety and workspace gates, RLS, address revocation, roles, blocks, bans, capacity concurrency, and account-erasure cleanup/stale-session/concurrency boundaries;
+- Vitest verifies domain rules, Zod schemas, provider normalization, calendar output, and account-erasure action ordering/failure behavior;
+- React Testing Library verifies forms, permission-aware controls, accessible UI states, and the destructive account dialog;
 - Playwright verifies complete user journeys in a browser;
 - GitHub Actions runs formatting, linting, types, tests, a local Supabase reset, the production build, and end-to-end tests.
 
@@ -355,7 +366,7 @@ Each phase should finish with working tests and updated documentation before the
 
 ### Phase 2 — Authentication and onboarding
 
-- Implement email/password signup, verification, non-enumerating password recovery, sign-in/out, SSR sessions, common safety eligibility, optional Fan activation without a saved location, self-serve Venue activation with a confirmed public address, and protected actions.
+- Implement email/password signup, verification, non-enumerating password recovery, sign-in/out, SSR sessions, immediate current-password-confirmed account erasure, common safety eligibility, optional Fan activation without a saved location, self-serve Venue activation with a confirmed public address, and protected actions.
 - Add safe public profile projection, account blocks, and authorization tests.
 
 **Exit:** a verified user can complete common safety setup and activate either workspace; anonymous, ineligible, and workspace-unauthorized users are correctly limited.

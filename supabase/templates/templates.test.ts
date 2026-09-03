@@ -87,6 +87,7 @@ describe("Supabase Auth email templates", () => {
     const html = source("password-changed.html");
 
     expect(html).toContain("If this wasn’t you");
+    expect(html).not.toContain("Existing sessions were signed out");
     expect(html).toContain("{{ .SiteURL }}/auth/forgot-password");
     expect(html).not.toMatch(/TokenHash|ConfirmationURL|RedirectTo/);
   });

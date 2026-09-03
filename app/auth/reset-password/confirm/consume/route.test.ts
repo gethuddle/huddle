@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { verifyRecoveryGrant } from "@/features/auth/recovery-grant";
+import { RECOVERY_GRANT_COOKIE_NAME, verifyRecoveryGrant } from "@/features/auth/recovery-grant";
 
 import { POST } from "./route";
 
@@ -54,8 +54,29 @@ describe("password recovery POST", () => {
       data: { session: { access_token: "recovery-jwt" }, user: { id: USER_ID } },
       error: null,
     });
+    mocks.exchangeCodeForSession.mockResolvedValue({
+      data: {
+        session: { access_token: "recovery-jwt" },
+        user: { id: USER_ID },
+        redirectType: "recovery",
+      },
+      error: null,
+    });
     mocks.createServerClient.mockImplementation((_url, _key, options) => {
       const cookieAdapter = options.cookies as CookieAdapter;
+      const exchangeCodeForSession = async (code: string) => {
+        const result = await mocks.exchangeCodeForSession(code);
+        if (result.data.session !== null) {
+          cookieAdapter.setAll(
+            [
+              { name: "sb-example-auth-token.0", value: "pkce-session-0", options: { path: "/" } },
+              { name: "sb-example-auth-token.1", value: "pkce-session-1", options: { path: "/" } },
+            ],
+            {},
+          );
+        }
+        return result;
+      };
       mocks.signOut.mockImplementation(async () => {
         cookieAdapter.setAll([{ name: "sb-auth", value: "", options: { maxAge: 0 } }], {});
         return { error: null };
@@ -69,7 +90,7 @@ describe("password recovery POST", () => {
       });
       return {
         auth: {
-          exchangeCodeForSession: mocks.exchangeCodeForSession,
+          exchangeCodeForSession,
           getClaims: mocks.getClaims,
           signOut: mocks.signOut,
           verifyOtp: mocks.verifyOtp,
@@ -103,6 +124,37 @@ describe("password recovery POST", () => {
     expect(response.cookies.get("huddle-password-recovery")).toBeUndefined();
     expect(mocks.signOut).toHaveBeenCalledWith({ scope: "local" });
     expect(response.cookies.get("sb-auth")?.value).toBe("");
+  });
+
+  it("rejects a non-recovery PKCE code before issuing a recovery grant", async () => {
+    mocks.exchangeCodeForSession.mockResolvedValueOnce({
+      data: {
+        session: { access_token: "ordinary-jwt" },
+        user: { id: USER_ID },
+        redirectType: null,
+      },
+      error: null,
+    });
+    mocks.signOut.mockRejectedValueOnce(new Error("provider cleanup unavailable"));
+
+    const response = await POST(request("code=ordinary-signup-code"));
+
+    expect(response.headers.get("location")).toBe(
+      "https://huddle.test/auth/forgot-password?status=expired",
+    );
+    expect(response.cookies.get(RECOVERY_GRANT_COOKIE_NAME)).toBeUndefined();
+    expect(mocks.signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(response.cookies.get("sb-example-auth-token.0")).toMatchObject({
+      maxAge: 0,
+      path: "/",
+      value: "",
+    });
+    expect(response.cookies.get("sb-example-auth-token.1")).toMatchObject({
+      maxAge: 0,
+      path: "/",
+      value: "",
+    });
+    expect(response.headers.get("set-cookie")).toContain("Max-Age=0");
   });
 
   it("rejects a cross-origin POST without contacting Supabase", async () => {

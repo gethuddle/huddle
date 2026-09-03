@@ -1355,6 +1355,7 @@ export type Database = {
           community_restricted_at: string | null
           community_restricted_until: string | null
           created_at: string
+          deleted_at: string | null
           display_name: string | null
           fan_enabled_at: string | null
           handle: string | null
@@ -1372,6 +1373,7 @@ export type Database = {
           community_restricted_at?: string | null
           community_restricted_until?: string | null
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
           fan_enabled_at?: string | null
           handle?: string | null
@@ -1389,6 +1391,7 @@ export type Database = {
           community_restricted_at?: string | null
           community_restricted_until?: string | null
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
           fan_enabled_at?: string | null
           handle?: string | null
@@ -3412,6 +3415,10 @@ export type Database = {
           event_id: string
           status: string
         }[]
+      }
+      prepare_account_erasure: {
+        Args: { audit_request_id?: string; input_confirmation: string }
+        Returns: boolean
       }
       publish_group_event: {
         Args: {

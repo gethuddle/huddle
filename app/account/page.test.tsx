@@ -53,7 +53,10 @@ describe("AccountPage", () => {
       "href",
       "/reports",
     );
-    expect(screen.getByRole("link", { name: "Manage password" })).toHaveAttribute(
+    expect(
+      screen.getByText("Change your password or permanently delete your account."),
+    ).toBeVisible();
+    expect(screen.getByRole("link", { name: "Manage security" })).toHaveAttribute(
       "href",
       "/account/security",
     );

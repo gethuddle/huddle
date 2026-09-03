@@ -32,6 +32,11 @@ const verifiedClaimsSchema = z.object({
   session_id: z.uuid(),
 });
 
+type SupabaseCookieScope = Readonly<{
+  domain?: string;
+  path: string;
+}>;
+
 function applyNoStore(response: NextResponse) {
   Object.entries(authNoStoreHeaders).forEach(([name, value]) => response.headers.set(name, value));
 }
@@ -50,6 +55,19 @@ function expiredPath(purpose: AuthLinkPurpose) {
 
 function requestMayContainSession(request: NextRequest) {
   return request.cookies.getAll().some(({ name, value }) => name.startsWith("sb-") && value !== "");
+}
+
+function expireSupabaseCookies(
+  response: NextResponse,
+  cookieScopes: ReadonlyMap<string, SupabaseCookieScope>,
+) {
+  for (const [name, scope] of cookieScopes) {
+    response.cookies.set(name, "", {
+      ...scope,
+      expires: new Date(0),
+      maxAge: 0,
+    });
+  }
 }
 
 async function readBoundedUrlEncodedForm(request: NextRequest): Promise<FormData | null> {
@@ -125,6 +143,11 @@ export async function consumeAuthLink(request: NextRequest, purpose: AuthLinkPur
   }
   if (credential === null) return response;
 
+  const supabaseCookieScopes = new Map<string, SupabaseCookieScope>();
+  for (const { name } of request.cookies.getAll()) {
+    if (name.startsWith("sb-")) supabaseCookieScopes.set(name, { path: "/" });
+  }
+
   const supabase = createServerClient<Database>(
     environment.NEXT_PUBLIC_SUPABASE_URL,
     environment.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
@@ -135,6 +158,12 @@ export async function consumeAuthLink(request: NextRequest, purpose: AuthLinkPur
         },
         setAll(cookiesToSet, headers) {
           cookiesToSet.forEach(({ name, value, options }) => {
+            if (name.startsWith("sb-")) {
+              supabaseCookieScopes.set(name, {
+                path: options?.path ?? "/",
+                ...(options?.domain === undefined ? {} : { domain: options.domain }),
+              });
+            }
             response.cookies.set(name, value, options);
           });
           Object.entries(headers).forEach(([name, value]) => response.headers.set(name, value));
@@ -142,29 +171,47 @@ export async function consumeAuthLink(request: NextRequest, purpose: AuthLinkPur
       },
     },
   );
-  let recoverySessionEstablished = false;
-  let recoveryGrantIssued = false;
+  let linkSessionEstablished = false;
+  let linkAccepted = false;
 
   try {
     if (requestMayContainSession(request)) {
       const { error } = await supabase.auth.signOut({ scope: "local" });
-      if (error !== null) return response;
+      if (error !== null) {
+        throw new Error("The ambient session could not be replaced.");
+      }
     }
 
+    let pkceRedirectType: string | null | undefined;
     const result =
       credential.kind === "token_hash"
         ? await supabase.auth.verifyOtp({
             token_hash: credential.tokenHash,
             type: credential.type,
           })
-        : await supabase.auth.exchangeCodeForSession(credential.code);
+        : await supabase.auth.exchangeCodeForSession(credential.code).then((exchangeResult) => {
+            pkceRedirectType =
+              "redirectType" in exchangeResult.data &&
+              (typeof exchangeResult.data.redirectType === "string" ||
+                exchangeResult.data.redirectType === null)
+                ? exchangeResult.data.redirectType
+                : undefined;
+            return exchangeResult;
+          });
 
     if (result.error !== null || result.data.session === null || result.data.user === null) {
-      return response;
+      throw new Error("The email credential could not establish a complete session.");
+    }
+    linkSessionEstablished = true;
+
+    if (
+      credential.kind === "code" &&
+      (purpose === "recovery" ? pkceRedirectType !== "recovery" : pkceRedirectType !== null)
+    ) {
+      throw new Error("The PKCE code purpose did not match this confirmation boundary.");
     }
 
     if (purpose === "recovery") {
-      recoverySessionEstablished = true;
       const claimsResult = await supabase.auth.getClaims(result.data.session.access_token);
       const claims = verifiedClaimsSchema.safeParse(claimsResult.data?.claims);
       if (claimsResult.error !== null || !claims.success) {
@@ -179,7 +226,6 @@ export async function consumeAuthLink(request: NextRequest, purpose: AuthLinkPur
         ),
         recoveryGrantCookieOptions(environment.HUDDLE_ENVIRONMENT),
       );
-      recoveryGrantIssued = true;
       response.cookies.set(WORKSPACE_COOKIE_NAME, "", {
         ...workspaceCookieOptions(),
         maxAge: 0,
@@ -188,6 +234,7 @@ export async function consumeAuthLink(request: NextRequest, purpose: AuthLinkPur
         "location",
         new URL("/auth/reset-password", environment.NEXT_PUBLIC_APP_URL).toString(),
       );
+      linkAccepted = true;
     } else {
       response.cookies.set(RECOVERY_GRANT_COOKIE_NAME, "", {
         ...recoveryGrantCookieOptions(environment.HUDDLE_ENVIRONMENT),
@@ -230,17 +277,19 @@ export async function consumeAuthLink(request: NextRequest, purpose: AuthLinkPur
         "location",
         new URL(destination, environment.NEXT_PUBLIC_APP_URL).toString(),
       );
+      linkAccepted = true;
     }
   } catch {
     // Invalid, expired, used, and temporarily unavailable credentials share one response.
   }
 
-  if (recoverySessionEstablished && !recoveryGrantIssued) {
+  if (!linkAccepted && (linkSessionEstablished || supabaseCookieScopes.size > 0)) {
     try {
       await supabase.auth.signOut({ scope: "local" });
     } catch {
-      // The response stays expired; best-effort local sign-out prevents retaining a partial session.
+      // The response stays expired. Cookie expiry below does not depend on the provider.
     }
+    expireSupabaseCookies(response, supabaseCookieScopes);
   }
 
   applyNoStore(response);

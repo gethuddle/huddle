@@ -1,9 +1,12 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+  cookieGet: vi.fn(),
+  cookies: vi.fn(),
+  consumeHuddleSessionCleanupAction: vi.fn(),
   createClient: vi.fn(),
   getFanHome: vi.fn(),
   getAppShellState: vi.fn(),
@@ -11,6 +14,10 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
+vi.mock("next/headers", () => ({ cookies: mocks.cookies }));
+vi.mock("@/features/auth/session-cleanup-actions", () => ({
+  consumeHuddleSessionCleanupAction: mocks.consumeHuddleSessionCleanupAction,
+}));
 vi.mock("@/features/workspaces/queries", () => ({
   getAppShellState: mocks.getAppShellState,
   getWorkspaceShellContext: vi.fn(async () => (await mocks.getAppShellState()).workspace),
@@ -60,6 +67,10 @@ function mockViewer(sub: string | null, displayName: string | null = null) {
 describe("Home", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.sessionStorage.clear();
+    mocks.cookieGet.mockReturnValue(undefined);
+    mocks.cookies.mockResolvedValue({ get: mocks.cookieGet });
+    mocks.consumeHuddleSessionCleanupAction.mockResolvedValue(undefined);
     mocks.redirect.mockImplementation(() => {
       throw new Error("NEXT_REDIRECT");
     });
@@ -86,6 +97,22 @@ describe("Home", () => {
 
     expect(screen.getByRole("heading", { name: "Match day is better together." })).toBeVisible();
     expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
+  it("clears Huddle tab state after a marker-backed sign-out", async () => {
+    mocks.cookieGet.mockReturnValue({ value: "sign-out" });
+    window.sessionStorage.setItem("huddle:discovery-origin", "private-location");
+    window.sessionStorage.setItem("huddle:future:v1", "private-state");
+    window.sessionStorage.setItem("third-party", "keep-me");
+
+    render(await Home());
+
+    await waitFor(() => {
+      expect(window.sessionStorage.getItem("huddle:discovery-origin")).toBeNull();
+      expect(window.sessionStorage.getItem("huddle:future:v1")).toBeNull();
+    });
+    expect(window.sessionStorage.getItem("third-party")).toBe("keep-me");
+    expect(mocks.consumeHuddleSessionCleanupAction).toHaveBeenCalledWith("sign-out");
   });
 
   it("renders Fan Home for an active Fan workspace", async () => {
