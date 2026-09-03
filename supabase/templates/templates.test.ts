@@ -1,8 +1,11 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
 const templates = ["confirmation.html", "recovery.html", "password-changed.html"] as const;
+const configFile = fileURLToPath(new URL("../config.toml", import.meta.url));
 
 function source(filename: (typeof templates)[number]) {
   return readFileSync(new URL(filename, import.meta.url), "utf8");
@@ -12,7 +15,31 @@ function count(value: string, pattern: RegExp) {
   return [...value.matchAll(pattern)].length;
 }
 
+function contentPathFor(sectionName: string) {
+  const config = readFileSync(configFile, "utf8");
+  const sectionMarker = `[${sectionName}]`;
+  const sectionStart = config.indexOf(sectionMarker);
+
+  if (sectionStart === -1) throw new Error(`Missing ${sectionMarker} in Supabase config.`);
+
+  const followingConfig = config.slice(sectionStart + sectionMarker.length);
+  const nextSection = followingConfig.search(/\n\[/);
+  const section = nextSection === -1 ? followingConfig : followingConfig.slice(0, nextSection);
+  const contentPath = section.match(/^content_path\s*=\s*"([^"]+)"\s*$/m)?.[1];
+
+  if (contentPath === undefined) throw new Error(`Missing content_path in ${sectionMarker}.`);
+
+  return contentPath;
+}
+
 describe("Supabase Auth email templates", () => {
+  it("resolves the password-changed notification path from the Supabase config directory", () => {
+    const configuredPath = contentPathFor("auth.email.notification.password_changed");
+    const resolvedPath = resolve(dirname(configFile), configuredPath);
+
+    expect(existsSync(resolvedPath)).toBe(true);
+  });
+
   it.each(templates)("ships %s as one complete light branded document", (filename) => {
     const html = source(filename);
 
