@@ -94,7 +94,7 @@ content_path = "./supabase/templates/recovery.html"
 [auth.email.notification.password_changed]
 enabled = true
 subject = "Your Huddle password was changed"
-content_path = "./supabase/templates/password-changed.html"
+content_path = "./templates/password-changed.html"
 
 [auth.sms]
 enable_signup = false
