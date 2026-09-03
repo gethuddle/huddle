@@ -13,8 +13,15 @@ private addresses, report content, invite tokens, or raw provider payloads here.
   that baseline.
 - [x] The hosted reference catalog contains all 13 active reviewed Israel cities.
 - [ ] Signed-out home/fixtures/discovery work in a clean browser.
-- [ ] Verification email returns to the production origin with no token in the final URL.
-- [ ] Password-recovery email returns to the production origin, replaces the password, ends the recovery session, and permits a fresh sign-in without leaving a token/code in the final URL.
+- [ ] Verification email is one branded document, survives a passive GET/prefetch, requires explicit Continue, and leaves no token in browser history or the final URL.
+- [ ] Password recovery is generic, survives passive GET/prefetch, switches an ambient different-account session only after explicit Continue, rejects direct ordinary-session reset, replaces the password through a bound grant, globally signs out sessions, sends the branded change notice, and permits a fresh sign-in.
+- [ ] Exact duplicate signup remains generic and sends no confirmation message; no privileged account lookup is used for browser copy.
+- [ ] `npm run auth:config:check` reports no automatable drift, including the deliberate
+      100-email/hour project cap; production redirects contain no Preview wildcard and the
+      shared Resend account remains within its provider allowance.
+- [ ] Supabase Studio's distinct **Require current password when updating** switch is enabled; built-in CAPTCHA remains disabled because Huddle verifies Turnstile itself.
+- [ ] Turnstile is enabled for signup, sign-in, and password-reset request with exact hostname/action validation and replay rejection.
+- [ ] The email body loads the Huddle icon; the exact `no-reply@auth.huddle.co.il` Google profile has the approved avatar where supported, without claiming universal inbox support.
 - [ ] Two dedicated complete accounts establish independent sessions.
 - [ ] Preview uses a different Supabase project and cannot mutate production.
 - [ ] `npm run test:production:session` passes (Auth-session metadata may update; no product mutation).

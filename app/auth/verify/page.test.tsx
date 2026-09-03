@@ -6,13 +6,14 @@ import { describe, expect, it } from "vitest";
 import VerifyPage from "./page";
 
 describe("verification result page", () => {
-  it("renders the successful local verification state", async () => {
+  it("does not trust a forged successful verification query", async () => {
     render(await VerifyPage({ searchParams: Promise.resolve({ status: "success" }) }));
 
-    expect(screen.getByRole("heading", { name: "You’re in." })).toBeVisible();
-    expect(screen.getByRole("link", { name: "Complete your profile" })).toHaveAttribute(
+    expect(screen.getByRole("heading", { name: "Verify your email." })).toBeVisible();
+    expect(screen.queryByText(/secure session is active/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Go to sign in" })).toHaveAttribute(
       "href",
-      "/settings/profile",
+      "/auth/sign-in",
     );
   });
 
@@ -22,15 +23,19 @@ describe("verification result page", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "invalid, expired, or has already been used",
     );
-    expect(screen.getByRole("link", { name: "Create an account" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Request another email" })).toHaveAttribute(
       "href",
       "/auth/sign-up",
     );
+    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/auth/sign-in");
   });
 
   it("defaults unknown query values to inbox instructions", async () => {
     render(await VerifyPage({ searchParams: Promise.resolve({ status: "unexpected" }) }));
 
     expect(screen.getByRole("heading", { name: "Verify your email." })).toBeVisible();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "If that address can receive Huddle mail, a verification link is on its way.",
+    );
   });
 });

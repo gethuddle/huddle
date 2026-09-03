@@ -4,11 +4,9 @@ import path from "node:path";
 test("the tall desktop auth shell fills and centres the responsive viewport", async ({ page }) => {
   await page.goto("/auth/sign-in");
   await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
-  const publicExplore = page
-    .getByRole("navigation", { name: "Public navigation" })
-    .getByRole("link", { name: "Explore" });
-  await expect(publicExplore).toHaveCSS("background-color", "rgb(240, 243, 240)");
-  await expect(publicExplore).toHaveCSS("border-color", "rgb(221, 227, 222)");
+  await expect(page.getByRole("navigation")).toHaveCount(0);
+  await expect(page.locator("footer")).toHaveCount(0);
+  await expect(page.getByRole("banner").getByRole("link", { name: "Huddle home" })).toBeVisible();
 
   const metrics = await page.evaluate(() => {
     const rectangle = (selector: string) => {
@@ -29,7 +27,6 @@ test("the tall desktop auth shell fills and centres the responsive viewport", as
       documentWidth: document.documentElement.scrollWidth,
       header: rectangle("header"),
       main: rectangle("main"),
-      footer: rectangle("footer"),
       authCard: rectangle('[data-slot="card"]'),
     };
   });
@@ -38,8 +35,6 @@ test("the tall desktop auth shell fills and centres the responsive viewport", as
   expect(metrics.documentWidth).toBe(metrics.viewportWidth);
   expect(metrics.header.left).toBe(0);
   expect(metrics.header.width).toBe(metrics.viewportWidth);
-  expect(metrics.footer.left).toBe(0);
-  expect(metrics.footer.width).toBe(metrics.viewportWidth);
   expect(metrics.main.left).toBeCloseTo(metrics.viewportWidth - metrics.main.right, 5);
   expect(metrics.authCard.centre).toBeCloseTo(metrics.viewportWidth / 2, 5);
   expect(metrics.authCard.boxShadow).not.toContain("rgba(11, 18, 16");

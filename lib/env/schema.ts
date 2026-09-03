@@ -17,6 +17,7 @@ export const publicEnvironmentSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: httpUrl,
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: nonEmptyEnvironmentValue,
   NEXT_PUBLIC_APP_URL: httpUrl,
+  NEXT_PUBLIC_TURNSTILE_SITE_KEY: nonEmptyEnvironmentValue.optional(),
 });
 
 export const serverEnvironmentSchema = publicEnvironmentSchema
@@ -26,6 +27,10 @@ export const serverEnvironmentSchema = publicEnvironmentSchema
     FOOTBALL_DATA_API_TOKEN: nonEmptyEnvironmentValue,
     SPORTS_SYNC_SECRET: z.string().trim().min(32),
     DISCOVERY_CURSOR_SECRET: z.string().trim().min(32),
+    AUTH_RECOVERY_TOKEN_SECRET: z.string().trim().min(32),
+    AUTH_TURNSTILE_ENABLED: environmentBoolean,
+    TURNSTILE_SECRET: nonEmptyEnvironmentValue.optional(),
+    TURNSTILE_HOSTNAMES: nonEmptyEnvironmentValue.optional(),
     ASSISTED_DISCOVERY_ENABLED: environmentBoolean,
     ASSISTED_DISCOVERY_TOKEN_SECRET: z.string().trim().min(32).optional(),
     CLOUDFLARE_ACCOUNT_ID: nonEmptyEnvironmentValue.optional(),
@@ -70,6 +75,39 @@ export const serverEnvironmentSchema = publicEnvironmentSchema
             code: "custom",
             message: "Required when assisted discovery is enabled",
             path: [variable],
+          });
+        }
+      }
+    }
+
+    if (environment.AUTH_TURNSTILE_ENABLED) {
+      for (const variable of [
+        "NEXT_PUBLIC_TURNSTILE_SITE_KEY",
+        "TURNSTILE_SECRET",
+        "TURNSTILE_HOSTNAMES",
+      ] as const) {
+        if (environment[variable] === undefined) {
+          context.addIssue({
+            code: "custom",
+            message: "Required when Auth Turnstile protection is enabled",
+            path: [variable],
+          });
+        }
+      }
+
+      if (
+        environment.HUDDLE_ENVIRONMENT === "production" &&
+        environment.TURNSTILE_HOSTNAMES !== undefined
+      ) {
+        const productionHostnames = environment.TURNSTILE_HOSTNAMES.split(",")
+          .map((hostname) => hostname.trim().toLowerCase())
+          .filter(Boolean);
+
+        if (productionHostnames.length !== 1 || productionHostnames[0] !== "huddle.co.il") {
+          context.addIssue({
+            code: "custom",
+            message: "Production Turnstile must allow huddle.co.il only",
+            path: ["TURNSTILE_HOSTNAMES"],
           });
         }
       }

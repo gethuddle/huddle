@@ -31,6 +31,7 @@ describe("environment schemas", () => {
         "FOOTBALL_DATA_API_TOKEN",
         "SPORTS_SYNC_SECRET",
         "DISCOVERY_CURSOR_SECRET",
+        "AUTH_RECOVERY_TOKEN_SECRET",
       ]),
     );
   });
@@ -44,6 +45,7 @@ describe("environment schemas", () => {
         FOOTBALL_DATA_API_TOKEN: "provider-token",
         SPORTS_SYNC_SECRET: "a-dedicated-sports-sync-secret-value",
         DISCOVERY_CURSOR_SECRET: "a-dedicated-discovery-cursor-secret",
+        AUTH_RECOVERY_TOKEN_SECRET: "a-dedicated-auth-recovery-secret",
       }),
     ).toEqual({
       ...publicEnvironment,
@@ -52,9 +54,77 @@ describe("environment schemas", () => {
       FOOTBALL_DATA_API_TOKEN: "provider-token",
       SPORTS_SYNC_SECRET: "a-dedicated-sports-sync-secret-value",
       DISCOVERY_CURSOR_SECRET: "a-dedicated-discovery-cursor-secret",
+      AUTH_RECOVERY_TOKEN_SECRET: "a-dedicated-auth-recovery-secret",
       ASSISTED_DISCOVERY_ENABLED: false,
+      AUTH_TURNSTILE_ENABLED: false,
     });
   });
+
+  it("requires recovery signing material in every server environment", () => {
+    expect(() =>
+      parseServerEnvironment({
+        ...publicEnvironment,
+        HUDDLE_ENVIRONMENT: "local",
+        SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
+        FOOTBALL_DATA_API_TOKEN: "provider-token",
+        SPORTS_SYNC_SECRET: "a-dedicated-sports-sync-secret-value",
+        DISCOVERY_CURSOR_SECRET: "a-dedicated-discovery-cursor-secret",
+      }),
+    ).toThrowError(new EnvironmentConfigurationError(["AUTH_RECOVERY_TOKEN_SECRET"]));
+  });
+
+  it("requires complete Turnstile configuration only when enabled", () => {
+    const base = {
+      ...publicEnvironment,
+      HUDDLE_ENVIRONMENT: "production",
+      NEXT_PUBLIC_APP_URL: "https://huddle.co.il",
+      NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+      SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
+      FOOTBALL_DATA_API_TOKEN: "provider-token",
+      SPORTS_SYNC_SECRET: "a-dedicated-sports-sync-secret-value",
+      DISCOVERY_CURSOR_SECRET: "a-dedicated-discovery-cursor-secret",
+      AUTH_RECOVERY_TOKEN_SECRET: "a-dedicated-auth-recovery-secret",
+      AUTH_TURNSTILE_ENABLED: "true",
+    };
+
+    expect(() => parseServerEnvironment(base)).toThrowError(
+      new EnvironmentConfigurationError([
+        "NEXT_PUBLIC_TURNSTILE_SITE_KEY",
+        "TURNSTILE_HOSTNAMES",
+        "TURNSTILE_SECRET",
+      ]),
+    );
+    expect(
+      parseServerEnvironment({
+        ...base,
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: "turnstile-site-key",
+        TURNSTILE_HOSTNAMES: "huddle.co.il",
+        TURNSTILE_SECRET: "turnstile-secret",
+      }),
+    ).toMatchObject({ AUTH_TURNSTILE_ENABLED: true, TURNSTILE_HOSTNAMES: "huddle.co.il" });
+  });
+
+  it.each(["localhost", "preview.example.com", "huddle.co.il,localhost"])(
+    "rejects non-production Turnstile hostnames in production: %s",
+    (hostnames) => {
+      expect(() =>
+        parseServerEnvironment({
+          ...publicEnvironment,
+          HUDDLE_ENVIRONMENT: "production",
+          NEXT_PUBLIC_APP_URL: "https://huddle.co.il",
+          SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
+          FOOTBALL_DATA_API_TOKEN: "provider-token",
+          SPORTS_SYNC_SECRET: "a-dedicated-sports-sync-secret-value",
+          DISCOVERY_CURSOR_SECRET: "a-dedicated-discovery-cursor-secret",
+          AUTH_RECOVERY_TOKEN_SECRET: "a-dedicated-auth-recovery-secret",
+          AUTH_TURNSTILE_ENABLED: "true",
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: "turnstile-site-key",
+          TURNSTILE_HOSTNAMES: hostnames,
+          TURNSTILE_SECRET: "turnstile-secret",
+        }),
+      ).toThrowError(new EnvironmentConfigurationError(["TURNSTILE_HOSTNAMES"]));
+    },
+  );
 
   it("keeps assisted discovery disabled without Cloudflare credentials", () => {
     expect(
@@ -65,6 +135,7 @@ describe("environment schemas", () => {
         FOOTBALL_DATA_API_TOKEN: "provider-token",
         SPORTS_SYNC_SECRET: "a-dedicated-sports-sync-secret-value",
         DISCOVERY_CURSOR_SECRET: "a-dedicated-discovery-cursor-secret",
+        AUTH_RECOVERY_TOKEN_SECRET: "a-dedicated-auth-recovery-secret",
       }),
     ).toMatchObject({ ASSISTED_DISCOVERY_ENABLED: false });
   });
@@ -78,6 +149,7 @@ describe("environment schemas", () => {
         FOOTBALL_DATA_API_TOKEN: "provider-token",
         SPORTS_SYNC_SECRET: "a-dedicated-sports-sync-secret-value",
         DISCOVERY_CURSOR_SECRET: "a-dedicated-discovery-cursor-secret",
+        AUTH_RECOVERY_TOKEN_SECRET: "a-dedicated-auth-recovery-secret",
         ASSISTED_DISCOVERY_ENABLED: "true",
       }),
     ).toThrowError(
@@ -101,6 +173,7 @@ describe("environment schemas", () => {
         FOOTBALL_DATA_API_TOKEN: "provider-token",
         SPORTS_SYNC_SECRET: "a-dedicated-sports-sync-secret-value",
         DISCOVERY_CURSOR_SECRET: "a-dedicated-discovery-cursor-secret",
+        AUTH_RECOVERY_TOKEN_SECRET: "a-dedicated-auth-recovery-secret",
       }),
     ).toThrowError(new EnvironmentConfigurationError(["HUDDLE_ENVIRONMENT"]));
   });
@@ -116,6 +189,7 @@ describe("environment schemas", () => {
         FOOTBALL_DATA_API_TOKEN: "provider-token",
         SPORTS_SYNC_SECRET: "a-dedicated-sports-sync-secret-value",
         DISCOVERY_CURSOR_SECRET: "a-dedicated-discovery-cursor-secret",
+        AUTH_RECOVERY_TOKEN_SECRET: "a-dedicated-auth-recovery-secret",
       }),
     ).toThrowError(
       new EnvironmentConfigurationError(["NEXT_PUBLIC_APP_URL", "NEXT_PUBLIC_SUPABASE_URL"]),

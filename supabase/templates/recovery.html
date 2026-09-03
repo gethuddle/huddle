@@ -5,31 +5,101 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Reset your Huddle password</title>
   </head>
-  <body style="margin: 0; background: #0b1210; color: #f2eee4; font-family: Arial, sans-serif">
-    <div style="margin: 0 auto; max-width: 560px; padding: 48px 24px">
-      <p style="margin: 0 0 16px; color: #2ce07b; font-size: 13px; font-weight: 700">HUDDLE</p>
-      <h1 style="margin: 0; font-size: 32px; line-height: 1.15">Reset your password</h1>
-      <p style="margin: 20px 0; color: #c9b48f; font-size: 16px; line-height: 1.6">
-        Follow the link below to choose a new password for your Huddle account.
-      </p>
-      <p style="margin: 28px 0">
-        <a
-          href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=recovery"
-          style="
-            display: inline-block;
-            border-radius: 10px;
-            background: #2ce07b;
-            color: #0b1210;
-            padding: 13px 20px;
-            font-weight: 700;
-            text-decoration: none;
-          "
-          >Reset password</a
-        >
-      </p>
-      <p style="margin: 0; color: #8a948e; font-size: 13px; line-height: 1.6">
-        If you did not request a password reset, you can ignore this message.
-      </p>
-    </div>
+  <body style="margin: 0; background: #f5f7f4; color: #111915; font-family: Arial, sans-serif">
+    <table
+      role="presentation"
+      width="100%"
+      cellspacing="0"
+      cellpadding="0"
+      style="background: #f5f7f4"
+    >
+      <tr>
+        <td align="center" style="padding: 40px 16px">
+          <table
+            role="presentation"
+            width="100%"
+            cellspacing="0"
+            cellpadding="0"
+            style="
+              max-width: 600px;
+              border: 1px solid #dbe2dc;
+              border-radius: 24px;
+              background: #ffffff;
+            "
+          >
+            <tr>
+              <td style="padding: 32px 32px 12px">
+                <table role="presentation" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td>
+                      <img
+                        src="{{ .SiteURL }}/brand/huddle-email-icon.png"
+                        alt=""
+                        width="40"
+                        height="40"
+                        style="display: block; border: 0"
+                      />
+                    </td>
+                    <td style="padding-left: 12px; font-size: 21px; font-weight: 700">Huddle</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 20px 32px 36px">
+                <p style="margin: 0 0 10px; color: #137a43; font-size: 13px; font-weight: 700">
+                  ACCOUNT SECURITY
+                </p>
+                <h1 style="margin: 0; font-size: 32px; line-height: 1.2; letter-spacing: -0.6px">
+                  Reset your password
+                </h1>
+                <p style="margin: 18px 0 0; color: #56625b; font-size: 16px; line-height: 1.65">
+                  We received a request to choose a new Huddle password. The secure link is
+                  short-lived and works only once.
+                </p>
+                <p style="margin: 28px 0">
+                  <a
+                    data-primary-action="true"
+                    href="{{ .SiteURL }}/auth/reset-password/confirm#token_hash={{ .TokenHash }}&amp;type=recovery"
+                    style="
+                      display: inline-block;
+                      border-radius: 12px;
+                      background: #25dc78;
+                      color: #0b1510;
+                      padding: 14px 22px;
+                      font-size: 15px;
+                      font-weight: 700;
+                      text-decoration: none;
+                    "
+                    >Reset password</a
+                  >
+                </p>
+                <p style="margin: 0; color: #6b756f; font-size: 13px; line-height: 1.6">
+                  Button not working? Open the secure link below, or use your email app’s
+                  <strong>Copy link address</strong> option:<br />
+                  <a
+                    href="{{ .SiteURL }}/auth/reset-password/confirm#token_hash={{ .TokenHash }}&amp;type=recovery"
+                    style="color: #137a43; overflow-wrap: anywhere"
+                    >Open the secure password reset link</a
+                  >
+                </p>
+                <p
+                  style="
+                    margin: 24px 0 0;
+                    border-top: 1px solid #e5e9e6;
+                    padding-top: 20px;
+                    color: #778079;
+                    font-size: 13px;
+                    line-height: 1.6;
+                  "
+                >
+                  If you didn’t request this, ignore the email. Your password has not changed.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
   </body>
 </html>

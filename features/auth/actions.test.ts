@@ -1,19 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  changePasswordAction,
   requestPasswordResetAction,
   signInAction,
   signOutAction,
   signUpAction,
   updatePasswordAction,
 } from "./actions";
+import { issueRecoveryGrant, RECOVERY_GRANT_COOKIE_NAME } from "./recovery-grant";
 
 const mocks = vi.hoisted(() => ({
   cookieGet: vi.fn(),
   cookieSet: vi.fn(),
   cookies: vi.fn(),
   createClient: vi.fn(),
+  getClaims: vi.fn(),
   getUser: vi.fn(),
+  getServerEnvironment: vi.fn(),
+  headers: vi.fn(),
   redirect: vi.fn(),
   revalidatePath: vi.fn(),
   resetPasswordForEmail: vi.fn(),
@@ -22,10 +27,11 @@ const mocks = vi.hoisted(() => ({
   signOut: vi.fn(),
   signUp: vi.fn(),
   updateUser: vi.fn(),
+  verifyTurnstileToken: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
-vi.mock("next/headers", () => ({ cookies: mocks.cookies }));
+vi.mock("next/headers", () => ({ cookies: mocks.cookies, headers: mocks.headers }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 
 vi.mock("@/lib/env/public", () => ({
@@ -34,6 +40,10 @@ vi.mock("@/lib/env/public", () => ({
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "publishable-key",
     NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
   }),
+}));
+vi.mock("@/lib/env/server", () => ({ getServerEnvironment: mocks.getServerEnvironment }));
+vi.mock("@/features/auth/turnstile", () => ({
+  verifyTurnstileToken: mocks.verifyTurnstileToken,
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -50,10 +60,17 @@ describe("auth Server Actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.cookies.mockResolvedValue({ get: mocks.cookieGet, set: mocks.cookieSet });
+    mocks.headers.mockResolvedValue(new Headers({ "x-forwarded-for": "203.0.113.9, 10.0.0.1" }));
+    mocks.getServerEnvironment.mockReturnValue({
+      AUTH_RECOVERY_TOKEN_SECRET: "r".repeat(32),
+      AUTH_TURNSTILE_ENABLED: false,
+      HUDDLE_ENVIRONMENT: "local",
+    });
     mocks.cookieGet.mockReturnValue(undefined);
     mocks.rpc.mockResolvedValue({ data: [], error: null });
     mocks.createClient.mockResolvedValue({
       auth: {
+        getClaims: mocks.getClaims,
         getUser: mocks.getUser,
         resetPasswordForEmail: mocks.resetPasswordForEmail,
         signInWithPassword: mocks.signInWithPassword,
@@ -62,6 +79,92 @@ describe("auth Server Actions", () => {
         updateUser: mocks.updateUser,
       },
       rpc: mocks.rpc,
+    });
+  });
+
+  it("fails closed before signup when enabled Turnstile verification fails", async () => {
+    mocks.getServerEnvironment.mockReturnValue({
+      AUTH_TURNSTILE_ENABLED: true,
+      TURNSTILE_SECRET: "turnstile-secret",
+      TURNSTILE_HOSTNAMES: "huddle.co.il",
+    });
+    mocks.verifyTurnstileToken.mockRejectedValue(
+      new Error("Please complete the security check and try again."),
+    );
+
+    const result = await signUpAction(
+      null,
+      formData({
+        email: "fan@example.com",
+        password: "matchday-strong",
+        confirmPassword: "matchday-strong",
+        "cf-turnstile-response": "failed-token",
+      }),
+    );
+
+    expect(result).toMatchObject({ ok: false });
+    expect(mocks.signUp).not.toHaveBeenCalled();
+  });
+
+  it("uses a stable Turnstile action and the first forwarded IP for each public auth form", async () => {
+    mocks.getServerEnvironment.mockReturnValue({
+      AUTH_TURNSTILE_ENABLED: true,
+      TURNSTILE_SECRET: "turnstile-secret",
+      TURNSTILE_HOSTNAMES: "huddle.co.il",
+    });
+    mocks.verifyTurnstileToken.mockResolvedValue(undefined);
+    mocks.signUp.mockResolvedValue({ data: { user: null }, error: null });
+    mocks.resetPasswordForEmail.mockResolvedValue({ data: {}, error: null });
+    mocks.signInWithPassword.mockResolvedValue({
+      data: { session: null, user: null },
+      error: new Error("bad credentials"),
+    });
+
+    await signUpAction(
+      null,
+      formData({
+        email: "fan@example.com",
+        password: "matchday-strong",
+        confirmPassword: "matchday-strong",
+        "cf-turnstile-response": "signup-token",
+      }),
+    );
+    await signInAction(
+      null,
+      formData({
+        email: "fan@example.com",
+        password: "old-pass",
+        "cf-turnstile-response": "login-token",
+      }),
+    );
+    await requestPasswordResetAction(
+      null,
+      formData({
+        email: "fan@example.com",
+        "cf-turnstile-response": "reset-token",
+      }),
+    );
+
+    expect(mocks.verifyTurnstileToken).toHaveBeenNthCalledWith(1, {
+      expectedAction: "signup",
+      expectedHostnames: "huddle.co.il",
+      remoteIp: "203.0.113.9",
+      secret: "turnstile-secret",
+      token: "signup-token",
+    });
+    expect(mocks.verifyTurnstileToken).toHaveBeenNthCalledWith(2, {
+      expectedAction: "login",
+      expectedHostnames: "huddle.co.il",
+      remoteIp: "203.0.113.9",
+      secret: "turnstile-secret",
+      token: "login-token",
+    });
+    expect(mocks.verifyTurnstileToken).toHaveBeenNthCalledWith(3, {
+      expectedAction: "password_reset",
+      expectedHostnames: "huddle.co.il",
+      remoteIp: "203.0.113.9",
+      secret: "turnstile-secret",
+      token: "reset-token",
     });
   });
 
@@ -100,7 +203,7 @@ describe("auth Server Actions", () => {
     expect(mocks.signUp).toHaveBeenCalledWith({
       email: "fan@example.com",
       options: {
-        emailRedirectTo: "https://huddle.test/auth/verify/callback",
+        emailRedirectTo: "https://huddle.test/auth/verify/confirm",
       },
       password: "matchday-strong",
     });
@@ -108,7 +211,7 @@ describe("auth Server Actions", () => {
       ok: true,
       data: {
         message: "If that address can receive Huddle mail, a verification link is on its way.",
-        redirectTo: null,
+        redirectTo: "/auth/verify",
       },
     });
     expect(JSON.stringify(result)).not.toContain("already registered");
@@ -126,7 +229,7 @@ describe("auth Server Actions", () => {
       }),
     );
 
-    expect(result).toMatchObject({ ok: true, data: { redirectTo: null } });
+    expect(result).toMatchObject({ ok: true, data: { redirectTo: "/auth/verify" } });
     expect(JSON.stringify(result)).not.toContain("network lookup failed");
   });
 
@@ -307,13 +410,13 @@ describe("auth Server Actions", () => {
     const result = await requestPasswordResetAction(null, formData({ email: " Fan@Example.com " }));
 
     expect(mocks.resetPasswordForEmail).toHaveBeenCalledWith("fan@example.com", {
-      redirectTo: "https://huddle.test/auth/reset-password/callback",
+      redirectTo: "https://huddle.test/auth/reset-password/confirm",
     });
     expect(result).toEqual({
       ok: true,
       data: {
         message: "If that address can receive Huddle mail, a password reset link is on its way.",
-        redirectTo: null,
+        redirectTo: "/auth/forgot-password?status=sent",
       },
     });
     expect(JSON.stringify(result)).not.toContain("User not found");
@@ -324,12 +427,23 @@ describe("auth Server Actions", () => {
 
     const result = await requestPasswordResetAction(null, formData({ email: "fan@example.com" }));
 
-    expect(result).toMatchObject({ ok: true, data: { redirectTo: null } });
+    expect(result).toMatchObject({
+      ok: true,
+      data: { redirectTo: "/auth/forgot-password?status=sent" },
+    });
     expect(JSON.stringify(result)).not.toContain("private transport detail");
   });
 
-  it("rejects a password update without an authenticated recovery session", async () => {
-    mocks.getUser.mockResolvedValue({ data: { user: null }, error: null });
+  it("rejects a password update from an ordinary authenticated session", async () => {
+    mocks.getClaims.mockResolvedValue({
+      data: {
+        claims: {
+          sub: "e4000000-0000-4000-8000-000000000301",
+          session_id: "e4000000-0000-4000-8000-000000000302",
+        },
+      },
+      error: null,
+    });
 
     const result = await updatePasswordAction(
       null,
@@ -343,9 +457,48 @@ describe("auth Server Actions", () => {
     expect(mocks.updateUser).not.toHaveBeenCalled();
   });
 
-  it("updates the password, clears workspace state, and ends the recovery browser session", async () => {
-    mocks.getUser.mockResolvedValue({ data: { user: { id: "recovering-user" } }, error: null });
-    mocks.updateUser.mockResolvedValue({ data: { user: { id: "recovering-user" } }, error: null });
+  it("rejects a recovery grant bound to another session", async () => {
+    const userId = "e4000000-0000-4000-8000-000000000301";
+    mocks.getClaims.mockResolvedValue({
+      data: { claims: { sub: userId, session_id: "e4000000-0000-4000-8000-000000000302" } },
+      error: null,
+    });
+    mocks.cookieGet.mockImplementation((name: string) =>
+      name === RECOVERY_GRANT_COOKIE_NAME
+        ? {
+            value: issueRecoveryGrant(
+              { userId, sessionId: "e4000000-0000-4000-8000-000000000399" },
+              "r".repeat(32),
+            ),
+          }
+        : undefined,
+    );
+
+    const result = await updatePasswordAction(
+      null,
+      formData({
+        password: "new-matchday-password",
+        confirmPassword: "new-matchday-password",
+      }),
+    );
+
+    expect(result).toMatchObject({ ok: false, error: { code: "AUTH_REQUIRED" } });
+    expect(mocks.updateUser).not.toHaveBeenCalled();
+  });
+
+  it("updates the password only with a bound grant, clears state, and globally signs out", async () => {
+    const userId = "e4000000-0000-4000-8000-000000000301";
+    const sessionId = "e4000000-0000-4000-8000-000000000302";
+    mocks.getClaims.mockResolvedValue({
+      data: { claims: { sub: userId, session_id: sessionId } },
+      error: null,
+    });
+    mocks.cookieGet.mockImplementation((name: string) =>
+      name === RECOVERY_GRANT_COOKIE_NAME
+        ? { value: issueRecoveryGrant({ userId, sessionId }, "r".repeat(32)) }
+        : undefined,
+    );
+    mocks.updateUser.mockResolvedValue({ data: { user: { id: userId } }, error: null });
     mocks.signOut.mockResolvedValue({ error: null });
 
     await updatePasswordAction(
@@ -357,13 +510,81 @@ describe("auth Server Actions", () => {
     );
 
     expect(mocks.updateUser).toHaveBeenCalledWith({ password: "new-matchday-password" });
-    expect(mocks.signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(mocks.signOut).toHaveBeenCalledWith({ scope: "global" });
+    expect(mocks.cookieSet).toHaveBeenCalledWith(
+      RECOVERY_GRANT_COOKIE_NAME,
+      "",
+      expect.objectContaining({ httpOnly: true, maxAge: 0, sameSite: "lax" }),
+    );
     expect(mocks.cookieSet).toHaveBeenCalledWith(
       "huddle-workspace",
       "",
       expect.objectContaining({ maxAge: 0 }),
     );
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/", "layout");
-    expect(mocks.redirect).toHaveBeenCalledWith("/auth/sign-in?reset=success");
+    expect(mocks.redirect).toHaveBeenCalledWith("/auth/sign-in?password=changed");
+  });
+
+  it("maps a wrong current password to the highlighted field", async () => {
+    mocks.getUser.mockResolvedValue({
+      data: { user: { id: "user", email: "fan@example.com" } },
+      error: null,
+    });
+    mocks.signInWithPassword.mockResolvedValue({
+      data: { user: null, session: null },
+      error: new Error("provider detail"),
+    });
+
+    const result = await changePasswordAction(
+      null,
+      formData({
+        currentPassword: "wrong-password",
+        password: "new-matchday-password",
+        confirmPassword: "new-matchday-password",
+      }),
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: {
+        code: "VALIDATION_FAILED",
+        fields: { currentPassword: ["Current password is incorrect."] },
+      },
+    });
+    expect(JSON.stringify(result)).not.toContain("provider detail");
+    expect(mocks.updateUser).not.toHaveBeenCalled();
+  });
+
+  it("reauthenticates before changing a known password and globally signs out", async () => {
+    mocks.getUser.mockResolvedValue({
+      data: { user: { id: "user", email: "fan@example.com" } },
+      error: null,
+    });
+    mocks.signInWithPassword.mockResolvedValue({
+      data: { user: { id: "user" }, session: {} },
+      error: null,
+    });
+    mocks.updateUser.mockResolvedValue({ data: { user: { id: "user" } }, error: null });
+    mocks.signOut.mockResolvedValue({ error: null });
+
+    await changePasswordAction(
+      null,
+      formData({
+        currentPassword: "current-password",
+        password: "new-matchday-password",
+        confirmPassword: "new-matchday-password",
+      }),
+    );
+
+    expect(mocks.signInWithPassword).toHaveBeenCalledWith({
+      email: "fan@example.com",
+      password: "current-password",
+    });
+    expect(mocks.updateUser).toHaveBeenCalledWith({
+      current_password: "current-password",
+      password: "new-matchday-password",
+    });
+    expect(mocks.signOut).toHaveBeenCalledWith({ scope: "global" });
+    expect(mocks.redirect).toHaveBeenCalledWith("/auth/sign-in?password=changed");
   });
 });

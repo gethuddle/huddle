@@ -1,7 +1,6 @@
 import {
   expect,
   test,
-  type BrowserContext,
   type ConsoleMessage,
   type Page,
   type Route,
@@ -410,25 +409,7 @@ async function verificationUrlFor(email: string): Promise<URL> {
   throw new Error("Verification email did not arrive.");
 }
 
-function cookiesFrom(headers: Headers, origin: string) {
-  return headers.getSetCookie().map((setCookie) => {
-    const pair = setCookie.split(";", 1)[0];
-    const separatorIndex = pair.indexOf("=");
-    if (separatorIndex < 1) throw new Error("Verification returned an invalid cookie.");
-    return {
-      name: pair.slice(0, separatorIndex),
-      value: pair.slice(separatorIndex + 1),
-      url: origin,
-    };
-  });
-}
-
-async function signUpAndVerify(
-  page: Page,
-  context: BrowserContext,
-  email: string,
-  accountPassword: string,
-) {
+async function signUpAndVerify(page: Page, email: string, accountPassword: string) {
   await page.goto("/auth/sign-up");
   await page.getByRole("textbox", { name: "Email address" }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill(accountPassword);
@@ -436,15 +417,16 @@ async function signUpAndVerify(
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByRole("status")).toContainText("a verification link is on its way");
 
-  const callback = await verificationUrlFor(email);
-  expect(callback.pathname).toBe("/auth/verify/callback");
-  expect(callback.searchParams.has("token_hash")).toBe(true);
-  const response = await fetch(callback, { redirect: "manual" });
-  expect(response.status).toBe(303);
-  const location = response.headers.get("location");
-  expect(location).toBe("http://localhost:3000/onboarding");
-  await context.addCookies(cookiesFrom(response.headers, callback.origin));
-  await page.goto(location!);
+  const confirmationUrl = await verificationUrlFor(email);
+  expect(confirmationUrl.pathname).toBe("/auth/verify/confirm");
+  expect(new URLSearchParams(confirmationUrl.hash.slice(1)).has("token_hash")).toBe(true);
+  const passiveResponse = await fetch(new URL(confirmationUrl.pathname, confirmationUrl.origin), {
+    redirect: "manual",
+  });
+  expect(passiveResponse.status).toBe(200);
+  await page.goto(confirmationUrl.toString());
+  await page.getByRole("button", { name: "Continue securely" }).click();
+  await expect(page).toHaveURL("http://localhost:3000/onboarding");
   await expect(page.getByRole("heading", { name: "How will you use Huddle?" })).toBeVisible();
 }
 
@@ -718,9 +700,9 @@ test("complete deterministic Fan and Venue workspace journey", async ({
   try {
     await context.grantPermissions(["geolocation"], { origin: "http://127.0.0.1:3000" });
     await context.setGeolocation({ latitude: 32.81303, longitude: 34.99928 });
-    await signUpAndVerify(page, context, identity.ownerEmail, password);
+    await signUpAndVerify(page, identity.ownerEmail, password);
     await completeFan(page, identity.ownerHandle, identity.ownerName);
-    await signUpAndVerify(participantPage, participantContext, identity.participantEmail, password);
+    await signUpAndVerify(participantPage, identity.participantEmail, password);
     await completeFan(participantPage, identity.participantHandle, identity.participantName);
 
     await page.goto(journeyUrl(page, "/"));

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -9,10 +9,15 @@ import { Label } from "@/components/ui/label";
 import { signInAction } from "@/features/auth/actions";
 import { FieldError, FormFeedback } from "@/features/auth/components/form-feedback";
 import { INITIAL_AUTH_ACTION_STATE } from "@/features/auth/state";
+import { TurnstileWidget } from "@/features/auth/components/turnstile-widget";
 
-export function SignInForm({ nextPath = null }: Readonly<{ nextPath?: string | null }>) {
+export function SignInForm({
+  nextPath = null,
+  turnstileSiteKey,
+}: Readonly<{ nextPath?: string | null; turnstileSiteKey?: string }>) {
   const [state, formAction, pending] = useActionState(signInAction, INITIAL_AUTH_ACTION_STATE);
   const fieldErrors = state?.ok === false ? state.error.fields : undefined;
+  const [turnstileReady, setTurnstileReady] = useState(turnstileSiteKey === undefined);
 
   useEffect(() => {
     if (state?.ok === true && state.data.redirectTo !== null) {
@@ -70,7 +75,16 @@ export function SignInForm({ nextPath = null }: Readonly<{ nextPath?: string | n
 
       <FormFeedback state={state} />
 
-      <Button className="w-full" disabled={pending} size="lg" type="submit">
+      {turnstileSiteKey === undefined ? null : (
+        <TurnstileWidget
+          action="login"
+          onTokenChange={(token) => setTurnstileReady(token !== "")}
+          resetKey={state}
+          siteKey={turnstileSiteKey}
+        />
+      )}
+
+      <Button className="w-full" disabled={pending || !turnstileReady} size="lg" type="submit">
         {pending ? "Signing in…" : "Sign in"}
       </Button>
     </form>

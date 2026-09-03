@@ -33,7 +33,9 @@ export function FormFeedback({ state }: Readonly<{ state: AuthActionState }>) {
 
   return (
     <Alert variant="destructive">
-      <AlertDescription className="text-sand">{state.error.message}</AlertDescription>
+      <AlertDescription className="text-sand">
+        {state.error.fields?._form?.[0] ?? state.error.message}
+      </AlertDescription>
     </Alert>
   );
 }

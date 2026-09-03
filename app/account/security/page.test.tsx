@@ -1,0 +1,46 @@
+// @vitest-environment jsdom
+
+import { render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { AppShellState } from "@/features/workspaces/types";
+
+import AccountSecurityPage from "./page";
+
+const mocks = vi.hoisted(() => ({ getAppShellState: vi.fn() }));
+
+vi.mock("@/features/workspaces/queries", () => ({ getAppShellState: mocks.getAppShellState }));
+vi.mock("@/features/auth/actions", () => ({ changePasswordAction: vi.fn() }));
+
+describe("AccountSecurityPage", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("keeps password controls private from signed-out visitors", async () => {
+    mocks.getAppShellState.mockResolvedValue({
+      isSignedIn: false,
+      workspace: { active: null, available: [], isModerator: false },
+    } satisfies AppShellState);
+
+    render(await AccountSecurityPage());
+
+    expect(screen.getByRole("heading", { name: "Account security is private." })).toBeVisible();
+    expect(screen.queryByLabelText("Current password")).not.toBeInTheDocument();
+  });
+
+  it("offers current-password reauthentication to a signed-in account", async () => {
+    mocks.getAppShellState.mockResolvedValue({
+      isSignedIn: true,
+      workspace: { active: null, available: [], isModerator: false },
+    } satisfies AppShellState);
+
+    render(await AccountSecurityPage());
+
+    expect(screen.getByRole("heading", { name: "Change your password." })).toBeVisible();
+    expect(screen.getByLabelText("Current password")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Change password" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Forgot your current password?" })).toHaveAttribute(
+      "href",
+      "/auth/forgot-password",
+    );
+  });
+});

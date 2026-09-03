@@ -42,22 +42,50 @@ Vercel/Supabase managed secret stores.
 5. Configure the Supabase Auth site URL and allowed redirects for each environment.
    The non-production Supabase project may use Vercel's documented
    `https://*-<team-or-account-slug>.vercel.app/**` Preview wildcard; Production uses
-   exact paths for its own HTTPS origin, including `/auth/verify/callback` and
-   `/auth/reset-password/callback`, and never a Preview wildcard. Copy the repository
-   confirmation and recovery templates from `supabase/templates/` into the hosted Auth
-   email-template settings only when the hosted project permits customization; the local
-   file paths are not uploaded automatically. Newer Free projects using Supabase's
-   default email provider cannot customize templates. Keep the default templates in that
-   configuration—their confirmation URL honors Huddle's explicit redirect—and upload the
-   repository templates only after configuring custom SMTP or an eligible plan. The
-   default provider is suitable only for team-authorized course-demo addresses and its
-   small email limit; public delivery requires custom SMTP. Preview redirects must not
-   point to production and production redirects must not contain wildcard preview hosts.
+   exact paths for its own HTTPS origin, including `/auth/verify/confirm` and
+   `/auth/reset-password/confirm`, and never a Preview wildcard. Production custom SMTP
+   uses the verified Resend `auth.huddle.co.il` sending domain. The confirmation, recovery,
+   and password-changed templates under `supabase/templates/` are complete replacement
+   documents: never paste them below existing dashboard content. With explicit hosted
+   authorization, run `npm run auth:config:apply`; then use `npm run auth:config:check`
+   with both `AUTH_CONFIG_TARGET` (`preview` or `production`) and the exact
+   `AUTH_CONFIG_SITE_URL` exported. Production accepts only `https://huddle.co.il`;
+   Preview accepts only one HTTPS `vercel.app` origin. The script also binds each target
+   to its reviewed, checked-in public Supabase project reference, preventing either
+   project from silently receiving the other environment's Auth configuration. The check
+   proves the exact templates, site URL/allowlist, 15-character minimum, 100-email/hour
+   project cap, the 24-hour email-nonce reauthentication control, and password-changed
+   notification match.
+   The 100/hour value removes Supabase's lower custom-SMTP default but does not bypass the
+   shared Resend account's daily/monthly allowance or Supabase's per-address cooldowns. The
+   Management API does not expose Supabase's separate **Require current password when
+   updating** switch: enable that switch in **Authentication → Sign In / Providers →
+   Email** in Studio, then independently verify it remains enabled. Do not enable
+   Supabase's built-in CAPTCHA; Huddle verifies Turnstile in its Vercel Server Actions.
+   Neither configuration command prints template bodies or secrets. Preview redirects
+   must not point to production and production redirects must not contain wildcard
+   preview hosts. Disable provider click tracking for Auth mail.
+
+   ```bash
+   AUTH_CONFIG_TARGET=production \
+   AUTH_CONFIG_SITE_URL=https://huddle.co.il \
+   SUPABASE_PROJECT_REF=the-reviewed-production-ref \
+   SUPABASE_ACCESS_TOKEN=the-managed-access-token \
+   npm run auth:config:check
+   ```
+   The HTML displays `public/brand/huddle-email-icon.png`. The inbox sender avatar is
+   separate from email HTML and SMTP: Gmail requires a Google profile using the exact
+   sender address, while cross-provider display requires later BIMI/DMARC certificate
+   work. Do not claim the PNG alone controls the sender icon.
 6. Enable Vercel's automatically exposed system environment variables. Configure every
    required and conditionally enabled name from the matching example at the project-wide
    Preview or Production scope. Use different service-role, sync, cursor, and signing
    secrets per environment. Confirm the scope inventory with `vercel env ls preview` and
    `vercel env ls production`; this command reports names/scopes without revealing values.
+   `AUTH_RECOVERY_TOKEN_SECRET` must be a new environment-specific high-entropy value.
+   When Auth Turnstile is enabled, also set `NEXT_PUBLIC_TURNSTILE_SITE_KEY`,
+   `AUTH_TURNSTILE_ENABLED=true`, `TURNSTILE_SECRET`, and an exact production
+   `TURNSTILE_HOSTNAMES=huddle.co.il`.
 7. Deploy preview and run anonymous/signed-in smoke checks without production data.
    Then deploy the exact accepted commit to production.
 8. Run `npm run test:production:session`. It creates Auth sessions and may update
@@ -68,10 +96,12 @@ Vercel/Supabase managed secret stores.
 10. Configure scheduled sync from [`configure-sports-sync.sql`](../../supabase/production/configure-sports-sync.sql),
     then follow [`PRODUCTION-ACCEPTANCE.md`](./PRODUCTION-ACCEPTANCE.md).
 
-The production Auth smoke must include a dedicated test account: request a reset,
-open the received link on the production origin, replace the password, confirm the
-recovery session returns to sign in, and sign in with the new password. Do not record
-the email link, token, code, password, or Auth cookies as evidence.
+The production Auth smoke must include dedicated accounts: prove a duplicate signup sends
+no second confirmation; prove GET/prefetch leaves a fresh link usable; explicitly Continue;
+open recovery while another account is signed in; prove direct reset is denied; replace the
+password; confirm every session is signed out; receive the password-changed notification;
+and sign in with the new password. Do not record email links, tokens, codes, passwords,
+Turnstile responses, actor IDs, or Auth cookies as evidence.
 
 ## Migration parity evidence
 
@@ -90,5 +120,6 @@ verified backup and separate explicit approval from both owners.
 Sources: [Vercel limits](https://vercel.com/docs/limits),
 [Supabase local/migration workflow](https://supabase.com/docs/guides/local-development/cli/getting-started),
 [Supabase Auth redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls),
+[Supabase password security](https://supabase.com/docs/guides/auth/password-security),
 [Supabase default SMTP limits](https://supabase.com/docs/guides/auth/auth-smtp), and
 [Supabase Free template restrictions](https://supabase.com/changelog/46599-changes-to-email-template-customisation-on-free-tier).
