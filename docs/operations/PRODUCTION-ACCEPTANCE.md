@@ -11,18 +11,29 @@ private addresses, report content, invite tokens, or raw provider payloads here.
 - [x] Hosted migration history equals the 12 migrations in accepted B12 SHA
   `94c99156011ae20fdcdbe14b807b5884cfe77555`; generated types had no drift at
   that baseline.
+- [ ] The post-B12 account-erasure migration `20260903033000_account_erasure.sql`
+  is deployed and verified against production. It is not deployed as of 2026-09-03.
 - [x] The hosted reference catalog contains all 13 active reviewed Israel cities.
 - [ ] Signed-out home/fixtures/discovery work in a clean browser.
 - [ ] Verification email is one branded document, survives a passive GET/prefetch, requires explicit Continue, and leaves no token in browser history or the final URL.
-- [ ] Password recovery is generic, survives passive GET/prefetch, switches an ambient different-account session only after explicit Continue, rejects direct ordinary-session reset, replaces the password through a bound grant, globally signs out sessions, sends the branded change notice, and permits a fresh sign-in.
+- [ ] Password recovery is generic, survives passive GET/prefetch, switches an ambient different-account session only after explicit Continue, rejects direct ordinary-session reset, replaces the password through a bound grant, requests global session revocation, always clears local state, shows an honest warning if revocation is unconfirmed, sends the branded change notice, and permits a fresh sign-in.
 - [ ] Exact duplicate signup remains generic and sends no confirmation message; no privileged account lookup is used for browser copy.
-- [ ] `npm run auth:config:check` reports no automatable drift, including the deliberate
-      100-email/hour project cap; production redirects contain no Preview wildcard and the
-      shared Resend account remains within its provider allowance.
+- [x] On 2026-09-03, the separately authorized guarded production Auth configuration
+      apply completed and the immediate exact `npm run auth:config:check` reported no
+      automatable drift, including the deliberate 100-email/hour project cap; production
+      redirects contain no Preview wildcard. This is configuration evidence, not fresh
+      email/browser proof.
+- [ ] The shared Resend account remains within its provider allowance.
 - [ ] Supabase Studio's distinct **Require current password when updating** switch is enabled; built-in CAPTCHA remains disabled because Huddle verifies Turnstile itself.
 - [ ] Turnstile is enabled for signup, sign-in, and password-reset request with exact hostname/action validation and replay rejection.
 - [ ] The email body loads the Huddle icon; the exact `no-reply@auth.huddle.co.il` Google profile has the approved avatar where supported, without claiming universal inbox support.
 - [ ] Two dedicated complete accounts establish independent sessions.
+- [ ] After the account-erasure migration is deployed, one dedicated account completes
+      current-password plus exact `DELETE` deletion in a fresh browser; the browser returns
+      to isolated sign in, Huddle-owned tab state is absent while unrelated storage remains, the
+      one-time cleanup marker is consumed without erasing new anonymous state, old sessions fail,
+      former public identity is absent, and retained pseudonymous history is checked without
+      recording sensitive content.
 - [ ] Preview uses a different Supabase project and cannot mutate production.
 - [ ] `npm run test:production:session` passes (Auth-session metadata may update; no product mutation).
 - [ ] One explicitly authorized fresh-event `npm run test:production` passes.
@@ -56,7 +67,8 @@ private addresses, report content, invite tokens, or raw provider payloads here.
 
 - [ ] Invalid sync secret is denied and writes only safe audit evidence.
 - [ ] One scheduled call returns success and a `provider_sync_runs` ID/count summary.
-- [ ] No browser page request contacts football-data.org.
+- [ ] No browser page request contacts the football-data API host; the separately allowlisted
+      crest asset host may serve synchronized team artwork.
 - [ ] A controlled failed/retry run leaves last-good fixtures browsable and stale.
 - [ ] Rotate sync/provider secrets using the B11 runbook and verify the new values
   before revoking the old values.
@@ -80,7 +92,9 @@ names, never values. Sources: [Supabase Cron](https://supabase.com/docs/guides/c
 |---|---|
 | Accepted Git SHA | Pending |
 | Production deployment ID/URL | Pending |
-| Migration parity timestamp | 2026-08-29 14:27 IDT; `koeqawpgxevfhuieqtcq`; all 12 versions match and a follow-up dry run is up to date |
+| B12 migration parity timestamp | 2026-08-29 14:27 IDT; `koeqawpgxevfhuieqtcq`; all 12 versions match and a follow-up dry run is up to date |
+| Production Auth configuration | Guarded apply and immediate exact check passed 2026-09-03; fresh email/browser acceptance remains pending |
+| Account-erasure migration deployment | Not deployed as of 2026-09-03; checkbox remains open |
 | Session/full smoke timestamp | Pending |
 | Latest successful sync run ID | Pending |
 | Guy rehearsal duration/date | Pending |

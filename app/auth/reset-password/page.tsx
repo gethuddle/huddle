@@ -40,7 +40,7 @@ export default async function ResetPasswordPage() {
 
   return (
     <AuthCard
-      description="Use a new password with 15–72 characters. We’ll sign out every session after the update."
+      description="Use a new password with 15–72 characters. We’ll end this session and ask Supabase to revoke the rest."
       eyebrow="Secure your account"
       footer={
         <form action={cancelRecoveryAction}>

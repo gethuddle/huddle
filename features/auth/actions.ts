@@ -16,7 +16,17 @@ import {
   recoveryGrantCookieOptions,
   verifyRecoveryGrant,
 } from "@/features/auth/recovery-grant";
+import {
+  isAuthProviderFailure,
+  isInvalidCredentialsAuthError,
+  isMissingAuthSessionError,
+} from "@/features/auth/provider-errors";
 import type { AuthActionState } from "@/features/auth/state";
+import {
+  HUDDLE_SESSION_CLEANUP_COOKIE_NAME,
+  HUDDLE_SESSION_CLEANUP_COOKIE_VALUES,
+  huddleSessionCleanupCookieOptions,
+} from "@/features/auth/session-cleanup-cookie";
 import { parseWorkspaceCookie, workspaceRowsSchema } from "@/features/workspaces/schemas";
 import {
   chooseWorkspace,
@@ -46,6 +56,49 @@ async function verifyAuthTurnstile(formData: FormData, expectedAction: Turnstile
     expectedHostnames: environment.TURNSTILE_HOSTNAMES!,
     ...(remoteIp === undefined || remoteIp === "" ? {} : { remoteIp }),
   });
+}
+
+function currentUserFailure(cause: unknown): AuthActionState {
+  return actionFailure(
+    new DomainError(isMissingAuthSessionError(cause) ? "AUTH_REQUIRED" : "UPSTREAM_UNAVAILABLE", {
+      cause,
+    }),
+  );
+}
+
+function currentPasswordFailure(cause: unknown): AuthActionState {
+  return isInvalidCredentialsAuthError(cause)
+    ? actionFailure(
+        new DomainError("VALIDATION_FAILED", {
+          cause,
+          fields: { currentPassword: ["Current password is incorrect."] },
+        }),
+      )
+    : actionFailure(new DomainError("UPSTREAM_UNAVAILABLE", { cause }));
+}
+
+function clearLocalAuthState(
+  cookieStore: Awaited<ReturnType<typeof cookies>>,
+  environment: Pick<ReturnType<typeof getServerEnvironment>, "HUDDLE_ENVIRONMENT">,
+) {
+  for (const { name } of cookieStore.getAll()) {
+    if (name.startsWith("sb-")) {
+      cookieStore.set(name, "", { maxAge: 0, path: "/" });
+    }
+  }
+  cookieStore.set(RECOVERY_GRANT_COOKIE_NAME, "", {
+    ...recoveryGrantCookieOptions(environment.HUDDLE_ENVIRONMENT),
+    maxAge: 0,
+  });
+  cookieStore.set(WORKSPACE_COOKIE_NAME, "", {
+    ...workspaceCookieOptions(),
+    maxAge: 0,
+  });
+  cookieStore.set(
+    HUDDLE_SESSION_CLEANUP_COOKIE_NAME,
+    HUDDLE_SESSION_CLEANUP_COOKIE_VALUES.signOut,
+    huddleSessionCleanupCookieOptions(environment.HUDDLE_ENVIRONMENT),
+  );
 }
 
 export async function signUpAction(
@@ -171,25 +224,26 @@ export async function updatePasswordAction(
     if (error !== null) {
       return actionFailure(new DomainError("INTERNAL_ERROR", { cause: error }));
     }
-
-    const { error: signOutError } = await supabase.auth.signOut({ scope: "global" });
-    if (signOutError !== null) {
-      return actionFailure(new DomainError("INTERNAL_ERROR", { cause: signOutError }));
-    }
   } catch (cause) {
     return actionFailure(new DomainError("UPSTREAM_UNAVAILABLE", { cause }));
   }
 
-  cookieStore.set(RECOVERY_GRANT_COOKIE_NAME, "", {
-    ...recoveryGrantCookieOptions(environment.HUDDLE_ENVIRONMENT),
-    maxAge: 0,
-  });
-  cookieStore.set(WORKSPACE_COOKIE_NAME, "", {
-    ...workspaceCookieOptions(),
-    maxAge: 0,
-  });
+  let globalSignOutConfirmed = false;
+  try {
+    const { error } = await supabase.auth.signOut({ scope: "global" });
+    globalSignOutConfirmed = error === null;
+  } catch {
+    // The password has already changed. Local cleanup and an honest completion
+    // state remain mandatory even when global revocation cannot be confirmed.
+  }
+
+  clearLocalAuthState(cookieStore, environment);
   revalidatePath("/", "layout");
-  redirect("/auth/sign-in?password=changed");
+  redirect(
+    globalSignOutConfirmed
+      ? "/auth/sign-in?password=changed"
+      : "/auth/sign-in?password=changed&sessions=unconfirmed",
+  );
 }
 
 export async function changePasswordAction(
@@ -204,29 +258,24 @@ export async function changePasswordAction(
   if (!parsed.success) return actionFailure(parsed.error);
 
   const supabase = await createClient();
-  let email: string;
+  let user: { id: string; email: string };
   try {
     const { data, error } = await supabase.auth.getUser();
-    if (error !== null || data.user?.email === undefined) {
-      return actionFailure(new DomainError("AUTH_REQUIRED", { cause: error }));
-    }
-    email = data.user.email;
+    if (error !== null) return currentUserFailure(error);
+    if (data.user?.email === undefined) return actionFailure(new DomainError("AUTH_REQUIRED"));
+    user = { id: data.user.id, email: data.user.email };
   } catch (cause) {
-    return actionFailure(new DomainError("AUTH_REQUIRED", { cause }));
+    return currentUserFailure(cause);
   }
 
   try {
     const reauthentication = await supabase.auth.signInWithPassword({
-      email,
+      email: user.email,
       password: parsed.data.currentPassword,
     });
-    if (reauthentication.error !== null || reauthentication.data.user === null) {
-      return actionFailure(
-        new DomainError("VALIDATION_FAILED", {
-          cause: reauthentication.error,
-          fields: { currentPassword: ["Current password is incorrect."] },
-        }),
-      );
+    if (reauthentication.error !== null) return currentPasswordFailure(reauthentication.error);
+    if (reauthentication.data.user?.id !== user.id) {
+      return actionFailure(new DomainError("AUTH_REQUIRED"));
     }
 
     const { error } = await supabase.auth.updateUser({
@@ -234,27 +283,27 @@ export async function changePasswordAction(
       current_password: parsed.data.currentPassword,
     });
     if (error !== null) return actionFailure(new DomainError("INTERNAL_ERROR", { cause: error }));
-
-    const { error: signOutError } = await supabase.auth.signOut({ scope: "global" });
-    if (signOutError !== null) {
-      return actionFailure(new DomainError("INTERNAL_ERROR", { cause: signOutError }));
-    }
   } catch (cause) {
     return actionFailure(new DomainError("UPSTREAM_UNAVAILABLE", { cause }));
   }
 
+  let globalSignOutConfirmed = false;
+  try {
+    const { error } = await supabase.auth.signOut({ scope: "global" });
+    globalSignOutConfirmed = error === null;
+  } catch {
+    // The password has already changed; continue through bounded local cleanup.
+  }
+
   const cookieStore = await cookies();
   const environment = getServerEnvironment();
-  cookieStore.set(RECOVERY_GRANT_COOKIE_NAME, "", {
-    ...recoveryGrantCookieOptions(environment.HUDDLE_ENVIRONMENT),
-    maxAge: 0,
-  });
-  cookieStore.set(WORKSPACE_COOKIE_NAME, "", {
-    ...workspaceCookieOptions(),
-    maxAge: 0,
-  });
+  clearLocalAuthState(cookieStore, environment);
   revalidatePath("/", "layout");
-  redirect("/auth/sign-in?password=changed");
+  redirect(
+    globalSignOutConfirmed
+      ? "/auth/sign-in?password=changed"
+      : "/auth/sign-in?password=changed&sessions=unconfirmed",
+  );
 }
 
 export async function cancelRecoveryAction() {
@@ -307,8 +356,18 @@ export async function signInAction(
     return actionFailure(new DomainError("UPSTREAM_UNAVAILABLE", { cause }));
   }
 
-  if (signInResult.error !== null || signInResult.data.user === null) {
-    return actionFailure(new DomainError("AUTH_FAILED", { cause: signInResult.error }));
+  if (signInResult.error !== null) {
+    return actionFailure(
+      new DomainError(
+        isAuthProviderFailure(signInResult.error) ? "UPSTREAM_UNAVAILABLE" : "AUTH_FAILED",
+        {
+          cause: signInResult.error,
+        },
+      ),
+    );
+  }
+  if (signInResult.data.user === null) {
+    return actionFailure(new DomainError("UPSTREAM_UNAVAILABLE"));
   }
 
   let redirectTo = "/onboarding";
@@ -364,28 +423,16 @@ export async function signOutAction(
   void _previousState;
   void _formData;
 
-  const supabase = await createClient();
-  let error: unknown;
-
   try {
-    ({ error } = await supabase.auth.signOut({ scope: "local" }));
-  } catch (cause) {
-    return actionFailure(new DomainError("INTERNAL_ERROR", { cause }));
-  }
-
-  if (error !== null) {
-    return actionFailure(new DomainError("INTERNAL_ERROR", { cause: error }));
+    const supabase = await createClient();
+    await supabase.auth.signOut({ scope: "local" });
+  } catch {
+    // Local exit remains authoritative below even if the provider transport fails.
   }
 
   const cookieStore = await cookies();
-  cookieStore.set(WORKSPACE_COOKIE_NAME, "", {
-    ...workspaceCookieOptions(),
-    maxAge: 0,
-  });
+  const environment = getServerEnvironment();
+  clearLocalAuthState(cookieStore, environment);
   revalidatePath("/", "layout");
-
-  return actionSuccess({
-    message: "Signed out.",
-    redirectTo: "/",
-  });
+  redirect("/");
 }

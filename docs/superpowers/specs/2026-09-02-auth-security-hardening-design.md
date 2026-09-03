@@ -38,7 +38,7 @@ Every path below `/auth` is an isolated security surface with a compact Huddle b
 
 The check-inbox page explicitly offers Sign in and Forgot password without claiming whether an account was created. Exact duplicate-registration behavior is covered against local Supabase and Mailpit.
 
-The confirmation email links to `/auth/verify/confirm#token_hash=...&type=email`. URL fragments are not sent in the HTTP request or Referer. The client reads the bounded fragment and renders a real `POST` form. Merely opening or prefetching the page performs no Auth mutation. Pressing Continue posts the credential to a same-origin, no-store handler, deliberately signs out any ambient local session, verifies the token with Supabase, establishes the verified identity's session, clears stale workspace state, and redirects to onboarding or its existing workspace.
+The confirmation email links to `/auth/verify/confirm#token_hash=...&type=email`. URL fragments are not sent in the HTTP request or Referer. The client reads the bounded fragment and renders a real `POST` form. Merely opening or prefetching the page performs no Auth mutation. Pressing Continue posts the credential to a same-origin, no-store handler, deliberately signs out any ambient local session, verifies the token with Supabase, establishes the verified identity's session, clears stale workspace state, and redirects to onboarding or its existing workspace. If the credential is an opaque PKCE code, the exchange is accepted only when its provider redirect type matches this verification boundary; recovery codes are rejected and cleaned up.
 
 Legacy callback URLs remain passive, no-store endpoints, but they do not forward query credentials into a redirect. They return the same expired-link state without contacting Supabase Auth; this trades compatibility with already-sent short-lived legacy emails for keeping credentials out of response locations and logs.
 
@@ -50,19 +50,20 @@ Only an explicit `POST` may:
 
 1. locally sign out the ambient session;
 2. verify the one-time recovery credential with Supabase;
-3. bind the resulting user and Supabase session ID into a five-minute HMAC-signed grant;
-4. set that grant in an `HttpOnly`, `Secure` in hosted environments, `SameSite=Lax`, path-scoped cookie; and
-5. redirect to `/auth/reset-password` with no credential in the URL.
+3. require an opaque PKCE exchange, when used, to identify itself as a recovery flow;
+4. bind the resulting user and Supabase session ID into a five-minute HMAC-signed grant;
+5. set that grant in an `HttpOnly`, `Secure` in hosted environments, `SameSite=Lax`, path-scoped cookie; and
+6. redirect to `/auth/reset-password` with no credential in the URL.
 
 The grant contains version, purpose, user ID, Supabase session ID, issued-at time, and expiry. It contains no email, password, token hash, or provider access token. Validation uses a separate `AUTH_RECOVERY_TOKEN_SECRET`, constant-time signature comparison, strict schema validation, actor/session binding, and expiry.
 
 The Proxy treats an active grant as a mandatory recovery state: every non-auth request redirects back to `/auth/reset-password`. This prevents the full Supabase recovery session from being used as an ordinary Huddle session before the password is replaced. Invalid or stale grants are cleared.
 
-`updatePasswordAction` requires both a valid Supabase user/session and a matching recovery grant before calling `updateUser`. Success clears the recovery and workspace cookies, signs out globally, and redirects to normal sign-in. Invalid, expired, already-used, and unverifiable credentials share one public state.
+`updatePasswordAction` requires both a valid Supabase user/session and a matching recovery grant before calling `updateUser`. After the password changes, it requests global sign-out and always clears local Supabase, recovery, workspace, and namespaced browser state before redirecting to normal sign-in. A provider failure during global revocation produces an explicit, detail-free warning that the irreversible password update succeeded but ending every other session could not be confirmed. Invalid, expired, already-used, and unverifiable credentials share one public state.
 
 ## Known-password change
 
-`/account/security` requires authentication. Its form collects current password, new password, and confirmation. The action reauthenticates the current user's email with the supplied current password, supplies `current_password` to Supabase's password update API, changes the password, revokes all sessions, clears workspace state, and returns to sign-in. Errors do not reveal provider detail.
+`/account/security` requires authentication. Its form collects current password, new password, and confirmation. The action reauthenticates the current user's email with the supplied current password, supplies `current_password` to Supabase's password update API, changes the password, requests global session revocation, clears local Supabase/workspace/tab state, and returns to sign-in. If global revocation cannot be confirmed after the change, the completion page says so; errors do not reveal provider detail.
 
 Hosted Supabase also enables “Require current password when updating.” Supabase exempts provider-recognized recovery sessions from that requirement, providing defense in depth for direct password updates while preserving recovery. This is distinct from the 24-hour email-nonce reauthentication control exposed by the Management API, so the current-password switch is a separately verified Studio step rather than part of `auth:config:check`.
 
@@ -112,5 +113,5 @@ Hosted mutation is performed only after the repository implementation passes its
 - Unit tests: password schemas, grant signing/tamper/expiry/session binding, Turnstile success/failure/action/hostname/timeout, generic registration/recovery responses, current-password enforcement, and safe cookie clearing.
 - Component/page tests: isolated auth chrome, signed-in redirects, passive confirmation, cross-account warning, loading/error states, direct reset denial, Account Security, keyboard use, and live regions.
 - Route tests: GET never calls Supabase, POST consumes one bounded credential, no-store headers, ambient local sign-out, clean target session, grant issue, malformed/expired indistinguishability, and passive legacy-callback behavior.
-- E2E: exact duplicate signup sends no new confirmation, verification requires Continue, scanner-style GET does not consume a token, signed-in same/different-account recovery, direct reset denial, current-password change, global sign-out, expired/reused links, and normal sign-in afterward.
+- E2E: exact duplicate signup sends no new confirmation, verification requires Continue, scanner-style GET does not consume a token, signed-in same/different-account recovery, direct reset denial, current-password change, requested global sign-out with mandatory local cleanup, expired/reused links, and normal sign-in afterward.
 - Existing typecheck, lint, format, build, Playwright, acceptance, and security audit remain required before publication.

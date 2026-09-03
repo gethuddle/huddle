@@ -18,6 +18,8 @@
 
 **Approved AI-assisted discovery revision:** 1 September 2026, with the Ask/navigation/date/location follow-up approved 2 September 2026. Active Fans may describe a desired watch event in one short sentence on the dedicated `/ask` route. Its full-height, shadcn-composed chat UI retains only the current exchange, avoids a nested page-card shell, and clears when the route unmounts. Cloudflare Workers AI extracts only a bounded search intent; it receives no account, relationship, coordinate, attendance, event, or private-address data. Huddle deterministically resolves dates and named public places, validates sports entities against its local catalog, and keeps one authenticated Supabase function as the sole authorization, filtering, and ranking boundary. This revision does not approve generative answers, conversational context, autonomous tools, RAG, AI event creation, or AI moderation.
 
+**Approved account-erasure revision:** 3 September 2026. The `/account/security` contract now covers both a current-password change and immediate, irreversible self-service account deletion. Deletion requires bounded current-password reauthentication plus exact `DELETE` confirmation, performs one canonical actor-serialized and idempotent product-data transition, retains only required pseudonymous history, and then uses a server-only Supabase Auth soft deletion. The new database migration is separate from hosted production acceptance and MUST NOT be described as deployed until that evidence exists.
+
 The keywords **MUST**, **MUST NOT**, **SHOULD**, and **MAY** express implementation priority. A MUST is part of acceptance for the submitted MVP unless this specification is deliberately revised.
 
 ---
@@ -42,6 +44,7 @@ The system MUST also let a venue-only operator activate an Unverified venue work
 
 - English UI targeting an Israel pilot.
 - Email/password authentication with common safety eligibility (verified email, 18+ attestation, current community-rules acceptance, and a non-suspended account), optional Fan activation, and self-serve Venue activation.
+- Immediate self-service account erasure from Account Security, with current-password and exact typed confirmation plus explicit pseudonymous-history disclosure.
 - Anonymous browsing of safe public business-venue event, group, match, and venue information.
 - Football-first catalog using synchronized provider data.
 - Follows for sports, competitions, teams, and venues.
@@ -84,7 +87,10 @@ Deferred behavior MUST NOT be represented by fake controls, placeholder entitlem
 - New passwords MUST contain 15–72 characters without composition rules. Sign-in MUST continue accepting any existing non-empty password up to the provider's 72-character boundary.
 - One-time email credentials MUST remain in a URL fragment on a passive, no-store page and MUST be consumed only by an explicit same-origin POST. GET and prefetch requests MUST NOT verify them.
 - A password-recovery update MUST require a five-minute HMAC grant bound to the verified Supabase user and session. An ordinary signed-in session MUST NOT authorize the recovery form or update action.
-- A signed-in password change MUST require the current password, and every successful password replacement MUST globally sign out existing sessions and trigger the configured security notification.
+- A signed-in password change MUST require the current password. Every successful password replacement MUST request global sign-out, clear the current Huddle session and namespaced browser state regardless of provider outcome, and trigger the configured security notification. If global revocation cannot be confirmed after the irreversible password update, the next sign-in page MUST say so without exposing provider detail.
+- Immediate account deletion MUST require the same currently authenticated Supabase user to reauthenticate with a non-empty current password of at most 72 characters and type exact uppercase `DELETE`; there is no grace period, recovery window, or retained email digest.
+- Product-data preparation MUST be one actor-serialized, idempotent transaction that removes public identity and sensitive/private state, archives owned groups and Venues, cancels future live activity, and retains only the pseudonymous safety, attendance, ownership, moderation, appeal, authorship, membership-lifecycle, and audit history defined in §7.6.
+- Only after that transaction succeeds may a server-only service-role client soft-delete the same Supabase Auth user. The browser MUST never receive the service-role credential or provider detail; a post-preparation provider failure leaves the tombstone ineligible and returns a generic retryable result.
 - Conditional Cloudflare Turnstile protection MAY gate signup, sign-in, and recovery requests. When enabled, server verification MUST fail closed and validate the expected action and production hostname.
 - The submitted MVP is 18+. Onboarding MUST record `adult_attested_at`; it MUST NOT collect a full date of birth merely to implement this attestation.
 - Anonymous visitors MAY read explicitly public projections.
@@ -265,10 +271,10 @@ Authorization MUST be enforced twice for sensitive transitions: application logi
 | `/auth/forgot-password` | Public, including signed-in accounts | Request a non-enumerating password-recovery email; signed-in visitors receive an account-switch warning |
 | `/auth/reset-password/confirm` | Public passive page | Strip the fragment from browser history and offer explicit confirmation; its nested `/consume` POST establishes the recovery session and issues the bound five-minute grant |
 | `/auth/reset-password/callback` | Public legacy GET | Never consume a credential; return one no-store expired-link state for old emails |
-| `/auth/reset-password` | Bound recovery session | Choose a new password, globally end sessions, and return to sign in |
+| `/auth/reset-password` | Bound recovery session | Choose a new password, request global session revocation, clear local auth state, and return to sign in with confirmation or an honest revocation warning |
 | `/auth/verify` | Public callback/instruction | Verification result and next action |
 | `/auth/verify/confirm` | Public passive page | Strip the fragment from browser history; its nested `/consume` POST verifies one bounded email token/code only after explicit confirmation |
-| `/account/security` | Signed-in | Change a known password after current-password reauthentication |
+| `/account/security` | Signed-in | Change a known password or immediately delete the account; both require current-password reauthentication, and deletion additionally requires exact `DELETE` confirmation |
 
 On small screens, the active Fan bottom navigation is Home, Explore, Ask, My Huddle, and People when assisted discovery is enabled; Ask is omitted when disabled. The Venue bottom navigation is Today, Calendar, Events, and Venue. Account is not a bottom-navigation destination: every active workspace uses the same top-right workspace menu, whose final item opens Account settings. The signed-out mobile menu also remains aligned to the top-right edge.
 
@@ -278,7 +284,9 @@ Unauthorized access MUST render a clear `not found`, `sign in`, `finish safety s
 
 **Onboarding:** sign up → verify email → attest 18+ → accept the current community rules → choose Fan or Venue setup. Fan setup adds handle/display name and optional interests; Venue setup adds a confirmed public address, venue information, and a truthful business-representation attestation without publishing a Fan identity.
 
-**Recover access:** choose Forgot password → submit an email without receiving account-existence detail → follow the single-use recovery email → explicitly continue on the passive Huddle page → choose a new password through the session-bound grant → globally end sessions → return to sign in.
+**Recover access:** choose Forgot password → submit an email without receiving account-existence detail → follow the single-use recovery email → explicitly continue on the passive Huddle page → choose a new password through the session-bound grant → request global revocation and always clear local auth state → return to sign in with confirmation or an honest unconfirmed-revocation warning.
+
+**Delete account:** open Account → Security → Delete account in the separate Danger zone → review the removed and retained data → enter the current password and exact `DELETE` → confirm the irreversible action → clear Huddle session/recovery/workspace state → return to the isolated sign-in page with a neutral deleted-account confirmation.
 
 **Discover and attend:** use current location or choose a confirmed address → filter by date/team/competition/specific fixture → see who is showing it nearby → open event → sign in/activate Fan if needed → request or join → see stable result → download calendar when authorized.
 
@@ -492,10 +500,11 @@ Provider match status is stored as a normalized string/enum appropriate to the a
 | `profile_completed_at` | retained B01–B12 completion evidence; existing completed profiles are backfilled as enabled Fans |
 | `fan_enabled_at` | explicit optional Fan-workspace activation; set only when common eligibility and required Fan identity fields are valid |
 | `suspended_at` | nullable platform action |
+| `deleted_at` | canonical irreversible product-data erasure marker; a non-null profile is a sanitized pseudonymous tombstone, never an eligible actor |
 
-Email is read from Auth only where needed and MUST NOT be part of public profile queries. Public Fan DTOs exist only for activated Fans and expose handle, display name, short bio, and factual trust context only. Venue-only operators have no public Fan projection.
+Email is read from Auth only where needed and MUST NOT be part of public profile queries. Public Fan DTOs exist only for activated, non-deleted Fans and expose handle, display name, short bio, and factual trust context only. Venue-only operators and erased profiles have no public Fan projection. An erased own-profile read returns only the sanitized tombstone row, with former identity fields cleared or replaced by `Deleted account` and non-null `deleted_at`; it does not restore former identity.
 
-Indexes: partial unique `lower(handle)` where non-null, `fan_enabled_at`, `profile_completed_at`, `suspended_at`.
+Indexes: partial unique `lower(handle)` where non-null, `fan_enabled_at`, `profile_completed_at`, `suspended_at`, and partial `deleted_at` where non-null.
 
 #### `platform_roles`
 
@@ -862,7 +871,7 @@ type ActionResult<T> =
 
 Mutation groups:
 
-- auth/onboarding: signup, sign in/out, record adult attestation/current rules acceptance, save profile;
+- auth/onboarding: signup, sign in/out, record adult attestation/current rules acceptance, save profile, and prepare immediate account erasure;
 - follows: follow/unfollow sport, competition, team, venue;
 - friends: request, accept, decline, remove, block/unblock;
 - groups: create, apply, review, change role, leave, ban/unban, create/revoke invite, save rules;
@@ -877,6 +886,7 @@ Every community action follows: parse → authenticate → require common safety
 
 | Function | Required behavior |
 |---|---|
+| `prepare_account_erasure(input_confirmation, audit_request_id)` | Authenticated actor only; require exact `DELETE`; share the canonical actor-serialization boundary; idempotently reconcile the complete §7.6 cleanup; emit one counts-only preparation audit |
 | `block_user(target_user_id)` | Reject self; insert private block; remove friendship; end affected future home-event attendance/address access atomically; audit without notifying target |
 | `request_friendship(target_user_id)` | Canonicalize pair; reject self/block/duplicate; insert pending |
 | `respond_to_friendship(friendship_id, decision)` | Recipient-only valid transition |
@@ -907,7 +917,7 @@ Functions return stable domain error codes for expected failures.
 
 | Entity | Create | Read | Update | Remove/terminal transition |
 |---|---|---|---|---|
-| Profile | Auth trigger + owner onboarding | Safe public/own | Owner bounded fields | Account-erasure flow later; moderator suspension now |
+| Profile | Auth trigger + owner onboarding | Safe public/own; erased actor sees only own sanitized tombstone | Owner bounded fields while not erased | Authenticated product-data preparation followed by server-only Auth soft deletion; moderator suspension remains separate |
 | Follow | User | User/safe counts | N/A | User unfollow |
 | Friendship | Requester | Pair | Recipient responds | Either removes |
 | Group | Active Fan | Visibility/RLS | Owner/admin | Archive/suspend, not routine hard delete |
@@ -919,6 +929,27 @@ Functions return stable domain error codes for expected failures.
 | Attendance | Eligible registered attendee/action | Self/manager/safe approved list | Controlled transitions | `left` by attendee or `removed` by host; retain history |
 | Report | Authenticated account through safe reporting flow | Reporter/moderator | Moderator status | Resolve/dismiss, retain |
 | Sports catalog | Sync service | Public | Sync service | Mark inactive; do not delete referenced records |
+
+### 7.6 Immediate account-erasure contract
+
+Account erasure begins only in Account Security. The Server Action validates the bounded current password and exact `DELETE`, obtains the current user through the ordinary SSR client, and reauthenticates that exact email/password pair. It then calls `prepare_account_erasure('DELETE', request_id)` as that authenticated user before a `server-only` service-role client calls `auth.admin.deleteUser(user.id, true)`. The `true` argument is deliberate Supabase Auth soft deletion: identities and sessions are removed while a non-reversible sanitized Auth tombstone preserves required foreign-key history. The password, service-role key, raw provider error, and former email or a digest of it MUST NOT enter product storage or logs.
+
+The preparation RPC derives its actor only from `auth.uid()`, uses the same canonical `private.serialize_actor_transaction()` boundary as other actor mutations, and locks the profile. Direct subscription and Venue-follow writes MUST enter that same serialization boundary and recheck the non-deleted profile so they cannot survive a concurrent erasure. A retry always reruns cleanup to reconcile residue, even when `deleted_at` is already set, but writes no second `account.erase.prepare` audit event.
+
+One transaction performs the following removal or terminal transitions:
+
+- cancel every future live event directly hosted by the actor or hosted through a group or Venue they own;
+- archive each owned group and Venue without transferring ownership, and retain only the owner memberships required to keep those archived objects referentially valid;
+- revoke pending event/group invitations involving the actor and only invite tokens that are still active at erasure time (`revoked_at is null`, unexpired, and below their use limit); expired or exhausted token history keeps its original outcome;
+- move the actor's current requested/approved attendance to `left`, end or revoke every non-owner active/pending group or Venue membership, and clear `group_memberships.application_message` on every one of the actor's membership rows, including rejected, left, and banned history;
+- delete the actor's follows/subscriptions, friendships, blocks, platform roles, actor rate counters, event drafts, and every exact home-location row for an event they directly hosted;
+- clear handle, biography, Fan activation, adult/rules completion, and other public identity state; set the display name to `Deleted account`; set `profiles.deleted_at`; and write one safe counts-only security audit.
+
+Historical attendance, membership lifecycle, event authorship, reports, moderation actions, appeals, and audits retain the same profile UUID under that pseudonymous tombstone. They MUST NOT expose an email, former handle/name/bio, application prose, or exact home location. The home-location guards may bypass their ordinary pair/material-change rejection only for deleting an exact location whose direct host profile has already been tombstoned in the same erasure transaction; the invariant remains unchanged for every non-erased live home event, including one with approved attendance.
+
+An already issued JWT may remain cryptographically valid until expiry after Auth deletion. Every mutation/common/Fan/safety/onboarding gate therefore rejects `deleted_at is not null`, and retained private-history read policies for group memberships, Venue memberships, event invitations, and attendance also require a non-deleted current profile. The narrow own-profile tombstone policy is the erased actor's only remaining direct product read; direct profile writes cannot reactivate it.
+
+After Auth soft deletion succeeds, the application clears Supabase, recovery-grant, and workspace cookies, sets a short-lived host-only HttpOnly completion marker, revalidates the signed-in shell, and redirects to `/auth/sign-in?account=deleted`. Only that server-issued marker may trigger clearing all namespaced Huddle `sessionStorage`; the status query alone MUST NOT erase browser state, unrelated tab keys remain untouched, and the marker MUST be consumed immediately after cleanup so subsequent anonymous state survives. Ordinary sign-out manually expires local Supabase/recovery/workspace cookies and redirects even when the provider logout call returns or throws a transport error, then uses the same one-time marker-gated Huddle-state cleanup on its anonymous Home landing. If the provider call fails after database preparation, the browser receives only a generic retryable error; the profile remains non-public and mutation-ineligible, and the same still-authenticated session may repeat preparation and retry the provider deletion.
 
 ---
 
@@ -1044,9 +1075,10 @@ This design follows the [OWASP Authorization Cheat Sheet](https://cheatsheetseri
 - Cookies must use secure production attributes (`HttpOnly` where controlled by the Auth flow, `Secure`, appropriate `SameSite`, narrow lifetime/scope).
 - Middleware refreshes sessions but application/server/database checks authorize resources.
 - Email verification, `adult_attested_at`, current `rules_version`, suspension, Fan activation, and active Venue membership gates are checked server-side according to the requested action.
-- Password-recovery requests MUST return the same public result for known, unknown, throttled, and temporarily unavailable addresses. The passive no-store confirmation page strips one bounded recovery token-hash or PKCE code from its fragment, and its nested same-origin POST consumes that credential without retaining it in the destination URL. Legacy GET callbacks MUST NOT consume or forward credentials.
-- A new password MUST be validated server-side, updated only for the bound recovery session, and followed by global sign-out plus recovery/workspace-cookie clearing before the user returns to sign in.
-- Sign-out clears the session and private query cache.
+- Password-recovery requests MUST return the same public result for known, unknown, throttled, and temporarily unavailable addresses. The passive no-store confirmation page strips one bounded recovery token-hash or PKCE code from its fragment, and its nested same-origin POST consumes that credential without retaining it in the destination URL. A PKCE exchange MUST also return the exact redirect purpose expected by the verification or recovery boundary; a cross-purpose code is rejected and its resulting local session removed. Legacy GET callbacks MUST NOT consume or forward credentials.
+- A new password MUST be validated server-side and updated only for the bound recovery session. Huddle then requests global sign-out and always clears Supabase, recovery, workspace, and namespaced tab state locally before returning to sign in. If the provider cannot confirm global revocation after the password has changed, the completion state MUST say so without exposing provider details; the notification email MUST NOT claim that every session was revoked.
+- Account deletion MUST follow §7.6's ordering: current SSR user → exact same-user password reauthentication → authenticated product-data preparation → server-only Auth soft deletion → Supabase/recovery/workspace-cookie clearing → isolated sign-in redirect.
+- Sign-out clears the session and private query cache. Its short-lived HttpOnly cleanup marker is consumed only after namespaced browser storage is verifiably empty so a blocked storage API can retry without replaying cleanup after success.
 
 ### 11.2 Authorization
 
@@ -1055,6 +1087,7 @@ This design follows the [OWASP Authorization Cheat Sheet](https://cheatsheetseri
 - Use database functions for multi-row transitions and relationship checks.
 - Use `auth.uid()` rather than accepting an actor ID from client input.
 - Never trust hidden controls, route names, client roles, or form-supplied ownership.
+- Treat `profiles.deleted_at` as a fail-closed authorization boundary. Central actor gates and retained private-history RLS policies MUST deny a stale JWT; the erased actor may read only their own sanitized profile tombstone and may not mutate it.
 - Test cross-user, blocked-user, removed-attendee, former-member, banned-member, suspended-content, incomplete/adult-attestation-missing, and anonymous cases.
 
 ### 11.3 CSRF and request abuse
@@ -1090,6 +1123,7 @@ This design follows the [OWASP Authorization Cheat Sheet](https://cheatsheetseri
 - Browser coordinates are request inputs, not retained location history.
 - Public profiles omit email, exact address, private memberships, and attendance history.
 - Invite tokens are high entropy, hashed at rest, expiring, revocable, and usage limited.
+- Account erasure deletes former public identity, follows, relationships, blocks, drafts, exact hosted-home locations, actor counters/roles, and all membership application prose; it retains only the pseudonymous history enumerated in §7.6 and never stores an email digest.
 - Audit/log metadata excludes secrets and exact home data.
 - Assisted-discovery logs and rate counters exclude sentences, extracted entity names, actor IDs, origins, model payloads, and event IDs. Cloudflare receives no private account context, and no AI Gateway/storage product is enabled.
 - Reports are private from the reported user, and group admins cannot read platform reports merely because the target belongs to their group.
@@ -1207,7 +1241,8 @@ MUST test:
 - capacity with concurrent approval attempts;
 - host removal/attendee leave/cancellation history retention;
 - report confidentiality, group-admin denial, moderation action, and appeal policies;
-- sync-service scope and ordinary-user denial.
+- sync-service scope and ordinary-user denial;
+- account-erasure authentication/confirmation, owned-object archival, future-event cancellation, attendance/membership transitions, all-membership application-message clearing, active-only token revocation, exact-location deletion through the narrow tombstoned-host exception, ordinary live-home guard preservation, stale-JWT direct-read/mutation denial, canonical actor concurrency, idempotent residue cleanup, one preparation audit, and retained pseudonymous history;
 - assisted-discovery Fan-only access, atomic per-Fan/global inference limits, friendship/group membership modes, facility filtering, stable top-three ranking, capacity behavior, and absence of protected-location fields.
 
 ### 14.2 Unit/Vitest
@@ -1224,6 +1259,7 @@ MUST test:
 - report-category, enforcement-ladder, and appeal transition schemas;
 - cursor encode/decode/tamper rejection;
 - error mapping;
+- account-erasure input bounds/exact confirmation plus Server Action same-user reauthentication, RPC-before-provider ordering, soft-delete flag, safe retry failure, cookie clearing, one-time server-marker-gated Huddle tab-state clearing, and redirect; sign-out provider-failure cleanup and marker consumption;
 - RFC 5545 escaping, line folding, UTC values, stable UID, and location omission/inclusion;
 - stale-sync presentation logic.
 - assisted intent/date/entity schemas, aliases and ambiguity, prompt-injection containment, Cloudflare error/malformed-output handling, and signed continuation expiry/actor binding.
@@ -1236,6 +1272,7 @@ MUST test:
 
 - signup/adult-attestation/rules/onboarding/event/group/venue form validation and server errors;
 - keyboard/focus behavior for dialogs and menus;
+- account-deletion Danger-zone disclosure, exact confirmation/current-password field errors, accessible destructive dialog behavior, pending/error states, and completion notice;
 - permission-aware actions without treating hidden controls as security;
 - follow/friend/attendance pending/success/error/removed states;
 - location denial, manual address autocomplete, selection invalidation, and retry;
@@ -1269,6 +1306,7 @@ Seed deterministic users, relationships, groups, venues, matches, and events. Re
 16. Report a profile/event before and after the event; reported user and group admin cannot see reporter; moderator applies an action and affected user submits an appeal.
 17. Provider outage/invalid response leaves cached fixtures browsable and marks stale/failure state.
 18. The three approved assisted-discovery examples resolve through a deterministic fake interpreter and seeded database; CI never calls a live AI provider.
+19. Account Security rejects a wrong password or non-exact confirmation, then deletes the account with correct inputs, returns to isolated sign in with neutral confirmation, removes public/private identity data, and denies the erased session's direct private-history reads and mutations while pseudonymous history remains.
 
 ### 14.5 Manual acceptance
 
@@ -1282,6 +1320,7 @@ Seed deterministic users, relationships, groups, venues, matches, and events. Re
 - Private-event pages clearly state registered-users-only, no plus-ones, host identity, capacity, rules, and address-sharing warning.
 - Report flow remains usable, hides reporter identity, distinguishes immediate danger, and clearly says Huddle is not an emergency service.
 - Community rules explicitly cover sports-rivalry harassment, threats/fights, doxxing, fraud, unapproved guests, and hidden commercial terms.
+- After the account-erasure migration is deliberately deployed, verify the destructive dialog at phone/desktop widths and one fresh-browser deletion without recording credentials or retained-history content.
 
 ### 14.6 CI gates
 
@@ -1346,10 +1385,13 @@ Use separate local, preview/staging, and production configuration. Preview deplo
 - Supabase migrations match the committed schema.
 - Auth email verification and redirect work on production domain.
 - Auth password-recovery email, callback, password replacement, recovery-session sign-out, and fresh sign-in work on the production domain.
+- The account-erasure migration is applied before application code that exposes deletion, and one fresh-browser run verifies current-password plus exact `DELETE`, neutral completion, session invalidation, and absence of former public identity without capturing sensitive retained history.
 - Cron reaches only the protected sync route and a successful run is visible.
 - Production has provider attribution and no service secret in client bundles/network responses.
 - GitHub repository includes setup/env documentation without secret values.
 - Smoke tests cover anonymous browse, sign-in, discovery, event request, approval, and calendar.
+
+**Operational evidence as of 3 September 2026:** the separately authorized guarded production Auth configuration apply and its immediate exact `npm run auth:config:check` both passed. Fresh verification/recovery email and browser acceptance remain pending. The account-erasure migration has not been deployed to production, so no hosted account-erasure acceptance is claimed.
 
 ---
 
@@ -1428,6 +1470,7 @@ The MVP is done only when:
 | Sports | Football first | One provider adapter; NBA stays future-ready |
 | Provider | football-data.org v4 | Six-hour sync and local cache under free-rate constraints |
 | Auth | Supabase email/password SSR | No OAuth and no application password storage |
+| Account erasure | Immediate product-data preparation plus server-only Supabase Auth soft deletion | Public/private identity is removed while required safety/ownership history remains pseudonymous; no recovery window or email digest |
 | Community eligibility | 18+ attestation and current rules acceptance | Avoid child-safety scope; do not claim identity/age verification |
 | Backend | Next.js only | One deployable modular monolith |
 | DB access | Supabase SQL/RPC, no Prisma | RLS/PostGIS/functions remain explicit |

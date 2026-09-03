@@ -14,6 +14,8 @@
 
 **Approved AI-assisted discovery revision:** 1 September 2026, with the Ask/navigation/date/location follow-up approved 2 September 2026. `AI01` is one bounded post-B12 implementation module before hosted B13 acceptance. It adds a default-off active-Fan Ask destination in which Cloudflare extracts only a strict intent and the existing Vercel/Supabase application authorizes and ranks at most three results. It does not renumber B13 or approve agents, conversational context, RAG, generated event content, or AI moderation.
 
+**Approved account-erasure revision:** 3 September 2026. `AE01` is a bounded post-B12 identity/security module before hosted B13 acceptance. Account Security now covers current-password changes and immediate, irreversible deletion with exact `DELETE`, transactional pseudonymous erasure, stale-session denial, and server-only Supabase Auth soft deletion. It does not renumber B13, and its local migration is not production deployment evidence.
+
 ---
 
 ## 1. What working together means
@@ -399,7 +401,7 @@ If an external account, paid service, production mutation, or secret is required
 | `B12` Release candidate and automated acceptance | `D01` | `B11` | Full automated acceptance is green and the complete application is published as a reviewable release candidate |
 | `B13` Production acceptance and submission | `D02`–`D04` | `B12` | Isolated hosted environments, production sync/deployment, truthful submission evidence, and the presentation rehearsal are complete |
 
-The milestone grouping reduces coordination overhead only. It removes no module task, test, authorization rule, migration requirement, or definition-of-done evidence. The original `G06` dependency on an approved future event remains historical B09 evidence; the approved 31 August replacement gate depends only on an active owner and description.
+The milestone grouping reduces coordination overhead only. It removes no module task, test, authorization rule, migration requirement, or definition-of-done evidence. The original `G06` dependency on an approved future event remains historical B09 evidence; the approved 31 August replacement gate depends only on an active owner and description. `AI01` and `AE01` are bounded post-B12 modules rather than new numbered milestones; B13 cannot claim hosted acceptance for either until its separately authorized production gates pass.
 
 ---
 
@@ -548,7 +550,7 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 - [x] Add loading, submission, success, error, and expired-verification states.
 - [x] Harden signup/recovery against enumeration; keep GET passive; consume fragment credentials only through explicit same-origin POST.
 - [x] Bind recovery updates to a five-minute user/session HMAC grant; route ordinary signed-in changes through current-password reauthentication.
-- [x] Use the 15–72-character new-password policy, global post-change sign-out, a password-changed notification, isolated auth chrome, and conditional server-verified Turnstile.
+- [x] Use the 15–72-character new-password policy, request global post-change sign-out, always clear local auth state, show an honest unconfirmed-revocation warning when needed, send a password-changed notification, preserve isolated auth chrome, and conditionally verify Turnstile server-side.
 
 **Checkpoints:** auth/server/session first; forms and states after role swap.
 
@@ -622,6 +624,34 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 - [x] Record the required block-transaction extension point for later modules when friendships and attendance exist.
 
 **Tests/evidence:** self/duplicate/other-user pgTAP tests, private enumeration denial, audit record without notification, UI state tests.
+
+### AE01 — Immediate self-service account erasure
+
+**Depends on:** `B12` because the transition reconciles identity, groups, Venues, events, invitations, attendance, protected locations, moderation, and audit history.
+
+**Authority:** implementation spec §§2.1, 4.1–4.2, 6.3, 7.3–7.6, 11.1–11.5, and 14; architecture §§5.1, 5.8, and 5.13.
+
+**Outcome:** a signed-in person can use Account Security to immediately and irreversibly remove their account after bounded current-password reauthentication and exact `DELETE`, while only required pseudonymous history remains.
+
+**Tasks:**
+
+- [x] Add `profiles.deleted_at` and an authenticated `prepare_account_erasure` RPC that derives `auth.uid()`, takes the canonical actor-serialization boundary, performs idempotent cleanup, and writes one counts-only preparation audit.
+- [x] Cancel future live directly/owned-hosted events, archive owned groups and Venues without transfer, move current attendance to `left`, end non-owner active membership, and retain required owner/history rows under the tombstone.
+- [x] Revoke pending invitations and only active invite tokens; leave expired/exhausted token outcomes unchanged.
+- [x] Remove exact hosted-home locations, drafts, follows, friendships, blocks, roles/counters, former public identity, and every group-membership application message, including historical rows.
+- [x] Preserve ordinary live-home location guards while adding only the tombstoned-direct-host deletion exception needed by erasure.
+- [x] Deny stale-JWT actor mutations and direct private-history reads while leaving the sanitized own-profile tombstone as the sole erased-account read.
+- [x] Serialize subscription and Venue-follow writes with the same actor boundary; make a retry reconcile residue without duplicating the audit event.
+- [x] Add the bounded Server Action sequence: current SSR user, exact same-user password reauthentication, authenticated RPC, server-only `auth.admin.deleteUser(user.id, true)`, cookie clearing, short-lived marker-backed Huddle tab-state cleanup consumed only after verified success, and isolated sign-in redirect. Return only a generic retryable error when the provider fails after preparation; ordinary sign-out still completes local cleanup and redirect across provider transport failure.
+- [x] Add the separate shadcn/Radix Danger zone, explicit removed/retained-data copy, accessible current-password/exact-confirmation dialog, neutral completion notice, and always-visible sign-out label.
+- [x] Add schema/action/component/E2E tests and comprehensive pgTAP coverage for the lifecycle, stale JWT, home-location exception, active-token rule, sensitive-message removal, concurrency, and idempotency.
+- [x] Complete the local database reset, focused erasure and concurrency pgTAP suites, schema lint, generated-type regeneration, and generated-type freshness check.
+- [x] Complete the full database regression suite, build, E2E, and full acceptance run before publication.
+- [ ] Deploy the account-erasure migration and verify one fresh-browser production deletion only after separate explicit authorization.
+
+**Current delivery status (3 September 2026):** the isolated implementation branch contains the migration, application/UI changes, and tests. Its fresh complete acceptance run passed formatting, lint, typecheck, 1,057 unit/component assertions with one live-model test skipped, reset and schema lint, 1,746 database/RLS assertions including the 49 focused erasure and 12 concurrency assertions, generated-type freshness, the production build, all 35 Playwright journeys, the secret audit, and diff hygiene. Independent database/security and UI reviews found no remaining blocker. The account-erasure migration has not been deployed to production and no hosted deletion result is claimed.
+
+**Tests/evidence:** exact input bounds; same-user reauthentication and RPC/provider ordering; provider failure/retry; sign-out transport-failure cleanup; cookie and consumed-marker-gated browser-state clearing without replay; dialog accessibility/responsiveness; forced RLS; stale-JWT direct-read and mutation denial while privileged checks prove retained history exists; owned-object archival; future-event cancellation; invitation/attendance/membership transitions; application-message removal; active-only token revocation; exact-location deletion plus ordinary guard preservation; canonical actor concurrency; idempotent residue cleanup; one audit event; and retained pseudonymous history.
 
 ---
 
@@ -1305,7 +1335,9 @@ evidence for merge; hosted checks remain B13 (`D02`–`D04`).
 - [x] Ensure previews do not mutate production by default.
 - [ ] Create/configure Supabase and Vercel only with both partners' explicit approval.
 - [x] Apply the committed 12-migration history before deploying code that requires it.
+- [ ] Apply the new account-erasure migration before exposing account deletion in production; it is not deployed as of 3 September 2026.
 - [ ] Configure public URLs, Auth redirects, allowed origins, and environment-specific secrets.
+- [x] Run the separately authorized guarded production Auth configuration apply and immediate exact `npm run auth:config:check`; both passed on 3 September 2026. Fresh email/browser acceptance remains pending.
 - [ ] Verify anonymous public browse and signed-in session behavior.
 - [ ] Verify no service secret appears in browser bundles or network traffic.
 - [x] Record a dated pre-deployment quota/limit snapshot for the course scale deliverable; add selected-plan usage after deployment.
@@ -1432,6 +1464,7 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 | B11 Moderation, security, and accessibility | `M01`–`M04` | done | [#30](https://github.com/gethuddle/huddle/issues/30) / [PR #31](https://github.com/gethuddle/huddle/pull/31) |
 | B12 Release candidate and automated acceptance | `D01` | done | [#32](https://github.com/gethuddle/huddle/issues/32) / [PR #33](https://github.com/gethuddle/huddle/pull/33) |
 | AI-assisted event discovery | `AI01` | done | [PR #46](https://github.com/gethuddle/huddle/pull/46) |
+| Immediate account erasure | `AE01` | review | [#53](https://github.com/gethuddle/huddle/issues/53) |
 | B13 Production acceptance and submission | `D02`–`D04` | not started | — |
 
 ---

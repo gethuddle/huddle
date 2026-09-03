@@ -52,11 +52,28 @@ describe("email verification POST", () => {
       error: null,
     });
     mocks.exchangeCodeForSession.mockResolvedValue({
-      data: { session: { access_token: "verified-jwt" }, user: { id: "verified-user" } },
+      data: {
+        session: { access_token: "verified-jwt" },
+        user: { id: "verified-user" },
+        redirectType: null,
+      },
       error: null,
     });
     mocks.createServerClient.mockImplementation((_url, _key, options) => {
       const cookieAdapter = options.cookies as CookieAdapter;
+      const exchangeCodeForSession = async (code: string) => {
+        const result = await mocks.exchangeCodeForSession(code);
+        if (result.data.session !== null) {
+          cookieAdapter.setAll(
+            [
+              { name: "sb-example-auth-token.0", value: "pkce-session-0", options: { path: "/" } },
+              { name: "sb-example-auth-token.1", value: "pkce-session-1", options: { path: "/" } },
+            ],
+            {},
+          );
+        }
+        return result;
+      };
       mocks.verifyOtp.mockImplementationOnce(async () => {
         cookieAdapter.setAll([{ name: "sb-auth", value: "verified-session" }], {});
         return {
@@ -66,7 +83,7 @@ describe("email verification POST", () => {
       });
       return {
         auth: {
-          exchangeCodeForSession: mocks.exchangeCodeForSession,
+          exchangeCodeForSession,
           getClaims: mocks.getClaims,
           signOut: mocks.signOut,
           verifyOtp: mocks.verifyOtp,
@@ -94,6 +111,35 @@ describe("email verification POST", () => {
     expect(mocks.signOut.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.exchangeCodeForSession.mock.invocationCallOrder[0]!,
     );
+  });
+
+  it("rejects a recovery PKCE code at the email-verification boundary", async () => {
+    mocks.exchangeCodeForSession.mockResolvedValueOnce({
+      data: {
+        session: { access_token: "recovery-jwt" },
+        user: { id: "recovery-user" },
+        redirectType: "recovery",
+      },
+      error: null,
+    });
+    mocks.signOut.mockRejectedValueOnce(new Error("provider cleanup unavailable"));
+
+    const response = await POST(request("code=recovery-code"));
+
+    expect(response.headers.get("location")).toBe("https://huddle.test/auth/verify?status=expired");
+    expect(mocks.rpc).not.toHaveBeenCalled();
+    expect(mocks.signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(response.cookies.get("sb-example-auth-token.0")).toMatchObject({
+      maxAge: 0,
+      path: "/",
+      value: "",
+    });
+    expect(response.cookies.get("sb-example-auth-token.1")).toMatchObject({
+      maxAge: 0,
+      path: "/",
+      value: "",
+    });
+    expect(response.headers.get("set-cookie")).toContain("Max-Age=0");
   });
 
   it("rejects cross-origin and ambiguous POSTs before constructing Supabase", async () => {

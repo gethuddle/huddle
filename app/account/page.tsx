@@ -70,11 +70,13 @@ export default async function AccountPage() {
         <Card className="rounded-[1.375rem] shadow-none">
           <CardHeader>
             <CardTitle className="text-xl font-semibold">Account security</CardTitle>
-            <CardDescription>Change your password and sign out existing sessions.</CardDescription>
+            <CardDescription>
+              Change your password or permanently delete your account.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Button asChild variant="outline">
-              <Link href="/account/security">Manage password</Link>
+              <Link href="/account/security">Manage security</Link>
             </Button>
           </CardContent>
         </Card>

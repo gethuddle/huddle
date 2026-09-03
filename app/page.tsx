@@ -1,9 +1,15 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { AttentionList } from "@/features/attention/components/attention-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { HuddleSessionCleanup } from "@/features/auth/components/huddle-session-cleanup";
+import {
+  HUDDLE_SESSION_CLEANUP_COOKIE_NAME,
+  HUDDLE_SESSION_CLEANUP_COOKIE_VALUES,
+} from "@/features/auth/session-cleanup-cookie";
 import { getFanHome } from "@/features/dashboard/queries";
 import { TeamMark } from "@/features/sports/components/team-initials";
 import { formatIsraelDateValue, formatIsraelKickoff } from "@/features/sports/time";
@@ -37,6 +43,11 @@ const journey = [
 
 export default async function Home() {
   const state = await getAppShellState();
+  const sessionCleanupMarker = state.isSignedIn
+    ? undefined
+    : (await cookies()).get(HUDDLE_SESSION_CLEANUP_COOKIE_NAME)?.value;
+  const shouldClearHuddleState =
+    sessionCleanupMarker === HUDDLE_SESSION_CLEANUP_COOKIE_VALUES.signOut;
   const workspace = state.workspace;
   if (state.isSignedIn && workspace.active === null) {
     redirect("/onboarding");
@@ -208,6 +219,7 @@ export default async function Home() {
 
   return (
     <>
+      {shouldClearHuddleState ? <HuddleSessionCleanup purpose="sign-out" /> : null}
       <section className="grid flex-1 items-center gap-14 py-20 lg:grid-cols-[1.3fr_0.7fr] lg:py-28">
         <div>
           <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-muted px-4 py-2 text-sm font-medium text-muted-foreground">
