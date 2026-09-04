@@ -93,6 +93,11 @@ export default async function EventPage({ params, searchParams }: EventPageProps
 
   return (
     <section className="py-12 sm:py-16">
+      {event.status === "cancelled" ? (
+        <Alert className="mb-6" role="status">
+          <AlertDescription>This event has been cancelled.</AlertDescription>
+        </Alert>
+      ) : null}
       {created ? (
         <Alert className="mb-6 border-court/30 bg-court/10" role="status">
           <AlertDescription className="text-forest-hover">
@@ -237,7 +242,7 @@ export default async function EventPage({ params, searchParams }: EventPageProps
                 <Link href={"/people/" + event.host.handle}>Open @{event.host.handle}</Link>
               </Button>
             )}
-            {event.host.venueSlug === null ? null : (
+            {!event.host.canOpenVenue || event.host.venueSlug === null ? null : (
               <Button asChild className="mt-4" variant="outline">
                 <Link href={`/venues/${event.host.venueSlug}`}>Open venue</Link>
               </Button>

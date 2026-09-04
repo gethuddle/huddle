@@ -303,6 +303,13 @@ values
     60, 'unverified'
   );
 
+-- These exact synthetic venues exercise public or publishing behavior.
+update private.venue_billing_entitlements set status='active',interval='month',interval_count=1,
+  polar_customer_id='fixture-customer',polar_subscription_id='fixture-'||venue_id::text,
+  polar_product_id='fixture-product',polar_product_price_id='fixture-price',amount=1500,currency='ils',
+  paid_through_at=statement_timestamp()+interval '365 days',first_activated_at=statement_timestamp()
+where venue_id in ('e4000000-0000-4000-8000-000000000602');
+
 insert into public.venue_memberships (venue_id, user_id, role, status)
 values (
   'e4000000-0000-4000-8000-000000000602',
@@ -820,14 +827,10 @@ select throws_ok(
 );
 select throws_ok(
   $$
-    insert into public.venue_follows (user_id, venue_id)
-    values (
-      'e4000000-0000-4000-8000-000000000281',
-      'e4000000-0000-4000-8000-000000000602'
-    )
+    select public.follow_venue('e4000000-0000-4000-8000-000000000602',null)
   $$,
-  'P0001', 'ACCOUNT_DELETED',
-  'the serialized direct Venue-follow path rejects a tombstoned actor'
+  'P0001', 'AUTH_REQUIRED',
+  'the serialized Venue-follow RPC rejects a tombstoned actor'
 );
 
 reset role;

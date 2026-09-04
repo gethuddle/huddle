@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { expiredVenueBilling } from "@/tests/fixtures/venue-billing";
 
 const mocks = vi.hoisted(() => ({
   cookieGet: vi.fn(),
@@ -8,11 +9,13 @@ const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
   profileMaybeSingle: vi.fn(),
   rpc: vi.fn(),
+  billing: vi.fn(),
 }));
 
 vi.mock("next/headers", () => ({
   cookies: async () => ({ get: mocks.cookieGet }),
 }));
+vi.mock("@/features/venue-billing/queries", () => ({ getVenueBillingContext: mocks.billing }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("@/features/venues/workspace/queries", () => ({
   getVenueWorkspace: mocks.getVenueWorkspace,
@@ -29,6 +32,26 @@ const fanId = "e4000000-0000-4000-8000-000000000101";
 const venueId = "e4000000-0000-4000-8000-000000000102";
 
 describe("workspace shell query", () => {
+  it("retains an expired member workspace with the safe recovery projection", async () => {
+    mocks.rpc.mockResolvedValue({
+      error: null,
+      data: [
+        {
+          workspace_kind: "venue",
+          workspace_id: venueId,
+          slug: "corner",
+          name: "Corner",
+          role: "admin",
+        },
+      ],
+    });
+    mocks.getVenueWorkspace.mockResolvedValue({ id: venueId, slug: "corner", role: "admin" });
+    mocks.billing.mockResolvedValue(expiredVenueBilling);
+    expect(await getAuthorizedVenueWorkspaceBySlug("corner")).toMatchObject({
+      id: venueId,
+      billing: expiredVenueBilling,
+    });
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.createClient.mockResolvedValue({

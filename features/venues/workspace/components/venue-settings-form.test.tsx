@@ -56,7 +56,7 @@ describe("VenueSettingsForm", () => {
 
   it("reuses public-address search without rendering raw coordinate controls", async () => {
     const user = userEvent.setup();
-    render(<VenueSettingsForm venue={venue} />);
+    render(<VenueSettingsForm venue={venue} canEdit={true} />);
 
     expect(screen.getByText("12 Stadium Street, Haifa")).toBeVisible();
     expect(screen.queryByRole("combobox", { name: "City" })).not.toBeInTheDocument();
@@ -72,4 +72,10 @@ describe("VenueSettingsForm", () => {
       }),
     );
   });
+});
+it("retains readable settings but cannot submit when editing is locked", () => {
+  render(<VenueSettingsForm venue={venue} canEdit={false} />);
+  expect(screen.getByDisplayValue("Match Corner")).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Save venue" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Change public address" })).toBeDisabled();
 });

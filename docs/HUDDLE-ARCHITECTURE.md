@@ -18,7 +18,9 @@
 
 **Approved AI-assisted discovery revision:** 1 September 2026, with the Ask/navigation/date/location follow-up approved 2 September 2026. An active Fan may describe the desired fixture, timing, public place, relationship, venue type, or venue facility in one sentence on the dedicated Ask route. Cloudflare extracts only a bounded intent. Huddle deterministically resolves dates and public-place coordinates, while its local catalog and authenticated PostgreSQL boundary authorize, filter, and rank the results; private account context never enters the model.
 
-**Approved account-erasure revision:** 3 September 2026. Account Security now covers both known-password changes and immediate, irreversible self-service deletion. The flow requires current-password reauthentication and exact `DELETE`, atomically removes identity/private state while retaining only required pseudonymous history, and uses a tightly isolated server-only Supabase Auth soft deletion after database preparation. Its new migration remains a separate production-deployment gate.
+**Approved account-erasure revision:** 3 September 2026. Account Security now covers both known-password changes and immediate, irreversible self-service deletion. The flow requires current-password reauthentication and exact `DELETE`, atomically removes identity/private state while retaining only required pseudonymous history, and uses a tightly isolated server-only Supabase Auth soft deletion after database preparation. `VB01` supersedes that final direct preparation-to-Auth ordering for billing-aware V2 erasure: Polar customer anonymization/local cleanup must complete first, while legacy V1 remains fail-closed. Its new migration remains a separate production-deployment gate.
+
+**Approved `VB01` revision:** 3 September 2026. Commercial venues become public and may publish only after a per-venue Polar Sandbox entitlement. Tasks 1–10 passed local acceptance for that contract in an isolated disposable project; all separately authorized Task 11 hosted/demo work remains pending, so this is not deployment evidence.
 
 The source of truth for the course deliverables is the [official project brief](<../course-roadmap/project instructions.pdf>). The [course roadmap](../course-roadmap/ROADMAP.md) is a wider technology menu, not a requirement to use every tool mentioned in the lectures.
 
@@ -47,17 +49,11 @@ The users are fans, hosts, group members/admins, and venue operators. A human ma
 
 ### Business model boundary
 
-The course MVP does **not** implement billing. A commonly eligible operator may self-serve a Venue workspace, with venue information and a truthful business-representation attestation, without first publishing a Fan identity. Activation atomically creates an immediately usable **Unverified** venue and one active owner membership; every commercial mutation requires an active Venue owner/admin membership. In a production version, venues would need an active subscription before publishing commercial listings.
+Fans, friendships, supporter groups, RSVP, and private hosting stay free. `VB01` adds exactly one Sandbox-only recurring entitlement **per venue**: ₪15 monthly or ₪150 yearly, with no tiers, trial, promotions, tickets, real money, or production-payment switch. A commonly eligible operator may activate Venue without publishing a Fan identity, but now creates a private, visibly **Unverified** draft plus owner membership and inactive entitlement—not a public business listing. The journey is `venue details → hidden draft → owner checkout → verified webhook → public venue`.
 
-Possible paid venue benefits are:
+Membership answers who operates a venue; entitlement answers whether that venue may be public or publish. Owners and admins run ordinary venue/event work, while only the exact owner can start checkout, open the portal, or manage cancellation. Payment is never business verification: the truthful attestation and persistent **Unverified** label remain independent. Fans never see billing state or provider copy; they see normal availability or the neutral cancellation outcome. The full normative state/capability, participant, cache, grace, cancellation, and erasure rules are [implementation specification §2.8](./HUDDLE-IMPLEMENTATION-SPEC.md#28-commercial-boundary-and-vb01-venue-entitlement); the approved provider binding and implementation design is [the Polar design](./superpowers/specs/2026-09-03-polar-venue-subscriptions-design.md).
 
-- scheduling events against future fixtures;
-- visibly labelled promoted listings;
-- menus and app-only offers;
-- venue analytics;
-- richer venue administration.
-
-Promotion must never bypass distance, audience, privacy, moderation, or match relevance rules. Stripe, subscription entitlements, and webhooks are a later module rather than a half-built MVP feature.
+The fail-closed lifecycle is intentionally about venue publication, not social access: `payment_required`/`confirming` are hidden drafts; `active` is public; `canceling` limits events at or after the paid end; `past_due`, `provider_stale`, and `legacy_grace` before its fixed cutover deadline hide immediately but preserve limited management and existing-participant access for seven days; `expired` retains only history/recovery. Expiry cancels future published events without deleting drafts, attendance, invitations, audit history, or past/started events, and recovery never resurrects cancelled rows. Promotion still cannot bypass distance, audience, privacy, moderation, or match relevance rules.
 
 ---
 
@@ -65,7 +61,7 @@ Promotion must never bypass distance, audience, privacy, moderation, or match re
 
 ### Submitted MVP
 
-- Email/password authentication, common safety eligibility, optional Fan activation, and self-serve Venue activation.
+- Email/password authentication, common safety eligibility, optional Fan activation, and locally accepted `VB01` self-serve hidden-draft Venue activation; hosted/demo evidence remains pending.
 - Immediate self-service account erasure with explicit removed/retained-data disclosure and no recovery window.
 - Public browsing of information that is safe to expose.
 - A football catalog and synchronized future fixtures.
@@ -91,8 +87,8 @@ Promotion must never bypass distance, audience, privacy, moderation, or match re
 - live scores and NBA integration;
 - route planning and paid address autocomplete beyond the implemented Photon/OpenStreetMap search and public-event map;
 - Google Calendar OAuth;
-- Stripe billing, menus, offers, or promoted ranking;
-- payments, ratings, generative recommendations, automatic event creation, and AI moderation.
+- real-money/production payments, Stripe, ticketing, menus, offers, analytics, or promoted ranking;
+- ratings, generative recommendations, automatic event creation, and AI moderation.
 
 This boundary keeps the submission small enough to explain and test while preserving the full core loop: **follow → discover → request/join → host/manage**.
 
@@ -211,11 +207,11 @@ Roles are `owner`, `admin`, and `member`. An event authored by a current owner/a
 
 ### 5.6 Venue workspaces and profiles
 
-A commonly eligible venue operator can self-serve activation with venue information and a truthful business-representation attestation. Activation atomically creates an immediately usable Unverified venue, one active owner membership, and its Venue workspace; it does not activate or publish a Fan identity. Every commercial read or mutation is authorized through an active `owner` or `admin` Venue membership, not merely a remembered workspace or legacy `owner_id`. Venue follows allow active Fans to track future listings.
+A commonly eligible venue operator can self-serve activation with venue information and a truthful business-representation attestation. Under `VB01`, activation atomically creates a private Unverified venue draft, one active owner membership, its Venue workspace, and an inactive entitlement; it does not activate or publish a Fan identity. Owner/admin membership authorizes normal internal operations, while the entitlement separately controls public existence, discovery, and publishing. Only the exact owner may perform billing actions; admins retain operational actions but cannot invoke checkout or the billing portal. Venue follows allow active Fans to track future listings only while the venue is entitled to be public.
 
 The active owner may close the live venue through an audited archive transition. Closing removes the venue and workspace from live product reads, cancels future live venue events, revokes usable invitations, and prevents new commercial mutations without erasing membership, attendance, moderation, or security history. Archival is distinct from platform suspension and never rewrites verification status.
 
-The **Unverified** label is always visible in the course MVP. It must not imply that Huddle has checked ownership, licensing, safety, or accessibility. Paid verification and commercial entitlements belong to the later subscription module.
+The **Unverified** label is always visible in the course MVP. It must not imply that Huddle has checked ownership, licensing, safety, or accessibility. Polar Sandbox entitlement never changes that label and is not business verification.
 
 ### 5.7 Events and audiences
 
@@ -346,7 +342,7 @@ The lectures also teach Express, Prisma, Redis, Zustand, Socket.IO, queues, paym
 | Zustand | Form/dialog state is local, and server state belongs in TanStack Query | Multiple distant client components truly share complex client-only state |
 | Cloudflare Kumo | It would introduce a second Base UI design system and semantic-token layer beside Huddle's approved Radix and brand-token architecture | A separately approved redesign deliberately replaces the current component system |
 | Socket.IO/WebSockets | No chat, live scores, or realtime collaboration is in the MVP | A real realtime feature is accepted into scope |
-| Payments/Stripe | Venue billing is a future business module and should not be simulated insecurely | Commercial entitlements and payment operations are ready to be built end to end |
+| Real payments/Stripe | Real payment processing remains deferred and must not be simulated insecurely | A separately approved production-payment review covers law, tax, refunds, merchant-of-record, support, and security |
 | AI agents, RAG, and generated recommendations | The accepted AI seam only extracts bounded intent; authorization and ranking stay deterministic | A separately approved use case proves it needs private context or generative output safely |
 | Microservices | A modular monolith is simpler to test, deploy, and explain | Scale or ownership boundaries justify operational separation |
 
@@ -388,7 +384,7 @@ Each phase should finish with working tests and updated documentation before the
 
 ### Phase 5 — Events, venues, and discovery
 
-- Add self-serve Unverified Venue workspaces, active owner/admin memberships, venue defaults, and Fan follows.
+- Add self-serve Unverified private Venue drafts, active owner/admin memberships, inactive entitlement/defaults, and Fan follows; `VB01` separately activates public presence/publishing by verified Sandbox webhook.
 - Add event creation, fixture attachment, private-versus-business audience constraints, venue-as-non-attendee enforcement, 12-person home cap, protected home locations, atomic owner/admin-authored group publication, different-reviewer enforcement for ordinary-member submissions, and PostGIS discovery.
 
 **Exit:** each audience sees exactly the permitted event summaries; private addresses remain hidden.

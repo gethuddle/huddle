@@ -1,0 +1,37 @@
+// @vitest-environment jsdom
+import { render, screen } from "@testing-library/react";
+import { expect, it } from "vitest";
+import { activeVenueBilling } from "@/tests/fixtures/venue-billing";
+import { BillingStatusBanner } from "./billing-status-banner";
+
+it("does not warn globally for an active venue", () => {
+  render(<BillingStatusBanner context={activeVenueBilling} slug="corner" />);
+  expect(screen.queryByRole("status")).not.toBeInTheDocument();
+});
+it.each([
+  ["payment_required", /Your venue is private/],
+  ["confirming", /confirming your demo subscription/],
+  ["past_due", /venue and events are hidden.*2 Oct 2026, 00:00/],
+  ["provider_stale", /confirming your demo subscription.*hidden/],
+  ["legacy_grace", /Choose a demo plan by 2 Oct 2026, 00:00/],
+  ["canceling", /Events from that date onward are hidden/],
+  ["expired", /recover the existing demo subscription/],
+] as const)("explains %s privately and links to this venue's Billing", (state, message) => {
+  render(
+    <BillingStatusBanner
+      context={{
+        ...activeVenueBilling,
+        state,
+        checkoutPending: true,
+        graceExpiresAt: "2026-10-01T21:00:00Z",
+      }}
+      slug="corner"
+    />,
+  );
+  expect(screen.getByRole("status")).toHaveTextContent(message);
+  expect(screen.getByRole("link", { name: /Billing/ })).toHaveAttribute(
+    "href",
+    "/venues/corner/workspace/billing",
+  );
+  expect(screen.queryByText(/payment failed/i)).not.toBeInTheDocument();
+});

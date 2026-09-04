@@ -48,7 +48,19 @@ describe("FixturePlanner", () => {
 
   it("selects multiple fixtures and rejects overlapping use of one area inline", async () => {
     const user = userEvent.setup();
-    render(<FixturePlanner catalog={catalog} initialMatchId={matchOne} venue={venue} />);
+    render(
+      <FixturePlanner
+        billing={{
+          canPublish: true,
+          canPrepareDrafts: true,
+          publishCutoffAt: null,
+          blockedReason: null,
+        }}
+        catalog={catalog}
+        initialMatchId={matchOne}
+        venue={venue}
+      />,
+    );
 
     expect(
       screen.queryByRole("combobox", { name: /Viewing area for Arsenal/ }),
@@ -62,7 +74,19 @@ describe("FixturePlanner", () => {
 
   it("reviews inherited defaults and sends only bounded optional overrides", async () => {
     const user = userEvent.setup();
-    render(<FixturePlanner catalog={catalog} initialMatchId={matchOne} venue={venue} />);
+    render(
+      <FixturePlanner
+        billing={{
+          canPublish: true,
+          canPrepareDrafts: true,
+          publishCutoffAt: null,
+          blockedReason: null,
+        }}
+        catalog={catalog}
+        initialMatchId={matchOne}
+        venue={venue}
+      />,
+    );
 
     await user.click(screen.getByRole("button", { name: "Review events" }));
 
@@ -111,7 +135,18 @@ describe("FixturePlanner", () => {
       data: { eventIds: [remoteMatch.id], message: "Published 1 event." },
     });
     const user = userEvent.setup();
-    render(<FixturePlanner catalog={{ ...catalog, matchesHasMore: true }} venue={venue} />);
+    render(
+      <FixturePlanner
+        billing={{
+          canPublish: true,
+          canPrepareDrafts: true,
+          publishCutoffAt: null,
+          blockedReason: null,
+        }}
+        catalog={{ ...catalog, matchesHasMore: true }}
+        venue={venue}
+      />,
+    );
 
     await user.type(screen.getByRole("searchbox", { name: "Search fixtures" }), "Late Horizon");
     await user.click(await screen.findByRole("button", { name: new RegExp(remoteMatch.label) }));
@@ -148,7 +183,19 @@ describe("FixturePlanner", () => {
       defaultAttendanceMode: "open_door" as const,
       spaces: [{ id: spaceId, name: "Main screen", capacity: null, active: true }],
     };
-    render(<FixturePlanner catalog={catalog} initialMatchId={matchOne} venue={openDoorVenue} />);
+    render(
+      <FixturePlanner
+        billing={{
+          canPublish: true,
+          canPrepareDrafts: true,
+          publishCutoffAt: null,
+          blockedReason: null,
+        }}
+        catalog={catalog}
+        initialMatchId={matchOne}
+        venue={openDoorVenue}
+      />,
+    );
 
     expect(screen.queryByLabelText(/Capacity/)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Review events" }));
@@ -176,4 +223,65 @@ describe("FixturePlanner", () => {
       }),
     );
   });
+});
+it("keeps draft saving available while entitlement blocks publication", async () => {
+  const user = userEvent.setup();
+  mocks.planVenueEventsAction.mockResolvedValue({
+    ok: false,
+    error: { code: "VENUE_PAYMENT_REQUIRED", message: "Publishing is unavailable." },
+  });
+  render(
+    <FixturePlanner
+      catalog={catalog}
+      venue={venue}
+      initialMatchId={matchOne}
+      billing={{
+        canPublish: false,
+        canPrepareDrafts: true,
+        publishCutoffAt: null,
+        blockedReason: "Open Billing to publish.",
+      }}
+    />,
+  );
+  await user.click(screen.getByRole("button", { name: "Review events" }));
+  expect(screen.getByRole("button", { name: "Publish batch" })).toBeDisabled();
+  await user.click(screen.getByRole("button", { name: "Save batch as drafts" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("No event in this batch was created");
+});
+it("blocks a batch at the cancellation cutoff while retaining draft preparation", async () => {
+  render(
+    <FixturePlanner
+      catalog={catalog}
+      venue={venue}
+      initialMatchId={matchOne}
+      billing={{
+        canPublish: true,
+        canPrepareDrafts: true,
+        publishCutoffAt: "2026-09-12T17:00:00Z",
+        blockedReason: null,
+      }}
+    />,
+  );
+  await userEvent.click(screen.getByRole("button", { name: "Review events" }));
+  expect(screen.getByRole("button", { name: "Publish batch" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Save batch as drafts" })).toBeEnabled();
+});
+it("replaces expired planning controls with recovery navigation", () => {
+  render(
+    <FixturePlanner
+      catalog={catalog}
+      venue={venue}
+      billing={{
+        canPublish: false,
+        canPrepareDrafts: false,
+        publishCutoffAt: null,
+        blockedReason: "Editing is locked.",
+      }}
+    />,
+  );
+  expect(screen.queryByRole("button", { name: "Review events" })).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /Billing/ })).toHaveAttribute(
+    "href",
+    "/venues/match-corner/workspace/billing",
+  );
 });

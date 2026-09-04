@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 const nonEmptyEnvironmentValue = z.string().trim().min(1);
+const polarUuid = z.uuid().transform((value) => value.toLowerCase());
 const httpUrl = z
   .url()
   .refine(
@@ -28,6 +29,12 @@ export const serverEnvironmentSchema = publicEnvironmentSchema
     SPORTS_SYNC_SECRET: z.string().trim().min(32),
     DISCOVERY_CURSOR_SECRET: z.string().trim().min(32),
     AUTH_RECOVERY_TOKEN_SECRET: z.string().trim().min(32),
+    POLAR_ACCESS_TOKEN: nonEmptyEnvironmentValue,
+    POLAR_WEBHOOK_SECRET: nonEmptyEnvironmentValue,
+    POLAR_ORGANIZATION_ID: polarUuid,
+    POLAR_VENUE_MONTHLY_PRODUCT_ID: polarUuid,
+    POLAR_VENUE_YEARLY_PRODUCT_ID: polarUuid,
+    HUDDLE_AUTOMATION_BLOCK_POLAR_NETWORK: environmentBoolean,
     AUTH_TURNSTILE_ENABLED: environmentBoolean,
     TURNSTILE_SECRET: nonEmptyEnvironmentValue.optional(),
     TURNSTILE_HOSTNAMES: nonEmptyEnvironmentValue.optional(),
@@ -38,6 +45,13 @@ export const serverEnvironmentSchema = publicEnvironmentSchema
     VERCEL_ENV: vercelEnvironment.optional(),
   })
   .superRefine((environment, context) => {
+    if (environment.POLAR_VENUE_MONTHLY_PRODUCT_ID === environment.POLAR_VENUE_YEARLY_PRODUCT_ID) {
+      context.addIssue({
+        code: "custom",
+        message: "Products must be distinct",
+        path: ["POLAR_VENUE_YEARLY_PRODUCT_ID"],
+      });
+    }
     const expectedEnvironment =
       environment.VERCEL_ENV === "development" ? "local" : environment.VERCEL_ENV;
 

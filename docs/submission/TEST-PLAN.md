@@ -24,14 +24,17 @@ The 2026-08-29 B12 run passed 90 Vitest files / 403 tests (78.7% statements,
 and all 17 Playwright journeys. The PR/main CI run and second-computer reproduction
 remain separate evidence.
 
-The current inventory contains 199 passing Vitest files / 1,057 passing tests plus one skipped
-live-model test, 38 ordered migrations, 43 pgTAP files / 1,746 assertions, and 35
-Playwright scenarios.
-The complete acceptance command passes this combined inventory. The B12 numbers above are
-retained as historical accepted evidence rather than presented as the current repository
-inventory. Hosted migration and production acceptance remain separately evidenced operations.
+The 2026-09-04 isolated disposable acceptance run passed the complete local gate:
+223 Vitest files / 1,308 tests plus one intentional skip; 80.42% statements, 71.87%
+branches, 83.53% functions, and 84.62% lines; all six VB01 migrations; 48 pgTAP files
+/ 2,423 assertions; canonical generated-type parity; production build; and 37 executed
+Playwright tests. `npm run test:acceptance` finished with all repository gates passed.
+Polar transport was denied throughout automation. This is local acceptance evidence,
+not hosted configuration, a live Sandbox walkthrough, PR/main CI, or B13 evidence.
+Historical B12 numbers above remain dated accepted evidence, not current inventory.
+Hosted migration and production acceptance remain separately evidenced operations.
 
-## Thirty-five deterministic Playwright scenarios
+## Thirty-seven deterministic Playwright scenarios
 
 Numbered journeys 01–17 and 19 are in `tests/e2e/auth.spec.ts`; journey 18 is in
 `tests/e2e/assisted-discovery.spec.ts`. Provider input is a saved, normalized fixture inserted
@@ -73,7 +76,13 @@ fake-interpreter journey covers numbered journey 18 at phone width with authoriz
 context, capacity, facility detail, the five-item Fan navigation, a viewport-bounded transcript,
 and a visible docked composer. Two additional assisted-discovery journeys prove distinct result
 tickets plus named-place/date accuracy and ephemeral state. The local seam calls neither live AI
-nor a live geocoder. These suites produce 35 Playwright scenarios in total.
+nor a live geocoder. The isolated acceptance run passed all 37 Playwright tests in six
+files. The VB01 additions use
+saved, locally signed fixtures and force Polar network denial. They cover owner-only
+Billing/portal boundaries, active/past-due/recovery lifecycle, independent venue
+entitlement behavior, existing participant preservation, no resurrection after
+deadline cancellation, and desktop/phone copy/overflow checks. They made no Polar
+network request.
 Production smoke tests are deliberately separate under
 `tests/production/`: `npm run test:production:session` creates only ordinary Auth
 sessions (which may update Auth sign-in metadata), while `npm run test:production`
@@ -82,7 +91,9 @@ accounts and a fresh event.
 
 ## Database coverage
 
-The 43 pgTAP files under `supabase/tests/database/` cover all exposed-table RLS
+The current source adds VB01 entitlement, visibility, deadline, concurrency, and
+integrated-regression pgTAP files to the earlier database matrix. The isolated local
+acceptance run passed 48 files / 2,423 assertions. The earlier 43 pgTAP files under `supabase/tests/database/` cover all exposed-table RLS
 inventory, CHECK/unique/FK invariants, minimum grants, safe reads, denied reads and
 mutations, lifecycle transitions, cooldowns, exact-address authorization, capacity,
 moderation, workspace membership, protected drafts, current-state projections,

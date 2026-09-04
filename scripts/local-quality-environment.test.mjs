@@ -10,6 +10,9 @@ const parentEnvironment = {
   ASSISTED_DISCOVERY_TOKEN_SECRET: "live-hmac-secret",
   CLOUDFLARE_ACCOUNT_ID: "live-cloudflare-account",
   CLOUDFLARE_WORKERS_AI_API_TOKEN: "live-cloudflare-token",
+  POLAR_ACCESS_TOKEN: "inherited-live-polar-token",
+  POLAR_WEBHOOK_SECRET: "inherited-live-polar-secret",
+  HUDDLE_AUTOMATION_BLOCK_POLAR_NETWORK: "false",
 };
 
 const localSupabaseEnvironment = {
@@ -34,6 +37,12 @@ describe("local quality environment", () => {
       ASSISTED_DISCOVERY_TOKEN_SECRET: "local-playwright-assisted-discovery-token-secret",
       AUTH_RECOVERY_TOKEN_SECRET: "local-password-recovery-secret-for-tests",
       AUTH_TURNSTILE_ENABLED: "false",
+      POLAR_ACCESS_TOKEN: "local-polar-no-network-token",
+      POLAR_WEBHOOK_SECRET: "local-polar-no-network-webhook-secret",
+      POLAR_ORGANIZATION_ID: "00000000-0000-4000-8000-000000000001",
+      POLAR_VENUE_MONTHLY_PRODUCT_ID: "00000000-0000-4000-8000-000000000002",
+      POLAR_VENUE_YEARLY_PRODUCT_ID: "00000000-0000-4000-8000-000000000003",
+      HUDDLE_AUTOMATION_BLOCK_POLAR_NETWORK: "true",
       CLOUDFLARE_ACCOUNT_ID: "local-playwright-fake-account",
       CLOUDFLARE_WORKERS_AI_API_TOKEN: "local-playwright-fake-no-network-token",
     });

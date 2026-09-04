@@ -96,6 +96,22 @@ Vercel/Supabase managed secret stores.
 10. Configure scheduled sync from [`configure-sports-sync.sql`](../../supabase/production/configure-sports-sync.sql),
     then follow [`PRODUCTION-ACCEPTANCE.md`](./PRODUCTION-ACCEPTANCE.md).
 
+## VB01 Sandbox billing boundary
+
+`VB01` requires a separate explicit authorization before any Polar, Supabase, Vercel,
+GitHub, or production mutation. Its exact Sandbox-only inventory, six configuration
+names, initial secret/migration/deploy/endpoint/scheduler order, recovery procedures,
+and rotation limits are in
+[`POLAR-SANDBOX-BILLING.md`](./POLAR-SANDBOX-BILLING.md). Initial deployment uses a
+random temporary webhook secret and a blocked network guard. Create the Raw Polar
+endpoint only after the final HTTPS route is reachable without a redirect, then
+privately install its generated secret and redeploy while checkout stays blocked.
+Verify unsigned rejection and a non-mutating signed application smoke before enabling
+Sandbox checkout; distinguish this from the first real Polar delivery during checkout.
+Only the authorized live
+`huddle.co.il` Sandbox demo may enable provider calls; Preview/local/CI retain
+synthetic configuration and `HUDDLE_AUTOMATION_BLOCK_POLAR_NETWORK=true`.
+
 The production Auth smoke must include dedicated accounts: prove a duplicate signup sends
 no second confirmation; prove GET/prefetch leaves a fresh link usable; explicitly Continue;
 open recovery while another account is signed in; prove direct reset is denied; replace the

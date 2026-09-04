@@ -10,6 +10,14 @@ export default defineConfig({
     },
   },
   test: {
+    env: {
+      POLAR_ACCESS_TOKEN: "local-polar-no-network-token",
+      POLAR_WEBHOOK_SECRET: "local-polar-no-network-webhook-secret",
+      POLAR_ORGANIZATION_ID: "00000000-0000-4000-8000-000000000001",
+      POLAR_VENUE_MONTHLY_PRODUCT_ID: "00000000-0000-4000-8000-000000000002",
+      POLAR_VENUE_YEARLY_PRODUCT_ID: "00000000-0000-4000-8000-000000000003",
+      HUDDLE_AUTOMATION_BLOCK_POLAR_NETWORK: "true",
+    },
     setupFiles: ["./tests/setup.ts"],
     exclude: [...configDefaults.exclude, ".worktrees/**", "tests/e2e/**", "tests/production/**"],
     coverage: {

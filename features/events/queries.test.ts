@@ -26,6 +26,7 @@ function safeSummaryRow() {
     host_display_name: "Match Corner",
     host_handle: null,
     host_venue_slug: "match-corner",
+    host_venue_is_public: true,
     venue_verification_status: "unverified",
     match_id: matchId,
     competition_name: "Premier League",
@@ -68,6 +69,16 @@ describe("event safe projections", () => {
         ["Chelsea FC", { tla: "CHE", crestUrl: null }],
       ]),
     );
+  });
+  it("separates public venue navigation from the manager workspace slug", async () => {
+    rpc.mockResolvedValue({
+      data: [{ ...safeSummaryRow(), host_venue_is_public: false, can_manage: true }],
+      error: null,
+    });
+    expect(await getEventSummary(eventId)).toMatchObject({
+      canManage: true,
+      host: { venueSlug: "match-corner", canOpenVenue: false },
+    });
   });
 
   it("maps a safe summary with aggregates but no attendee identities", async () => {

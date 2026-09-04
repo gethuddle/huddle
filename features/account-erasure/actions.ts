@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { z } from "zod";
+import { erasePolarExternalCustomer } from "@/features/venue-billing/polar";
 
 import {
   RECOVERY_GRANT_COOKIE_NAME,
@@ -87,19 +89,46 @@ export async function deleteAccountAction(
     return reauthenticationFailure(cause);
   }
 
+  let requestId: string;
+  let cleanupRequired: boolean;
+  let cleanupToken: string | null;
   try {
-    const requestId = await getRequestId();
-    const { error } = await supabase.rpc("prepare_account_erasure", {
+    requestId = await getRequestId();
+    const { data, error } = await supabase.rpc("prepare_account_erasure_v2", {
       input_confirmation: parsed.data.confirmation,
       audit_request_id: requestId,
     });
     if (error !== null) return actionFailure(domainErrorFromDatabase(error));
+    const preparation = z
+      .array(
+        z
+          .object({
+            prepared: z.literal(true),
+            polar_cleanup_required: z.boolean(),
+            cleanup_token: z.uuid().nullable(),
+          })
+          .strict(),
+      )
+      .length(1)
+      .parse(data)[0]!;
+    cleanupRequired = preparation.polar_cleanup_required;
+    cleanupToken = preparation.cleanup_token;
+    if (cleanupRequired && cleanupToken === null) throw new Error("Missing cleanup fence");
   } catch (cause) {
     return actionFailure(new DomainError("UPSTREAM_UNAVAILABLE", { cause }));
   }
 
   try {
+    if (cleanupRequired) await erasePolarExternalCustomer(user.id);
     const admin = createServiceRoleClient();
+    if (cleanupRequired) {
+      const completion = await admin.rpc("complete_polar_account_erasure_cleanup", {
+        input_actor_id: user.id,
+        input_request_id: requestId,
+        input_cleanup_token: cleanupToken!,
+      });
+      if (completion.error !== null) throw completion.error;
+    }
     const { error } = await admin.auth.admin.deleteUser(user.id, true);
     if (error !== null) {
       return actionFailure(new DomainError("UPSTREAM_UNAVAILABLE", { cause: error }));

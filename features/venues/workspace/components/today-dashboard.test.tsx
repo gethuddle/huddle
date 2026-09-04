@@ -23,6 +23,7 @@ describe("TodayDashboard", () => {
   it("answers what is next, attendance state, current work, and the rest of today", () => {
     render(
       <TodayDashboard
+        canPrepareDrafts={true}
         slug="match-corner"
         snapshot={{
           nextEvent: event,
@@ -60,6 +61,7 @@ describe("TodayDashboard", () => {
   it("gives one truthful recovery action when no event is planned", () => {
     render(
       <TodayDashboard
+        canPrepareDrafts={true}
         slug="match-corner"
         snapshot={{ nextEvent: null, todayEvents: [], attention: [], setupTasks: [] }}
       />,
@@ -73,6 +75,7 @@ describe("TodayDashboard", () => {
   it("does not invent confirmed places or requests for a walk-in event", () => {
     render(
       <TodayDashboard
+        canPrepareDrafts={true}
         slug="match-corner"
         snapshot={{
           nextEvent: {
@@ -93,4 +96,19 @@ describe("TodayDashboard", () => {
     expect(screen.getByText("Open door · no guest list")).toBeVisible();
     expect(screen.queryByText(/confirmed|remaining|waiting/)).not.toBeInTheDocument();
   });
+});
+it("retains history access without a planning action after expiry", () => {
+  render(
+    <TodayDashboard
+      slug="match-corner"
+      canPrepareDrafts={false}
+      snapshot={{ nextEvent: event, todayEvents: [], attention: [], setupTasks: [] }}
+    />,
+  );
+  expect(screen.queryByRole("link", { name: "Plan events" })).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /Billing/ })).toHaveAttribute(
+    "href",
+    "/venues/match-corner/workspace/billing",
+  );
+  expect(screen.getByRole("link", { name: "Open event" })).toBeVisible();
 });

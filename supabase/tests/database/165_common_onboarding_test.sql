@@ -190,6 +190,13 @@ values
     'An existing Fan plus Venue account used to verify stale-rules recovery.'
   );
 
+-- These exact synthetic venues exercise public or publishing behavior.
+update private.venue_billing_entitlements set status='active',interval='month',interval_count=1,
+  polar_customer_id='fixture-customer',polar_subscription_id='fixture-'||venue_id::text,
+  polar_product_id='fixture-product',polar_product_price_id='fixture-price',amount=1500,currency='ils',
+  paid_through_at=statement_timestamp()+interval '365 days',first_activated_at=statement_timestamp()
+where venue_id in ('e4000000-0000-4000-8000-000000000206','e4000000-0000-4000-8000-000000000207');
+
 set local role authenticated;
 set local "request.jwt.claim.sub" = 'e4000000-0000-4000-8000-000000000101';
 

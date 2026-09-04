@@ -105,6 +105,7 @@ const locationRowSchema = z.object({
 });
 
 const calendarEventRowSchema = z.object({
+  status: z.enum(["draft", "pending_group_review", "published", "cancelled", "completed"]),
   event_id: z.uuid(),
   title: z.string(),
   description: z.string(),

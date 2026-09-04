@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { activeVenueBilling, expiredVenueBilling } from "@/tests/fixtures/venue-billing";
 
 const mocks = vi.hoisted(() => ({
   getEventSummary: vi.fn(),
@@ -10,16 +11,21 @@ const mocks = vi.hoisted(() => ({
   listPeopleHub: vi.fn(),
   notFound: vi.fn(),
   redirect: vi.fn(),
+  workspace: vi.fn(),
 }));
 
-vi.mock("next/navigation", () => ({ notFound: mocks.notFound, redirect: mocks.redirect }));
+vi.mock("next/navigation", () => ({
+  notFound: mocks.notFound,
+  redirect: mocks.redirect,
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
+vi.mock("@/features/workspaces/queries", () => ({
+  getAuthorizedVenueWorkspaceBySlug: mocks.workspace,
+}));
 vi.mock("@/features/events/queries", () => ({ getEventSummary: mocks.getEventSummary }));
 vi.mock("@/features/attendance/queries", () => ({
   listEventAttendance: mocks.listEventAttendance,
   listEventInvitations: mocks.listEventInvitations,
-}));
-vi.mock("@/features/attendance/components/event-management-controls", () => ({
-  EventManagementControls: () => <div>Management controls</div>,
 }));
 vi.mock("@/features/people/search", () => ({ listPeopleHub: mocks.listPeopleHub }));
 
@@ -28,6 +34,79 @@ import ManageEventPage from "./page";
 const eventId = "90000000-0000-4000-8000-000000000401";
 
 describe("ManageEventPage pagination", () => {
+  it.each([
+    ["2026-09-12T16:59:59Z", true],
+    ["2026-09-12T17:00:00Z", false],
+  ] as const)(
+    "restricts cancellation-period invitations for event start %s",
+    async (startsAt, allowed) => {
+      mocks.getEventSummary.mockResolvedValue({
+        id: eventId,
+        title: "Venue event",
+        status: "published",
+        audience: "public",
+        attendanceMode: "reservations",
+        remainingCapacity: 12,
+        canManage: true,
+        startsAt,
+        host: { kind: "venue", venueSlug: "corner" },
+      });
+      mocks.workspace.mockResolvedValue({
+        id: "venue",
+        slug: "corner",
+        billing: {
+          ...activeVenueBilling,
+          state: "canceling",
+          publishCutoffAt: "2026-09-12T17:00:00Z",
+        },
+      });
+      render(
+        await ManageEventPage({
+          params: Promise.resolve({ eventId }),
+          searchParams: Promise.resolve({}),
+        }),
+      );
+      if (allowed) expect(screen.getByRole("button", { name: "Invite people" })).toBeEnabled();
+      else expect(screen.queryByRole("button", { name: "Invite people" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Cancel event" })).toBeEnabled();
+    },
+  );
+  it.each(["past_due", "provider_stale", "legacy_grace", "expired"] as const)(
+    "retains %s history and blocks new invitations without loading suggestions",
+    async (state) => {
+      mocks.getEventSummary.mockResolvedValue({
+        id: eventId,
+        title: "Venue event",
+        status: "published",
+        audience: "public",
+        attendanceMode: "reservations",
+        remainingCapacity: 12,
+        canManage: true,
+        startsAt: "2026-09-12T17:00:00Z",
+        host: { kind: "venue", venueSlug: "corner" },
+      });
+      mocks.workspace.mockResolvedValue({
+        id: "venue",
+        slug: "corner",
+        billing:
+          state === "expired"
+            ? expiredVenueBilling
+            : { ...activeVenueBilling, state, isPublic: false, canPublish: false },
+      });
+      render(
+        await ManageEventPage({
+          params: Promise.resolve({ eventId }),
+          searchParams: Promise.resolve({}),
+        }),
+      );
+      expect(screen.queryByRole("button", { name: "Invite people" })).not.toBeInTheDocument();
+      expect(mocks.listPeopleHub).not.toHaveBeenCalled();
+      expect(screen.getByRole("heading", { name: "Attendance requests" })).toBeVisible();
+      if (state === "expired")
+        expect(screen.queryByRole("button", { name: "Cancel event" })).not.toBeInTheDocument();
+      else expect(screen.getByRole("button", { name: "Cancel event" })).toBeEnabled();
+    },
+  );
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.redirect.mockImplementation(() => {
@@ -49,6 +128,7 @@ describe("ManageEventPage pagination", () => {
     mocks.listEventAttendance.mockResolvedValue([]);
     mocks.listEventInvitations.mockResolvedValue([]);
     mocks.listPeopleHub.mockResolvedValue({ items: [] });
+    mocks.workspace.mockResolvedValue({ id: "venue", slug: "corner", billing: activeVenueBilling });
   });
 
   it("redirects raw page 502 to page 501 before either management collection RPC", async () => {
@@ -113,7 +193,7 @@ describe("ManageEventPage pagination", () => {
       attendanceMode: "open_door",
       remainingCapacity: null,
       canManage: true,
-      host: { kind: "venue" },
+      host: { kind: "venue", venueSlug: "corner" },
     });
 
     render(

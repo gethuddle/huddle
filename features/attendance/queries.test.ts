@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({ createClient: vi.fn(), rpc: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 
 import {
+  getCalendarEvent,
   listApprovedEventAttendees,
   listEventAttendance,
   listEventInviteLinks,
@@ -37,6 +38,25 @@ const attendanceRow = {
 };
 
 describe("listEventAttendance", () => {
+  it("preserves a bounded cancelled calendar status and rejects unknown status", async () => {
+    const row = {
+      event_id: "90000000-0000-4000-8000-000000000401",
+      title: "Match huddle",
+      description: "This event has been cancelled.",
+      starts_at: "2026-09-08T18:00:00Z",
+      ends_at: "2026-09-08T21:00:00Z",
+      updated_at: "2026-09-01T00:00:00Z",
+      location_text: null,
+      public_cacheable: false,
+      status: "cancelled",
+    };
+    mocks.rpc.mockResolvedValue({ data: [row], error: null });
+    expect(await getCalendarEvent(row.event_id, row.event_id)).toEqual(row);
+    mocks.rpc.mockResolvedValue({ data: [{ ...row, status: "provider_stale" }], error: null });
+    await expect(getCalendarEvent(row.event_id, row.event_id)).rejects.toMatchObject({
+      code: "INTERNAL_ERROR",
+    });
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.createClient.mockResolvedValue({ rpc: mocks.rpc });

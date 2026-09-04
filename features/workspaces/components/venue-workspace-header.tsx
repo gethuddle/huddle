@@ -88,3 +88,17 @@ export function VenueMobileNavigation({ slug }: Pick<VenueWorkspaceHeaderProps, 
 }
 
 export { venueNavigation };
+
+export function VenueBillingNavigation({ slug }: Readonly<{ slug: string }>) {
+  const pathname = usePathname();
+  const href = `/venues/${encodeURIComponent(slug)}/workspace/billing`;
+  return (
+    <Link
+      aria-current={pathname === href ? "page" : undefined}
+      className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold text-forest underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      href={href}
+    >
+      Billing
+    </Link>
+  );
+}

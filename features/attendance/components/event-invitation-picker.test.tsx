@@ -42,6 +42,17 @@ const candidates = [
 ] as const;
 
 describe("EventInvitationPicker", () => {
+  it("cannot open acquisition controls when the event capability is unavailable", () => {
+    render(
+      <EventInvitationPicker
+        candidates={candidates}
+        eventId={eventId}
+        remainingCapacity={10}
+        canInvite={false}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "Invite people" })).not.toBeInTheDocument();
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.createEventInvitationsAction.mockResolvedValue({

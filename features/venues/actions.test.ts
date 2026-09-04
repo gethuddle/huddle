@@ -78,9 +78,9 @@ describe("venue authorization", () => {
   });
 
   it("requires an active Fan identity to follow a Venue", async () => {
-    const insert = vi.fn().mockResolvedValue({ error: null });
+    const rpc = vi.fn().mockResolvedValue({ data: true, error: null });
     mocks.requireActor.mockResolvedValue({
-      supabase: { from: vi.fn(() => ({ insert })) },
+      supabase: { rpc },
       user: { id: "61000000-0000-4000-8000-000000000303" },
     });
     const form = new FormData();
@@ -88,8 +88,29 @@ describe("venue authorization", () => {
     form.set("venueSlug", "match-corner");
     form.set("intent", "follow");
 
-    await setVenueFollowAction(null, form);
+    const result = await setVenueFollowAction(null, form);
 
     expect(mocks.requireActor).toHaveBeenCalledWith("fan");
+    expect(result?.ok).toBe(true);
+    expect(rpc).toHaveBeenCalledWith("follow_venue", {
+      input_venue_id: venueId,
+      audit_request_id: "61000000-0000-4000-8000-000000000399",
+    });
+  });
+
+  it("returns neutral unavailable errors when a venue hides before follow commits", async () => {
+    mocks.requireActor.mockResolvedValue({
+      supabase: {
+        rpc: vi.fn().mockResolvedValue({ data: null, error: { message: "NOT_ALLOWED" } }),
+      },
+      user: { id: "61000000-0000-4000-8000-000000000303" },
+    });
+    const form = new FormData();
+    form.set("venueId", venueId);
+    form.set("venueSlug", "match-corner");
+    form.set("intent", "follow");
+    const result = await setVenueFollowAction(null, form);
+    expect(result).toMatchObject({ ok: false, error: { code: "NOT_ALLOWED" } });
+    expect(JSON.stringify(result)).not.toMatch(/billing|payment|polar|grace/i);
   });
 });

@@ -38,6 +38,32 @@ private addresses, report content, invite tokens, or raw provider payloads here.
 - [ ] `npm run test:production:session` passes (Auth-session metadata may update; no product mutation).
 - [ ] One explicitly authorized fresh-event `npm run test:production` passes.
 
+## VB01 Polar Sandbox billing
+
+Task 11 is separately authorized. Pending checks below must be recorded only after the
+authorized live Sandbox check. They are not inferred from local source, disposable
+database tests, historical B12 evidence, or Vercel deployment.
+
+- [ ] The six reviewed forward migrations are present in hosted migration history in
+  timestamp order; no hosted reset, direct SQL substitute, or migration replay occurred.
+- [ ] The six named billing configuration values are scoped correctly without recording
+  values; only `huddle.co.il` is allowed to contact Sandbox and Preview/local/CI are
+  explicitly network-blocked.
+- [ ] The final HTTPS webhook route has no redirect; its one Raw endpoint validates a
+  signed delivery before any checkout.
+- [ ] The eight selected event names have sanitized success/denial/duplicate evidence;
+  no raw payload, signature, provider identifier, customer email, checkout URL, or card
+  data appears in evidence.
+- [ ] Hidden draft → Sandbox checkout → non-authoritative return → signed activation →
+  public/Explore/publication is demonstrated, while the Unverified label remains.
+- [ ] Failed renewal, recovery, cancellation/paid-end, endpoint disable/reconciliation,
+  two independent venue subscriptions, and guarded account-erasure cleanup are recorded.
+- [ ] The bounded billing deadline scheduler is configured and verified after all six
+  migrations; no unpaid venue becomes public during a failure or forward fix.
+
+Follow [`POLAR-SANDBOX-BILLING.md`](./POLAR-SANDBOX-BILLING.md); it is the operational
+source for this section.
+
 ## Privacy and security
 
 - [ ] Production HTTPS, HSTS, CSP, frame denial, content-type and referrer headers match

@@ -2090,6 +2090,41 @@ export type Database = {
           moderation_action_id: string
         }[]
       }
+      apply_polar_venue_billing_event: {
+        Args: {
+          input_amount_minor: number
+          input_audit_request_id: string
+          input_billing_reason: string
+          input_cancel_at_period_end: boolean
+          input_checkout_attempt_id: string
+          input_checkout_id: string
+          input_currency: string
+          input_current_period_end: string
+          input_customer_id: string
+          input_event_timestamp: string
+          input_event_type: Database["public"]["Enums"]["polar_venue_billing_event_type"]
+          input_external_customer_id: string
+          input_interval: Database["public"]["Enums"]["venue_billing_interval"]
+          input_interval_count: number
+          input_order_id: string
+          input_organization_id: string
+          input_past_due_at: string
+          input_price_id: string
+          input_product_id: string
+          input_provider_modified_at: string
+          input_provider_status: string
+          input_signed_period_end?: string
+          input_subscription_id: string
+          input_subscription_modified_at?: string
+          input_venue_id: string
+          input_webhook_id: string
+        }
+        Returns: {
+          cleanup_actor_id: string
+          cleanup_token: string
+          outcome: Database["public"]["Enums"]["venue_billing_apply_outcome"]
+        }[]
+      }
       apply_to_group: {
         Args: {
           audit_request_id?: string
@@ -2116,6 +2151,23 @@ export type Database = {
       assign_report: {
         Args: { audit_request_id?: string; input_report_id: string }
         Returns: boolean
+      }
+      attach_venue_billing_checkout: {
+        Args: {
+          input_amount: number
+          input_attempt_id: string
+          input_checkout_expires_at: string
+          input_checkout_id: string
+          input_currency: string
+          input_external_customer_id: string
+          input_interval: Database["public"]["Enums"]["venue_billing_interval"]
+          input_interval_count: number
+          input_organization_id: string
+          input_product_id: string
+          input_product_price_id: string
+          input_request_id: string
+        }
+        Returns: undefined
       }
       ban_group_member: {
         Args: {
@@ -2184,6 +2236,44 @@ export type Database = {
           result_payload: Json
           retry_after_ms: number
         }[]
+      }
+      close_venue_billing_checkout: {
+        Args: {
+          input_attempt_id: string
+          input_checkout_id: string
+          input_failure_code: Database["public"]["Enums"]["venue_billing_checkout_failure_code"]
+          input_request_id: string
+        }
+        Returns: undefined
+      }
+      complete_polar_account_erasure_cleanup: {
+        Args: {
+          input_actor_id: string
+          input_cleanup_token: string
+          input_request_id: string
+        }
+        Returns: undefined
+      }
+      complete_polar_venue_billing_reconciliation: {
+        Args: {
+          input_amount_minor: number
+          input_audit_request_id: string
+          input_cancel_at_period_end: boolean
+          input_checkout_id: string
+          input_currency: string
+          input_current_period_end: string
+          input_customer_id: string
+          input_external_customer_id: string
+          input_interval: Database["public"]["Enums"]["venue_billing_interval"]
+          input_interval_count: number
+          input_price_id: string
+          input_product_id: string
+          input_provider_modified_at: string
+          input_provider_status: string
+          input_subscription_id: string
+          input_webhook_id: string
+        }
+        Returns: Database["public"]["Enums"]["venue_billing_apply_outcome"]
       }
       complete_profile: {
         Args: {
@@ -2618,12 +2708,28 @@ export type Database = {
         }
         Returns: undefined
       }
+      fail_venue_billing_checkout: {
+        Args: {
+          input_attempt_id: string
+          input_failure_code: Database["public"]["Enums"]["venue_billing_checkout_failure_code"]
+          input_request_id: string
+        }
+        Returns: undefined
+      }
       finalize_event_draft: {
         Args: { audit_request_id?: string; input_draft_id: string }
         Returns: {
           event_id: string
           status: string
         }[]
+      }
+      follow_venue: {
+        Args: { audit_request_id?: string; input_venue_id: string }
+        Returns: boolean
+      }
+      get_archived_venue_billing_context: {
+        Args: { input_slug: string }
+        Returns: Json
       }
       get_calendar_event: {
         Args: { audit_request_id?: string; input_event_id: string }
@@ -2634,6 +2740,7 @@ export type Database = {
           location_text: string
           public_cacheable: boolean
           starts_at: string
+          status: Database["public"]["Enums"]["event_status"]
           title: string
           updated_at: string
         }[]
@@ -2674,6 +2781,7 @@ export type Database = {
           host_display_name: string
           host_handle: string
           host_kind: string
+          host_venue_is_public: boolean
           host_venue_slug: string
           location_summary: string
           match_id: string
@@ -2760,6 +2868,10 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_venue_billing_context: {
+        Args: { input_venue_id: string }
+        Returns: Json
+      }
       get_venue_by_slug: {
         Args: { lookup_slug: string }
         Returns: {
@@ -2777,6 +2889,15 @@ export type Database = {
           viewer_follows: boolean
           viewer_is_owner: boolean
         }[]
+      }
+      get_venue_checkout_context: {
+        Args: {
+          input_actor_id: string
+          input_attempt_id: string
+          input_checkout_id: string
+          input_venue_id: string
+        }
+        Returns: Json
       }
       get_venue_for_management: {
         Args: { lookup_slug: string }
@@ -3405,6 +3526,10 @@ export type Database = {
           title: string
         }[]
       }
+      mark_venue_checkout_uncertain: {
+        Args: { input_attempt_id: string }
+        Returns: undefined
+      }
       plan_venue_events: {
         Args: {
           audit_request_id?: string
@@ -3420,6 +3545,14 @@ export type Database = {
         Args: { audit_request_id?: string; input_confirmation: string }
         Returns: boolean
       }
+      prepare_account_erasure_v2: {
+        Args: { audit_request_id?: string; input_confirmation: string }
+        Returns: {
+          cleanup_token: string
+          polar_cleanup_required: boolean
+          prepared: boolean
+        }[]
+      }
       publish_group_event: {
         Args: {
           audit_request_id?: string
@@ -3431,6 +3564,23 @@ export type Database = {
           event_id: string
           status: string
         }[]
+      }
+      reconcile_venue_billing_checkout: {
+        Args: {
+          input_amount: number
+          input_attempt_id: string
+          input_checkout_expires_at: string
+          input_checkout_id: string
+          input_currency: string
+          input_external_customer_id: string
+          input_interval: Database["public"]["Enums"]["venue_billing_interval"]
+          input_interval_count: number
+          input_organization_id: string
+          input_product_id: string
+          input_product_price_id: string
+          input_status: string
+        }
+        Returns: undefined
       }
       record_sports_sync_denial: {
         Args: { audit_request_id: string }
@@ -3489,6 +3639,18 @@ export type Database = {
         Returns: {
           attendance_id: string
           status: string
+        }[]
+      }
+      reserve_venue_billing_checkout: {
+        Args: {
+          input_interval: Database["public"]["Enums"]["venue_billing_interval"]
+          input_request_id: string
+          input_venue_id: string
+        }
+        Returns: {
+          attempt_id: string
+          created_by_this_call: boolean
+          generation: number
         }[]
       }
       resolve_event_invitation_candidate_handles: {
@@ -3592,6 +3754,19 @@ export type Database = {
       revoke_group_invite: {
         Args: { audit_request_id?: string; input_invite_id: string }
         Returns: boolean
+      }
+      run_venue_billing_deadline_sweep: {
+        Args: {
+          audit_request_id?: string
+          input_limit: number
+          input_now: string
+        }
+        Returns: {
+          cancelled_event_count: number
+          next_status: Database["public"]["Enums"]["venue_billing_status"]
+          previous_status: Database["public"]["Enums"]["venue_billing_status"]
+          venue_id: string
+        }[]
       }
       save_event_draft: {
         Args: {
@@ -3918,6 +4093,15 @@ export type Database = {
         | "permanent_account_ban"
       moderation_target_type: "profile" | "group" | "venue" | "event"
       platform_role: "moderator" | "admin"
+      polar_venue_billing_event_type:
+        | "subscription.created"
+        | "subscription.active"
+        | "subscription.canceled"
+        | "subscription.uncanceled"
+        | "subscription.cycled"
+        | "subscription.past_due"
+        | "subscription.revoked"
+        | "order.paid"
       provider_sync_status: "running" | "succeeded" | "failed"
       report_category:
         | "immediate_danger"
@@ -3936,6 +4120,30 @@ export type Database = {
         | "cancelled"
         | "finished"
       subscription_kind: "sport" | "competition" | "team"
+      venue_billing_apply_outcome:
+        | "applied"
+        | "duplicate"
+        | "stale"
+        | "observed"
+        | "ignored"
+        | "reconciliation_required"
+        | "erasure_cleanup_required"
+        | "erasure_cleanup_complete"
+      venue_billing_checkout_failure_code:
+        | "request_rejected"
+        | "not_created_after_timeout"
+        | "expired"
+        | "provider_failed"
+      venue_billing_interval: "month" | "year"
+      venue_billing_status:
+        | "inactive"
+        | "confirming"
+        | "active"
+        | "past_due"
+        | "canceling"
+        | "provider_stale"
+        | "legacy_grace"
+        | "expired"
       venue_facility:
         | "wheelchair_accessible"
         | "step_free_access"
@@ -4123,6 +4331,16 @@ export const Constants = {
       ],
       moderation_target_type: ["profile", "group", "venue", "event"],
       platform_role: ["moderator", "admin"],
+      polar_venue_billing_event_type: [
+        "subscription.created",
+        "subscription.active",
+        "subscription.canceled",
+        "subscription.uncanceled",
+        "subscription.cycled",
+        "subscription.past_due",
+        "subscription.revoked",
+        "order.paid",
+      ],
       provider_sync_status: ["running", "succeeded", "failed"],
       report_category: [
         "immediate_danger",
@@ -4143,6 +4361,33 @@ export const Constants = {
         "finished",
       ],
       subscription_kind: ["sport", "competition", "team"],
+      venue_billing_apply_outcome: [
+        "applied",
+        "duplicate",
+        "stale",
+        "observed",
+        "ignored",
+        "reconciliation_required",
+        "erasure_cleanup_required",
+        "erasure_cleanup_complete",
+      ],
+      venue_billing_checkout_failure_code: [
+        "request_rejected",
+        "not_created_after_timeout",
+        "expired",
+        "provider_failed",
+      ],
+      venue_billing_interval: ["month", "year"],
+      venue_billing_status: [
+        "inactive",
+        "confirming",
+        "active",
+        "past_due",
+        "canceling",
+        "provider_stale",
+        "legacy_grace",
+        "expired",
+      ],
       venue_facility: [
         "wheelchair_accessible",
         "step_free_access",

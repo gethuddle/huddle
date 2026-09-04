@@ -2,10 +2,25 @@ import { z } from "zod";
 import { describe, expect, it } from "vitest";
 
 import { DomainError } from "./domain";
+import { domainErrorFromDatabase } from "./database";
 import { actionFailure, toActionError, toHttpError } from "./map-error";
 import { actionSuccess } from "./result";
 
 describe("safe error contracts", () => {
+  it.each([
+    ["VENUE_SUBSCRIPTION_REQUIRED", 403],
+    ["VENUE_BILLING_OWNER_REQUIRED", 403],
+    ["VENUE_BILLING_PENDING", 409],
+    ["VENUE_BILLING_UNAVAILABLE", 503],
+  ] as const)("maps billing failure %s without provider details", (code, status) => {
+    const error = domainErrorFromDatabase({ message: code, details: "Polar customer=secret" });
+    const result = toHttpError(error, "7af34324-188e-4d88-86f0-4844283835de");
+    expect(result.status).toBe(status);
+    expect(result.body.error.code).toBe(code);
+    expect(result.body.error.message).toEqual(expect.any(String));
+    expect(JSON.stringify(result)).not.toMatch(/Polar|customer|secret/);
+  });
+
   it("creates a discriminated success result", () => {
     expect(actionSuccess({ id: "event-id" })).toEqual({
       ok: true,

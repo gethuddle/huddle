@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { activeVenueBilling, expiredVenueBilling } from "@/tests/fixtures/venue-billing";
 
 const mocks = vi.hoisted(() => ({
   getAuthorizedVenueWorkspaceBySlug: vi.fn(),
@@ -27,11 +28,27 @@ const venueId = "e6000000-0000-4000-8000-000000000101";
 const matchId = "e6000000-0000-4000-8000-000000000102";
 
 describe("VenuePlanPage", () => {
+  it("does not expose planning controls in an expired workspace", async () => {
+    mocks.getAuthorizedVenueWorkspaceBySlug.mockResolvedValue({
+      id: venueId,
+      slug: "match-corner",
+      billing: expiredVenueBilling,
+    });
+    render(
+      await VenuePlanPage({
+        params: Promise.resolve({ slug: "match-corner" }),
+        searchParams: Promise.resolve({ matchId }),
+      }),
+    );
+    expect(screen.queryByRole("button", { name: "Review events" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open Billing" })).toBeVisible();
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getAuthorizedVenueWorkspaceBySlug.mockResolvedValue({
       id: venueId,
       slug: "match-corner",
+      billing: activeVenueBilling,
     });
     mocks.getVenueSettings.mockResolvedValue({
       id: venueId,

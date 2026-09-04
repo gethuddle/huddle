@@ -39,14 +39,17 @@ Keep implementation slices tied to this loop and the official course deliverable
 - Supabase owns Auth, PostgreSQL, Row Level Security, PostGIS, SQL migrations, and generated database types.
 - Vercel hosts Next.js. Supabase hosts Auth and PostgreSQL.
 - Vitest, React Testing Library, Playwright, pgTAP, ESLint, Prettier, and GitHub Actions provide the planned quality gates.
-- Do not add Express, Prisma, Redis, Socket.IO, microservices, payment infrastructure, or another state library unless the approved specifications are revised first.
+- Do not add Express, Prisma, Redis, Socket.IO, microservices, payment infrastructure, or another state library unless the approved specifications are revised first. The sole approved payment exception is `VB01`: one per-venue **Polar Sandbox** entitlement, implemented only to the approved contract; it processes no real money, adds no production-payment switch, and does not authorize unrelated payment features.
 
 ## Locked product and safety rules
 
 - Authentication uses Supabase Auth. Huddle never stores password hashes.
 - Common safety eligibility requires verified email, an 18+ attestation, acceptance of the current community-rules version, and a non-suspended account.
 - Attendance and private social mutations additionally require an activated Fan workspace with a completed Fan identity. Venue-only onboarding may satisfy common safety eligibility without publishing a Fan identity.
-- Self-serve Venue activation additionally requires venue information and a truthful business-representation attestation; every commercial mutation requires an active Venue owner/admin membership.
+- Self-serve Venue activation additionally requires venue information and a truthful business-representation attestation; every commercial mutation requires an active Venue owner/admin membership. Under approved `VB01`, this atomically creates a private, visibly Unverified venue draft and inactive entitlement, not a public venue; only a signed, validated, idempotently applied Polar Sandbox webhook may make the venue public or permit commercial publishing.
+- Fan, friendship, supporter-group, RSVP, and private-hosting features remain free. Billing is a separate per-venue capability, never a trust signal: payment does not change the truthful-attestation basis or visible `unverified` status.
+- Only the exact venue owner may start checkout, open the pre-authenticated billing portal, cancel, or otherwise manage billing. Active Venue admins retain ordinary venue/event operations but have no billing action. Membership never by itself grants public visibility or publishing.
+- An inactive, confirming, past-due, provider-stale, legacy-grace, or expired entitlement is fail-closed for public venue visibility, Explore, new acquisition, and publishing. Existing participant access/history, safety rules, and the limited private management/recovery capabilities defined by the implementation specification remain protected and retained; fan-facing DTOs and copy never reveal billing, grace, invoice, or provider information.
 - One registered account represents one attendee. There are no anonymous guests or plus-ones.
 - Friendships require request and acceptance. Friends-of-friends never grant visibility.
 - Private people may create only `group`, `friends`, or `invite_only` events, even at a café or other public place.

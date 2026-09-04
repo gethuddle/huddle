@@ -15,6 +15,7 @@ import type { FixtureOption } from "@/features/sports/fixture-option-schemas";
 import { formatIsraelKickoff } from "@/features/sports/time";
 import { planVenueEventsAction } from "@/features/venues/workspace/actions";
 import type { VenuePlanItem, VenueSpace } from "@/features/venues/workspace/types";
+import type { FixturePlannerBillingCapabilities } from "@/features/venue-billing/types";
 
 type PlannerVenue = Readonly<{
   id: string;
@@ -49,7 +50,18 @@ export function FixturePlanner({
   catalog,
   initialMatchId = "",
   venue,
-}: Readonly<{ catalog: VenueEventCatalog; initialMatchId?: string; venue: PlannerVenue }>) {
+  billing = {
+    canPublish: false,
+    canPrepareDrafts: false,
+    publishCutoffAt: null,
+    blockedReason: "Open Billing to continue.",
+  },
+}: Readonly<{
+  catalog: VenueEventCatalog;
+  initialMatchId?: string;
+  venue: PlannerVenue;
+  billing?: FixturePlannerBillingCapabilities;
+}>) {
   const usableInitialMatch = catalog.matches.some((match) => match.id === initialMatchId)
     ? initialMatchId
     : "";
@@ -135,6 +147,7 @@ export function FixturePlanner({
   }
 
   function submit(intent: "draft" | "publish") {
+    if (!billing.canPrepareDrafts || (intent === "publish" && !canPublishBatch)) return;
     startTransition(async () => {
       const actionResult = await planVenueEventsAction({
         venueId: venue.id,
@@ -145,6 +158,30 @@ export function FixturePlanner({
       setResult(actionResult);
     });
   }
+
+  const withinCutoff =
+    billing.publishCutoffAt === null ||
+    items.every((item) => {
+      const match = matches.get(item.matchId);
+      return (
+        match !== undefined && Date.parse(match.startsAt) < Date.parse(billing.publishCutoffAt!)
+      );
+    });
+  const canPublishBatch = billing.canPublish && withinCutoff;
+
+  if (!billing.canPrepareDrafts)
+    return (
+      <p className="text-muted-foreground">
+        Editing is locked.{" "}
+        <Link
+          className="font-semibold text-forest underline"
+          href={`/venues/${venue.slug}/workspace/billing`}
+        >
+          Open Billing
+        </Link>{" "}
+        to recover access. Your calendar and event history remain available.
+      </p>
+    );
 
   if (result?.ok === true) {
     return (
@@ -439,8 +476,21 @@ export function FixturePlanner({
             </Alert>
           ) : null}
 
+          {!canPublishBatch ? (
+            <p className="text-sm text-muted-foreground">
+              {!withinCutoff
+                ? "This batch includes a fixture at or after your demo subscription ends. Save drafts or choose an earlier fixture."
+                : (billing.blockedReason ??
+                  "Publishing is unavailable. You can still save drafts.")}
+            </p>
+          ) : null}
           <div className="flex flex-wrap gap-3">
-            <Button disabled={pending} onClick={() => submit("publish")} size="lg" type="button">
+            <Button
+              disabled={pending || !canPublishBatch}
+              onClick={() => submit("publish")}
+              size="lg"
+              type="button"
+            >
               {pending ? "Saving batch…" : "Publish batch"}
             </Button>
             <Button

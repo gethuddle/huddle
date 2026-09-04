@@ -69,6 +69,10 @@ function localDatabaseQuery(sql: string) {
   });
 }
 
+function sqlLiteral(value: string) {
+  return `'${value.replaceAll("'", "''")}'`;
+}
+
 function cancelPriorAssistedDiscoveryEvents() {
   localDatabaseQuery(`
     update public.events
@@ -401,6 +405,16 @@ async function createVenueEvent(
   if (venue.error !== null) throw venue.error;
   const venueId = venue.data.at(0)?.venue_id;
   if (venueId === undefined) throw new Error("Venue creation returned no ID.");
+  // Ask's public-venue fixture opts into entitlement explicitly, per venue.
+  localDatabaseQuery(`
+    update private.venue_billing_entitlements
+    set status = 'active', interval = 'month', interval_count = 1,
+        polar_customer_id = 'test-customer-' || venue_id,
+        polar_subscription_id = 'test-subscription-' || venue_id,
+        polar_product_id = 'test-product', polar_product_price_id = 'test-price',
+        amount = 1500, currency = 'ils', paid_through_at = statement_timestamp() + interval '365 days'
+    where venue_id = ${sqlLiteral(venueId)}::uuid;
+  `);
   const created = await owner.client.rpc(
     "create_or_update_event",
     eventInput(fixture, title, {

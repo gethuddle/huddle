@@ -7,9 +7,30 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/venues/match-corner/workspace/calendar",
 }));
 
-import { VenueWorkspaceHeader } from "./venue-workspace-header";
+import {
+  VenueWorkspaceHeader,
+  VenueBillingNavigation,
+  VenueMobileNavigation,
+} from "./venue-workspace-header";
 
 describe("VenueWorkspaceHeader", () => {
+  it("keeps Billing secondary and venue-specific with four mobile destinations", () => {
+    render(
+      <>
+        <VenueBillingNavigation slug="match-corner" />
+        <VenueMobileNavigation slug="match-corner" />
+      </>,
+    );
+    expect(screen.getByRole("link", { name: "Billing" })).toHaveAttribute(
+      "href",
+      "/venues/match-corner/workspace/billing",
+    );
+    expect(
+      within(screen.getByRole("navigation", { name: "Venue mobile navigation" })).getAllByRole(
+        "link",
+      ),
+    ).toHaveLength(4);
+  });
   it("contains exactly four live destinations and no Fan or Account tools", () => {
     render(<VenueWorkspaceHeader slug="match-corner" venueName="Match Corner" />);
 

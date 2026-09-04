@@ -38,7 +38,10 @@ type VenueSettingsView = Readonly<{
   defaultRequiresApproval: boolean;
 }>;
 
-export function VenueSettingsForm({ venue }: Readonly<{ venue: VenueSettingsView }>) {
+export function VenueSettingsForm({
+  venue,
+  canEdit = false,
+}: Readonly<{ venue: VenueSettingsView; canEdit?: boolean }>) {
   const [changingAddress, setChangingAddress] = useState(false);
   const [address, setAddress] = useState<AddressSuggestion | null>(null);
   const [attendanceMode, setAttendanceMode] = useState(venue.defaultAttendanceMode);
@@ -47,6 +50,7 @@ export function VenueSettingsForm({ venue }: Readonly<{ venue: VenueSettingsView
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!canEdit) return;
     const formData = new FormData(event.currentTarget);
     startTransition(async () => {
       const result = await updateVenueSettingsAction({
@@ -67,163 +71,167 @@ export function VenueSettingsForm({ venue }: Readonly<{ venue: VenueSettingsView
 
   return (
     <form className="space-y-7" noValidate onSubmit={submit}>
-      <div className="grid gap-5 sm:grid-cols-2">
-        <div>
-          <Label htmlFor="venue-settings-name">Venue name</Label>
-          <Input
-            defaultValue={venue.name}
-            id="venue-settings-name"
-            maxLength={120}
-            name="name"
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="venue-settings-slug">Venue URL</Label>
-          <Input
-            defaultValue={venue.slug}
-            id="venue-settings-slug"
-            maxLength={60}
-            name="slug"
-            required
-          />
-        </div>
-      </div>
-
-      <section
-        className="rounded-[1.375rem] border border-border p-5"
-        aria-labelledby="current-venue-address"
-      >
-        <h2 className="font-semibold" id="current-venue-address">
-          Public address
-        </h2>
-        <p className="mt-2 text-sm text-muted-foreground">{address?.label ?? venue.addressText}</p>
-        {changingAddress ? (
-          <div className="mt-5">
-            <AddressSearch onConfirm={setAddress} purpose="public_address" />
+      <fieldset disabled={!canEdit || pending} className="space-y-7">
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div>
+            <Label htmlFor="venue-settings-name">Venue name</Label>
+            <Input
+              defaultValue={venue.name}
+              id="venue-settings-name"
+              maxLength={120}
+              name="name"
+              required
+            />
           </div>
-        ) : (
-          <Button
-            className="mt-4"
-            onClick={() => setChangingAddress(true)}
-            type="button"
-            variant="outline"
-          >
-            Change public address
-          </Button>
-        )}
-      </section>
+          <div>
+            <Label htmlFor="venue-settings-slug">Venue URL</Label>
+            <Input
+              defaultValue={venue.slug}
+              id="venue-settings-slug"
+              maxLength={60}
+              name="slug"
+              required
+            />
+          </div>
+        </div>
 
-      <div>
-        <Label htmlFor="venue-settings-description">Public description</Label>
-        <Textarea
-          defaultValue={venue.description}
-          id="venue-settings-description"
-          maxLength={2000}
-          minLength={10}
-          name="description"
-          required
-        />
-      </div>
-
-      <fieldset className="rounded-[1.375rem] border border-border p-5">
-        <legend className="px-2 font-semibold">Facilities</legend>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {FACILITIES.map(([value, label]) => (
-            <div className="flex min-h-11 items-center gap-3" key={value}>
-              <Checkbox
-                defaultChecked={venue.facilities.includes(value)}
-                id={`venue-settings-${value}`}
-                name="facilities"
-                value={value}
-              />
-              <Label className="cursor-pointer" htmlFor={`venue-settings-${value}`}>
-                {label}
-              </Label>
+        <section
+          className="rounded-[1.375rem] border border-border p-5"
+          aria-labelledby="current-venue-address"
+        >
+          <h2 className="font-semibold" id="current-venue-address">
+            Public address
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {address?.label ?? venue.addressText}
+          </p>
+          {changingAddress ? (
+            <div className="mt-5">
+              <AddressSearch onConfirm={setAddress} purpose="public_address" />
             </div>
-          ))}
-        </div>
-      </fieldset>
+          ) : (
+            <Button
+              className="mt-4"
+              onClick={() => setChangingAddress(true)}
+              type="button"
+              variant="outline"
+            >
+              Change public address
+            </Button>
+          )}
+        </section>
 
-      <div>
-        <Label htmlFor="venue-settings-house-information">House information</Label>
-        <Textarea
-          defaultValue={venue.houseInformation}
-          id="venue-settings-house-information"
-          maxLength={1000}
-          name="houseInformation"
-        />
-      </div>
-
-      <fieldset className="rounded-2xl border border-border p-5">
-        <legend className="px-2 font-semibold">Usual attendance</legend>
-        <div className="mt-1 grid gap-3 sm:grid-cols-2">
-          <label className="flex min-h-20 cursor-pointer items-start gap-3 rounded-2xl border border-border bg-muted p-4 has-[:checked]:border-court">
-            <input
-              checked={attendanceMode === "open_door"}
-              className="mt-1 size-4 accent-court"
-              name="defaultAttendanceMode"
-              onChange={() => setAttendanceMode("open_door")}
-              type="radio"
-              value="open_door"
-            />
-            <span>
-              <span className="block font-semibold text-foreground">Open door</span>
-              <span className="mt-1 block text-sm leading-5 text-muted-foreground">
-                Fans simply come along. No RSVP, invitation, queue, or capacity claim.
-              </span>
-            </span>
-          </label>
-          <label className="flex min-h-20 cursor-pointer items-start gap-3 rounded-2xl border border-border bg-muted p-4 has-[:checked]:border-court">
-            <input
-              checked={attendanceMode === "reservations"}
-              className="mt-1 size-4 accent-court"
-              name="defaultAttendanceMode"
-              onChange={() => setAttendanceMode("reservations")}
-              type="radio"
-              value="reservations"
-            />
-            <span>
-              <span className="block font-semibold text-foreground">Reservations</span>
-              <span className="mt-1 block text-sm leading-5 text-muted-foreground">
-                Keep a registered guest list with real area capacity.
-              </span>
-            </span>
-          </label>
-        </div>
-      </fieldset>
-
-      {attendanceMode === "reservations" ? (
-        <div className="flex min-h-11 items-start gap-3 rounded-xl border border-border p-4">
-          <Checkbox
-            defaultChecked={venue.defaultRequiresApproval}
-            id="venue-settings-default-approval"
-            name="defaultRequiresApproval"
+        <div>
+          <Label htmlFor="venue-settings-description">Public description</Label>
+          <Textarea
+            defaultValue={venue.description}
+            id="venue-settings-description"
+            maxLength={2000}
+            minLength={10}
+            name="description"
+            required
           />
-          <Label className="cursor-pointer leading-6" htmlFor="venue-settings-default-approval">
-            Review attendance requests by default for newly planned events.
-          </Label>
         </div>
-      ) : null}
 
-      {changingAddress && address === null ? (
-        <p className="text-sm text-sand" role="alert">
-          Confirm the replacement public address before saving.
-        </p>
-      ) : null}
-      {state === null ? null : state.ok ? (
-        <p className="text-sm text-forest" role="status">
-          {state.data.message}
-        </p>
-      ) : (
-        <Alert role="alert" variant="destructive">
-          <AlertDescription>{state.error.message}</AlertDescription>
-        </Alert>
-      )}
+        <fieldset className="rounded-[1.375rem] border border-border p-5">
+          <legend className="px-2 font-semibold">Facilities</legend>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {FACILITIES.map(([value, label]) => (
+              <div className="flex min-h-11 items-center gap-3" key={value}>
+                <Checkbox
+                  defaultChecked={venue.facilities.includes(value)}
+                  id={`venue-settings-${value}`}
+                  name="facilities"
+                  value={value}
+                />
+                <Label className="cursor-pointer" htmlFor={`venue-settings-${value}`}>
+                  {label}
+                </Label>
+              </div>
+            ))}
+          </div>
+        </fieldset>
 
-      <Button disabled={pending || (changingAddress && address === null)} size="lg" type="submit">
-        {pending ? "Saving venue…" : "Save venue"}
-      </Button>
+        <div>
+          <Label htmlFor="venue-settings-house-information">House information</Label>
+          <Textarea
+            defaultValue={venue.houseInformation}
+            id="venue-settings-house-information"
+            maxLength={1000}
+            name="houseInformation"
+          />
+        </div>
+
+        <fieldset className="rounded-2xl border border-border p-5">
+          <legend className="px-2 font-semibold">Usual attendance</legend>
+          <div className="mt-1 grid gap-3 sm:grid-cols-2">
+            <label className="flex min-h-20 cursor-pointer items-start gap-3 rounded-2xl border border-border bg-muted p-4 has-[:checked]:border-court">
+              <input
+                checked={attendanceMode === "open_door"}
+                className="mt-1 size-4 accent-court"
+                name="defaultAttendanceMode"
+                onChange={() => setAttendanceMode("open_door")}
+                type="radio"
+                value="open_door"
+              />
+              <span>
+                <span className="block font-semibold text-foreground">Open door</span>
+                <span className="mt-1 block text-sm leading-5 text-muted-foreground">
+                  Fans simply come along. No RSVP, invitation, queue, or capacity claim.
+                </span>
+              </span>
+            </label>
+            <label className="flex min-h-20 cursor-pointer items-start gap-3 rounded-2xl border border-border bg-muted p-4 has-[:checked]:border-court">
+              <input
+                checked={attendanceMode === "reservations"}
+                className="mt-1 size-4 accent-court"
+                name="defaultAttendanceMode"
+                onChange={() => setAttendanceMode("reservations")}
+                type="radio"
+                value="reservations"
+              />
+              <span>
+                <span className="block font-semibold text-foreground">Reservations</span>
+                <span className="mt-1 block text-sm leading-5 text-muted-foreground">
+                  Keep a registered guest list with real area capacity.
+                </span>
+              </span>
+            </label>
+          </div>
+        </fieldset>
+
+        {attendanceMode === "reservations" ? (
+          <div className="flex min-h-11 items-start gap-3 rounded-xl border border-border p-4">
+            <Checkbox
+              defaultChecked={venue.defaultRequiresApproval}
+              id="venue-settings-default-approval"
+              name="defaultRequiresApproval"
+            />
+            <Label className="cursor-pointer leading-6" htmlFor="venue-settings-default-approval">
+              Review attendance requests by default for newly planned events.
+            </Label>
+          </div>
+        ) : null}
+
+        {changingAddress && address === null ? (
+          <p className="text-sm text-sand" role="alert">
+            Confirm the replacement public address before saving.
+          </p>
+        ) : null}
+        {state === null ? null : state.ok ? (
+          <p className="text-sm text-forest" role="status">
+            {state.data.message}
+          </p>
+        ) : (
+          <Alert role="alert" variant="destructive">
+            <AlertDescription>{state.error.message}</AlertDescription>
+          </Alert>
+        )}
+
+        <Button disabled={pending || (changingAddress && address === null)} size="lg" type="submit">
+          {pending ? "Saving venue…" : "Save venue"}
+        </Button>
+      </fieldset>
     </form>
   );
 }

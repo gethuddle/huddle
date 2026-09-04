@@ -20,6 +20,7 @@ const eventSummaryRowSchema = z
     host_display_name: z.string(),
     host_handle: z.string().nullable(),
     host_venue_slug: z.string().nullable(),
+    host_venue_is_public: z.boolean(),
     venue_verification_status: z.enum(["unverified", "verified", "suspended"]).nullable(),
     match_id: z.uuid(),
     competition_name: z.string(),
@@ -66,6 +67,7 @@ export type EventSummary = Readonly<{
     displayName: string;
     handle: string | null;
     venueSlug: string | null;
+    canOpenVenue: boolean;
     venueVerificationStatus: "unverified" | "verified" | "suspended" | null;
   }>;
   match: Readonly<{
@@ -129,6 +131,7 @@ export async function getEventSummary(eventId: string): Promise<EventSummary | n
         displayName: row.host_display_name,
         handle: row.host_handle,
         venueSlug: row.host_venue_slug,
+        canOpenVenue: row.host_venue_is_public,
         venueVerificationStatus: row.venue_verification_status,
       },
       match: {

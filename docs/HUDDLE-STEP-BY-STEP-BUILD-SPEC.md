@@ -381,9 +381,9 @@ If an external account, paid service, production mutation, or secret is required
 
 ---
 
-## 6. Historical B01–B12 delivery and current B13 handoff
+## 6. Historical B01–B12 delivery, current `VB01`, and B13 handoff
 
-`F00`–`F03` and B01–B12 are the completed historical delivery baseline. B13 remains the current/future production-acceptance, submission-evidence, and presentation handoff. The original module IDs remain the authoritative detailed checklists in §§7–14 and must be completed in their listed dependency order.
+`F00`–`F03` and B01–B12 are the completed historical delivery baseline. `VB01` is the next approved unchecked per-venue entitlement module. B13 remains the later production-acceptance, submission-evidence, and presentation handoff, and cannot begin until `VB01` has completed its separately authorized hosted/demo acceptance. The original module IDs remain the authoritative detailed checklists in §§7–14 and must be completed in their listed dependency order.
 
 | Milestone | Included modules | Depends on | Observable exit |
 |---|---|---|---|
@@ -399,9 +399,10 @@ If an external account, paid service, production mutation, or secret is required
 | `B10` Invitations, attendance, and calendar | `T01`–`T04` | `B09` | Invitation, join/request, approval, capacity, revocation, cancellation, protected-location, and `.ics` flows are safe and atomic |
 | `B11` Moderation, security, and accessibility | `M01`–`M04` | `B10` | Reports, moderation, appeals, hardening, accessibility, failure states, and operational evidence cover the complete product loop |
 | `B12` Release candidate and automated acceptance | `D01` | `B11` | Full automated acceptance is green and the complete application is published as a reviewable release candidate |
-| `B13` Production acceptance and submission | `D02`–`D04` | `B12` | Isolated hosted environments, production sync/deployment, truthful submission evidence, and the presentation rehearsal are complete |
+| `VB01` Polar Sandbox venue subscriptions | `VB01` | `B12`, `AE01` contract | Per-venue hidden draft, verified Sandbox webhook entitlement, grace/cancellation safety, and authorized hosted/demo evidence are complete |
+| `B13` Production acceptance and submission | `D02`–`D04` | completed `VB01` hosted/demo acceptance | Isolated hosted environments, production sync/deployment, truthful submission evidence, and the presentation rehearsal are complete |
 
-The milestone grouping reduces coordination overhead only. It removes no module task, test, authorization rule, migration requirement, or definition-of-done evidence. The original `G06` dependency on an approved future event remains historical B09 evidence; the approved 31 August replacement gate depends only on an active owner and description. `AI01` and `AE01` are bounded post-B12 modules rather than new numbered milestones; B13 cannot claim hosted acceptance for either until its separately authorized production gates pass.
+The milestone grouping reduces coordination overhead only. It removes no module task, test, authorization rule, migration requirement, or definition-of-done evidence. The original `G06` dependency on an approved future event remains historical B09 evidence; the approved 31 August replacement gate depends only on an active owner and description. `AI01`, `AE01`, and `VB01` are bounded post-B12 modules rather than renumbered milestones; B13 cannot claim hosted acceptance until each applicable separately authorized gate, including completed `VB01` hosted/demo evidence, passes.
 
 ---
 
@@ -444,7 +445,7 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 - [x] Scaffold Next.js App Router with TypeScript and Tailwind.
 - [x] Enable and confirm `strict: true`.
 - [x] Install only the planned initial dependencies: Supabase SSR/client, Zod, Radix primitives as first needed, and testing/quality tools.
-- [x] Do not add Express, Prisma, Zustand, Redis, Socket.IO, payments, unapproved AI tooling, or microservices; the later `AI01` revision is the sole bounded AI exception.
+- [x] Do not add Express, Prisma, Zustand, Redis, Socket.IO, payments, unapproved AI tooling, or microservices; `AI01` is the sole bounded AI exception and `VB01` is the sole bounded Polar **Sandbox** billing exception. `VB01` may use the exact approved preview SDK version only with its compile-time contract test; do not install a floating or otherwise unapproved prerelease SDK or add real-payment capability.
 - [x] Add Prettier and compatible ESLint configuration.
 - [x] Create scripts for `dev`, `build`, `typecheck`, `lint`, `format`, and `format:check`.
 - [x] Commit the dependency lockfile.
@@ -885,7 +886,7 @@ The redesign work that follows B12 MUST preserve the historical evidence below w
 
 - Common safety eligibility is verified email, adult attestation, current community-rules acceptance, and a non-suspended account.
 - Fan activation is optional and is required for attendance, friendships, groups, follows, and private hosting. A venue-only operator may leave Fan identity fields incomplete and non-public.
-- Venue activation is self-serve for the course demonstration. Common eligibility, venue information, and a truthful business-representation attestation atomically create an immediately usable **Unverified** venue, one active owner membership, and its Venue workspace.
+- Venue activation is self-serve for the course demonstration. Common eligibility, venue information, and a truthful business-representation attestation atomically create a private **Unverified** venue draft, one active owner membership, its Venue workspace, and an inactive entitlement. It has no public venue presence, Explore visibility, acquisition, or publishing right until the `VB01` signed Polar Sandbox entitlement webhook activates it.
 - A generic Fan profile cannot create or manage a venue. Every commercial mutation requires an active `owner` or `admin` Venue membership.
 - A venue is never an attendee and never consumes capacity. A human who also activates Fan may attend only through that Fan identity under the one-account-per-seat rule.
 - Venue planning starts from bounded searchable fixture rows and inherits each fixture's kickoff; it never re-asks for an event date or renders the whole multi-competition schedule as one dropdown.
@@ -900,7 +901,7 @@ The following checked modules describe the B01–B12 baseline. Their original ou
 
 **Authority:** implementation spec §§2.8, 4.1, 6.7, 7.5.
 
-**Historical B01–B12 outcome (superseded by the workspace contract above):** a complete user creates and manages a visibly unverified public venue, and users can follow it.
+**Historical B01–B12 outcome (superseded by the workspace and `VB01` contracts above):** a complete user creates and manages a visibly unverified public venue, and users can follow it.
 
 **Tasks:**
 
@@ -910,7 +911,7 @@ The following checked modules describe the B01–B12 baseline. Their original ou
 - [x] Display `unverified` everywhere the venue identity appears.
 - [x] Add venue follow/unfollow with own-row RLS.
 - [x] Prevent cross-owner edits and suspended venue publication.
-- [x] Do not add subscriptions, payments, menus, promotions, or fake verification.
+- [x] Historical B01–B12 exclusion: do not add subscriptions, payments, menus, promotions, or fake verification. `VB01` deliberately supersedes only the subscription/payment exclusion with one Polar Sandbox entitlement; it never adds real payments or verification.
 
 **Tests/evidence:** ownership/RLS, public projection, moderator-only status, follow duplicates, component badge, cross-user crafted edit denial, E2E.
 
@@ -1257,6 +1258,36 @@ The following checked modules describe the B01–B12 baseline. Their original ou
 
 ---
 
+### VB01 — Polar Sandbox venue subscriptions
+
+**Depends on:** `B12`, `AE01` account-erasure contract; completed hosted/demo acceptance is a prerequisite for `B13`.
+
+**Authority:** implementation specification §2.8; [approved Polar design](./superpowers/specs/2026-09-03-polar-venue-subscriptions-design.md).
+
+**Outcome:** each commercial venue begins as a private Unverified draft and independently gains public presence, Explore visibility, acquisition, and commercial publishing only from a verified Polar **Sandbox** entitlement. This is a university-demo capability, not a real-payment product.
+
+**Current progress:** Tasks 1–10 passed local acceptance for the Sandbox SDK/configuration, private billing foundation, owner-bound checkout/Billing handoff, signed webhook activation/reconciliation, public/acquisition/publishing enforcement, participant-preserving grace access, private calendar caching, billing-aware account-erasure orchestration, owner controls, deadline processing, offline signed-browser fixtures, and release documentation. The isolated aggregate gate passed a clean install, six forward billing migrations, schema lint, 48 pgTAP files / 2,423 assertions, canonical generated-type parity, 223 application files / 1,308 tests plus one intentional skip (80.42% statements, 71.87% branches, 83.53% functions, 84.62% lines), production build, 37 browser tests, security audit, and diff hygiene; Polar transport was denied throughout automation. The user separately authorized Task 11 hosted configuration, publication, merge after CI, and deployment on 4 September 2026. Sandbox products and Preview guards are configured; migrations, Production secrets, deployment, signed delivery, scheduler, and live-demo acceptance remain pending. The ordinary demo database remains unchanged.
+
+**Tasks:**
+
+- [x] Add forward migrations for private per-venue entitlement, checkout-attempt, webhook-receipt, and account-erasure-cleanup state; use constraints, indexes, forced deny-by-default RLS/direct privilege revocation, narrow `SECURITY DEFINER` functions, and an idempotent one-captured-time legacy-grace backfill. Do not reuse Fan `public.subscriptions`.
+- [x] Give post-`VB01` venue creation an inactive entitlement in the same transaction. Backfill existing venues once as `legacy_grace` for exactly seven days; new venues start `payment_required` and never receive grace.
+- [x] Centralize capability predicates for exact billing owner, membership-only workspace access, public venue/event presence, acquisition, publishing at a given start time, grace-management/drafts, and existing-participant visibility. Every authenticated mutation obtains the actor serializer then venue billing lock; multi-venue erasure locks venues in sorted UUID order.
+- [x] Add the exact owner-only hidden-draft Billing journey. Server state allowlists monthly/yearly products and reserves one checkout generation per venue; no browser value chooses customer, organization, product, amount, price, or owner. Confirmation is private/non-authoritative and retries reconcile rather than duplicate an uncertain checkout.
+- [x] Use only `environment: "sandbox"`, server-only least-privilege Polar credentials, and an exact approved preview SDK version with a compile-time contract test for the versioned `2026-04` import and `webhooks.validateEvent`. The narrow approved preview exception does not authorize a floating SDK, a production mode, provider-managed products at runtime, or real money.
+- [x] Implement a raw-body signed webhook route with Zod event validation, organization/product/customer/attempt/venue/current-binding checks, idempotent receipt handling, stale-event ordering, no raw secret/payload retention, and no provider network call under a database transaction/lock. Only a fully bound `subscription.active` initially activates or recovers `past_due`; only a fully bound `order.paid` routine-renewal proof recovers `provider_stale`.
+- [x] Enforce `payment_required`, `confirming`, `active`, `canceling`, `past_due`, `provider_stale`, `legacy_grace`, and `expired` exactly as §2.8 specifies. `past_due`, stale, and legacy states hide immediately but retain seven days of allowed existing operations/participant access; deadline processing cancels only future published events and never deletes or resurrects history.
+- [x] Enforce cancellation at/after paid end: post-cutoff events leave discovery and new acquisition immediately, existing requested/approved participants keep private access until paid end, and expiry cancels future published events without silent restoration. An expired venue with a nonterminal binding may use the owner portal but cannot create another checkout; no-binding legacy-expired venues may checkout.
+- [x] Apply entitlement predicates to ordinary/open-door/owner-aware/map/match/venue/Ask discovery, saved venues/follows, public event detail/calendar, direct and batch publishing, request/join, invitations, and invitation acceptance. Owner-aware Explore never leaks an unpaid venue. Billing-sensitive projections are dynamic; venue-hosted and hidden participant ICS responses are `private, no-store`.
+- [x] Keep billing owner-only and operational membership separate. Admins may operate existing events/attendees in their permitted state but cannot open checkout/portal or manage payment. Payment never changes `unverified`; public/fan copy and DTOs never mention billing, Polar, grace, invoices, or payment failure.
+- [x] Preserve archive and account-erasure boundaries. Archive never mutates Polar and cannot be reactivated by checkout/webhook. Add the billing-aware account-erasure V2 wrapper and late-checkout cleanup path; preserve V1's boolean return and rollback-with-`UPSTREAM_UNAVAILABLE` compatibility behavior when Polar cleanup would be required.
+- [x] Add saved sanitized fixtures and unit, pgTAP, component, route, and E2E coverage for signature/organization/product/customer/attempt mismatches, duplicate/delayed webhook, independent two-venue subscriptions, checkout races/reconciliation, state/deadline/cancellation/recovery, participant exceptions, cache denial, no event resurrection, archive, and account-erasure/late-checkout lock ordering. Automated tests never call Polar.
+- [x] Before hosted configuration, produce the reviewed Sandbox-only runbook and obtain separate authorization for every Polar/Supabase/Vercel mutation. Presentation evidence uses the live Sandbox happy path only, visibly says no real money is charged, and records no secrets, card data, or provider payloads.
+
+**Tests/evidence:** the complete local matrix, generated types, secret/diff checks, and the reviewed Sandbox-only runbook passed in isolated acceptance. Separately authorized hosted/demo acceptance proving hidden draft → checkout → signed webhook → public venue plus recovery/cancellation safety remains required before B13.
+
+---
+
 ## 14. Delivery requirement modules
 
 ### D01 — Complete automated acceptance and CI gates
@@ -1323,7 +1354,7 @@ evidence for merge; hosted checks remain B13 (`D02`–`D04`).
 
 ### D02 — Preview and production environments
 
-**Depends on:** `D01`, `AI01` when assisted discovery is enabled.
+**Depends on:** `D01`, `VB01`, `AI01` when assisted discovery is enabled. `B13` MUST NOT begin hosted production/submission acceptance until the `VB01` hosted/demo acceptance above is complete.
 
 **Authority:** implementation spec §§15.4–15.5.
 
@@ -1464,8 +1495,9 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 | B11 Moderation, security, and accessibility | `M01`–`M04` | done | [#30](https://github.com/gethuddle/huddle/issues/30) / [PR #31](https://github.com/gethuddle/huddle/pull/31) |
 | B12 Release candidate and automated acceptance | `D01` | done | [#32](https://github.com/gethuddle/huddle/issues/32) / [PR #33](https://github.com/gethuddle/huddle/pull/33) |
 | AI-assisted event discovery | `AI01` | done | [PR #46](https://github.com/gethuddle/huddle/pull/46) |
-| Immediate account erasure | `AE01` | review | [#53](https://github.com/gethuddle/huddle/issues/53) |
-| B13 Production acceptance and submission | `D02`–`D04` | not started | — |
+| Immediate account erasure | `AE01` | done | [#53](https://github.com/gethuddle/huddle/issues/53), merged [PR #54](https://github.com/gethuddle/huddle/pull/54) |
+| VB01 Polar Sandbox venue subscriptions | `VB01` | review | [#55](https://github.com/gethuddle/huddle/issues/55); Tasks 1–10 local acceptance passed; authorized Task 11 preconfiguration in progress, with hosted runtime acceptance pending |
+| B13 Production acceptance and submission | `D02`–`D04` (after VB01 hosted/demo acceptance) | not started | — |
 
 ---
 

@@ -261,7 +261,7 @@ describe("workspace actions", () => {
       }),
     ).resolves.toMatchObject({
       ok: true,
-      data: { redirectTo: "/venues/match-corner/workspace" },
+      data: { redirectTo: "/venues/match-corner/workspace/billing" },
     });
 
     expect(mocks.requireActor).toHaveBeenCalledWith("common");

@@ -264,6 +264,9 @@ export function VenueOnboardingForm({ ownerId }: Readonly<{ ownerId: string }>) 
         </Alert>
       ) : null}
 
+      <p className="text-sm leading-6 text-muted-foreground">
+        Next, choose a demo plan in Billing. Polar Sandbox charges no real money.
+      </p>
       <Button className="w-full" disabled={pending || address === null} size="lg" type="submit">
         {pending ? "Creating venue account…" : "Create venue account"}
       </Button>

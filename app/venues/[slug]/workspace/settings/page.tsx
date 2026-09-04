@@ -1,7 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
 import { VenueVerificationBadge } from "@/features/venues/components/venue-verification-badge";
 import { venueRouteSlugSchema } from "@/features/venues/schemas";
 import { VenueSettingsForm } from "@/features/venues/workspace/components/venue-settings-form";
@@ -36,14 +34,12 @@ export default async function VenueSettingsPage({ params }: VenueSettingsPagePro
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <VenueVerificationBadge status={workspace.verificationStatus} />
-          <Button asChild variant="outline">
-            <Link href={`/venues/${workspace.slug}`}>View public page</Link>
-          </Button>
         </div>
       </div>
 
       <div className="mt-10 grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_22rem] xl:gap-14">
         <VenueSettingsForm
+          canEdit={workspace.billing.canPrepareDrafts}
           venue={{
             id: settings.id,
             slug: settings.slug,
@@ -102,13 +98,18 @@ export default async function VenueSettingsPage({ params }: VenueSettingsPagePro
         <div className="mt-5 space-y-4">
           {settings.spaces.map((space, index) => (
             <VenueSpaceEditor
+              canEdit={workspace.billing.canPrepareDrafts}
               key={space.id}
               sortOrder={index}
               space={space}
               venueId={settings.id}
             />
           ))}
-          <VenueSpaceEditor sortOrder={settings.spaces.length} venueId={settings.id} />
+          <VenueSpaceEditor
+            canEdit={workspace.billing.canPrepareDrafts}
+            sortOrder={settings.spaces.length}
+            venueId={settings.id}
+          />
         </div>
       </section>
 

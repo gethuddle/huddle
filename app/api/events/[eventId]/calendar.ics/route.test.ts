@@ -10,6 +10,7 @@ vi.mock("@/features/attendance/queries", () => ({ getCalendarEvent: mocks.getCal
 
 const eventId = "90000000-0000-4000-8000-000000000001";
 const publicCalendarEvent = {
+  status: "published",
   event_id: eventId,
   title: "Match huddle",
   description: "Watch together.",
@@ -25,17 +26,26 @@ function request() {
 }
 
 describe("GET event calendar", () => {
+  it("exports the participant's effective cancellation as a private calendar update", async () => {
+    mocks.getCalendarEvent.mockResolvedValue({ ...publicCalendarEvent, status: "cancelled" });
+    const response = await GET(request(), { params: Promise.resolve({ eventId }) });
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    const body = await response.text();
+    expect(body).toContain("STATUS:CANCELLED");
+    expect(body).toContain("DESCRIPTION:This event has been cancelled.");
+    expect(body).not.toMatch(/billing|provider|grace|Polar|Watch together/);
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getCalendarEvent.mockResolvedValue(publicCalendarEvent);
   });
 
-  it("returns an RFC calendar attachment with short public caching for venue events", async () => {
+  it("returns an RFC calendar attachment without shared caching even for active venues", async () => {
     const response = await GET(request(), { params: Promise.resolve({ eventId }) });
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("text/calendar; charset=utf-8");
     expect(response.headers.get("content-disposition")).toContain(eventId);
-    expect(response.headers.get("cache-control")).toContain("s-maxage=300");
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
     expect(await response.text()).toContain("LOCATION:12 Public Street\\, Haifa");
   });
 

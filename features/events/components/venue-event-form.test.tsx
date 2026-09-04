@@ -27,7 +27,14 @@ const catalog = {
 
 describe("VenueEventForm compatibility", () => {
   it("retires the repetitive single-event form in favor of the batch planner", () => {
-    render(<VenueEventForm catalog={catalog} initialMatchId={matchId} venue={venue} />);
+    render(
+      <VenueEventForm
+        canPrepareDrafts={true}
+        catalog={catalog}
+        initialMatchId={matchId}
+        venue={venue}
+      />,
+    );
 
     expect(screen.getByRole("link", { name: "Continue to planner" })).toHaveAttribute(
       "href",
@@ -36,4 +43,12 @@ describe("VenueEventForm compatibility", () => {
     expect(screen.queryByLabelText("Event title")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Publish venue event" })).not.toBeInTheDocument();
   });
+});
+it("routes expired creation to Billing instead of the planner", () => {
+  render(<VenueEventForm venue={venue} catalog={catalog} canPrepareDrafts={false} />);
+  expect(screen.queryByRole("link", { name: "Continue to planner" })).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /Billing/ })).toHaveAttribute(
+    "href",
+    "/venues/match-corner/workspace/billing",
+  );
 });

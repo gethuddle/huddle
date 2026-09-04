@@ -74,7 +74,7 @@ jobs:
       - name: Install the pinned Playwright browser
         run: npx --no-install playwright install --with-deps chromium
 
-      - name: Run all 17 browser acceptance journeys
+      - name: Run browser acceptance journeys
         run: npm run test:e2e
 
       - name: Audit secrets and generated artifacts
