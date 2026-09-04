@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import path from "node:path";
 
+import { formatIsraelDateValue, formatIsraelKickoff } from "@/features/sports/time";
 import type { Database } from "@/types/database.generated";
 
 type MailpitAddress = Readonly<{ Address?: string; Email?: string }>;
@@ -805,8 +806,43 @@ async function selectPrivateHomeLocation(page: Page, address: string) {
   ).toBeVisible();
 }
 
-async function planSingleVenueEvent(page: Page, title: string, description: string) {
-  await selectFirstFixture(page);
+async function expectDiscoverableEvent(page: Page, title: string) {
+  await expect(page.getByText("Using this browser location", { exact: true })).toBeVisible();
+  await expect(page.getByRole("article").first()).toBeVisible();
+  while (!(await page.getByText(title, { exact: true }).isVisible())) {
+    const moreEvents = page.getByRole("button", { name: "Load more events", exact: true });
+    await expect(moreEvents).toBeVisible();
+    await expect(moreEvents).toBeEnabled();
+    const priorCount = await page.getByRole("article").count();
+    await moreEvents.click();
+    await expect.poll(() => page.getByRole("article").count()).toBeGreaterThan(priorCount);
+  }
+  await expect(page.getByText(title, { exact: true })).toBeVisible();
+}
+
+async function planSingleVenueEvent(
+  page: Page,
+  title: string,
+  description: string,
+  startsAt?: string,
+) {
+  if (startsAt === undefined) {
+    await selectFirstFixture(page);
+  } else {
+    // Earlier cases deliberately add nearer fixtures with the same teams.
+    // Select this journey's actual kickoff, not whichever fixture sorts first.
+    const picker = page.getByRole("region", { name: "Fixture picker" });
+    await picker.getByLabel("Search fixtures", { exact: true }).fill("Arsenal");
+    await picker
+      .getByLabel("Fixture date", { exact: true })
+      .fill(formatIsraelDateValue(new Date(startsAt)));
+    const fixture = picker
+      .getByRole("button")
+      .filter({ hasText: /Arsenal.*vs.*Chelsea/ })
+      .filter({ hasText: formatIsraelKickoff(startsAt) });
+    await expect(fixture).toHaveCount(1);
+    await fixture.click();
+  }
   await expect(page.getByRole("combobox", { name: /Viewing area for/ })).toHaveCount(0);
   await page.getByRole("button", { name: "Review events" }).click();
   await page.getByRole("textbox", { name: "Custom title (optional)" }).fill(title);
@@ -997,14 +1033,15 @@ test("ordinary sessions cannot use recovery, while Account Security requires the
   ).toBeVisible();
   await expect(page.getByLabel("New password")).toHaveCount(0);
 
-  await page.goto("/account/security");
-  await page.getByLabel("Current password").fill("wrong-password");
+  await page.goto("/account");
+  await page.getByRole("link", { name: "Manage security" }).click();
+  await page.getByLabel("Current password", { exact: true }).fill("wrong-password");
   await page.getByLabel("New password", { exact: true }).fill(newPassword);
   await page.getByLabel("Confirm new password").fill(newPassword);
   await page.getByRole("button", { name: "Change password" }).click();
   await expect(page.getByText("Current password is incorrect.")).toBeVisible();
 
-  await page.getByLabel("Current password").fill(oldPassword);
+  await page.getByLabel("Current password", { exact: true }).fill(oldPassword);
   await page.getByLabel("New password", { exact: true }).fill(newPassword);
   await page.getByLabel("Confirm new password").fill(newPassword);
   await page.getByRole("button", { name: "Change password" }).click();
@@ -1015,6 +1052,125 @@ test("ordinary sessions cannot use recovery, while Account Security requires the
   await page.getByLabel("Password", { exact: true }).fill(newPassword);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/^http:\/\/(?:localhost|127\.0\.0\.1):3000\/$/);
+});
+
+test("username availability is immediate in Fan setup and editing while final save remains authoritative", async ({
+  page,
+  context,
+}) => {
+  test.setTimeout(90_000);
+  await clearMailbox();
+  const suffix = uniqueSuffix();
+  const taken = `taken_${suffix}`;
+  const own = `handle_${suffix}`;
+  const next = `renamed_${suffix}`;
+  const email = `handle-${suffix}@example.com`;
+  const password = "matchday-local-test";
+  await seedCompletedUser(`occupied-${suffix}@example.com`, password, taken, "Occupied Handle");
+  await signUpAndVerify(page, context, email, password);
+  await page.getByRole("link", { name: "Set up Fan", exact: true }).click();
+  await page.getByRole("textbox", { name: "Handle" }).fill(taken.toUpperCase());
+  await expect(page.getByText("This username is already taken. Try another.")).toBeVisible();
+  await page.getByRole("textbox", { name: "Handle" }).fill(own);
+  await expect(
+    page.getByText("Username available. It is reserved only when you save."),
+  ).toBeVisible();
+  await completeProfile(page, own, "Username Fan");
+  await page.goto(new URL("/account", page.url()).toString());
+  await page.getByRole("link", { name: "Profile and username" }).click();
+  await expect(page.getByText("This is your current username.")).toBeVisible();
+  await page.getByRole("textbox", { name: "Handle" }).fill(taken);
+  await expect(page.getByText("This username is already taken. Try another.")).toBeVisible();
+  // Fast replacement must immediately clear the old taken result, before the
+  // new debounced request completes; stale-result ordering has a deferred unit test.
+  await page.getByRole("textbox", { name: "Handle" }).fill(next.toUpperCase());
+  await expect(page.getByText("This username is already taken. Try another.")).toHaveCount(0);
+  await expect(
+    page.getByText("Username available. It is reserved only when you save."),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Save profile" }).click();
+  await expect(page).toHaveURL(new RegExp(`/people/${next}$`));
+  await expect(page.getByRole("heading", { name: "Username Fan" })).toBeVisible();
+});
+
+test("account email changes require both passive email links and never sign in from a confirmation", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  await clearMailbox();
+  const suffix = uniqueSuffix();
+  const oldEmail = `email-old-${suffix}@example.com`;
+  const newEmail = `email-new-${suffix}@example.com`;
+  const password = "matchday-local-test";
+  const actorId = await seedCompletedUser(
+    oldEmail,
+    password,
+    `email_${suffix}`,
+    "Email Change Fan",
+  );
+  // Use the configured email-link origin throughout: browser storage/cookies
+  // are intentionally not shared between localhost and 127.0.0.1.
+  await signIn(page, oldEmail, password, "http://localhost:3000");
+  await page.goto(new URL("/account", page.url()).toString());
+  await page.getByRole("link", { name: "Manage security" }).click();
+  await expect(page.getByRole("link", { name: "Change username" })).toHaveAttribute(
+    "href",
+    "/settings/profile",
+  );
+  await page.getByLabel("New email address", { exact: true }).fill(newEmail);
+  await page.getByLabel("Current password for email change").fill("wrong-password");
+  await page.getByRole("button", { name: "Request email change" }).click();
+  await expect(page.getByText("Current password is incorrect.")).toBeVisible();
+  await page.getByLabel("New email address", { exact: true }).fill(newEmail);
+  await page.getByLabel("Current password for email change").fill(password);
+  await page.getByRole("button", { name: "Request email change" }).click();
+  await expect(page.getByRole("status")).toContainText("confirmation links will arrive at both");
+  const oldLink = await verificationUrlFor(oldEmail);
+  const newLink = await verificationUrlFor(newEmail);
+  for (const link of [oldLink, newLink]) {
+    expect(link.pathname).toBe("/auth/email-change/confirm");
+    expect(new URLSearchParams(link.hash.slice(1)).get("type")).toBe("email_change");
+    const passive = await fetch(new URL(link.pathname, link.origin));
+    expect(passive.ok).toBe(true);
+  }
+  const admin = localAdminClient();
+  expect((await admin.auth.admin.getUserById(actorId)).data.user?.email).toBe(oldEmail);
+  await page.evaluate(() => {
+    window.sessionStorage.setItem("huddle:discovery-origin", "private-test-origin");
+    window.sessionStorage.setItem("email-test/keep", "unrelated");
+  });
+  await page.goto(oldLink.toString());
+  await expect(page).toHaveURL(/\/auth\/email-change\/confirm$/);
+  expect((await admin.auth.admin.getUserById(actorId)).data.user?.email).toBe(oldEmail);
+  await page.getByRole("button", { name: "Continue securely" }).click();
+  await expect(page).toHaveURL(/\/auth\/email-change\?status=received$/);
+  await expect(page.getByRole("heading", { name: "Confirmation received" })).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => window.sessionStorage.getItem("huddle:discovery-origin")))
+    .toBeNull();
+  expect(await page.evaluate(() => window.sessionStorage.getItem("email-test/keep"))).toBe(
+    "unrelated",
+  );
+  await expectSessionCleanupMarkerConsumed(page);
+  expect((await admin.auth.admin.getUserById(actorId)).data.user?.email).toBe(oldEmail);
+  expect(
+    (await page.context().cookies()).some(
+      (cookie) => cookie.name.startsWith("sb-") && cookie.value !== "",
+    ),
+  ).toBe(false);
+  await page.goto(newLink.toString());
+  await page.getByRole("button", { name: "Continue securely" }).click();
+  await expect(page).toHaveURL(/\/auth\/email-change\?status=received$/);
+  expect((await admin.auth.admin.getUserById(actorId)).data.user?.email).toBe(newEmail);
+  expect(
+    (await page.context().cookies()).some(
+      (cookie) => cookie.name.startsWith("sb-") && cookie.value !== "",
+    ),
+  ).toBe(false);
+  await page.goto(newLink.toString());
+  await page.getByRole("button", { name: "Continue securely" }).click();
+  await expect(page).toHaveURL(/\/auth\/email-change\?status=expired$/);
+  await signIn(page, newEmail, password);
 });
 
 test("account deletion removes identity and rejects a stale session", async ({ page }) => {
@@ -1639,13 +1795,43 @@ test("review corrections persist Fan drafts and reach the full local fixture hor
   await page
     .getByRole("textbox", { name: "Description" })
     .fill("A persisted draft that safely survives the first-friend eligibility detour.");
+  const unsavedDraftUrl = page.url();
+  const homeLink = page
+    .getByRole("navigation", { name: "Fan navigation" })
+    .getByRole("link", { name: "Home", exact: true });
+  page.once("dialog", (dialog) => dialog.dismiss());
+  await homeLink.click();
+  await expect(page).toHaveURL(unsavedDraftUrl);
+  await expect(page.getByRole("textbox", { name: "Event title" })).toHaveValue(draftTitle);
+  page.once("dialog", (dialog) => dialog.accept());
+  await homeLink.click();
+  await expect(page).toHaveURL(/^http:\/\/(?:localhost|127\.0\.0\.1):3000\/$/);
+  await page.goto(unsavedDraftUrl);
+  await page.getByRole("textbox", { name: "Event title" }).fill(draftTitle);
+  await page
+    .getByRole("textbox", { name: "Description" })
+    .fill("A persisted draft that safely survives the first-friend eligibility detour.");
   await page.getByRole("button", { name: "Find your first friend" }).click();
   await expect(page).toHaveURL(/\/people[?]returnTo=/);
   const returnTo = new URL(page.url()).searchParams.get("returnTo");
   expect(returnTo).toMatch(/^\/events\/new[?]draft=[0-9a-f-]{36}$/);
   if (returnTo === null) throw new Error("The saved draft return path is absent.");
-  await page.goto(new URL(returnTo, page.url()).toString());
+  await page.getByRole("textbox", { name: "Name or Huddle handle" }).fill("Review");
+  await page.getByRole("button", { name: "Search people", exact: true }).click();
+  await expect(page.getByRole("link", { name: "Return to event draft" })).toHaveAttribute(
+    "href",
+    returnTo,
+  );
+  await page.getByRole("link", { name: "Clear search" }).click();
+  await page.getByRole("link", { name: "Return to event draft" }).click();
   await expect(page.getByRole("heading", { name: "Place and audience" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Event title" })).toHaveValue(draftTitle);
+  await page.getByRole("button", { name: "Save and exit" }).click();
+  await expect(page).toHaveURL(/\/events\/drafts$/);
+  await page.goto("/events/new");
+  await page.getByRole("link", { name: "Saved drafts" }).click();
+  await expect(page.getByRole("heading", { name: draftTitle, exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Resume draft" }).click();
   await expect(page.getByRole("textbox", { name: "Event title" })).toHaveValue(draftTitle);
 
   await selectPrivateHomeLocation(page, `First protected ${suffix}, Haifa`);
@@ -1665,6 +1851,21 @@ test("review corrections persist Fan drafts and reach the full local fixture hor
   await expect(page.getByText("Protected home address confirmed")).toBeVisible();
   await page.getByRole("button", { name: "Publish event" }).click();
   await expect(page).toHaveURL(/\/events\/[0-9a-f-]{36}[?]created=1$/);
+  await expect(page.getByText(new RegExp(finalAddress))).toBeVisible();
+
+  // Published rows are not drafts; discarding an unrelated unfinished draft
+  // requires confirmation and never changes the published event.
+  const publishedPrivateUrl = page.url();
+  await page.goto(`/events/new?matchId=${horizon.targetMatchId}`);
+  await page.getByRole("button", { name: "Save and exit" }).click();
+  await expect(page).toHaveURL(/\/events\/drafts$/);
+  await page.getByRole("button", { name: "Discard draft", exact: true }).click();
+  await page.getByRole("button", { name: "Keep draft", exact: true }).click();
+  await expect(page.getByRole("link", { name: "Resume draft" })).toBeVisible();
+  await page.getByRole("button", { name: "Discard draft", exact: true }).click();
+  await page.getByRole("button", { name: "Confirm discard", exact: true }).click();
+  await expect(page.getByRole("link", { name: "Resume draft" })).toHaveCount(0);
+  await page.goto(publishedPrivateUrl);
   await expect(page.getByText(new RegExp(finalAddress))).toBeVisible();
 
   const venueEmail = `review-venue-${suffix}@example.com`;
@@ -1723,7 +1924,7 @@ test("completed users create venue and private events with safe projections", as
   await page.goto(new URL("/venues/new", page.url()).toString());
   await expect(page).toHaveURL(/\/onboarding\/venue$/);
   await page.getByRole("textbox", { name: "Venue name" }).fill(`Match Corner ${suffix}`);
-  await page.getByRole("textbox", { name: "Venue URL" }).fill(venueSlug);
+  await expect(page.getByRole("textbox", { name: "Huddle page address" })).toHaveCount(0);
   await page.getByRole("combobox", { name: "Public address" }).fill("12 Hanassi Boulevard");
   await page.getByRole("option", { name: "12 Hanassi Boulevard, Haifa, Israel" }).click();
   await expect(
@@ -1770,6 +1971,7 @@ test("completed users create venue and private events with safe projections", as
     page,
     venueEventTitle,
     "A public business-venue listing for registered supporters to watch the full match.",
+    fixture.startsAt,
   );
   await page.getByRole("link", { name: "Open calendar" }).click();
   await page.getByRole("link", { name: venueEventTitle }).click();
@@ -1805,8 +2007,10 @@ test("completed users create venue and private events with safe projections", as
       origin: "http://127.0.0.1:3000",
     });
     await anonymousContext.setGeolocation({ latitude: 32.81303, longitude: 34.99928 });
-    await anonymousPage.goto(new URL("/discover", anonymousPage.url()).toString());
-    await expect(anonymousPage.getByText(venueEventTitle, { exact: true })).toBeVisible();
+    await anonymousPage.goto(
+      new URL(`/discover?match=${fixture.matchId}`, anonymousPage.url()).toString(),
+    );
+    await expectDiscoverableEvent(anonymousPage, venueEventTitle);
     await expect(
       anonymousPage.getByText("Using this browser location", { exact: true }),
     ).toBeVisible();
@@ -1833,7 +2037,26 @@ test("completed users create venue and private events with safe projections", as
     ).toString(),
   );
   await expect(page.getByRole("heading", { name: "Arsenal vs Chelsea" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Watch this match with Huddle" })).toBeVisible();
+  // Repeated isolated runs may have more than one page of watch plans for this
+  // shared fixture. Reach the new plan through the actual pagination controls.
+  while (!(await page.getByRole("link", { name: venueEventTitle, exact: true }).isVisible())) {
+    const nextEvents = page.getByRole("link", { name: "Next events", exact: true });
+    await expect(nextEvents).toBeVisible();
+    const previousPage = page.url();
+    await nextEvents.click();
+    await expect(page).not.toHaveURL(previousPage);
+    const currentPage = Number(new URL(page.url()).searchParams.get("page") ?? "1");
+    await expect(
+      page
+        .getByRole("navigation", { name: "Match event pages" })
+        .getByText(`Page ${currentPage}`, { exact: true }),
+    ).toBeVisible();
+  }
   await expect(page.getByRole("link", { name: venueEventTitle })).toBeVisible();
+  console.info("Submission fixture browse", {
+    reachedPage: Number(new URL(page.url()).searchParams.get("page") ?? "1"),
+  });
   await page.getByRole("link", { name: "Plan a private huddle" }).click();
   await expect(page).toHaveURL(/\/events\/new\?matchId=/);
 
@@ -1942,7 +2165,7 @@ test("a Venue-only operator completes the real onboarding boundary and publishes
     expect(beforeActivation).toEqual({ fan_enabled_at: null, handle: null, venue_count: 0 });
 
     await page.getByRole("textbox", { name: "Venue name" }).fill(`Venue Only ${suffix}`);
-    await page.getByRole("textbox", { name: "Venue URL" }).fill(venueSlug);
+    await expect(page.getByRole("textbox", { name: "Huddle page address" })).toHaveCount(0);
     await expect(page.locator('input[name="longitude"], input[name="latitude"]')).toHaveCount(0);
     await page.getByRole("combobox", { name: "Public address" }).fill(addressQuery);
     await page.getByRole("option", { name: suggestion.label }).click();
@@ -2489,7 +2712,7 @@ test("02 personalized discovery uses a browser coordinate without exposing it in
     }
   });
   await page.goto(new URL("/discover", page.url()).toString());
-  await expect(page.getByText(event.input.input_title, { exact: true })).toBeVisible();
+  await expectDiscoverableEvent(page, event.input.input_title);
   await expect(page.getByText("Using this browser location", { exact: true })).toBeVisible();
   await expect.poll(() => discoveryRequests.length).toBeGreaterThan(0);
   expect(discoveryRequests.at(-1)).toMatchObject({ lat: 32.81303, lng: 34.99928 });
@@ -3008,6 +3231,9 @@ test("15 calendar location appears only while private attendance remains authori
     const response = await fetch(path);
     return { body: await response.text(), status: response.status };
   }, calendarPath);
-  expect(afterCancellation.status).toBe(404);
+  // Retained participants can export a cancellation update, but never the
+  // revoked protected location. Unrelated viewers still receive not-found.
+  expect(afterCancellation.status).toBe(200);
+  expect(afterCancellation.body).toContain("STATUS:CANCELLED");
   expect(afterCancellation.body).not.toContain(address);
 });

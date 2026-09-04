@@ -4,7 +4,12 @@ const mocks = vi.hoisted(() => ({ createClient: vi.fn(), rpc: vi.fn() }));
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 
-import { listModerationReports, listMyReports, listPlatformModerationActions } from "./queries";
+import {
+  listModerationAppeals,
+  listModerationReports,
+  listMyReports,
+  listPlatformModerationActions,
+} from "./queries";
 
 const reportId = "b1100000-0000-4000-8000-000000000101";
 
@@ -80,6 +85,53 @@ describe("moderation projections", () => {
 
     await expect(listModerationReports()).resolves.toMatchObject([
       { report_id: reportId, assigned_to_me: false },
+    ]);
+  });
+
+  it("keeps erased reporters and appellants in their authorized queues without recovering identity", async () => {
+    mocks.rpc.mockImplementation(async (name: string) => {
+      if (name === "list_moderation_reports") {
+        return {
+          data: [
+            {
+              report_id: reportId,
+              reporter_handle: null,
+              target_type: "profile",
+              target_id: "b1100000-0000-4000-8000-000000000102",
+              target_label: "reported_fan",
+              category: "other",
+              details: "A bounded factual account for the platform moderator.",
+              status: "open",
+              assigned_to_me: false,
+              created_at: "2026-08-28T16:00:00Z",
+            },
+          ],
+          error: null,
+        };
+      }
+      return {
+        data: [
+          {
+            appeal_id: "b1100000-0000-4000-8000-000000000501",
+            moderation_action_id: "b1100000-0000-4000-8000-000000000701",
+            appellant_handle: null,
+            action: "temporary_suspension",
+            appeal_reason: "Please review the factual context.",
+            status: "open",
+            original_moderator_id: "b1100000-0000-4000-8000-000000000702",
+            can_current_moderator_review: true,
+            created_at: "2026-08-28T16:00:00Z",
+          },
+        ],
+        error: null,
+      };
+    });
+
+    await expect(listModerationReports()).resolves.toMatchObject([
+      { reporter_handle: null, report_id: reportId },
+    ]);
+    await expect(listModerationAppeals()).resolves.toMatchObject([
+      { appellant_handle: null, appeal_id: "b1100000-0000-4000-8000-000000000501" },
     ]);
   });
 

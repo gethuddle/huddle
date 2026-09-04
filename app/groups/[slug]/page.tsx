@@ -198,15 +198,19 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
                 key={application.userId}
               >
                 <div>
-                  <Link
-                    className="font-semibold text-foreground"
-                    href={`/people/${application.handle}`}
-                  >
-                    {application.displayName}
-                  </Link>
+                  {application.handle === null ? (
+                    <p className="font-semibold text-foreground">Account unavailable</p>
+                  ) : (
+                    <Link
+                      className="font-semibold text-foreground"
+                      href={`/people/${application.handle}`}
+                    >
+                      {application.displayName}
+                    </Link>
+                  )}
                   <p className="mt-1 text-sm text-muted-foreground">
-                    @{application.handle} ·{" "}
-                    {application.source === "invite" ? "Invitation" : "Group page"}
+                    {application.handle === null ? "Account unavailable" : `@${application.handle}`}{" "}
+                    · {application.source === "invite" ? "Invitation" : "Group page"}
                   </p>
                 </div>
                 <ApplicationReviewControl
@@ -217,6 +221,13 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
               </div>
             ))}
           </div>
+          {attention.applicationTotalCount > attention.applications.length ? (
+            <Button asChild className="mt-5" variant="outline">
+              <Link href={`/groups/${group.slug}/manage?section=applications&page=1`}>
+                View all {attention.applicationTotalCount} applications
+              </Link>
+            </Button>
+          ) : null}
         </section>
       )}
 
@@ -239,8 +250,10 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
                     {event.title}
                   </Link>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {event.match.homeTeamName} vs {event.match.awayTeamName} · submitted by @
-                    {event.submitterHandle}
+                    {event.match.homeTeamName} vs {event.match.awayTeamName} · submitted by{" "}
+                    {event.submitterHandle === null
+                      ? "Account unavailable"
+                      : `@${event.submitterHandle}`}
                   </p>
                 </div>
                 <EventReviewControl
@@ -254,6 +267,13 @@ export default async function GroupPage({ params, searchParams }: GroupPageProps
               </article>
             ))}
           </div>
+          {attention.eventTotalCount > attention.events.length ? (
+            <Button asChild className="mt-5" variant="outline">
+              <Link href={`/groups/${group.slug}/manage?section=events&page=1`}>
+                View all {attention.eventTotalCount} event submissions
+              </Link>
+            </Button>
+          ) : null}
         </section>
       )}
 

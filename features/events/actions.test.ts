@@ -124,6 +124,7 @@ describe("event draft actions", () => {
     expect(mocks.requireActor).toHaveBeenCalledWith("fan");
     expect(mocks.saveEventDraft).toHaveBeenCalledWith(supabase, input);
     expect(result).toEqual({ ok: true, data: ownerDraftActionResult() });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/events/drafts");
   });
 
   it("keeps owner recovery and discard available at the authenticated gate", async () => {
@@ -139,6 +140,7 @@ describe("event draft actions", () => {
     expect(mocks.requireActor).toHaveBeenNthCalledWith(2, "authenticated");
     expect(mocks.getEventDraft).toHaveBeenCalledWith(supabase, eventId);
     expect(mocks.discardEventDraft).toHaveBeenCalledWith(supabase, eventId);
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/events/drafts");
 
     const loaded = await loadEventDraftAction({ draftId: eventId });
     expect(loaded).toMatchObject({
@@ -172,6 +174,7 @@ describe("event draft actions", () => {
       "60000000-0000-4000-8000-000000000199",
     );
     expect(mocks.revalidatePath).toHaveBeenCalledWith(`/events/${eventId}`);
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/events/drafts");
     expect(mocks.redirect).toHaveBeenCalledWith(`/events/${eventId}?created=1`);
   });
 });
@@ -422,6 +425,48 @@ describe("saveVenueEventAction", () => {
       error: { code: "VALIDATION_FAILED" },
     });
     expect(mocks.requireActor).not.toHaveBeenCalled();
+  });
+
+  it("updates an existing open-door draft through the bounded venue mutation", async () => {
+    const form = venueEventForm();
+    form.set("eventId", eventId);
+    form.set("capacity", "");
+    form.set("intent", "publish");
+    const result = await saveVenueEventAction(null, form);
+    expect(result).toMatchObject({ ok: true, data: { event: { status: "published" } } });
+    expect(rpc).toHaveBeenCalledWith(
+      "save_venue_event",
+      expect.objectContaining({
+        input_event_id: eventId,
+        input_intent: "publish",
+        input_values: expect.objectContaining({
+          capacity: null,
+          requiresApproval: false,
+          title: "Arsenal at Match Corner",
+        }),
+      }),
+    );
+    expect(rpc).not.toHaveBeenCalledWith("create_or_update_event", expect.anything());
+  });
+
+  it("cancels a saved draft without deleting its event row or requiring invalid form text", async () => {
+    rpc.mockResolvedValue({ data: [{ event_id: eventId, status: "cancelled" }], error: null });
+    const form = venueEventForm();
+    form.set("eventId", eventId);
+    form.set("intent", "cancel");
+    form.set("title", "");
+    expect(await saveVenueEventAction(null, form)).toMatchObject({
+      ok: true,
+      data: { event: { status: "cancelled" } },
+    });
+    expect(rpc).toHaveBeenCalledWith(
+      "save_venue_event",
+      expect.objectContaining({
+        input_event_id: eventId,
+        input_intent: "cancel",
+        input_values: {},
+      }),
+    );
   });
 
   it("derives venue identity and time while defaulting to immediate approval", async () => {

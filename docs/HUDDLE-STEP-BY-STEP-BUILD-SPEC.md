@@ -1503,6 +1503,8 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 
 ## 18. The rule to remember
 
+**4 September submission-hardening follow-up:** the coordinated corrective slice addresses the 17-finding audit, performance/navigation work, automatic venue addresses, availability hints, secure email changes, fixture pagination, and map-worker loading. Its writer status is **review (local acceptance passed)**, not a merged release or B13 completion. [Current acceptance evidence](./evidence/submission-hardening/ACCEPTANCE.md) records passing isolated checks and the remaining separately authorized hosted/rehearsal gates. The historical milestone ledger above is not rewritten by local changes.
+
 For every delivery milestone:
 
 > Both understand it → one Codex writes it → the user invokes `$huddle-publish-pr` → required CI passes → the PR author may merge; partner or automated review is recommended but optional.

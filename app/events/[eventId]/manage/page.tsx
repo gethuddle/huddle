@@ -24,6 +24,10 @@ import { DomainError } from "@/lib/errors";
 import { collectionPageCount, collectionPageInput } from "@/lib/pagination";
 import { getAuthorizedVenueWorkspaceBySlug } from "@/features/workspaces/queries";
 import { BillingStatusBanner } from "@/features/venue-billing/components/billing-status-banner";
+import { getVenueEventForManagement } from "@/features/venues/workspace/queries";
+import { VenueEventEditor } from "@/features/venues/workspace/components/venue-event-editor";
+import { safeVenueEventReturnTo } from "@/features/venues/workspace/event-links";
+import { safeExploreReturnTo } from "@/components/navigation/context-back-link";
 
 export const metadata: Metadata = { title: "Manage event — Huddle" };
 
@@ -43,16 +47,31 @@ export default async function ManageEventPage({ params, searchParams }: Props) {
       : null;
   if (event.host.kind === "venue" && workspace === null) notFound();
   const canOperate = workspace?.billing.canOperateExistingEvents ?? true;
+  const startsInFuture = Date.parse(event.startsAt) > new Date().getTime();
   const canInvite =
     workspace === null ||
     (workspace.billing.isPublic &&
       (workspace.billing.publishCutoffAt === null ||
         Date.parse(event.startsAt) < Date.parse(workspace.billing.publishCutoffAt)));
 
-  const rawPage = (await searchParams).page;
+  const query = await searchParams;
+  const rawReturnTo = Array.isArray(query.returnTo) ? query.returnTo[0] : query.returnTo;
+  const returnTo =
+    safeVenueEventReturnTo(rawReturnTo, event.host.venueSlug, event.canManage) ??
+    safeExploreReturnTo(rawReturnTo);
+  const returnQuery = returnTo === null ? "" : `?${new URLSearchParams({ returnTo })}`;
+  const managedEventId = event.id;
+  function managementPageHref(page: number) {
+    const query = new URLSearchParams();
+    if (returnTo !== null) query.set("returnTo", returnTo);
+    query.set("page", String(page));
+    return `/events/${managedEventId}/manage?${query}#event-management-queue`;
+  }
+  const managedEvent = workspace === null ? null : await getVenueEventForManagement(event.id);
+  const rawPage = query.page;
   const pageInput = collectionPageInput(Array.isArray(rawPage) ? rawPage[0] : rawPage);
   if (pageInput.wasAboveWindow) {
-    redirect(`/events/${event.id}/manage?page=${pageInput.page}#event-management-queue`);
+    redirect(managementPageHref(pageInput.page));
   }
   const page = pageInput.page;
   const openDoor = event.attendanceMode === "open_door";
@@ -77,7 +96,7 @@ export default async function ManageEventPage({ params, searchParams }: Props) {
     );
     const finalPage = collectionPageCount(firstTotal);
     if (page > finalPage) {
-      redirect(`/events/${event.id}/manage?page=${finalPage}#event-management-queue`);
+      redirect(managementPageHref(finalPage));
     }
   }
   const candidates = invitationCandidates(people, invitations, attendance);
@@ -85,24 +104,44 @@ export default async function ManageEventPage({ params, searchParams }: Props) {
   return (
     <section className="py-12 sm:py-16">
       <Button asChild variant="ghost">
-        <Link href={`/events/${event.id}`}>← Event details</Link>
+        <Link href={`/events/${event.id}${returnQuery}`}>← Event details</Link>
       </Button>
       <p className="mt-8 text-sm font-medium text-forest">Event management</p>
       <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-foreground sm:text-4xl">
         {event.title}
       </h1>
       <p className="mt-4 max-w-3xl text-muted-foreground">
-        {openDoor
-          ? workspace !== null && !workspace.billing.isPublic
-            ? "This walk-in fixture is private. There is no digital guest list to manage."
-            : "This fixture is public and walk-in. There is no digital guest list to manage."
-          : canInvite
-            ? "Invite people, review attendance requests, and manage approved attendees."
-            : canOperate
-              ? "Review existing attendance requests and manage approved attendees."
-              : "Attendance and invitation history remains available. Editing is locked."}
+        {event.status === "draft"
+          ? "This draft is private. Review its details, publish when ready, or cancel it to plan this fixture again."
+          : openDoor
+            ? workspace !== null && !workspace.billing.isPublic
+              ? "This walk-in fixture is private. There is no digital guest list to manage."
+              : "This fixture is public and walk-in. There is no digital guest list to manage."
+            : canInvite
+              ? "Invite people, review attendance requests, and manage approved attendees."
+              : canOperate
+                ? "Review existing attendance requests and manage approved attendees."
+                : "Attendance and invitation history remains available. Editing is locked."}
       </p>
       {workspace ? <BillingStatusBanner context={workspace.billing} slug={workspace.slug} /> : null}
+
+      {managedEvent && workspace ? (
+        <VenueEventEditor
+          event={managedEvent}
+          canEdit={
+            event.status === "draft"
+              ? workspace.billing.canPrepareDrafts
+              : event.status === "published" && startsInFuture && canOperate
+          }
+          canPublish={
+            event.status === "draft" &&
+            startsInFuture &&
+            workspace.billing.canPublish &&
+            (workspace.billing.publishCutoffAt === null ||
+              Date.parse(event.startsAt) < Date.parse(workspace.billing.publishCutoffAt))
+          }
+        />
+      ) : null}
 
       <div className="mt-10" id="event-management-queue">
         <EventManagementControls
@@ -126,7 +165,7 @@ export default async function ManageEventPage({ params, searchParams }: Props) {
             <PaginationItem>
               <PaginationPrevious
                 aria-disabled={page === 1}
-                href={page === 1 ? undefined : `?page=${page - 1}#event-management-queue`}
+                href={page === 1 ? undefined : managementPageHref(page - 1)}
               />
             </PaginationItem>
             <PaginationItem>
@@ -137,7 +176,7 @@ export default async function ManageEventPage({ params, searchParams }: Props) {
             <PaginationItem>
               <PaginationNext
                 aria-disabled={page >= pageCount}
-                href={page >= pageCount ? undefined : `?page=${page + 1}#event-management-queue`}
+                href={page >= pageCount ? undefined : managementPageHref(page + 1)}
               />
             </PaginationItem>
           </PaginationContent>
@@ -178,6 +217,10 @@ function invitationCandidates(
     });
   }
   for (const invitation of invitations) {
+    if (invitation.invitee_handle === null) {
+      candidates.delete(invitation.invitee_id);
+      continue;
+    }
     candidates.set(invitation.invitee_id, {
       id: invitation.invitee_id,
       handle: invitation.invitee_handle,
@@ -193,6 +236,10 @@ function invitationCandidates(
     });
   }
   for (const row of attendance) {
+    if (row.requester_handle === null) {
+      candidates.delete(row.user_id);
+      continue;
+    }
     candidates.set(row.user_id, {
       id: row.user_id,
       handle: row.requester_handle,

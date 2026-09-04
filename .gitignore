@@ -15,6 +15,7 @@ course-roadmap/
 /.next/
 /out/
 /build/
+/public/maplibre/
 
 # local environment files
 .env*

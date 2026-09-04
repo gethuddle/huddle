@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DeleteAccountControl } from "@/features/account-erasure/components/delete-account-control";
 import { ChangePasswordForm } from "@/features/auth/components/change-password-form";
+import { ChangeEmailForm } from "@/features/auth/components/change-email-form";
 import { ProfileAccessState } from "@/features/profiles/components/profile-access-state";
 import { getAppShellState } from "@/features/workspaces/queries";
 
@@ -16,7 +17,7 @@ export default async function AccountSecurityPage() {
       <ProfileAccessState
         actionHref="/auth/sign-in"
         actionLabel="Sign in"
-        description="Sign in before changing this account’s password."
+        description="Sign in before changing this account’s email or password."
         eyebrow="Sign in required"
         title="Account security is private."
       />
@@ -26,10 +27,10 @@ export default async function AccountSecurityPage() {
   return (
     <section className="mx-auto my-12 w-full max-w-2xl sm:my-16">
       <p className="text-sm font-medium text-forest">Account security</p>
-      <h1 className="mt-3 text-4xl font-semibold tracking-[-0.04em]">Change your password.</h1>
+      <h1 className="mt-3 text-4xl font-semibold tracking-[-0.04em]">Manage account security.</h1>
       <p className="mt-4 leading-7 text-muted-foreground">
-        Confirm the current password, then choose a new one. Huddle ends this session and asks
-        Supabase to revoke the rest.
+        Email and password changes require your current password. After a password change, Huddle
+        ends this session and asks Supabase to revoke the rest.
       </p>
 
       <Card className="mt-10 rounded-[1.375rem] shadow-none">
@@ -48,6 +49,37 @@ export default async function AccountSecurityPage() {
             </Link>{" "}
             Recover access by email instead.
           </p>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6 rounded-[1.375rem] shadow-none">
+        <CardHeader>
+          <CardTitle className="text-xl font-semibold">
+            <h2>Email address</h2>
+          </CardTitle>
+          <CardDescription>
+            Keep access to both your current and new inboxes. The change requires confirmation at
+            both addresses.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChangeEmailForm />
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6 rounded-[1.375rem] shadow-none">
+        <CardHeader>
+          <CardTitle className="text-xl font-semibold">
+            <h2>Public username</h2>
+          </CardTitle>
+          <CardDescription>
+            Your Fan handle is your public username, separate from your sign-in email.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild variant="outline">
+            <Link href="/settings/profile">Change username</Link>
+          </Button>
         </CardContent>
       </Card>
 

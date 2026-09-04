@@ -152,6 +152,21 @@ describe("event discovery query", () => {
     expect(JSON.stringify(result)).not.toMatch(/address|distance_meters|private_location/i);
   });
 
+  it("starts the bounded public map projection before optional team visuals resolve", async () => {
+    const visuals = Promise.withResolvers<Map<string, { tla: string; crestUrl: string | null }>>();
+    mocks.loadTeamVisualsByName.mockReturnValue(visuals.promise);
+
+    const pending = getDiscoveryPage(filters);
+    await vi.waitFor(() => {
+      expect(mocks.rpc).toHaveBeenCalledWith("get_public_event_map_points", {
+        input_event_ids: [safeRow().event_id],
+      });
+    });
+    visuals.resolve(new Map());
+
+    await expect(pending).resolves.toMatchObject({ items: [{ mapPoint: expect.any(Object) }] });
+  });
+
   it("rejects an expanded database row that attempts to add a protected field", async () => {
     mocks.rpc.mockResolvedValue({
       data: [{ ...safeRow(), private_address_text: "Never expose this" }],

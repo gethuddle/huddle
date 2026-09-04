@@ -63,18 +63,15 @@ export default async function Home() {
   let fanHome: Awaited<ReturnType<typeof getFanHome>> | null = null;
 
   if (viewerId !== null) {
-    const profileResult = await supabase
-      .from("profiles")
-      .select("display_name")
-      .eq("id", viewerId)
-      .maybeSingle();
+    const [profileResult, nextFanHome] = await Promise.all([
+      supabase.from("profiles").select("display_name").eq("id", viewerId).maybeSingle(),
+      getFanHome().catch((error: unknown) => {
+        if (!(error instanceof DomainError) || error.code === "INTERNAL_ERROR") throw error;
+        return null;
+      }),
+    ]);
     displayName = profileResult.error === null ? (profileResult.data?.display_name ?? null) : null;
-
-    try {
-      fanHome = await getFanHome();
-    } catch (error) {
-      if (!(error instanceof DomainError) || error.code === "INTERNAL_ERROR") throw error;
-    }
+    fanHome = nextFanHome;
   }
 
   if (workspace.active?.kind === "fan") {

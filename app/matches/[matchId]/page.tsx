@@ -1,14 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { EmptyState } from "@/components/states/empty-state";
 import { ContextBackLink, safeExploreReturnTo } from "@/components/navigation/context-back-link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { EventCard } from "@/features/events/components/event-card";
-import { listMatchEvents } from "@/features/events/queries";
+import { listMatchEventPage } from "@/features/events/queries";
 import { getFixtureById } from "@/features/sports/browse";
 import { matchIdSchema } from "@/features/sports/browse-schemas";
 import { ProviderFreshness } from "@/features/sports/components/provider-freshness";
@@ -19,6 +26,7 @@ import { FollowControl } from "@/features/subscriptions/components/follow-contro
 import { InterestAccessPrompt } from "@/features/subscriptions/components/interest-access-prompt";
 import type { SubscriptionKind } from "@/features/subscriptions/schemas";
 import { getInterestViewer, subscriptionKey } from "@/features/subscriptions/viewer";
+import { collectionPageInput } from "@/lib/pagination";
 
 export const metadata: Metadata = {
   title: "Match details — Huddle",
@@ -73,18 +81,75 @@ function FollowTarget({
   );
 }
 
+function matchEventsHref(matchId: string, page: number, returnTo: string | null) {
+  const query = new URLSearchParams();
+  if (page > 1) query.set("page", String(page));
+  if (returnTo !== null) query.set("returnTo", returnTo);
+  const search = query.size === 0 ? "" : `?${query.toString()}`;
+  return `/matches/${matchId}${search}#match-events`;
+}
+
+function MatchEventPagination({
+  matchId,
+  page,
+  returnTo,
+  hasNext,
+}: Readonly<{
+  matchId: string;
+  page: number;
+  returnTo: string | null;
+  hasNext: boolean;
+}>) {
+  if (page === 1 && !hasNext) return null;
+
+  return (
+    <Pagination className="mt-10" aria-label="Match event pages">
+      <PaginationContent>
+        {page > 1 ? (
+          <PaginationItem>
+            <PaginationPrevious
+              aria-label="Previous events"
+              href={matchEventsHref(matchId, page - 1, returnTo)}
+              text="Previous events"
+            />
+          </PaginationItem>
+        ) : null}
+        <PaginationItem>
+          <span className="px-4 text-sm text-muted-foreground">Page {page}</span>
+        </PaginationItem>
+        {hasNext ? (
+          <PaginationItem>
+            <PaginationNext
+              aria-label="Next events"
+              href={matchEventsHref(matchId, page + 1, returnTo)}
+              text="Next events"
+            />
+          </PaginationItem>
+        ) : null}
+      </PaginationContent>
+    </Pagination>
+  );
+}
+
 export default async function MatchDetailPage({ params, searchParams }: MatchDetailPageProps) {
   const parsedId = matchIdSchema.safeParse((await params).matchId);
   if (!parsedId.success) notFound();
-  const rawReturnTo = (await searchParams).returnTo;
+  const rawSearch = await searchParams;
+  const rawReturnTo = rawSearch.returnTo;
   const returnTo = safeExploreReturnTo(
     Array.isArray(rawReturnTo) ? rawReturnTo.at(0) : rawReturnTo,
   );
+  const rawPage = rawSearch.page;
+  const pageInput = collectionPageInput(Array.isArray(rawPage) ? rawPage.at(0) : rawPage);
+  if (pageInput.wasAboveWindow) {
+    redirect(matchEventsHref(parsedId.data, pageInput.page, returnTo));
+  }
+  const page = pageInput.page;
 
-  const [data, viewer, events] = await Promise.all([
+  const [data, viewer, eventPage] = await Promise.all([
     getFixtureById(parsedId.data),
     getInterestViewer(),
-    listMatchEvents(parsedId.data),
+    listMatchEventPage(parsedId.data, page),
   ]);
   if (data.match === null) notFound();
   const match = data.match;
@@ -183,23 +248,43 @@ export default async function MatchDetailPage({ params, searchParams }: MatchDet
         </CardContent>
       </Card>
 
-      <div className="mx-auto mt-10 max-w-4xl">
-        {events.length === 0 ? (
-          <EmptyState
-            action={
-              <div className="flex flex-wrap justify-center gap-3">
-                <Button asChild>
-                  <Link href={"/events/new?matchId=" + match.id}>Plan a private huddle</Link>
-                </Button>
-                <Button asChild variant="outline">
-                  <Link href="/settings/interests">Manage all follows</Link>
-                </Button>
-              </div>
-            }
-            description="Eligible Fans may create group, friends, or invite-only events. Venue operators publish public events from their Venue workspace."
-            headingLevel="h2"
-            title="No watch events for this fixture yet."
-          />
+      <div className="mx-auto mt-10 max-w-4xl" id="match-events">
+        {eventPage.events.length === 0 ? (
+          page > 1 ? (
+            <section aria-labelledby="no-more-match-events-heading">
+              <h2
+                className="text-2xl font-semibold tracking-[-0.03em] text-foreground"
+                id="no-more-match-events-heading"
+              >
+                No more watch events on this page
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Watch plans may have changed. Go back to continue browsing this fixture.
+              </p>
+              <MatchEventPagination
+                hasNext={false}
+                matchId={match.id}
+                page={page}
+                returnTo={returnTo}
+              />
+            </section>
+          ) : (
+            <EmptyState
+              action={
+                <div className="flex flex-wrap justify-center gap-3">
+                  <Button asChild>
+                    <Link href={"/events/new?matchId=" + match.id}>Plan a private huddle</Link>
+                  </Button>
+                  <Button asChild variant="outline">
+                    <Link href="/settings/interests">Manage all follows</Link>
+                  </Button>
+                </div>
+              }
+              description="Eligible Fans may create group, friends, or invite-only events. Venue operators publish public events from their Venue workspace."
+              headingLevel="h2"
+              title="No watch events for this fixture yet."
+            />
+          )
         ) : (
           <section aria-labelledby="match-events-heading">
             <div className="flex flex-wrap items-end justify-between gap-4">
@@ -217,10 +302,21 @@ export default async function MatchDetailPage({ params, searchParams }: MatchDet
               </Button>
             </div>
             <div className="mt-5 grid gap-4 md:grid-cols-2">
-              {events.map((event) => (
+              {eventPage.events.map((event) => (
                 <EventCard event={event} key={event.id} returnTo={returnTo} />
               ))}
             </div>
+            {eventPage.reachedWindowEnd ? (
+              <p className="mt-6 text-sm text-muted-foreground" role="status">
+                More watch events may exist, but this list has reached its safe page limit.
+              </p>
+            ) : null}
+            <MatchEventPagination
+              hasNext={eventPage.hasNext}
+              matchId={match.id}
+              page={page}
+              returnTo={returnTo}
+            />
           </section>
         )}
       </div>

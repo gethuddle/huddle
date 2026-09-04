@@ -40,6 +40,7 @@ const MONTH_PATTERN = Object.keys(MONTHS)
   .sort((left, right) => right.length - left.length)
   .join("|");
 const WEEKDAY_PATTERN = Object.keys(WEEKDAYS).join("|");
+const RELATIVE_DATE_PATTERN = `\\b(?:day\\s+after\\s+tomorrow|tonight|this\\s+evening|today|tomorrow|yesterday|(?:(?:next|this|last)\\s+)?(?:${WEEKDAY_PATTERN})|(?:next|this|last)\\s+(?:weekend|week|month|year)|in\\s+\\d{1,2}\\s+days?)\\b`;
 
 type DateFailureReason = "invalid" | "past" | "too_wide";
 
@@ -49,6 +50,11 @@ export type QueryDateRangeResult =
   | Readonly<{ kind: "invalid"; reason: DateFailureReason }>;
 
 type CalendarParts = Readonly<{ year: number | null; month: number; day: number }>;
+type CalendarExpression = Readonly<{ index: number; end: number; parts: CalendarParts }>;
+
+function unsupportedDateModifier(query: string, index: number): boolean {
+  return /\b(?:not|except|excluding|before|after|until|since)\s*$/u.test(query.slice(0, index));
+}
 
 function dateEpoch(dateValue: string): number {
   const [year, month, day] = dateValue.split("-").map(Number);
@@ -141,8 +147,8 @@ function nextWeekRange(today: string): QueryDateRangeResult {
   return { kind: "resolved", fromDate: sunday, toDate: addDays(sunday, 6) };
 }
 
-function parsedNamedDates(query: string): CalendarParts[] {
-  const matches: Array<Readonly<{ index: number; parts: CalendarParts }>> = [];
+function parsedNamedDates(query: string): CalendarExpression[] {
+  const matches: CalendarExpression[] = [];
   const dayFirst = new RegExp(
     `\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+(${MONTH_PATTERN})(?:,?\\s+(\\d{4}))?\\b`,
     "giu",
@@ -158,6 +164,7 @@ function parsedNamedDates(query: string): CalendarParts[] {
     if (month === undefined) continue;
     matches.push({
       index: match.index,
+      end: match.index + match[0].length,
       parts: {
         day: Number(match[1]),
         month,
@@ -171,6 +178,7 @@ function parsedNamedDates(query: string): CalendarParts[] {
     if (month === undefined) continue;
     matches.push({
       index: match.index,
+      end: match.index + match[0].length,
       parts: {
         day: Number(match[2]),
         month,
@@ -181,8 +189,7 @@ function parsedNamedDates(query: string): CalendarParts[] {
 
   return matches
     .sort((left, right) => left.index - right.index)
-    .filter((entry, index, entries) => index === 0 || entry.index !== entries[index - 1]?.index)
-    .map((entry) => entry.parts);
+    .filter((entry, index, entries) => index === 0 || entry.index !== entries[index - 1]?.index);
 }
 
 function combineDateRange(
@@ -203,6 +210,66 @@ export function resolveQueryDateRange(query: string, now: Date): QueryDateRangeR
     .toLocaleLowerCase("en")
     .replace(/\b(?:tommorow|tomorow)\b/gu, "tomorrow");
   const today = formatIsraelDateValue(now);
+
+  // Resolve a whole bounded expression, never the first recognizable word in
+  // unsupported compound language (for example "today or tomorrow").
+  const relativeExpressions = [...normalized.matchAll(new RegExp(RELATIVE_DATE_PATTERN, "gu"))];
+  const weekdayInterval = normalized.match(
+    new RegExp(
+      `\\b(?:from\\s+)?(?:(next|this)\\s+)?(${WEEKDAY_PATTERN})\\s*(?:to|through|[–—-])\\s*(?:(next|this)\\s+)?(${WEEKDAY_PATTERN})\\b`,
+      "u",
+    ),
+  );
+  const hasCalendarExpression =
+    /\b\d{4}-\d{2}-\d{2}\b/u.test(normalized) ||
+    parsedNamedDates(normalized).length > 0 ||
+    new RegExp(`\\b(?:in|during|for)\\s+(?:${MONTH_PATTERN})\\b`, "u").test(normalized);
+  if (relativeExpressions.length > 0 && hasCalendarExpression) {
+    return { kind: "invalid", reason: "invalid" };
+  }
+  if (
+    weekdayInterval !== null &&
+    relativeExpressions.length === 2 &&
+    !/\b(?:not|except|excluding|before|after|until|since)\b/u.test(normalized)
+  ) {
+    const start = weekdayRange(
+      today,
+      weekdayInterval[2] as keyof typeof WEEKDAYS,
+      weekdayInterval[1] === "next",
+    );
+    const end = weekdayRange(
+      today,
+      weekdayInterval[4] as keyof typeof WEEKDAYS,
+      weekdayInterval[3] === "next",
+    );
+    if (start.kind === "resolved" && end.kind === "resolved") {
+      const endDate = end.fromDate < start.fromDate ? addDays(end.fromDate, 7) : end.fromDate;
+      return { kind: "resolved", fromDate: start.fromDate, toDate: endDate };
+    }
+  }
+  if (
+    relativeExpressions.length > 1 ||
+    relativeExpressions.some((expression) => unsupportedDateModifier(normalized, expression.index))
+  ) {
+    return { kind: "invalid", reason: "invalid" };
+  }
+  if (
+    /\byesterday\b/u.test(normalized) ||
+    /\blast\s+(?:day|week|weekend|month|year)\b/u.test(normalized) ||
+    new RegExp(`\\blast\\s+(?:${WEEKDAY_PATTERN})\\b`, "u").test(normalized)
+  ) {
+    return { kind: "invalid", reason: "past" };
+  }
+  if (/\b(?:this\s+week|next\s+weekend|(?:this|next)\s+year)\b/u.test(normalized)) {
+    return { kind: "invalid", reason: "invalid" };
+  }
+  if (/\b(?:tonight|this\s+evening)\b/u.test(normalized)) {
+    return { kind: "resolved", fromDate: today, toDate: today };
+  }
+  if (/\bday\s+after\s+tomorrow\b/u.test(normalized)) {
+    const target = addDays(today, 2);
+    return { kind: "resolved", fromDate: target, toDate: target };
+  }
 
   if (/\btoday\b/u.test(normalized)) {
     return { kind: "resolved", fromDate: today, toDate: today };
@@ -225,24 +292,28 @@ export function resolveQueryDateRange(query: string, now: Date): QueryDateRangeR
     );
   }
 
-  const isoDates = [...normalized.matchAll(/\b(\d{4})-(\d{2})-(\d{2})\b/gu)].map((match) => ({
-    year: Number(match[1]),
-    month: Number(match[2]),
-    day: Number(match[3]),
+  const isoDates: CalendarExpression[] = [
+    ...normalized.matchAll(/\b(\d{4})-(\d{2})-(\d{2})\b/gu),
+  ].map((match) => ({
+    index: match.index,
+    end: match.index + match[0].length,
+    parts: { year: Number(match[1]), month: Number(match[2]), day: Number(match[3]) },
   }));
-  if (isoDates.length > 0) {
-    const first = resolveCalendarDate(isoDates[0]!, today);
-    return isoDates.length === 1
-      ? first
-      : combineDateRange(first, resolveCalendarDate(isoDates[1]!, today));
-  }
-
-  const namedDates = parsedNamedDates(normalized);
-  if (namedDates.length > 0) {
-    const first = resolveCalendarDate(namedDates[0]!, today);
-    return namedDates.length === 1
-      ? first
-      : combineDateRange(first, resolveCalendarDate(namedDates[1]!, today));
+  const dates = [...isoDates, ...parsedNamedDates(normalized)].sort(
+    (left, right) => left.index - right.index,
+  );
+  if (dates.length > 0) {
+    if (dates.length > 2 || dates.some((date) => unsupportedDateModifier(normalized, date.index))) {
+      return { kind: "invalid", reason: "invalid" };
+    }
+    const first = resolveCalendarDate(dates[0]!.parts, today);
+    if (dates.length === 1) return first;
+    const separator = normalized.slice(dates[0]!.end, dates[1]!.index).trim();
+    const isRange =
+      /^(?:to|through|[–—-])$/u.test(separator) ||
+      (separator === "and" && /\bbetween\s*$/u.test(normalized.slice(0, dates[0]!.index)));
+    if (!isRange) return { kind: "invalid", reason: "invalid" };
+    return combineDateRange(first, resolveCalendarDate(dates[1]!.parts, today));
   }
 
   const relativeDays = normalized.match(/\bin\s+(\d{1,2})\s+days?\b/u);
@@ -262,10 +333,15 @@ export function resolveQueryDateRange(query: string, now: Date): QueryDateRangeR
     return resolveMonth(month, Number(today.slice(0, 4)), today);
   }
 
-  const monthMatch = normalized.match(
-    new RegExp(`\\b(${MONTH_PATTERN})(?:\\s+(\\d{4}))?\\b`, "iu"),
-  );
-  if (monthMatch !== null) {
+  const monthMatches = [
+    ...normalized.matchAll(new RegExp(`\\b(${MONTH_PATTERN})(?:\\s+(\\d{4}))?\\b`, "giu")),
+  ];
+  if (monthMatches.length > 1) return { kind: "invalid", reason: "invalid" };
+  const monthMatch = monthMatches[0];
+  if (monthMatch !== undefined) {
+    if (unsupportedDateModifier(normalized, monthMatch.index)) {
+      return { kind: "invalid", reason: "invalid" };
+    }
     const name = monthMatch[1]!.toLocaleLowerCase("en") as keyof typeof MONTHS;
     if (
       name === "may" &&
@@ -283,6 +359,7 @@ export function resolveQueryDateRange(query: string, now: Date): QueryDateRangeR
 
   if (
     /\b20\d{2}\b/u.test(normalized) ||
+    /\b(?:weekend|evening|week|fortnight)\b/u.test(normalized) ||
     /\b\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?\b/u.test(normalized) ||
     /\b(?:in|within)\s+[a-z0-9-]+\s+(?:days?|weeks?|months?)\b/u.test(normalized)
   ) {

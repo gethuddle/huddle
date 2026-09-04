@@ -86,6 +86,73 @@ const event = {
 };
 
 describe("EventPage attendee pagination", () => {
+  it.each([
+    "https://evil.example",
+    "//evil.example",
+    "/venues/other/workspace",
+    "/venues/venue/workspace/billing",
+    "/venues/venue/workspace/../billing",
+    "/\\evil.example",
+  ])("does not allow an unrelated return destination %s", async (returnTo) => {
+    mocks.getEventSummary.mockResolvedValue({
+      ...event,
+      attendanceMode: "open_door",
+      capacity: null,
+      viewerCanReadPrivateLocation: false,
+    });
+    render(
+      await EventPage({
+        params: Promise.resolve({ eventId }),
+        searchParams: Promise.resolve({ returnTo }),
+      }),
+    );
+    expect(screen.getByRole("link", { name: "Back to venue" })).toHaveAttribute(
+      "href",
+      "/venues/venue/workspace",
+    );
+  });
+  it("does not offer venue management or venue return to an ordinary fan", async () => {
+    mocks.getEventSummary.mockResolvedValue({
+      ...event,
+      canManage: false,
+      attendanceMode: "open_door",
+      capacity: null,
+      viewerCanReadPrivateLocation: false,
+    });
+    render(
+      await EventPage({
+        params: Promise.resolve({ eventId }),
+        searchParams: Promise.resolve({ returnTo: "/venues/venue/workspace" }),
+      }),
+    );
+    expect(screen.queryByRole("link", { name: "Manage event" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to Explore" })).toHaveAttribute(
+      "href",
+      "/discover",
+    );
+  });
+  it("shows open-door managers a management entry and retains the venue return destination", async () => {
+    mocks.getEventSummary.mockResolvedValue({
+      ...event,
+      attendanceMode: "open_door",
+      capacity: null,
+      viewerCanReadPrivateLocation: false,
+    });
+    render(
+      await EventPage({
+        params: Promise.resolve({ eventId }),
+        searchParams: Promise.resolve({ returnTo: "/venues/venue/workspace/calendar" }),
+      }),
+    );
+    expect(screen.getByRole("link", { name: "Manage event" })).toHaveAttribute(
+      "href",
+      `/events/${eventId}/manage?returnTo=%2Fvenues%2Fvenue%2Fworkspace%2Fcalendar`,
+    );
+    expect(screen.getByRole("link", { name: "Back to venue" })).toHaveAttribute(
+      "href",
+      "/venues/venue/workspace/calendar",
+    );
+  });
   it("keeps a hidden venue host as text for an existing participant without a broken public link", async () => {
     mocks.getEventSummary.mockResolvedValue({
       ...event,

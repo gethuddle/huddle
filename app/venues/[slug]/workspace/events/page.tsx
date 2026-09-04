@@ -40,7 +40,7 @@ export default async function VenueEventsPage({ params }: VenueEventsPageProps) 
           title="No venue events yet"
         />
       ) : (
-        <VenueCalendar events={events} surface="events" />
+        <VenueCalendar events={events} surface="events" slug={workspace.slug} />
       )}
     </section>
   );

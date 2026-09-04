@@ -109,7 +109,7 @@ export default async function ModerationPage({ searchParams }: Props) {
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="text-sm text-muted-foreground">
-                        Reported by @{report.reporter_handle}
+                        {identityLabel("Reported by", report.reporter_handle)}
                       </p>
                       <h3 className="mt-2 text-xl font-semibold text-foreground">
                         {report.target_label}
@@ -247,7 +247,9 @@ export default async function ModerationPage({ searchParams }: Props) {
               <Card key={appeal.appeal_id} size="sm">
                 <CardContent>
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="font-semibold text-foreground">@{appeal.appellant_handle}</p>
+                    <p className="font-semibold text-foreground">
+                      {identityLabel("", appeal.appellant_handle)}
+                    </p>
                     <div className="flex gap-2">
                       <Badge variant="outline">{appeal.action.replaceAll("_", " ")}</Badge>
                       <Badge variant="outline">{appeal.status}</Badge>
@@ -298,4 +300,9 @@ function formatDate(value: string) {
     timeStyle: "short",
     timeZone: "Asia/Jerusalem",
   }).format(new Date(value));
+}
+
+function identityLabel(prefix: string, handle: string | null) {
+  const identity = handle === null ? "Account unavailable" : `@${handle}`;
+  return prefix.length === 0 ? identity : `${prefix} ${identity}`;
 }

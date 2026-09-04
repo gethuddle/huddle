@@ -8,14 +8,40 @@ import { ProfileForm } from "./profile-form";
 const mocks = vi.hoisted(() => ({
   activateFanOnboardingAction: vi.fn(),
   saveProfileAction: vi.fn(),
+  replace: vi.fn(),
+  refresh: vi.fn(),
 }));
 
 vi.mock("@/features/profiles/actions", () => ({
   activateFanOnboardingAction: mocks.activateFanOnboardingAction,
   saveProfileAction: mocks.saveProfileAction,
 }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: mocks.replace, refresh: mocks.refresh }),
+}));
 
 describe("ProfileForm", () => {
+  it("navigates to the server-returned canonical username without a full document reload", async () => {
+    mocks.saveProfileAction.mockResolvedValue({
+      ok: true,
+      data: { message: "Saved", redirectTo: "/people/new_name" },
+    });
+    render(
+      <ProfileForm
+        initialValue={{
+          handle: "fan_one",
+          displayName: "Fan One",
+          bio: "",
+          adultAttested: true,
+          currentRulesAccepted: true,
+          completed: true,
+        }}
+      />,
+    );
+    fireEvent.submit(screen.getByRole("button", { name: "Save profile" }).closest("form")!);
+    await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/people/new_name"));
+    expect(mocks.refresh).toHaveBeenCalledOnce();
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     window.sessionStorage.clear();
@@ -110,6 +136,7 @@ describe("ProfileForm", () => {
     expect(screen.queryByText(/No threats, planned fights/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save profile" })).toBeVisible();
+    expect(screen.getByText("This is your current username.")).toBeVisible();
   });
 
   it("shows the full rules only when a completed profile must accept a newer version", () => {

@@ -101,7 +101,7 @@ export type VenueEventMutationState =
         message: string;
         event: Readonly<{
           id: string;
-          status: "draft" | "published";
+          status: "draft" | "published" | "cancelled";
         }>;
       }>;
     }>

@@ -138,6 +138,23 @@ export const venueEventFormSchema = z
     }
   });
 
+export const venueEventEditValuesSchema = z
+  .object({
+    title: venueEventFormSchema.shape.title,
+    description: venueEventFormSchema.shape.description,
+    expectedActivity: venueEventFormSchema.shape.expectedActivity,
+    costDescription: venueEventFormSchema.shape.costDescription,
+    eventRules: venueEventFormSchema.shape.eventRules,
+    commercialAffiliation: venueEventFormSchema.shape.commercialAffiliation,
+    hostPresenceConfirmed: venueEventFormSchema.shape.hostPresenceConfirmed,
+    capacity: z.preprocess(
+      (value) => (value === "" || value === null ? null : value),
+      z.coerce.number().int().min(1).max(100_000).nullable(),
+    ),
+    requiresApproval: z.boolean(),
+  })
+  .strict();
+
 export const privateEventFormSchema = z
   .object({
     eventId: optionalUuid,

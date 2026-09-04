@@ -6,7 +6,7 @@ import { parseAttentionItems } from "@/features/attention/queries";
 import type { AttentionItem } from "@/features/attention/types";
 import { requireActor } from "@/features/auth/actor";
 import { toPublicMatchDto, type PublicMatchDto } from "@/features/sports/dto";
-import { loadTeamVisualsByName } from "@/features/sports/team-visuals";
+import { loadTeamVisualsByName, type TeamVisual } from "@/features/sports/team-visuals";
 import { DomainError, domainErrorFromDatabase } from "@/lib/errors";
 import {
   boundedPage,
@@ -165,12 +165,19 @@ function parseRows<T>(schema: z.ZodType<T>, value: unknown): T[] {
   }
 }
 
-async function parseEvents(supabase: ServerClient, value: unknown): Promise<readonly MyEvent[]> {
+async function parseEvents(
+  supabase: ServerClient,
+  value: unknown,
+  options: Readonly<{ includeTeamVisuals?: boolean }> = {},
+): Promise<readonly MyEvent[]> {
   const rows = parseRows(myEventRowSchema, value);
-  const visuals = await loadTeamVisualsByName(
-    supabase,
-    rows.flatMap((row) => [row.home_team_name, row.away_team_name]),
-  );
+  const visuals: ReadonlyMap<string, TeamVisual> =
+    options.includeTeamVisuals === false
+      ? new Map()
+      : await loadTeamVisualsByName(
+          supabase,
+          rows.flatMap((row) => [row.home_team_name, row.away_team_name]),
+        );
   return rows.map((row) => ({
     id: row.event_id,
     title: row.title,
@@ -209,12 +216,19 @@ function parseGroups(value: unknown): readonly MyGroupRelationship[] {
   }));
 }
 
-async function parseSaved(supabase: ServerClient, value: unknown): Promise<readonly SavedItem[]> {
+async function parseSaved(
+  supabase: ServerClient,
+  value: unknown,
+  options: Readonly<{ includeTeamVisuals?: boolean }> = {},
+): Promise<readonly SavedItem[]> {
   const rows = parseRows(savedItemRowSchema, value);
-  const visuals = await loadTeamVisualsByName(
-    supabase,
-    rows.filter((row) => row.kind === "team").map((row) => row.label),
-  );
+  const visuals: ReadonlyMap<string, TeamVisual> =
+    options.includeTeamVisuals === false
+      ? new Map()
+      : await loadTeamVisualsByName(
+          supabase,
+          rows.filter((row) => row.kind === "team").map((row) => row.label),
+        );
   return rows.map((row) => ({
     id: row.item_id,
     kind: row.kind,
@@ -441,9 +455,9 @@ export async function getFanHome(): Promise<
   if (firstError !== null) throw domainErrorFromDatabase(firstError);
 
   const [events, teamFollows, competitionFollows] = await Promise.all([
-    parseEvents(supabase, upcomingResult.data),
-    parseSaved(supabase, teamsResult.data),
-    parseSaved(supabase, competitionsResult.data),
+    parseEvents(supabase, upcomingResult.data, { includeTeamVisuals: false }),
+    parseSaved(supabase, teamsResult.data, { includeTeamVisuals: false }),
+    parseSaved(supabase, competitionsResult.data, { includeTeamVisuals: false }),
   ]);
 
   return {

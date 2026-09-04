@@ -5,15 +5,14 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  refresh: vi.fn(),
-  replace: vi.fn(),
   selectWorkspaceAction: vi.fn(),
+  unstableRethrow: vi.fn(),
 }));
 vi.mock("@/features/workspaces/actions", () => ({
   selectWorkspaceAction: mocks.selectWorkspaceAction,
 }));
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh: mocks.refresh, replace: mocks.replace }),
+  unstable_rethrow: mocks.unstableRethrow,
 }));
 
 import { WorkspaceSwitcher } from "./workspace-switcher";
@@ -101,15 +100,10 @@ describe("WorkspaceSwitcher", () => {
     ).toHaveClass("hidden", "sm:block");
   });
 
-  it("leaves the Fan route and opens the selected Venue workspace", async () => {
+  it("shows a visible retryable message when workspace action transport fails", async () => {
     const user = userEvent.setup();
-    mocks.selectWorkspaceAction.mockResolvedValueOnce({
-      ok: true,
-      data: {
-        message: "Switched to Match Corner.",
-        redirectTo: "/venues/match-corner/workspace",
-      },
-    });
+    const transportError = new Error("network failed");
+    mocks.selectWorkspaceAction.mockRejectedValueOnce(transportError);
     render(
       <WorkspaceSwitcher
         active={{ kind: "fan", id: fanId, slug: "fan_one", label: "Fan One", role: "fan" }}
@@ -129,9 +123,9 @@ describe("WorkspaceSwitcher", () => {
     await user.click(screen.getByRole("button", { name: "Switch workspace" }));
     await user.click(await screen.findByRole("menuitem", { name: /Match Corner/ }));
 
-    await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith("/venues/match-corner/workspace");
-      expect(mocks.refresh).toHaveBeenCalledOnce();
-    });
+    expect(mocks.unstableRethrow).toHaveBeenCalledWith(transportError);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "We could not switch workspaces. Please try again.",
+    );
   });
 });

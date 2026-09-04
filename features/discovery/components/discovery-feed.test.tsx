@@ -2,13 +2,20 @@
 
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { DiscoveryFilters } from "@/features/discovery/schemas";
 import type { DiscoveryPage } from "@/features/discovery/types";
 
+const mocks = vi.hoisted(() => ({ mapRender: vi.fn() }));
+
 vi.mock("./discovery-map", () => ({
-  DiscoveryMap: () => <div aria-label="Nearby places showing games">Map</div>,
+  DiscoveryMap: () => {
+    mocks.mapRender();
+    return <div aria-label="Nearby places showing games">Map</div>;
+  },
 }));
 
 import { DiscoveryFeed } from "./discovery-feed";
@@ -71,6 +78,7 @@ const initialPage: DiscoveryPage = {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.clearAllMocks();
   window.sessionStorage.clear();
   Reflect.deleteProperty(navigator, "permissions");
   Reflect.deleteProperty(navigator, "geolocation");
@@ -250,15 +258,93 @@ describe("DiscoveryFeed", () => {
     }
   });
 
-  it("offers a first-class map on desktop and a clear mobile map action", async () => {
+  it("offers a clear mobile map action without a desktop map mounted underneath", async () => {
     const user = userEvent.setup();
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
     render(<DiscoveryFeed filters={filters} initialPage={initialPage} />);
 
     expect(screen.getByRole("button", { name: "Show map" })).toBeVisible();
-    expect(screen.getByLabelText("Desktop discovery map")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Desktop discovery map")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Show map" }));
     expect(screen.getByRole("dialog", { name: "Map of nearby places" })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Close map" }));
     expect(screen.queryByRole("dialog", { name: "Map of nearby places" })).not.toBeInTheDocument();
+  });
+
+  it("mounts one desktop map instead of a hidden mobile duplicate", () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({
+        matches: true,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+
+    render(<DiscoveryFeed filters={filters} initialPage={initialPage} />);
+
+    expect(screen.getByLabelText("Desktop discovery map")).toBeVisible();
+    expect(mocks.mapRender).toHaveBeenCalledOnce();
+  });
+
+  it("does not mount a CSS-hidden desktop map on mobile before the one visible map opens", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+
+    render(<DiscoveryFeed filters={filters} initialPage={initialPage} />);
+
+    expect(mocks.mapRender).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Show map" }));
+    expect(mocks.mapRender).toHaveBeenCalledOnce();
+  });
+
+  it("hydrates the server mobile snapshot before switching to a desktop map", async () => {
+    const media = {
+      matches: true,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    };
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => media),
+    );
+    const originalWindow = globalThis.window;
+    vi.stubGlobal("window", undefined);
+    const serverMarkup = renderToString(
+      <DiscoveryFeed filters={filters} initialPage={initialPage} />,
+    );
+    vi.stubGlobal("window", originalWindow);
+
+    const container = document.createElement("div");
+    container.innerHTML = serverMarkup;
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const root = hydrateRoot(
+      container,
+      <DiscoveryFeed filters={filters} initialPage={initialPage} />,
+    );
+
+    await waitFor(() =>
+      expect(container.querySelector('[aria-label="Desktop discovery map"]')).not.toBeNull(),
+    );
+    expect(consoleError).not.toHaveBeenCalledWith(
+      expect.stringContaining("Hydration failed"),
+      expect.anything(),
+    );
+    root.unmount();
+    consoleError.mockRestore();
   });
 });

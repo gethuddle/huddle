@@ -2,8 +2,8 @@
 
 import { Check, ChevronsUpDown } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useActionState, useEffect } from "react";
+import { unstable_rethrow } from "next/navigation";
+import { useState, useTransition, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -15,10 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { selectWorkspaceAction } from "@/features/workspaces/actions";
-import {
-  INITIAL_WORKSPACE_ACTION_STATE,
-  type WorkspaceActionState,
-} from "@/features/workspaces/state";
+import type { WorkspaceActionState } from "@/features/workspaces/state";
 import type { WorkspaceSummary } from "@/features/workspaces/types";
 
 type WorkspaceSwitcherProps = Readonly<{
@@ -43,18 +40,27 @@ export function WorkspaceSwitcher({
   appearance = "compact",
   available,
 }: WorkspaceSwitcherProps) {
-  const router = useRouter();
-  const [state, action, pending] = useActionState(
-    selectWorkspaceAction,
-    INITIAL_WORKSPACE_ACTION_STATE,
-  );
+  const [state, setState] = useState<WorkspaceActionState>(null);
+  const [pending, startTransition] = useTransition();
 
-  useEffect(() => {
-    if (state?.ok === true) {
-      router.replace(state.data.redirectTo);
-      router.refresh();
-    }
-  }, [router, state]);
+  function selectWorkspace(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    startTransition(async () => {
+      try {
+        setState(await selectWorkspaceAction(null, formData));
+      } catch (error) {
+        unstable_rethrow(error);
+        setState({
+          ok: false,
+          error: {
+            code: "UPSTREAM_UNAVAILABLE",
+            message: "We could not switch workspaces. Please try again.",
+          },
+        });
+      }
+    });
+  }
 
   if (available.length === 0) return null;
 
@@ -94,7 +100,7 @@ export function WorkspaceSwitcher({
           <DropdownMenuLabel>Your workspaces</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {available.map((workspace) => (
-            <form action={action} key={`${workspace.kind}:${workspace.id}`}>
+            <form key={`${workspace.kind}:${workspace.id}`} onSubmit={selectWorkspace}>
               <input name="kind" type="hidden" value={workspace.kind} />
               <input name="id" type="hidden" value={workspace.id} />
               <DropdownMenuItem asChild className="min-h-11 p-0">

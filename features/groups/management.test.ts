@@ -280,7 +280,7 @@ describe("getGroupManagement", () => {
       members: { page: 1, items: [{ handle: "owner" }] },
       rules: [],
       bans: { page: 1, items: [] },
-      directInvitations: [],
+      directInvitations: { page: 1, pageCount: 1, totalCount: 0, items: [] },
     });
     expect(rpc.mock.calls.map(([name]) => name)).toEqual([
       "list_group_admin_members",
@@ -288,5 +288,132 @@ describe("getGroupManagement", () => {
       "list_group_bans",
       "list_group_direct_invitations",
     ]);
+  });
+
+  it("fetches direct invitations 41 through 51 from the third real 20-row page for an authorized admin", async () => {
+    mocks.getGroupDetail.mockResolvedValue({ ...group, viewerRole: "admin" });
+    rpc.mockImplementation(async (name: string, args: Record<string, unknown>) => {
+      if (name === "list_group_direct_invitations") {
+        expect(args).toEqual({ input_group_id: group.id, input_offset: 40, input_limit: 20 });
+        return {
+          data: Array.from({ length: 11 }, (_, index) => ({
+            invitation_id: `52000000-0000-4000-8000-${String(index + 341).padStart(12, "0")}`,
+            invitee_id: `52000000-0000-4000-8000-${String(index + 441).padStart(12, "0")}`,
+            invitee_handle: `invitee_${index + 41}`,
+            invitee_display_name: `Invitee ${index + 41}`,
+            inviter_handle: "owner",
+            invitation_status: "revoked",
+            created_at: "2026-08-27T00:00:00Z",
+            responded_at: null,
+            revoked_at: "2026-08-28T00:00:00Z",
+            total_count: 51,
+          })),
+          error: null,
+        };
+      }
+      return { data: [], error: null };
+    });
+
+    const settings = await getGroupSettings(group.slug, 1, 1, 3);
+
+    expect(settings?.directInvitations).toMatchObject({
+      page: 3,
+      pageCount: 3,
+      totalCount: 51,
+    });
+    expect(settings?.directInvitations.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ inviteeHandle: "invitee_41" }),
+        expect.objectContaining({ inviteeHandle: "invitee_51" }),
+      ]),
+    );
+    expect(rpc).toHaveBeenCalledWith("list_group_direct_invitations", {
+      input_group_id: group.id,
+      input_offset: 40,
+      input_limit: 20,
+    });
+  });
+
+  it("bounds direct-invitation paging at the safe offset window instead of exposing page 502", async () => {
+    rpc.mockImplementation(async (name: string, args: Record<string, unknown>) => {
+      if (name === "list_group_direct_invitations") {
+        expect(args).toEqual({ input_group_id: group.id, input_offset: 10_000, input_limit: 20 });
+        return {
+          data: [
+            {
+              invitation_id: "52000000-0000-4000-8000-000000000501",
+              invitee_id: "52000000-0000-4000-8000-000000000502",
+              invitee_handle: "last-visible-invitee",
+              invitee_display_name: "Last visible invitee",
+              inviter_handle: "owner",
+              invitation_status: "pending",
+              created_at: "2026-08-27T00:00:00Z",
+              responded_at: null,
+              revoked_at: null,
+              total_count: 10_021,
+            },
+          ],
+          error: null,
+        };
+      }
+      return { data: [], error: null };
+    });
+
+    const settings = await getGroupSettings(group.slug, 1, 1, 502);
+
+    expect(settings?.directInvitations).toMatchObject({
+      page: 501,
+      pageCount: 501,
+      totalCount: 10_021,
+      hasOverflow: true,
+    });
+  });
+
+  it("retains erased direct-invitation and ban history as unlinked neutral identities", async () => {
+    rpc.mockImplementation(async (name: string) => {
+      if (name === "list_group_admin_members" || name === "list_group_rules") {
+        return { data: [], error: null };
+      }
+      if (name === "list_group_bans") {
+        return {
+          data: [
+            {
+              user_id: "52000000-0000-4000-8000-000000000204",
+              handle: null,
+              display_name: "Deleted account",
+              reason: "Retained safety record.",
+              banned_by_handle: null,
+              banned_at: "2026-08-27T00:00:00Z",
+              total_count: 1,
+            },
+          ],
+          error: null,
+        };
+      }
+      return {
+        data: [
+          {
+            invitation_id: "52000000-0000-4000-8000-000000000301",
+            invitee_id: "52000000-0000-4000-8000-000000000205",
+            invitee_handle: null,
+            invitee_display_name: "Deleted account",
+            inviter_handle: null,
+            invitation_status: "revoked",
+            created_at: "2026-08-27T00:00:00Z",
+            responded_at: null,
+            revoked_at: "2026-08-28T00:00:00Z",
+            total_count: 1,
+          },
+        ],
+        error: null,
+      };
+    });
+
+    const settings = await getGroupSettings(group.slug, 1, 1);
+
+    expect(settings).toMatchObject({
+      bans: { items: [{ handle: null, bannedByHandle: null }] },
+      directInvitations: { items: [{ inviteeHandle: null, inviterHandle: null }] },
+    });
   });
 });

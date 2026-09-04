@@ -108,6 +108,7 @@ function EventParticipationControlsInner(props: Props) {
   }
 
   const pending = mutation.isPending;
+  const feedback = <AttendanceActionFeedback state={mutation.data} error={mutation.error} />;
   const immediateJoin = props.hostKind === "venue" && !props.requiresApproval;
   const immediateJoinIsFull = immediateJoin && props.remainingCapacity === 0;
   const canLeave =
@@ -153,7 +154,12 @@ function EventParticipationControlsInner(props: Props) {
           </Button>
         </div>
       ) : (viewerRole === "pending" || viewerRole === "attending") && canLeave ? (
-        <AlertDialog onOpenChange={setConfirmingLeave} open={confirmingLeave}>
+        <AlertDialog
+          onOpenChange={(open) => {
+            if (!pending) setConfirmingLeave(open);
+          }}
+          open={confirmingLeave}
+        >
           <AlertDialogTrigger asChild>
             <Button className="w-full" disabled={pending} type="button" variant="outline">
               {props.viewerAttendanceStatus === "approved" ? "Leave event" : "Withdraw request"}
@@ -171,8 +177,9 @@ function EventParticipationControlsInner(props: Props) {
                 future access to a protected home address.
               </AlertDialogDescription>
             </AlertDialogHeader>
+            {feedback}
             <AlertDialogFooter>
-              <AlertDialogCancel>Stay</AlertDialogCancel>
+              <AlertDialogCancel disabled={pending}>Stay</AlertDialogCancel>
               <Button
                 disabled={pending}
                 onClick={() =>
@@ -217,7 +224,7 @@ function EventParticipationControlsInner(props: Props) {
           <a href={`/api/events/${props.eventId}/calendar.ics`}>Add to calendar</a>
         </Button>
       ) : null}
-      <AttendanceActionFeedback state={mutation.data} />
+      {feedback}
     </div>
   );
 }

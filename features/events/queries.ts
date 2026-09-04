@@ -4,6 +4,12 @@ import { z } from "zod";
 
 import { loadTeamVisualsByName, type TeamVisual } from "@/features/sports/team-visuals";
 import { DomainError, domainErrorFromDatabase } from "@/lib/errors";
+import {
+  COLLECTION_PAGE_SIZE,
+  MAX_COLLECTION_PAGE,
+  collectionOffset,
+  collectionPageInput,
+} from "@/lib/pagination";
 import { createClient } from "@/lib/supabase/server";
 
 const eventSummaryRowSchema = z
@@ -307,4 +313,31 @@ export async function listMatchEvents(matchId: string): Promise<EventListItem[]>
   });
   if (error !== null) throw domainErrorFromDatabase(error);
   return addTeamVisuals(supabase, parseEventList(venueEventListRowSchema, data));
+}
+
+export type MatchEventPage = Readonly<{
+  events: EventListItem[];
+  hasNext: boolean;
+  reachedWindowEnd: boolean;
+}>;
+
+export async function listMatchEventPage(
+  matchId: string,
+  page: unknown = 1,
+): Promise<MatchEventPage> {
+  const targetPage = collectionPageInput(page).page;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("list_match_events_page", {
+    input_match_id: matchId,
+    input_limit: COLLECTION_PAGE_SIZE + 1,
+    input_offset: collectionOffset(targetPage),
+  });
+  if (error !== null) throw domainErrorFromDatabase(error);
+  const rows = parseEventList(venueEventListRowSchema, data);
+  const reachedWindowEnd = targetPage === MAX_COLLECTION_PAGE && rows.length > COLLECTION_PAGE_SIZE;
+  return {
+    events: await addTeamVisuals(supabase, rows.slice(0, COLLECTION_PAGE_SIZE)),
+    hasNext: rows.length > COLLECTION_PAGE_SIZE && !reachedWindowEnd,
+    reachedWindowEnd,
+  };
 }

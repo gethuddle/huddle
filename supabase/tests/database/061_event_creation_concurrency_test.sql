@@ -11,7 +11,7 @@ select no_plan();
 do $setup$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('event_concurrency_setup', connection_text);
   perform extensions.dblink_exec(
@@ -182,7 +182,7 @@ $setup$;
 do $cooldown_connections$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('event_cooldown_a', connection_text);
   perform extensions.dblink_connect('event_cooldown_b', connection_text);
@@ -320,7 +320,7 @@ select is(
 do $ban_connections$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('event_ban_worker', connection_text);
   perform extensions.dblink_connect('group_event_worker', connection_text);
@@ -455,7 +455,7 @@ select is(
 do $cleanup$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('event_concurrency_cleanup', connection_text);
   perform extensions.dblink_exec(

@@ -8,6 +8,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  FieldError,
+  fieldErrorMessage,
+  fieldFeedback,
+  FocusInvalidFields,
+} from "@/features/venues/workspace/components/field-feedback";
 import { AddressSearch } from "@/features/locations/components/address-search";
 import type { AddressSuggestion } from "@/features/locations/types";
 import { activateVenueOnboardingAction } from "@/features/workspaces/actions";
@@ -42,6 +48,7 @@ export function VenueOnboardingForm({ ownerId }: Readonly<{ ownerId: string }>) 
   const [attendanceMode, setAttendanceMode] = useState<AttendanceMode>("reservations");
   const [state, setState] = useState<WorkspaceActionState>(null);
   const [pending, startTransition] = useTransition();
+  const errors = state?.ok === false ? state.error.fields : undefined;
 
   useEffect(() => {
     const draft = readSessionFormDraft<VenueDraftExtra>(draftKey);
@@ -82,7 +89,6 @@ export function VenueOnboardingForm({ ownerId }: Readonly<{ ownerId: string }>) 
     startTransition(async () => {
       const result = await activateVenueOnboardingAction({
         name: formData.get("name") as string,
-        slug: formData.get("slug") as string,
         address: confirmedAddress,
         description: formData.get("description") as string,
         mainSpaceName: formData.get("mainSpaceName") as string,
@@ -104,172 +110,207 @@ export function VenueOnboardingForm({ ownerId }: Readonly<{ ownerId: string }>) 
   }
 
   return (
-    <form
-      className="space-y-7"
-      noValidate
-      onChange={(event) => writeSessionFormDraft(draftKey, event.currentTarget, { address })}
-      onInput={(event) => writeSessionFormDraft(draftKey, event.currentTarget, { address })}
-      onSubmit={submit}
-      ref={formRef}
-    >
-      <div className="grid gap-5 sm:grid-cols-2">
-        <div>
-          <Label htmlFor="venue-name">Venue name</Label>
-          <Input autoComplete="organization" id="venue-name" maxLength={120} name="name" required />
+    <FocusInvalidFields errors={errors} pending={pending}>
+      <form
+        className="space-y-7"
+        noValidate
+        onChange={(event) => writeSessionFormDraft(draftKey, event.currentTarget, { address })}
+        onInput={(event) => writeSessionFormDraft(draftKey, event.currentTarget, { address })}
+        onSubmit={submit}
+        ref={formRef}
+      >
+        <div className="grid gap-5">
+          <div>
+            <Label htmlFor="venue-name">Venue name</Label>
+            <Input
+              autoComplete="organization"
+              id="venue-name"
+              maxLength={120}
+              name="name"
+              required
+              {...fieldFeedback(errors, "name", "venue-name")}
+            />
+            <FieldError errors={errors} name="name" id="venue-name" />
+          </div>
         </div>
+
+        <AddressSearch
+          onConfirm={setAddress}
+          purpose="public_address"
+          error={fieldErrorMessage(errors, "address")}
+        />
+
+        {address === null ? null : (
+          <div className="rounded-2xl border border-court/30 bg-court/10 p-5" role="status">
+            <p className="text-sm font-medium text-forest">Confirmed public address</p>
+            <p className="mt-2 text-sm text-foreground">{address.label}</p>
+          </div>
+        )}
+
         <div>
-          <Label htmlFor="venue-slug">Venue URL</Label>
-          <Input
-            aria-describedby="venue-slug-help"
-            autoCapitalize="none"
-            id="venue-slug"
-            maxLength={80}
-            name="slug"
-            placeholder="match-corner"
+          <Label htmlFor="venue-description">Public description</Label>
+          <Textarea
+            id="venue-description"
+            {...fieldFeedback(errors, "description", "venue-description")}
+            maxLength={2000}
+            minLength={10}
+            name="description"
+            placeholder="What should fans know about watching a match here?"
             required
           />
-          <p className="mt-2 text-xs text-muted-foreground" id="venue-slug-help">
-            Lowercase letters, numbers, and hyphens.
-          </p>
+          <FieldError errors={errors} name="description" id="venue-description" />
         </div>
-      </div>
 
-      <AddressSearch onConfirm={setAddress} purpose="public_address" />
-
-      {address === null ? null : (
-        <div className="rounded-2xl border border-court/30 bg-court/10 p-5" role="status">
-          <p className="text-sm font-medium text-forest">Confirmed public address</p>
-          <p className="mt-2 text-sm text-foreground">{address.label}</p>
-        </div>
-      )}
-
-      <div>
-        <Label htmlFor="venue-description">Public description</Label>
-        <Textarea
-          id="venue-description"
-          maxLength={2000}
-          minLength={10}
-          name="description"
-          placeholder="What should fans know about watching a match here?"
-          required
-        />
-      </div>
-
-      <fieldset className="rounded-2xl border border-border p-5">
-        <legend className="px-2 font-semibold">How fans attend your usual events</legend>
-        <div className="mt-1 grid gap-3 sm:grid-cols-2">
-          <label className="flex min-h-20 cursor-pointer items-start gap-3 rounded-2xl border border-border bg-muted p-4 has-[:checked]:border-court">
-            <input
-              checked={attendanceMode === "open_door"}
-              className="mt-1 size-4 accent-court"
-              name="attendanceMode"
-              onChange={() => setAttendanceMode("open_door")}
-              type="radio"
-              value="open_door"
-            />
-            <span>
-              <span className="block font-semibold text-foreground">Open door</span>
-              <span className="mt-1 block text-sm leading-5 text-muted-foreground">
-                No RSVP, guest list, approval, or capacity claim. Fans simply come along.
+        <fieldset className="rounded-2xl border border-border p-5">
+          <legend className="px-2 font-semibold">How fans attend your usual events</legend>
+          <div className="mt-1 grid gap-3 sm:grid-cols-2">
+            <label className="flex min-h-20 cursor-pointer items-start gap-3 rounded-2xl border border-border bg-muted p-4 has-[:checked]:border-court">
+              <input
+                checked={attendanceMode === "open_door"}
+                className="mt-1 size-4 accent-court"
+                name="attendanceMode"
+                {...fieldFeedback(errors, "defaultAttendanceMode", "venue-attendance")}
+                onChange={() => setAttendanceMode("open_door")}
+                type="radio"
+                value="open_door"
+              />
+              <span>
+                <span className="block font-semibold text-foreground">Open door</span>
+                <span className="mt-1 block text-sm leading-5 text-muted-foreground">
+                  No RSVP, guest list, approval, or capacity claim. Fans simply come along.
+                </span>
               </span>
-            </span>
-          </label>
-          <label className="flex min-h-20 cursor-pointer items-start gap-3 rounded-2xl border border-border bg-muted p-4 has-[:checked]:border-court">
-            <input
-              checked={attendanceMode === "reservations"}
-              className="mt-1 size-4 accent-court"
-              name="attendanceMode"
-              onChange={() => setAttendanceMode("reservations")}
-              type="radio"
-              value="reservations"
-            />
-            <span>
-              <span className="block font-semibold text-foreground">Reservations</span>
-              <span className="mt-1 block text-sm leading-5 text-muted-foreground">
-                Track registered attendees with a real capacity and optional staff approval.
+            </label>
+            <label className="flex min-h-20 cursor-pointer items-start gap-3 rounded-2xl border border-border bg-muted p-4 has-[:checked]:border-court">
+              <input
+                checked={attendanceMode === "reservations"}
+                className="mt-1 size-4 accent-court"
+                name="attendanceMode"
+                {...fieldFeedback(errors, "defaultAttendanceMode", "venue-attendance")}
+                onChange={() => setAttendanceMode("reservations")}
+                type="radio"
+                value="reservations"
+              />
+              <span>
+                <span className="block font-semibold text-foreground">Reservations</span>
+                <span className="mt-1 block text-sm leading-5 text-muted-foreground">
+                  Track registered attendees with a real capacity and optional staff approval.
+                </span>
               </span>
-            </span>
-          </label>
-        </div>
-      </fieldset>
-
-      <fieldset className="grid gap-5 rounded-2xl border border-border p-5 sm:grid-cols-2">
-        <legend className="px-2 font-semibold">First viewing area</legend>
-        <div>
-          <Label htmlFor="venue-space-name">Area name</Label>
-          <Input defaultValue="Main screen" id="venue-space-name" name="mainSpaceName" required />
-        </div>
-        {attendanceMode === "reservations" ? (
-          <div>
-            <Label htmlFor="venue-space-capacity">Capacity</Label>
-            <Input
-              id="venue-space-capacity"
-              min={1}
-              name="mainSpaceCapacity"
-              required
-              type="number"
-            />
+            </label>
           </div>
-        ) : (
-          <p className="self-end text-sm leading-6 text-muted-foreground">
-            Open-door areas do not need a capacity. You can add a reservable area later.
-          </p>
-        )}
-      </fieldset>
+        </fieldset>
 
-      <fieldset className="rounded-2xl border border-border p-5">
-        <legend className="px-2 font-semibold">Facilities</legend>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {FACILITIES.map(([value, label]) => (
-            <div className="flex min-h-11 items-center gap-3" key={value}>
-              <Checkbox id={`venue-facility-${value}`} name="facilities" value={value} />
-              <Label className="cursor-pointer" htmlFor={`venue-facility-${value}`}>
-                {label}
-              </Label>
+        <FieldError errors={errors} name="defaultAttendanceMode" id="venue-attendance" />
+        <fieldset className="grid gap-5 rounded-2xl border border-border p-5 sm:grid-cols-2">
+          <legend className="px-2 font-semibold">First viewing area</legend>
+          <div>
+            <Label htmlFor="venue-space-name">Area name</Label>
+            <Input
+              defaultValue="Main screen"
+              id="venue-space-name"
+              name="mainSpaceName"
+              required
+              {...fieldFeedback(errors, "mainSpaceName", "venue-space-name")}
+            />
+            <FieldError errors={errors} name="mainSpaceName" id="venue-space-name" />
+          </div>
+          {attendanceMode === "reservations" ? (
+            <div>
+              <Label htmlFor="venue-space-capacity">Capacity</Label>
+              <Input
+                id="venue-space-capacity"
+                {...fieldFeedback(errors, "mainSpaceCapacity", "venue-space-capacity")}
+                min={1}
+                name="mainSpaceCapacity"
+                required
+                type="number"
+              />
+              <FieldError errors={errors} name="mainSpaceCapacity" id="venue-space-capacity" />
             </div>
-          ))}
+          ) : (
+            <p className="self-end text-sm leading-6 text-muted-foreground">
+              Open-door areas do not need a capacity. You can add a reservable area later.
+            </p>
+          )}
+        </fieldset>
+
+        <fieldset className="rounded-2xl border border-border p-5">
+          <legend className="px-2 font-semibold">Facilities</legend>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {FACILITIES.map(([value, label]) => (
+              <div className="flex min-h-11 items-center gap-3" key={value}>
+                <Checkbox
+                  id={`venue-facility-${value}`}
+                  name="facilities"
+                  value={value}
+                  {...fieldFeedback(errors, "facilities", "venue-facilities")}
+                />
+                <Label className="cursor-pointer" htmlFor={`venue-facility-${value}`}>
+                  {label}
+                </Label>
+              </div>
+            ))}
+          </div>
+        </fieldset>
+
+        <FieldError errors={errors} name="facilities" id="venue-facilities" />
+        <div>
+          <Label htmlFor="venue-house-information">House information (optional)</Label>
+          <Textarea
+            id="venue-house-information"
+            {...fieldFeedback(errors, "houseInformation", "venue-house-information")}
+            maxLength={1000}
+            name="houseInformation"
+            placeholder="Ordering, arrival, accessibility, or match-day information that applies by default."
+          />
+          <FieldError errors={errors} name="houseInformation" id="venue-house-information" />
         </div>
-      </fieldset>
 
-      <div>
-        <Label htmlFor="venue-house-information">House information (optional)</Label>
-        <Textarea
-          id="venue-house-information"
-          maxLength={1000}
-          name="houseInformation"
-          placeholder="Ordering, arrival, accessibility, or match-day information that applies by default."
-        />
-      </div>
+        {attendanceMode === "reservations" ? (
+          <div className="flex min-h-11 items-start gap-3">
+            <Checkbox
+              id="venue-default-approval"
+              name="defaultRequiresApproval"
+              value="on"
+              {...fieldFeedback(errors, "defaultRequiresApproval", "venue-default-approval")}
+            />
+            <Label className="cursor-pointer leading-6" htmlFor="venue-default-approval">
+              Review attendance requests by default.
+            </Label>
+          </div>
+        ) : null}
 
-      {attendanceMode === "reservations" ? (
-        <div className="flex min-h-11 items-start gap-3">
-          <Checkbox id="venue-default-approval" name="defaultRequiresApproval" value="on" />
-          <Label className="cursor-pointer leading-6" htmlFor="venue-default-approval">
-            Review attendance requests by default.
+        <FieldError errors={errors} name="defaultRequiresApproval" id="venue-default-approval" />
+
+        <div className="flex min-h-11 items-start gap-3 rounded-2xl border border-sand/40 p-5">
+          <Checkbox
+            id="venue-representation"
+            name="representationAttested"
+            value="on"
+            {...fieldFeedback(errors, "representationAttested", "venue-representation")}
+          />
+          <Label className="cursor-pointer text-sm leading-6" htmlFor="venue-representation">
+            I truthfully represent this business and am authorized to manage its Huddle listing. I
+            understand that “Self-listed” means Huddle has not checked the business or this claim.
           </Label>
         </div>
-      ) : null}
 
-      <div className="flex min-h-11 items-start gap-3 rounded-2xl border border-sand/40 p-5">
-        <Checkbox id="venue-representation" name="representationAttested" value="on" />
-        <Label className="cursor-pointer text-sm leading-6" htmlFor="venue-representation">
-          I truthfully represent this business and am authorized to manage its Huddle listing. I
-          understand that “Self-listed” means Huddle has not checked the business or this claim.
-        </Label>
-      </div>
+        <FieldError errors={errors} name="representationAttested" id="venue-representation" />
 
-      {state?.ok === false ? (
-        <Alert role="alert" variant="destructive">
-          <AlertDescription>{state.error.message}</AlertDescription>
-        </Alert>
-      ) : null}
+        {state?.ok === false ? (
+          <Alert role="alert" variant="destructive">
+            <AlertDescription>{state.error.message}</AlertDescription>
+          </Alert>
+        ) : null}
 
-      <p className="text-sm leading-6 text-muted-foreground">
-        Next, choose a demo plan in Billing. Polar Sandbox charges no real money.
-      </p>
-      <Button className="w-full" disabled={pending || address === null} size="lg" type="submit">
-        {pending ? "Creating venue account…" : "Create venue account"}
-      </Button>
-    </form>
+        <p className="text-sm leading-6 text-muted-foreground">
+          Next, choose a demo plan in Billing. Polar Sandbox charges no real money.
+        </p>
+        <Button className="w-full" disabled={pending || address === null} size="lg" type="submit">
+          {pending ? "Creating venue account…" : "Create venue account"}
+        </Button>
+      </form>
+    </FocusInvalidFields>
   );
 }

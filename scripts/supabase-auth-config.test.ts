@@ -23,7 +23,10 @@ describe("hosted Supabase Auth configuration", () => {
     expect(payload).toMatchObject({
       site_url: "https://huddle.co.il",
       uri_allow_list:
-        "https://huddle.co.il/auth/verify/confirm,https://huddle.co.il/auth/reset-password/confirm",
+        "https://huddle.co.il/auth/verify/confirm,https://huddle.co.il/auth/reset-password/confirm,https://huddle.co.il/auth/email-change/confirm",
+      mailer_autoconfirm: false,
+      mailer_secure_email_change_enabled: true,
+      mailer_subjects_email_change: "Confirm your Huddle email change",
       password_min_length: 15,
       password_required_characters: "",
       rate_limit_email_sent: 100,
@@ -35,8 +38,25 @@ describe("hosted Supabase Auth configuration", () => {
     });
     expect(payload.mailer_templates_confirmation_content).toBe(template("confirmation.html"));
     expect(payload.mailer_templates_recovery_content).toBe(template("recovery.html"));
+    expect(payload.mailer_templates_email_change_content).toBe(template("email-change.html"));
+    expect(payload.mailer_templates_email_change_content).toContain(
+      "/auth/email-change/confirm#token_hash={{ .TokenHash }}&amp;type=email_change",
+    );
+    expect(payload.mailer_templates_email_change_content).not.toContain(".ConfirmationURL");
     expect(payload.mailer_templates_password_changed_notification_content).toBe(
       template("password-changed.html"),
+    );
+  });
+
+  it("preserves local dual-email verification and enables the passive change template", () => {
+    const config = readFileSync(new URL("../supabase/config.toml", import.meta.url), "utf8");
+    const emailConfig = config
+      .split("[auth.email]")[1]
+      ?.split("[auth.email.template.confirmation]")[0];
+    expect(emailConfig).toContain("double_confirm_changes = true");
+    expect(emailConfig).toContain("enable_confirmations = true");
+    expect(config).toContain(
+      '[auth.email.template.email_change]\nsubject = "Confirm your Huddle email change"\ncontent_path = "./supabase/templates/email-change.html"',
     );
   });
 

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { VenueCalendarEntry } from "@/features/venues/workspace/types";
 import { cn } from "@/lib/utils";
+import { venueEventHref } from "@/features/venues/workspace/event-links";
 
 const FILTERS = ["Draft", "Published", "Full", "Cancelled", "Completed"] as const;
 type CalendarFilter = (typeof FILTERS)[number];
@@ -47,9 +48,11 @@ function israelTime(value: string) {
 export function VenueCalendar({
   events,
   surface = "calendar",
+  slug,
 }: Readonly<{
   events: readonly VenueCalendarEntry[];
   surface?: "calendar" | "events";
+  slug?: string;
 }>) {
   const [view, setView] = useState<"agenda" | "month">("agenda");
   const [filter, setFilter] = useState<CalendarFilter | null>(null);
@@ -122,7 +125,15 @@ export function VenueCalendar({
       ) : surface === "events" || view === "agenda" ? (
         <ol className="mt-8 divide-y divide-border-dark overflow-hidden rounded-[1.375rem] border border-border bg-card">
           {visible.map((event) => (
-            <CalendarRow event={event} key={event.id} />
+            <CalendarRow
+              event={event}
+              key={event.id}
+              href={
+                slug
+                  ? venueEventHref(event.id, slug, surface, event.status === "draft")
+                  : `/events/${event.id}`
+              }
+            />
           ))}
         </ol>
       ) : (
@@ -135,7 +146,11 @@ export function VenueCalendar({
                   <li key={event.id}>
                     <Link
                       className="block min-h-11 rounded-xl bg-muted p-3 outline-none hover:ring-1 hover:ring-border-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                      href={`/events/${event.id}`}
+                      href={
+                        slug
+                          ? venueEventHref(event.id, slug, surface, event.status === "draft")
+                          : `/events/${event.id}`
+                      }
                     >
                       <span className="block font-semibold">{event.title}</span>
                       <span className="mt-1 block text-sm text-muted-foreground">
@@ -153,13 +168,13 @@ export function VenueCalendar({
   );
 }
 
-function CalendarRow({ event }: Readonly<{ event: VenueCalendarEntry }>) {
+function CalendarRow({ event, href }: Readonly<{ event: VenueCalendarEntry; href: string }>) {
   const status = statusFor(event);
   return (
     <li>
       <Link
         className="grid min-h-20 gap-3 p-5 outline-none hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
-        href={`/events/${event.id}`}
+        href={href}
       >
         <span>
           <span className="block font-semibold">{event.title}</span>

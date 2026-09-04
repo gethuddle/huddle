@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { unstable_rethrow } from "next/navigation";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,7 +50,8 @@ export function VenueBillingPanel({
                 try {
                   const result = await openVenueBillingPortalAction({ venueId });
                   if (!result.ok) setMessage(result.error.message);
-                } catch {
+                } catch (error) {
+                  unstable_rethrow(error);
                   setMessage("The billing portal could not open. Please try again.");
                 }
               })

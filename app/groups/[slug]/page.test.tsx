@@ -133,6 +133,47 @@ describe("GroupPage", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("keeps a seventh actionable review item reachable through the paged administration queue", async () => {
+    mocks.getGroupDetail.mockResolvedValue({
+      ...publicGroup,
+      viewerRole: "owner",
+      canViewMemberContent: true,
+    });
+    mocks.getGroupOverviewAttention.mockResolvedValue({
+      applications: [],
+      applicationTotalCount: 0,
+      events: [
+        {
+          id: "50000000-0000-4000-8000-000000000701",
+          title: "First pending review",
+          status: "pending_group_review",
+          submitterHandle: "member",
+          submitterDisplayName: "Member",
+          audience: "group",
+          audienceGroupName: publicGroup.name,
+          placeKind: "public_place",
+          match: {
+            homeTeamName: "Arsenal FC",
+            awayTeamName: "Chelsea FC",
+            competitionName: "Premier League",
+          },
+          startsAt: "2026-09-01T17:00:00Z",
+          submittedAt: "2026-08-27T00:00:00Z",
+          canReview: true,
+          canWithdraw: false,
+        },
+      ],
+      eventTotalCount: 7,
+    });
+
+    render(await GroupPage({ params: Promise.resolve({ slug: publicGroup.slug }) }));
+
+    expect(screen.getByRole("link", { name: "View all 7 event submissions" })).toHaveAttribute(
+      "href",
+      `/groups/${publicGroup.slug}/manage?section=events&page=1`,
+    );
+  });
+
   it("does not expose the retired forming gate", async () => {
     mocks.getGroupDetail.mockResolvedValue({
       ...publicGroup,

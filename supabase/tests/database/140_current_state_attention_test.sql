@@ -481,6 +481,9 @@ values
 insert into public.event_invitations (event_id, invitee_id, invited_by, status, responded_at)
 values
   ('c5000000-0000-4000-8000-000000000501', 'c5000000-0000-4000-8000-000000000102', 'c5000000-0000-4000-8000-000000000101', 'pending', null),
+  -- Retained direct-invite attendance has a real accepted invitation: ordinary
+  -- product flows do not invent attendance or erase the acquisition record.
+  ('c5000000-0000-4000-8000-000000000506', 'c5000000-0000-4000-8000-000000000102', 'c5000000-0000-4000-8000-000000000112', 'accepted', statement_timestamp() - interval '8 days'),
   ('c5000000-0000-4000-8000-000000000507', 'c5000000-0000-4000-8000-000000000102', 'c5000000-0000-4000-8000-000000000112', 'accepted', statement_timestamp() - interval '8 days');
 
 insert into public.event_attendance (
@@ -603,7 +606,7 @@ select is(
     where event_id = 'c5000000-0000-4000-8000-000000000509'
   ),
   0::bigint,
-  'an approved reservation on a cancelled event is not attendance history'
+  'a fabricated self-request to an invite-only event is not authorized history'
 );
 select is(
   (
@@ -686,8 +689,8 @@ select is(
     from public.list_my_events('upcoming', 20, 0)
     where event_id = 'c5000000-0000-4000-8000-000000000508'
   ),
-  0::bigint,
-  'approved attendance leaves Upcoming at kickoff rather than remaining until event end'
+  1::bigint,
+  'approved attendance stays reachable in Upcoming during the event, until event end'
 );
 reset role;
 rollback to savepoint venue_in_progress_relationship;

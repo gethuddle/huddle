@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
+import { RedirectType, redirect } from "next/navigation";
 import { z } from "zod";
 
 import { CURRENT_COMMUNITY_RULES_VERSION } from "@/content/community-rules";
@@ -48,6 +49,7 @@ export async function selectWorkspaceAction(
   });
   if (!selection.success) return actionFailure(selection.error);
 
+  let destination: string;
   try {
     const { supabase } = await requireActor("authenticated");
     const { data, error } = await supabase.rpc("list_my_workspaces");
@@ -67,20 +69,17 @@ export async function selectWorkspaceAction(
       workspaceCookieOptions(),
     );
     revalidatePath("/", "layout");
-
-    return actionSuccess({
-      message: `Switched to ${selected.name}.`,
-      redirectTo: workspaceLanding({
-        kind: selected.workspace_kind,
-        id: selected.workspace_id,
-        slug: selected.slug,
-        label: selected.name,
-        role: selected.role,
-      }),
+    destination = workspaceLanding({
+      kind: selected.workspace_kind,
+      id: selected.workspace_id,
+      slug: selected.slug,
+      label: selected.name,
+      role: selected.role,
     });
   } catch (error) {
     return actionFailure(error);
   }
+  redirect(destination, RedirectType.replace);
 }
 
 export async function acceptCommonOnboardingAction(
@@ -150,9 +149,8 @@ export async function activateVenueOnboardingAction(
   try {
     const [{ supabase }, requestId] = await Promise.all([requireActor("common"), getRequestId()]);
     const input = parsed.data;
-    const { data, error } = await supabase.rpc("create_venue_workspace_v2", {
+    const { data, error } = await supabase.rpc("create_venue_workspace_auto", {
       input_name: input.name,
-      input_slug: input.slug,
       input_address_text: input.address.label,
       input_longitude: input.address.longitude,
       input_latitude: input.address.latitude,

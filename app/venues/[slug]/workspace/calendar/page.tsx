@@ -37,7 +37,7 @@ export default async function VenueCalendarPage({ params }: VenueCalendarPagePro
           title="Your calendar is clear"
         />
       ) : (
-        <VenueCalendar events={calendar} />
+        <VenueCalendar events={calendar} slug={workspace.slug} />
       )}
     </section>
   );

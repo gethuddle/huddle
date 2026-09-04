@@ -1,10 +1,11 @@
 import {
   recoveryQuerySchema,
+  emailChangeQuerySchema,
   verificationCodeQuerySchema,
   verificationQuerySchema,
 } from "./schemas";
 
-export type AuthLinkPurpose = "email" | "recovery";
+export type AuthLinkPurpose = "email" | "recovery" | "email_change";
 
 export type AuthLinkCredential =
   | Readonly<{ kind: "code"; code: string }>
@@ -24,6 +25,7 @@ function parseEntries(
   const values = new Map(entries);
 
   if (keys.length === 1 && keys[0] === "code") {
+    if (purpose === "email_change") return null;
     const parsed = verificationCodeQuerySchema.safeParse({ code: values.get("code") });
     return parsed.success ? { kind: "code", code: parsed.data.code } : null;
   }
@@ -39,9 +41,11 @@ function parseEntries(
       type: values.get("type"),
     };
     const parsed =
-      purpose === "email"
-        ? verificationQuerySchema.safeParse(input)
-        : recoveryQuerySchema.safeParse(input);
+      purpose === "email_change"
+        ? emailChangeQuerySchema.safeParse(input)
+        : purpose === "email"
+          ? verificationQuerySchema.safeParse(input)
+          : recoveryQuerySchema.safeParse(input);
     return parsed.success
       ? { kind: "token_hash", tokenHash: parsed.data.tokenHash, type: parsed.data.type }
       : null;

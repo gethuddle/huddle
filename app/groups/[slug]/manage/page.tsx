@@ -12,9 +12,11 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import {
+  ApplicationReviewControl,
   ArchiveGroupControl,
   BanMemberControl,
   DirectInvitationRevocationControl,
+  EventReviewControl,
   MemberRoleControl,
   RemoveMemberControl,
   RuleCreateControl,
@@ -23,8 +25,13 @@ import {
   UnbanMemberControl,
 } from "@/features/groups/components/group-management-controls";
 import { GroupSettingsForm } from "@/features/groups/components/group-settings-form";
-import { getGroupSettings, type GroupSettings } from "@/features/groups/management";
-import { groupRouteSlugSchema } from "@/features/groups/schemas";
+import {
+  getGroupManagement,
+  getGroupSettings,
+  type GroupManagementResult,
+  type GroupSettings,
+} from "@/features/groups/management";
+import { groupManagementQuerySchema, groupRouteSlugSchema } from "@/features/groups/schemas";
 import { collectionPageInput } from "@/lib/pagination";
 
 export const metadata: Metadata = {
@@ -43,9 +50,20 @@ export default async function GroupManagementPage({
   const [routeParams, rawQuery] = await Promise.all([params, searchParams]);
   const slug = groupRouteSlugSchema.safeParse(routeParams.slug);
   if (!slug.success) notFound();
+  const requestedSection = firstValue(rawQuery.section);
+  if (requestedSection === "applications" || requestedSection === "events") {
+    const queueQuery = groupManagementQuerySchema.parse({
+      section: requestedSection,
+      page: firstValue(rawQuery.page),
+    });
+    const queue = await getGroupManagement(slug.data, queueQuery.section, queueQuery.page);
+    if (queue === null) notFound();
+    return <GroupReviewQueue queue={queue} />;
+  }
   const membersPage = pageValue(rawQuery.membersPage);
   const bansPage = pageValue(rawQuery.bansPage);
-  const settings = await getGroupSettings(slug.data, membersPage, bansPage);
+  const invitationsPage = pageValue(rawQuery.invitationsPage);
+  const settings = await getGroupSettings(slug.data, membersPage, bansPage, invitationsPage);
   if (settings === null) notFound();
 
   return (
@@ -76,7 +94,7 @@ export default async function GroupManagementPage({
         <Button asChild variant="outline">
           <Link href="#visibility">Visibility</Link>
         </Button>
-        {settings.directInvitations.length === 0 ? null : (
+        {settings.directInvitations.items.length === 0 ? null : (
           <Button asChild variant="outline">
             <Link href="#invitations">Invitations</Link>
           </Button>
@@ -117,22 +135,22 @@ export default async function GroupManagementPage({
         />
       </SettingsSection>
 
-      {settings.directInvitations.length === 0 ? null : (
+      {settings.directInvitations.items.length === 0 ? null : (
         <SettingsSection id="invitations" title="Direct invitations">
           <div className="space-y-3">
-            {settings.directInvitations.map((invitation) => (
+            {settings.directInvitations.items.map((invitation) => (
               <div
                 className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-border p-4"
                 key={invitation.id}
               >
                 <div>
                   <p className="font-semibold text-foreground">
-                    {invitation.inviteeDisplayName} · @{invitation.inviteeHandle}
+                    {identityLabel(invitation.inviteeHandle, invitation.inviteeDisplayName)}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
                     {invitation.status === "pending"
-                      ? `Waiting for a response · sent by @${invitation.inviterHandle}`
-                      : `${invitation.status} · sent by @${invitation.inviterHandle}`}
+                      ? `Waiting for a response · sent by ${identityLabel(invitation.inviterHandle)}`
+                      : `${invitation.status} · sent by ${identityLabel(invitation.inviterHandle)}`}
                   </p>
                 </div>
                 {invitation.status === "pending" ? (
@@ -145,6 +163,14 @@ export default async function GroupManagementPage({
               </div>
             ))}
           </div>
+          <SettingsPagination
+            groupSlug={settings.group.slug}
+            hasOverflow={settings.directInvitations.hasOverflow}
+            page={settings.directInvitations.page}
+            pageCount={settings.directInvitations.pageCount}
+            parameter="invitationsPage"
+            target="invitations"
+          />
         </SettingsSection>
       )}
 
@@ -186,6 +212,163 @@ export default async function GroupManagementPage({
   );
 }
 
+function GroupReviewQueue({ queue }: Readonly<{ queue: GroupManagementResult }>) {
+  if (queue.section === "applications") {
+    return (
+      <QueueLayout
+        groupName={queue.group.name}
+        groupSlug={queue.group.slug}
+        page={queue.page}
+        pageCount={queue.pageCount}
+        section="applications"
+        title="Applications"
+        totalCount={queue.totalCount}
+      >
+        {queue.items.map((application) => (
+          <div
+            className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-border p-4"
+            key={application.userId}
+          >
+            <div>
+              {application.handle === null ? (
+                <p className="font-semibold text-foreground">Account unavailable</p>
+              ) : (
+                <Link
+                  className="font-semibold text-foreground"
+                  href={`/people/${application.handle}`}
+                >
+                  {application.displayName}
+                </Link>
+              )}
+              <p className="mt-1 text-sm text-muted-foreground">
+                {application.handle === null ? "Account unavailable" : `@${application.handle}`} ·{" "}
+                {application.source === "invite" ? "Invitation" : "Group page"}
+              </p>
+            </div>
+            <ApplicationReviewControl
+              groupId={queue.group.id}
+              groupSlug={queue.group.slug}
+              userId={application.userId}
+            />
+          </div>
+        ))}
+      </QueueLayout>
+    );
+  }
+
+  if (queue.section === "events") {
+    return (
+      <QueueLayout
+        groupName={queue.group.name}
+        groupSlug={queue.group.slug}
+        page={queue.page}
+        pageCount={queue.pageCount}
+        section="events"
+        title="Event submissions"
+        totalCount={queue.totalCount}
+      >
+        {queue.items.map((event) => (
+          <article
+            className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-border p-4"
+            key={event.id}
+          >
+            <div>
+              <Link className="font-semibold text-foreground" href={`/events/${event.id}`}>
+                {event.title}
+              </Link>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {event.match.homeTeamName} vs {event.match.awayTeamName} · submitted by{" "}
+                {event.submitterHandle === null
+                  ? "Account unavailable"
+                  : `@${event.submitterHandle}`}
+              </p>
+              <Badge className="mt-2" variant="outline">
+                {event.status.replaceAll("_", " ")}
+              </Badge>
+            </div>
+            <EventReviewControl
+              canReview={event.canReview}
+              canWithdraw={event.canWithdraw}
+              eventId={event.id}
+              eventTitle={event.title}
+              groupId={queue.group.id}
+              groupSlug={queue.group.slug}
+            />
+          </article>
+        ))}
+      </QueueLayout>
+    );
+  }
+
+  notFound();
+}
+
+function QueueLayout({
+  children,
+  groupName,
+  groupSlug,
+  page,
+  pageCount,
+  section,
+  title,
+  totalCount,
+}: Readonly<{
+  children: React.ReactNode;
+  groupName: string;
+  groupSlug: string;
+  page: number;
+  pageCount: number;
+  section: "applications" | "events";
+  title: string;
+  totalCount: number;
+}>) {
+  const href = (nextPage: number) =>
+    `/groups/${groupSlug}/manage?section=${section}&page=${nextPage}`;
+  return (
+    <section className="py-12 sm:py-16">
+      <div className="flex flex-wrap items-end justify-between gap-6">
+        <div>
+          <p className="text-sm font-semibold text-forest">Group administration</p>
+          <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-foreground sm:text-4xl">
+            {title}
+          </h1>
+          <p className="mt-4 text-base leading-7 text-muted-foreground">
+            {totalCount} {section === "events" ? "event submissions" : "applications"} for{" "}
+            {groupName}.
+          </p>
+        </div>
+        <Button asChild variant="outline">
+          <Link href={`/groups/${groupSlug}/manage`}>Back to settings</Link>
+        </Button>
+      </div>
+      <div className="mt-8 space-y-3">{children}</div>
+      {pageCount <= 1 ? null : (
+        <Pagination className="mt-8">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                aria-disabled={page <= 1}
+                href={page <= 1 ? undefined : href(page - 1)}
+              />
+            </PaginationItem>
+            <PaginationItem>
+              <span className="px-3 text-sm text-muted-foreground">
+                {page}/{pageCount}
+              </span>
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationNext
+                aria-disabled={page >= pageCount}
+                href={page >= pageCount ? undefined : href(page + 1)}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
+    </section>
+  );
+}
+
 function SettingsSection({
   children,
   id,
@@ -216,11 +399,15 @@ function MemberSettings({ settings }: Readonly<{ settings: GroupSettings }>) {
             key={member.userId}
           >
             <div>
-              <Link className="font-semibold text-foreground" href={`/people/${member.handle}`}>
-                {member.displayName}
-              </Link>
+              {member.handle === null ? (
+                <p className="font-semibold text-foreground">{identityLabel(member.handle)}</p>
+              ) : (
+                <Link className="font-semibold text-foreground" href={`/people/${member.handle}`}>
+                  {member.displayName}
+                </Link>
+              )}
               <p className="mt-1 text-sm text-muted-foreground">
-                @{member.handle} · member since {formatDate(member.memberSince)}
+                {identityLabel(member.handle)} · member since {formatDate(member.memberSince)}
               </p>
               <Badge className="mt-2" variant="outline">
                 {member.role}
@@ -241,13 +428,13 @@ function MemberSettings({ settings }: Readonly<{ settings: GroupSettings }>) {
                     <RemoveMemberControl
                       groupId={settings.group.id}
                       groupSlug={settings.group.slug}
-                      targetLabel={`@${member.handle}`}
+                      targetLabel={identityLabel(member.handle)}
                       userId={member.userId}
                     />
                     <BanMemberControl
                       groupId={settings.group.id}
                       groupSlug={settings.group.slug}
-                      targetLabel={`@${member.handle}`}
+                      targetLabel={identityLabel(member.handle)}
                       userId={member.userId}
                     />
                   </>
@@ -323,11 +510,15 @@ function BanSettings({ settings }: Readonly<{ settings: GroupSettings }>) {
           key={ban.userId}
         >
           <div>
-            <Link className="font-semibold text-foreground" href={`/people/${ban.handle}`}>
-              {ban.displayName}
-            </Link>
+            {ban.handle === null ? (
+              <p className="font-semibold text-foreground">{identityLabel(ban.handle)}</p>
+            ) : (
+              <Link className="font-semibold text-foreground" href={`/people/${ban.handle}`}>
+                {ban.displayName}
+              </Link>
+            )}
             <p className="mt-1 text-sm text-muted-foreground">
-              @{ban.handle} · banned {formatDate(ban.bannedAt)}
+              {identityLabel(ban.handle)} · banned {formatDate(ban.bannedAt)}
             </p>
             <p className="mt-2 text-sm text-muted-foreground">{ban.reason}</p>
           </div>
@@ -344,42 +535,52 @@ function BanSettings({ settings }: Readonly<{ settings: GroupSettings }>) {
 
 function SettingsPagination({
   groupSlug,
+  hasOverflow = false,
   page,
   pageCount,
   parameter,
   target,
 }: Readonly<{
   groupSlug: string;
+  hasOverflow?: boolean;
   page: number;
   pageCount: number;
-  parameter: "membersPage" | "bansPage";
+  parameter: "membersPage" | "bansPage" | "invitationsPage";
   target: string;
 }>) {
   if (pageCount <= 1) return null;
   const href = (nextPage: number) =>
     `/groups/${groupSlug}/manage?${parameter}=${nextPage}#${target}`;
   return (
-    <Pagination className="mt-6">
-      <PaginationContent>
-        <PaginationItem>
-          <PaginationPrevious
-            aria-disabled={page <= 1}
-            href={page <= 1 ? undefined : href(page - 1)}
-          />
-        </PaginationItem>
-        <PaginationItem>
-          <span className="px-3 text-sm text-muted-foreground">
-            {page}/{pageCount}
-          </span>
-        </PaginationItem>
-        <PaginationItem>
-          <PaginationNext
-            aria-disabled={page >= pageCount}
-            href={page >= pageCount ? undefined : href(page + 1)}
-          />
-        </PaginationItem>
-      </PaginationContent>
-    </Pagination>
+    <div className="mt-6">
+      <Pagination>
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious
+              aria-disabled={page <= 1}
+              href={page <= 1 ? undefined : href(page - 1)}
+            />
+          </PaginationItem>
+          <PaginationItem>
+            <span className="px-3 text-sm text-muted-foreground">
+              {page}/{pageCount}
+            </span>
+          </PaginationItem>
+          <PaginationItem>
+            <PaginationNext
+              aria-disabled={page >= pageCount}
+              href={page >= pageCount ? undefined : href(page + 1)}
+            />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
+      {hasOverflow ? (
+        <p className="mt-3 text-center text-sm text-muted-foreground" role="status">
+          More invitations exist than can be shown in this list. This page stops at Huddle&apos;s
+          safe browsing limit.
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -387,9 +588,18 @@ function pageValue(value: string | string[] | undefined) {
   return collectionPageInput(Array.isArray(value) ? value[0] : value).page;
 }
 
+function firstValue(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-IL", {
     dateStyle: "medium",
     timeZone: "Asia/Jerusalem",
   }).format(new Date(value));
+}
+
+function identityLabel(handle: string | null, visibleName?: string) {
+  if (handle === null) return "Account unavailable";
+  return visibleName === undefined ? `@${handle}` : `${visibleName} · @${handle}`;
 }

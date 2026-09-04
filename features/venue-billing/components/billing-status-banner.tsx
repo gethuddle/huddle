@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { VenueBillingContext } from "../types";
 
@@ -14,7 +17,10 @@ export function billingDate(value: string | null) {
   }).format(new Date(value));
 }
 
-export function billingStatusMessage(context: VenueBillingContext): string | null {
+export function billingStatusMessage(
+  context: VenueBillingContext,
+  onBillingPage = false,
+): string | null {
   const deadline = billingDate(context.graceExpiresAt);
   switch (context.state) {
     case "active":
@@ -26,14 +32,18 @@ export function billingStatusMessage(context: VenueBillingContext): string | nul
     case "past_due":
       return `Your venue and events are hidden. Update the demo payment method by ${deadline} to keep managing this workspace.`;
     case "provider_stale":
-      return `We're confirming your demo subscription. Your venue and events are hidden for now. Check Billing by ${deadline}.`;
+      return onBillingPage
+        ? `We're confirming your demo subscription. Your venue and events are hidden for now. Confirmation is needed by ${deadline}.`
+        : `We're confirming your demo subscription. Your venue and events are hidden for now. Check Billing by ${deadline}.`;
     case "legacy_grace":
       return `Your venue and events are now private. Choose a demo plan by ${deadline} to keep your existing schedule.`;
     case "canceling":
       return `Your demo subscription ends on ${billingDate(context.paidThroughAt)}. Events from that date onward are hidden and will be cancelled when access ends.`;
     case "expired":
       return context.canOpenPortal
-        ? "This venue is private and editing is locked. Open Billing to recover the existing demo subscription."
+        ? onBillingPage
+          ? "This venue is private and editing is locked. Recover the existing demo subscription below."
+          : "This venue is private and editing is locked. Open Billing to recover the existing demo subscription."
         : "This venue is private and editing is locked. Choose a demo plan to continue.";
   }
 }
@@ -42,18 +52,23 @@ export function BillingStatusBanner({
   context,
   slug,
 }: Readonly<{ context: VenueBillingContext; slug: string }>) {
-  const message = billingStatusMessage(context);
+  const pathname = usePathname();
+  const billingHref = `/venues/${slug}/workspace/billing`;
+  const onBillingPage = pathname?.replace(/\/$/, "") === billingHref;
+  const message = billingStatusMessage(context, onBillingPage);
   if (!message) return null;
   return (
     <Alert className="mt-6" role="status">
       <AlertDescription>
         <p>{message}</p>
-        <Link
-          className="mt-2 inline-flex min-h-11 items-center font-semibold text-forest underline underline-offset-4"
-          href={`/venues/${slug}/workspace/billing`}
-        >
-          Open Billing
-        </Link>
+        {onBillingPage ? null : (
+          <Link
+            className="mt-2 inline-flex min-h-11 items-center font-semibold text-forest underline underline-offset-4"
+            href={billingHref}
+          >
+            Open Billing
+          </Link>
+        )}
       </AlertDescription>
     </Alert>
   );

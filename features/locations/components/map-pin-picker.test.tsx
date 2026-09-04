@@ -20,6 +20,8 @@ const maplibreMocks = vi.hoisted(() => {
   marker.addTo.mockImplementation(() => marker);
   marker.on.mockImplementation(() => marker);
   return {
+    getVersion: vi.fn(() => "6.6.0"),
+    setWorkerUrl: vi.fn(),
     Map: vi.fn(function Map() {
       return map;
     }),
@@ -31,7 +33,12 @@ const maplibreMocks = vi.hoisted(() => {
   };
 });
 
-vi.mock("maplibre-gl", () => ({ Map: maplibreMocks.Map, Marker: maplibreMocks.Marker }));
+vi.mock("maplibre-gl", () => ({
+  Map: maplibreMocks.Map,
+  Marker: maplibreMocks.Marker,
+  getVersion: maplibreMocks.getVersion,
+  setWorkerUrl: maplibreMocks.setWorkerUrl,
+}));
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -103,6 +110,12 @@ describe("MapPinPicker", () => {
       onPinRejected: vi.fn(),
     });
 
+    expect(maplibreMocks.setWorkerUrl).toHaveBeenCalledWith(
+      "/maplibre/6.6.0/maplibre-gl-worker.mjs",
+    );
+    expect(maplibreMocks.setWorkerUrl.mock.invocationCallOrder[0]).toBeLessThan(
+      maplibreMocks.Map.mock.invocationCallOrder[0],
+    );
     expect(maplibreMocks.Map).toHaveBeenCalledWith(
       expect.objectContaining({
         center: [34.9, 31.8],

@@ -356,5 +356,6 @@ describe("listMyGroupsForViewer", () => {
       "list_my_events",
       expect.objectContaining({ input_bucket: "hosting" }),
     );
+    expect(mocks.loadTeamVisualsByName).not.toHaveBeenCalled();
   });
 });

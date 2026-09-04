@@ -11,7 +11,7 @@ select no_plan();
 do $setup$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('b11_suspension_setup', connection_text);
   perform extensions.dblink_exec(
@@ -146,7 +146,7 @@ $setup$;
 do $read_only_connection$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('b11_read_only_actor', connection_text);
   perform extensions.dblink_exec('b11_read_only_actor', 'begin read only');
@@ -178,7 +178,7 @@ $disconnect_read_only$;
 do $connections$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('b11_suspension_moderator', connection_text);
   perform extensions.dblink_connect('b11_suspension_actor', connection_text);
@@ -295,7 +295,7 @@ select is(
 do $cleanup$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('b11_suspension_cleanup', connection_text);
   perform extensions.dblink_exec(

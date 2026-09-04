@@ -1,4 +1,5 @@
 "use client";
+import { FieldError, fieldFeedback, FocusInvalidFields } from "./field-feedback";
 
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
@@ -77,6 +78,7 @@ export function FixturePlanner({
     null,
   );
   const [pending, startTransition] = useTransition();
+  const errors = result?.ok === false ? result.error.fields : undefined;
   const activeSpaces = useMemo(() => venue.spaces.filter((space) => space.active), [venue.spaces]);
   const matches = useMemo(
     () =>
@@ -196,323 +198,417 @@ export function FixturePlanner({
   }
 
   return (
-    <section
-      aria-labelledby="venue-planner-phase-heading"
-      className="space-y-8 rounded-[1.75rem] border border-border bg-muted p-5 sm:p-7"
-    >
-      <div className="flex items-center gap-3" aria-label="Planning progress">
-        <span
-          className={phase === "select" ? "font-semibold text-forest" : "text-muted-foreground"}
-        >
-          1. Fixtures and areas
-        </span>
-        <span aria-hidden="true">→</span>
-        <span
-          className={phase === "review" ? "font-semibold text-forest" : "text-muted-foreground"}
-        >
-          2. Review
-        </span>
-      </div>
+    <FocusInvalidFields errors={errors}>
+      <section
+        aria-labelledby="venue-planner-phase-heading"
+        className="space-y-8 rounded-[1.75rem] border border-border bg-muted p-5 sm:p-7"
+      >
+        <div className="flex items-center gap-3" aria-label="Planning progress">
+          <span
+            className={phase === "select" ? "font-semibold text-forest" : "text-muted-foreground"}
+          >
+            1. Fixtures and areas
+          </span>
+          <span aria-hidden="true">→</span>
+          <span
+            className={phase === "review" ? "font-semibold text-forest" : "text-muted-foreground"}
+          >
+            2. Review
+          </span>
+        </div>
 
-      {phase === "select" ? (
-        <>
-          <div>
-            <h2 className="text-2xl font-semibold" id="venue-planner-phase-heading">
-              Pick the fixtures you will show
-            </h2>
-            <p className="mt-2 text-muted-foreground">
-              Dates and kickoff times come with each fixture. Choose up to 20 and use your usual
-              venue defaults.
-            </p>
-          </div>
-
-          {activeSpaces.length === 0 ? (
-            <Alert variant="destructive">
-              <AlertDescription>
-                Add an active viewing area in Venue settings before planning.
-              </AlertDescription>
-            </Alert>
-          ) : (
-            <FixtureCombobox
-              initialHasMore={catalog.matchesHasMore}
-              matches={catalog.matches}
-              onValueChange={addMatch}
-              onValueRemove={(matchId) =>
-                setItems((current) => current.filter((item) => item.matchId !== matchId))
-              }
-              selectedValues={items.map((item) => item.matchId)}
-              selectionLabels={Object.fromEntries(
-                items.map((item) => [
-                  item.matchId,
-                  spaces.get(item.venueSpaceId)?.name ?? "No area",
-                ]),
-              )}
-              value=""
-            />
-          )}
-
-          {activeSpaces.length > 1 && items.length > 0 ? (
-            <section aria-labelledby="planner-area-heading">
-              <h3 className="text-lg font-semibold" id="planner-area-heading">
-                Assign viewing areas
-              </h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Huddle uses your default area unless you choose another one.
+        {phase === "select" ? (
+          <>
+            <div>
+              <h2 className="text-2xl font-semibold" id="venue-planner-phase-heading">
+                Pick the fixtures you will show
+              </h2>
+              <p className="mt-2 text-muted-foreground">
+                Dates and kickoff times come with each fixture. Choose up to 20 and use your usual
+                venue defaults.
               </p>
-              <ol className="mt-4 overflow-hidden rounded-2xl border border-border">
-                {items.map((item, index) => {
-                  const match = matches.get(item.matchId);
-                  if (match === undefined) return null;
-                  return (
-                    <li
-                      className="grid gap-3 border-b border-border bg-card p-4 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_minmax(13rem,0.45fr)] sm:items-center"
-                      key={item.matchId}
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate font-semibold">{match.label}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {formatIsraelKickoff(match.startsAt)}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="sr-only" htmlFor={`planner-space-${index}`}>
-                          Viewing area for {match.label}
-                        </Label>
-                        <NativeSelect
-                          aria-label={`Viewing area for ${match.label}`}
-                          id={`planner-space-${index}`}
-                          onChange={(event) =>
-                            updateItem(index, { venueSpaceId: event.currentTarget.value })
-                          }
-                          value={item.venueSpaceId}
-                        >
-                          <NativeSelectOption value="">Choose an active area</NativeSelectOption>
-                          {activeSpaces.map((space) => (
-                            <NativeSelectOption key={space.id} value={space.id}>
-                              {space.name}
-                              {space.capacity === null
-                                ? " · open door"
-                                : ` · ${space.capacity} places`}
-                            </NativeSelectOption>
-                          ))}
-                        </NativeSelect>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ol>
-            </section>
-          ) : null}
+            </div>
 
-          {conflicts.size > 0 ? (
-            <Alert role="alert" variant="destructive">
-              <AlertDescription>
-                Two selected fixtures overlap in the same viewing area. Remove one or assign a
-                different area.
-              </AlertDescription>
-            </Alert>
-          ) : null}
-
-          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
-            <p className="text-sm text-muted-foreground">
-              {items.length === 0
-                ? "Choose at least one fixture."
-                : `${items.length} ${items.length === 1 ? "fixture" : "fixtures"} selected`}
-            </p>
-            <Button disabled={!complete} onClick={() => setPhase("review")} size="lg" type="button">
-              Review events
-            </Button>
-          </div>
-        </>
-      ) : (
-        <>
-          <div>
-            <h2 className="text-2xl font-semibold" id="venue-planner-phase-heading">
-              Review inherited details
-            </h2>
-            <p className="mt-2 text-muted-foreground">
-              Venue defaults remain reusable. Only add an override when this event truly differs.
-            </p>
-          </div>
-
-          <div className="rounded-[1.375rem] border border-border bg-card p-5">
-            <p className="font-semibold">{venue.name}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{venue.addressText}</p>
-            {venue.houseInformation === "" ? null : (
-              <p className="mt-3 text-sm text-muted-foreground">{venue.houseInformation}</p>
+            {activeSpaces.length === 0 ? (
+              <Alert variant="destructive">
+                <AlertDescription>
+                  Add an active viewing area in Venue settings before planning.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <FixtureCombobox
+                initialHasMore={catalog.matchesHasMore}
+                matches={catalog.matches}
+                onValueChange={addMatch}
+                onValueRemove={(matchId) =>
+                  setItems((current) => current.filter((item) => item.matchId !== matchId))
+                }
+                selectedValues={items.map((item) => item.matchId)}
+                selectionLabels={Object.fromEntries(
+                  items.map((item) => [
+                    item.matchId,
+                    spaces.get(item.venueSpaceId)?.name ?? "No area",
+                  ]),
+                )}
+                value=""
+              />
             )}
-          </div>
 
-          <ol className="space-y-5">
-            {items.map((item, index) => {
-              const match = matches.get(item.matchId);
-              const space = spaces.get(item.venueSpaceId);
-              if (match === undefined || space === undefined) return null;
-              return (
-                <li
-                  className="rounded-[1.375rem] border border-border bg-card p-5"
-                  key={item.matchId}
+            {activeSpaces.length > 1 && items.length > 0 ? (
+              <section aria-labelledby="planner-area-heading">
+                <h3 className="text-lg font-semibold" id="planner-area-heading">
+                  Assign viewing areas
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Huddle uses your default area unless you choose another one.
+                </p>
+                <ol className="mt-4 overflow-hidden rounded-2xl border border-border">
+                  {items.map((item, index) => {
+                    const match = matches.get(item.matchId);
+                    if (match === undefined) return null;
+                    return (
+                      <li
+                        className="grid gap-3 border-b border-border bg-card p-4 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_minmax(13rem,0.45fr)] sm:items-center"
+                        key={item.matchId}
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold">{match.label}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {formatIsraelKickoff(match.startsAt)}
+                          </p>
+                        </div>
+                        <div>
+                          <Label className="sr-only" htmlFor={`planner-space-${index}`}>
+                            Viewing area for {match.label}
+                          </Label>
+                          <NativeSelect
+                            aria-label={`Viewing area for ${match.label}`}
+                            id={`planner-space-${index}`}
+                            onChange={(event) =>
+                              updateItem(index, { venueSpaceId: event.currentTarget.value })
+                            }
+                            value={item.venueSpaceId}
+                          >
+                            <NativeSelectOption value="">Choose an active area</NativeSelectOption>
+                            {activeSpaces.map((space) => (
+                              <NativeSelectOption key={space.id} value={space.id}>
+                                {space.name}
+                                {space.capacity === null
+                                  ? " · open door"
+                                  : ` · ${space.capacity} places`}
+                              </NativeSelectOption>
+                            ))}
+                          </NativeSelect>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </section>
+            ) : null}
+
+            {conflicts.size > 0 ? (
+              <Alert role="alert" variant="destructive">
+                <AlertDescription>
+                  Two selected fixtures overlap in the same viewing area. Remove one or assign a
+                  different area.
+                </AlertDescription>
+              </Alert>
+            ) : null}
+
+            {items.map((item, index) => (
+              <div key={item.matchId}>
+                <Label htmlFor={`planner-select-attendance-${index}`}>
+                  Attendance for {matches.get(item.matchId)?.label}
+                </Label>
+                <NativeSelect
+                  id={`planner-select-attendance-${index}`}
+                  value={item.attendanceMode}
+                  onChange={(event) =>
+                    updateItem(index, {
+                      attendanceMode: event.currentTarget.value as "open_door" | "reservations",
+                      capacity: null,
+                      requiresApproval: null,
+                    })
+                  }
                 >
-                  <h3 className="text-xl font-semibold">{match.label}</h3>
+                  <NativeSelectOption value="open_door">
+                    Open door — no RSVP needed
+                  </NativeSelectOption>
+                  <NativeSelectOption
+                    value="reservations"
+                    disabled={spaces.get(item.venueSpaceId)?.capacity === null}
+                  >
+                    Reservations and guest list
+                  </NativeSelectOption>
+                </NativeSelect>
+                {item.attendanceMode === "reservations" &&
+                spaces.get(item.venueSpaceId)?.capacity === null ? (
                   <p className="mt-2 text-sm text-muted-foreground">
-                    {formatIsraelKickoff(match.startsAt)} · {space.name}
+                    This area has no reservation capacity. Choose open door to continue.
                   </p>
-                  <div className="mt-5">
-                    <Label htmlFor={`planner-attendance-${index}`}>Attendance</Label>
-                    <NativeSelect
-                      id={`planner-attendance-${index}`}
-                      onChange={(event) => {
-                        const attendanceMode = event.currentTarget.value as
-                          "open_door" | "reservations";
-                        updateItem(index, {
-                          attendanceMode,
-                          capacity: attendanceMode === "open_door" ? null : item.capacity,
-                          requiresApproval:
-                            attendanceMode === "open_door" ? null : item.requiresApproval,
-                        });
-                      }}
-                      value={item.attendanceMode}
-                    >
-                      <NativeSelectOption value="open_door">
-                        Open door — no RSVP needed
-                      </NativeSelectOption>
-                      <NativeSelectOption disabled={space.capacity === null} value="reservations">
-                        Reservations and guest list
-                      </NativeSelectOption>
-                    </NativeSelect>
+                ) : null}
+              </div>
+            ))}
+
+            <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
+              <p className="text-sm text-muted-foreground">
+                {items.length === 0
+                  ? "Choose at least one fixture."
+                  : `${items.length} ${items.length === 1 ? "fixture" : "fixtures"} selected`}
+              </p>
+              <Button
+                disabled={!complete}
+                onClick={() => setPhase("review")}
+                size="lg"
+                type="button"
+              >
+                Review events
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div>
+              <h2 className="text-2xl font-semibold" id="venue-planner-phase-heading">
+                Review inherited details
+              </h2>
+              <p className="mt-2 text-muted-foreground">
+                Venue defaults remain reusable. Only add an override when this event truly differs.
+              </p>
+            </div>
+
+            <div className="rounded-[1.375rem] border border-border bg-card p-5">
+              <p className="font-semibold">{venue.name}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{venue.addressText}</p>
+              {venue.houseInformation === "" ? null : (
+                <p className="mt-3 text-sm text-muted-foreground">{venue.houseInformation}</p>
+              )}
+            </div>
+
+            <ol className="space-y-5">
+              {items.map((item, index) => {
+                const match = matches.get(item.matchId);
+                const space = spaces.get(item.venueSpaceId);
+                if (match === undefined || space === undefined) return null;
+                return (
+                  <li
+                    className="rounded-[1.375rem] border border-border bg-card p-5"
+                    key={item.matchId}
+                  >
+                    <h3 className="text-xl font-semibold">{match.label}</h3>
                     <p className="mt-2 text-sm text-muted-foreground">
-                      {item.attendanceMode === "open_door"
-                        ? "Open door — no RSVP, invitations, approval queue, or capacity claim."
-                        : `${space.capacity} registered accounts · ${venue.defaultRequiresApproval ? "Staff approval required" : "Immediate joining"}`}
+                      {formatIsraelKickoff(match.startsAt)} · {space.name}
                     </p>
-                  </div>
-                  <div className="mt-5 grid gap-5 sm:grid-cols-2">
-                    <div>
-                      <Label htmlFor={`planner-title-${index}`}>Custom title (optional)</Label>
-                      <Input
-                        id={`planner-title-${index}`}
-                        maxLength={120}
+                    <div className="mt-5">
+                      <Label htmlFor={`planner-attendance-${index}`}>Attendance</Label>
+                      <NativeSelect
+                        id={`planner-attendance-${index}`}
+                        {...fieldFeedback(
+                          errors,
+                          `items.${index}.attendanceMode`,
+                          `planner-attendance-${index}`,
+                        )}
+                        onChange={(event) => {
+                          const attendanceMode = event.currentTarget.value as
+                            "open_door" | "reservations";
+                          updateItem(index, {
+                            attendanceMode,
+                            capacity: attendanceMode === "open_door" ? null : item.capacity,
+                            requiresApproval:
+                              attendanceMode === "open_door" ? null : item.requiresApproval,
+                          });
+                        }}
+                        value={item.attendanceMode}
+                      >
+                        <NativeSelectOption value="open_door">
+                          Open door — no RSVP needed
+                        </NativeSelectOption>
+                        <NativeSelectOption disabled={space.capacity === null} value="reservations">
+                          Reservations and guest list
+                        </NativeSelectOption>
+                      </NativeSelect>
+                      <FieldError
+                        errors={errors}
+                        name={`items.${index}.attendanceMode`}
+                        id={`planner-attendance-${index}`}
+                      />
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        {item.attendanceMode === "open_door"
+                          ? "Open door — no RSVP, invitations, approval queue, or capacity claim."
+                          : `${space.capacity} registered accounts · ${venue.defaultRequiresApproval ? "Staff approval required" : "Immediate joining"}`}
+                      </p>
+                    </div>
+                    <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                      <div>
+                        <Label htmlFor={`planner-title-${index}`}>Custom title (optional)</Label>
+                        <Input
+                          id={`planner-title-${index}`}
+                          {...fieldFeedback(
+                            errors,
+                            `items.${index}.title`,
+                            `planner-title-${index}`,
+                          )}
+                          maxLength={120}
+                          onChange={(event) =>
+                            updateItem(index, { title: event.currentTarget.value || null })
+                          }
+                          value={item.title ?? ""}
+                        />
+                        <FieldError
+                          errors={errors}
+                          name={`items.${index}.title`}
+                          id={`planner-title-${index}`}
+                        />
+                      </div>
+                      {item.attendanceMode === "reservations" ? (
+                        <div>
+                          <Label htmlFor={`planner-capacity-${index}`}>
+                            Lower capacity (optional)
+                          </Label>
+                          <Input
+                            id={`planner-capacity-${index}`}
+                            {...fieldFeedback(
+                              errors,
+                              `items.${index}.capacity`,
+                              `planner-capacity-${index}`,
+                            )}
+                            max={space.capacity ?? undefined}
+                            min={1}
+                            onChange={(event) =>
+                              updateItem(index, {
+                                capacity:
+                                  event.currentTarget.value === ""
+                                    ? null
+                                    : Number(event.currentTarget.value),
+                              })
+                            }
+                            type="number"
+                            value={item.capacity ?? ""}
+                          />
+                          <FieldError
+                            errors={errors}
+                            name={`items.${index}.capacity`}
+                            id={`planner-capacity-${index}`}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+                    <div className="mt-5">
+                      <Label htmlFor={`planner-description-${index}`}>
+                        Custom description (optional)
+                      </Label>
+                      <Textarea
+                        id={`planner-description-${index}`}
+                        {...fieldFeedback(
+                          errors,
+                          `items.${index}.description`,
+                          `planner-description-${index}`,
+                        )}
+                        maxLength={2000}
                         onChange={(event) =>
-                          updateItem(index, { title: event.currentTarget.value || null })
+                          updateItem(index, { description: event.currentTarget.value || null })
                         }
-                        value={item.title ?? ""}
+                        value={item.description ?? ""}
+                      />
+                      <FieldError
+                        errors={errors}
+                        name={`items.${index}.description`}
+                        id={`planner-description-${index}`}
                       />
                     </div>
                     {item.attendanceMode === "reservations" ? (
-                      <div>
-                        <Label htmlFor={`planner-capacity-${index}`}>
-                          Lower capacity (optional)
-                        </Label>
-                        <Input
-                          id={`planner-capacity-${index}`}
-                          max={space.capacity ?? undefined}
-                          min={1}
+                      <div className="mt-5">
+                        <Label htmlFor={`planner-approval-${index}`}>Joining policy</Label>
+                        <NativeSelect
+                          id={`planner-approval-${index}`}
+                          {...fieldFeedback(
+                            errors,
+                            `items.${index}.requiresApproval`,
+                            `planner-approval-${index}`,
+                          )}
                           onChange={(event) =>
                             updateItem(index, {
-                              capacity:
-                                event.currentTarget.value === ""
+                              requiresApproval:
+                                event.currentTarget.value === "inherit"
                                   ? null
-                                  : Number(event.currentTarget.value),
+                                  : event.currentTarget.value === "approval",
                             })
                           }
-                          type="number"
-                          value={item.capacity ?? ""}
+                          value={
+                            item.requiresApproval === null
+                              ? "inherit"
+                              : item.requiresApproval
+                                ? "approval"
+                                : "immediate"
+                          }
+                        >
+                          <NativeSelectOption value="inherit">Use venue default</NativeSelectOption>
+                          <NativeSelectOption value="approval">
+                            Staff approval required
+                          </NativeSelectOption>
+                          <NativeSelectOption value="immediate">
+                            Immediate joining
+                          </NativeSelectOption>
+                        </NativeSelect>
+                        <FieldError
+                          errors={errors}
+                          name={`items.${index}.requiresApproval`}
+                          id={`planner-approval-${index}`}
                         />
                       </div>
                     ) : null}
-                  </div>
-                  <div className="mt-5">
-                    <Label htmlFor={`planner-description-${index}`}>
-                      Custom description (optional)
-                    </Label>
-                    <Textarea
-                      id={`planner-description-${index}`}
-                      maxLength={2000}
-                      onChange={(event) =>
-                        updateItem(index, { description: event.currentTarget.value || null })
-                      }
-                      value={item.description ?? ""}
-                    />
-                  </div>
-                  {item.attendanceMode === "reservations" ? (
-                    <div className="mt-5">
-                      <Label htmlFor={`planner-approval-${index}`}>Joining policy</Label>
-                      <NativeSelect
-                        id={`planner-approval-${index}`}
-                        onChange={(event) =>
-                          updateItem(index, {
-                            requiresApproval:
-                              event.currentTarget.value === "inherit"
-                                ? null
-                                : event.currentTarget.value === "approval",
-                          })
-                        }
-                        value={
-                          item.requiresApproval === null
-                            ? "inherit"
-                            : item.requiresApproval
-                              ? "approval"
-                              : "immediate"
-                        }
-                      >
-                        <NativeSelectOption value="inherit">Use venue default</NativeSelectOption>
-                        <NativeSelectOption value="approval">
-                          Staff approval required
-                        </NativeSelectOption>
-                        <NativeSelectOption value="immediate">Immediate joining</NativeSelectOption>
-                      </NativeSelect>
-                    </div>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ol>
+                  </li>
+                );
+              })}
+            </ol>
 
-          {result?.ok === false ? (
-            <Alert role="alert" variant="destructive">
-              <AlertDescription>
-                {result.error.message} No event in this batch was created.
-              </AlertDescription>
-            </Alert>
-          ) : null}
+            {result?.ok === false ? (
+              <Alert role="alert" variant="destructive">
+                <AlertDescription>
+                  {result.error.message} No event in this batch was created.
+                </AlertDescription>
+              </Alert>
+            ) : null}
 
-          {!canPublishBatch ? (
-            <p className="text-sm text-muted-foreground">
-              {!withinCutoff
-                ? "This batch includes a fixture at or after your demo subscription ends. Save drafts or choose an earlier fixture."
-                : (billing.blockedReason ??
-                  "Publishing is unavailable. You can still save drafts.")}
-            </p>
-          ) : null}
-          <div className="flex flex-wrap gap-3">
-            <Button
-              disabled={pending || !canPublishBatch}
-              onClick={() => submit("publish")}
-              size="lg"
-              type="button"
-            >
-              {pending ? "Saving batch…" : "Publish batch"}
-            </Button>
-            <Button
-              disabled={pending}
-              onClick={() => submit("draft")}
-              size="lg"
-              type="button"
-              variant="outline"
-            >
-              Save batch as drafts
-            </Button>
-            <Button
-              disabled={pending}
-              onClick={() => setPhase("select")}
-              type="button"
-              variant="ghost"
-            >
-              Back
-            </Button>
-          </div>
-        </>
-      )}
-    </section>
+            {!canPublishBatch ? (
+              <p className="text-sm text-muted-foreground">
+                {!withinCutoff
+                  ? "This batch includes a fixture at or after your demo subscription ends. Save drafts or choose an earlier fixture."
+                  : (billing.blockedReason ??
+                    "Publishing is unavailable. You can still save drafts.")}
+              </p>
+            ) : null}
+            <div className="flex flex-wrap gap-3">
+              <Button
+                disabled={pending || !canPublishBatch}
+                onClick={() => submit("publish")}
+                size="lg"
+                type="button"
+              >
+                {pending ? "Saving batch…" : "Publish batch"}
+              </Button>
+              <Button
+                disabled={pending}
+                onClick={() => submit("draft")}
+                size="lg"
+                type="button"
+                variant="outline"
+              >
+                Save batch as drafts
+              </Button>
+              <Button
+                disabled={pending}
+                onClick={() => setPhase("select")}
+                type="button"
+                variant="ghost"
+              >
+                Back
+              </Button>
+            </div>
+          </>
+        )}
+      </section>
+    </FocusInvalidFields>
   );
 }

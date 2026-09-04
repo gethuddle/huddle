@@ -8,6 +8,16 @@ import {
 } from "./link-consumption";
 
 describe("auth link consumption", () => {
+  it("accepts only the dedicated email-change token and rejects PKCE or other purposes", () => {
+    expect(parseAuthLinkCredential("token_hash=hash&type=email_change", "email_change")).toEqual({
+      kind: "token_hash",
+      tokenHash: "hash",
+      type: "email_change",
+    });
+    expect(parseAuthLinkCredential("token_hash=hash&type=email_change", "email")).toBeNull();
+    expect(parseAuthLinkCredential("token_hash=hash&type=recovery", "email_change")).toBeNull();
+    expect(parseAuthLinkCredential("code=opaque", "email_change")).toBeNull();
+  });
   it("accepts exactly one bounded token-hash or PKCE credential", () => {
     expect(parseAuthLinkCredential("token_hash=hash&type=email", "email")).toEqual({
       kind: "token_hash",

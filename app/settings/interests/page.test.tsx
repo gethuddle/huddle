@@ -83,4 +83,10 @@ describe("InterestSettingsPage", () => {
     expect(screen.queryByText("Football")).not.toBeInTheDocument();
     expect(screen.queryByText("Chelsea")).not.toBeInTheDocument();
   });
+
+  it("passes a bounded team search to the catalog instead of filtering only the first browse page", async () => {
+    render(await InterestSettingsPage({ searchParams: Promise.resolve({ q: "late horizon" }) }));
+
+    expect(mocks.getInterestCatalog).toHaveBeenCalledWith("late horizon");
+  });
 });

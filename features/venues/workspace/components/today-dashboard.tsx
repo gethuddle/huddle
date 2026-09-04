@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { formatIsraelKickoff } from "@/features/sports/time";
 import type { VenueTodaySnapshot } from "@/features/venues/workspace/types";
+import { venueEventHref } from "@/features/venues/workspace/event-links";
 
 type TodayDashboardProps = Readonly<{
   slug: string;
@@ -75,7 +76,9 @@ export function TodayDashboard({ slug, snapshot, canPrepareDrafts = false }: Tod
                 </dl>
               )}
               <Button asChild className="mt-6 rounded-full" variant="outline">
-                <Link href={`/events/${next.id}`}>Open event</Link>
+                <Link href={venueEventHref(next.id, slug, "today", next.status === "draft")}>
+                  {next.status === "draft" ? "Edit draft" : "Open event"}
+                </Link>
               </Button>
             </CardContent>
           </Card>
@@ -98,7 +101,7 @@ export function TodayDashboard({ slug, snapshot, canPrepareDrafts = false }: Tod
               <li key={event.id}>
                 <Link
                   className="grid min-h-16 gap-1 p-5 outline-none hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring sm:grid-cols-[1fr_auto]"
-                  href={`/events/${event.id}`}
+                  href={venueEventHref(event.id, slug, "today", event.status === "draft")}
                 >
                   <span className="font-semibold">{event.title}</span>
                   <span className="text-sm text-muted-foreground">
@@ -150,7 +153,7 @@ function AttentionPanel({
         {attention.map((item) => (
           <Link
             className="flex min-h-16 items-center justify-between gap-4 px-6 py-4 outline-none hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring sm:px-7"
-            href={`/events/${item.eventId}`}
+            href={venueEventHref(item.eventId, slug, "today", true)}
             key={item.eventId}
           >
             <span className="font-semibold">{item.title}</span>

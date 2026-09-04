@@ -37,7 +37,7 @@ select ok(
 do $setup$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('workspace_activation_setup', connection_text);
   perform extensions.dblink_exec(
@@ -99,7 +99,7 @@ $setup$;
 do $fan_connections$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('workspace_fan_first', connection_text);
   perform extensions.dblink_connect('workspace_fan_second', connection_text);
@@ -239,7 +239,7 @@ select is(
 do $venue_connections$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('workspace_venue_first', connection_text);
   perform extensions.dblink_connect('workspace_venue_second', connection_text);
@@ -392,7 +392,7 @@ select is(
 do $cross_connections$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('workspace_cross_fan', connection_text);
   perform extensions.dblink_connect('workspace_cross_venue', connection_text);

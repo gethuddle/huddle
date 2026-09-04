@@ -1,11 +1,37 @@
 // @vitest-environment jsdom
 
 import { act, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { DiscoveryEvent } from "@/features/discovery/types";
 
-import { DiscoveryMap, type DiscoveryMapFactory } from "./discovery-map";
+import {
+  createMapLibreDiscoveryMap,
+  DiscoveryMap,
+  type DiscoveryMapFactory,
+} from "./discovery-map";
+
+const maplibreMocks = vi.hoisted(() => {
+  const map = { on: vi.fn(), addControl: vi.fn(), remove: vi.fn() };
+  const marker = { setLngLat: vi.fn(), addTo: vi.fn(), remove: vi.fn() };
+  marker.setLngLat.mockImplementation(() => marker);
+  marker.addTo.mockImplementation(() => marker);
+  return {
+    getVersion: vi.fn(() => "6.6.0"),
+    setWorkerUrl: vi.fn(),
+    Map: vi.fn(function Map() {
+      return map;
+    }),
+    Marker: vi.fn(function Marker() {
+      return marker;
+    }),
+    NavigationControl: vi.fn(function NavigationControl() {
+      return {};
+    }),
+  };
+});
+vi.mock("maplibre-gl", () => maplibreMocks);
+beforeEach(() => vi.clearAllMocks());
 
 function event(
   id: string,
@@ -51,6 +77,30 @@ function event(
 }
 
 describe("DiscoveryMap", () => {
+  it("configures the matching local worker before constructing a discovery map", async () => {
+    const controller = await createMapLibreDiscoveryMap(document.createElement("div"), {
+      locations: [
+        {
+          id: "public-place",
+          placeName: "The Corner",
+          latitude: 32.81,
+          longitude: 34.99,
+          events: [
+            event("a1000000-0000-4000-8000-000000000001", "The Corner", 32.81, 34.99, "Arsenal"),
+          ],
+        },
+      ],
+      userLocation: null,
+      onLocationSelect: vi.fn(),
+    });
+    expect(maplibreMocks.setWorkerUrl).toHaveBeenCalledWith(
+      "/maplibre/6.6.0/maplibre-gl-worker.mjs",
+    );
+    expect(maplibreMocks.setWorkerUrl.mock.invocationCallOrder[0]).toBeLessThan(
+      maplibreMocks.Map.mock.invocationCallOrder[0],
+    );
+    controller.destroy();
+  });
   it("groups fixtures at one public place and lets a marker reveal what it is showing", async () => {
     const cornerOne = event(
       "a1000000-0000-4000-8000-000000000001",

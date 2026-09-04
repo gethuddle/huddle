@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, unstable_rethrow } from "next/navigation";
+import Link from "next/link";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -159,14 +160,71 @@ export function EventCreateFlow({
   );
 
   useEffect(() => {
-    if (!dirty) return;
+    if (!dirty && !saving) return;
+    const mayLeave = () =>
+      !saving &&
+      window.confirm(
+        "Leave without saving your latest changes? Choose Cancel, then Save and exit to keep them.",
+      );
     const warn = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       event.returnValue = "";
     };
+    const guardLink = (event: MouseEvent) => {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey ||
+        !(event.target instanceof Element)
+      )
+        return;
+      const link = event.target.closest("a[href]");
+      if (
+        !(link instanceof HTMLAnchorElement) ||
+        link.hasAttribute("download") ||
+        (link.target !== "" && link.target !== "_self")
+      )
+        return;
+      const destination = new URL(link.href, window.location.href);
+      if (destination.origin !== window.location.origin) return;
+      // An in-page anchor does not discard the draft.
+      if (
+        destination.pathname === window.location.pathname &&
+        destination.search === window.location.search
+      )
+        return;
+      if (mayLeave()) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+    // Use native cancellation when supported. Never insert history entries or
+    // rewind popstate: those approaches can trap users or corrupt Next's history.
+    const navigation = (window as Window & { navigation?: EventTarget }).navigation;
+    const guardTraversal = (event: Event) => {
+      const traversal = event as Event & {
+        navigationType?: string;
+        destination?: { sameDocument?: boolean };
+      };
+      if (
+        event.cancelable &&
+        traversal.navigationType === "traverse" &&
+        traversal.destination?.sameDocument &&
+        !mayLeave()
+      )
+        event.preventDefault();
+    };
     window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
+    document.addEventListener("click", guardLink, true);
+    navigation?.addEventListener("navigate", guardTraversal);
+    return () => {
+      window.removeEventListener("beforeunload", warn);
+      document.removeEventListener("click", guardLink, true);
+      navigation?.removeEventListener("navigate", guardTraversal);
+    };
+  }, [dirty, saving]);
 
   function updateValues(patch: EventDraftPatch) {
     setValues((current) => ({ ...current, ...patch }));
@@ -195,20 +253,27 @@ export function EventCreateFlow({
       setReviewAttempted(false);
     }
 
-    const result = await saveEventDraftStepAction({
-      id: draftId,
-      step: nextPhase,
-      values: usefulPatch(values),
-      organizingGroupId,
-      privateLocation:
-        values.placeKind !== "home"
-          ? { mode: "clear" as const }
-          : protectedLocationChanged
-            ? protectedLocation === null
-              ? { mode: "clear" as const }
-              : { mode: "replace" as const, value: protectedLocation }
-            : { mode: "preserve" as const },
-    });
+    let result;
+    try {
+      result = await saveEventDraftStepAction({
+        id: draftId,
+        step: nextPhase,
+        values: usefulPatch(values),
+        organizingGroupId,
+        privateLocation:
+          values.placeKind !== "home"
+            ? { mode: "clear" as const }
+            : protectedLocationChanged
+              ? protectedLocation === null
+                ? { mode: "clear" as const }
+                : { mode: "replace" as const, value: protectedLocation }
+              : { mode: "preserve" as const },
+      });
+    } catch (error) {
+      unstable_rethrow(error);
+      setError("We could not save your draft. Your changes are still here. Please try again.");
+      return null;
+    }
     if (!result.ok) {
       setError(result.error.message);
       return null;
@@ -233,7 +298,9 @@ export function EventCreateFlow({
   }
 
   function move(nextPhase: 1 | 2 | 3) {
-    startSaving(() => void save(nextPhase));
+    startSaving(async () => {
+      await save(nextPhase);
+    });
   }
 
   function publish() {
@@ -243,13 +310,23 @@ export function EventCreateFlow({
     }
     setError(null);
     startSaving(async () => {
-      const result = await finalizeEventDraftAction({ draftId });
-      if (!result.ok) setError(result.error.message);
+      try {
+        const result = await finalizeEventDraftAction({ draftId });
+        if (!result.ok) setError(result.error.message);
+      } catch (error) {
+        unstable_rethrow(error);
+        setError("We could not publish your draft. It is still saved. Please try again.");
+      }
     });
   }
 
   return (
-    <div className="space-y-6">
+    <fieldset className="space-y-6" disabled={saving}>
+      {!dirty && !saving ? (
+        <Button asChild variant="outline">
+          <Link href="/events/drafts">Saved drafts</Link>
+        </Button>
+      ) : null}
       <ol aria-label="Event creation progress" className="grid gap-2 sm:grid-cols-3">
         {([1, 2, 3] as const).map((step) => (
           <li
@@ -404,6 +481,19 @@ export function EventCreateFlow({
           </Button>
         )}
       </div>
+      <Button
+        disabled={saving || values.matchId == null}
+        variant="outline"
+        type="button"
+        onClick={() =>
+          startSaving(async () => {
+            const savedId = await save(phase);
+            if (savedId !== null) router.push("/events/drafts");
+          })
+        }
+      >
+        Save and exit
+      </Button>
       <p aria-live="polite" className="text-sm text-muted-foreground">
         {dirty
           ? "Changes not saved yet."
@@ -411,6 +501,10 @@ export function EventCreateFlow({
             ? "Start by choosing a fixture."
             : "Draft saved."}
       </p>
-    </div>
+      <p className="text-xs text-muted-foreground">
+        Moving between steps saves a private draft. Use Save and exit to keep your latest changes
+        and find it in Saved drafts.
+      </p>
+    </fieldset>
   );
 }

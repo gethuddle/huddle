@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { ContextBackLink, safeExploreReturnTo } from "@/components/navigation/context-back-link";
+import { safeVenueEventReturnTo } from "@/features/venues/workspace/event-links";
 import { ShareLinkButton } from "@/components/share/share-link-button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -52,7 +53,12 @@ export default async function EventPage({ params, searchParams }: EventPageProps
   const viewerPresentation = eventViewerPresentation(viewerRole, event.status);
   const rawQuery = await searchParams;
   const rawReturnTo = Array.isArray(rawQuery.returnTo) ? rawQuery.returnTo[0] : rawQuery.returnTo;
-  const returnTo = safeExploreReturnTo(rawReturnTo);
+  const venueReturnTo = safeVenueEventReturnTo(rawReturnTo, event.host.venueSlug, event.canManage);
+  const returnTo = venueReturnTo ?? safeExploreReturnTo(rawReturnTo);
+  const venueFallback =
+    event.canManage && event.host.kind === "venue" && event.host.venueSlug !== null
+      ? `/venues/${encodeURIComponent(event.host.venueSlug)}/workspace`
+      : null;
   const rawCreated = Array.isArray(rawQuery.created) ? rawQuery.created[0] : rawQuery.created;
   const created = rawCreated === "1";
   const rawAttendeePage = rawQuery.attendeePage;
@@ -107,8 +113,25 @@ export default async function EventPage({ params, searchParams }: EventPageProps
         </Alert>
       ) : null}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <ContextBackLink fallbackHref="/discover" returnTo={returnTo} />
+        {venueReturnTo !== null || (returnTo === null && venueFallback !== null) ? (
+          <Button asChild variant="ghost">
+            <Link href={venueReturnTo ?? venueFallback!}>
+              <span aria-hidden="true">←</span>Back to venue
+            </Link>
+          </Button>
+        ) : (
+          <ContextBackLink fallbackHref="/discover" returnTo={returnTo} />
+        )}
         <div className="flex flex-wrap items-center gap-2">
+          {event.canManage && event.host.kind === "venue" ? (
+            <Button asChild variant="outline">
+              <Link
+                href={`/events/${event.id}/manage${returnTo ? `?${new URLSearchParams({ returnTo })}` : ""}`}
+              >
+                {event.status === "draft" ? "Edit draft" : "Manage event"}
+              </Link>
+            </Button>
+          ) : null}
           <span className="text-sm text-muted-foreground">
             {event.status === "published" ? "Published event" : event.status.replaceAll("_", " ")}
           </span>
@@ -270,6 +293,17 @@ export default async function EventPage({ params, searchParams }: EventPageProps
                   Turn up at the venue for kickoff. Availability is managed by the venue in person,
                   not through a Huddle place counter. Huddle does not collect RSVPs or a guest list.
                 </p>
+              ) : event.canManage && event.host.kind === "venue" ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Use Manage event to review requests and manage attendees.
+                  </p>
+                  {event.status === "published" ? (
+                    <Button asChild variant="outline">
+                      <a href={`/api/events/${event.id}/calendar.ics`}>Add to calendar</a>
+                    </Button>
+                  ) : null}
+                </div>
               ) : viewerNeedsGroupMembership ? (
                 <div className="space-y-4">
                   <p className="text-sm leading-6 text-muted-foreground">

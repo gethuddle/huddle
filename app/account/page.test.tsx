@@ -54,8 +54,12 @@ describe("AccountPage", () => {
       "/reports",
     );
     expect(
-      screen.getByText("Change your password or permanently delete your account."),
+      screen.getByText("Change your email or password, or permanently delete your account."),
     ).toBeVisible();
+    expect(screen.getByRole("link", { name: "Profile and username" })).toHaveAttribute(
+      "href",
+      "/settings/profile",
+    );
     expect(screen.getByRole("link", { name: "Manage security" })).toHaveAttribute(
       "href",
       "/account/security",

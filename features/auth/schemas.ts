@@ -61,6 +61,16 @@ export const knownPasswordUpdateSchema = z
     path: ["confirmPassword"],
   });
 
+export const emailChangeRequestSchema = z.object({
+  email: emailSchema,
+  currentPassword: existingPasswordSchema,
+});
+
+export const emailChangeQuerySchema = z.object({
+  tokenHash: z.string().min(1).max(2048),
+  type: z.literal("email_change"),
+});
+
 export const verificationQuerySchema = z.object({
   tokenHash: z.string().min(1).max(2048),
   type: z.literal("email"),

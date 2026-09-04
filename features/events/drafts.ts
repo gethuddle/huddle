@@ -11,8 +11,74 @@ import {
 import type { EventDraftOwnerRecord, FinalizedEvent } from "@/features/events/state";
 import { DomainError, domainErrorFromDatabase } from "@/lib/errors";
 import type { Database } from "@/types/database.generated";
+import {
+  boundedPage,
+  collectionOffset,
+  collectionPageCount,
+  collectionHasOverflow,
+  collectionVisibleTotal,
+} from "@/lib/pagination";
 
 type DraftClient = Pick<SupabaseClient<Database>, "rpc">;
+
+const draftSummarySchema = z
+  .object({
+    draft_id: z.uuid(),
+    title: z.string().nullable(),
+    step: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+    home_team_name: z.string().nullable(),
+    away_team_name: z.string().nullable(),
+    starts_at: z.iso.datetime({ offset: true }).nullable(),
+    updated_at: z.iso.datetime({ offset: true }),
+    total_count: z.number().int().nonnegative(),
+  })
+  .strict();
+
+export type EventDraftSummary = Readonly<{
+  id: string;
+  title: string | null;
+  step: 1 | 2 | 3;
+  homeTeamName: string | null;
+  awayTeamName: string | null;
+  startsAt: string | null;
+  savedAt: string;
+}>;
+
+export async function listMyEventDrafts(client: DraftClient, requestedPage: unknown = 1) {
+  async function read(page: number) {
+    const { data, error } = await client.rpc("list_my_event_drafts", {
+      input_limit: 20,
+      input_offset: collectionOffset(page),
+    });
+    if (error !== null) throw domainErrorFromDatabase(error);
+    const parsed = z.array(draftSummarySchema).safeParse(data);
+    if (!parsed.success) throw new DomainError("INTERNAL_ERROR", { cause: parsed.error });
+    return parsed.data;
+  }
+  let page = boundedPage(requestedPage);
+  let rows = await read(page);
+  if (page > 1 && rows.length === 0) {
+    const first = await read(1);
+    page = Math.min(page, collectionPageCount(first[0]?.total_count ?? 0));
+    rows = page === 1 ? first : await read(page);
+  }
+  const total = rows[0]?.total_count ?? 0;
+  return {
+    items: rows.map((row): EventDraftSummary => ({
+      id: row.draft_id,
+      title: row.title,
+      step: row.step,
+      homeTeamName: row.home_team_name,
+      awayTeamName: row.away_team_name,
+      startsAt: row.starts_at,
+      savedAt: row.updated_at,
+    })),
+    page,
+    pageCount: collectionPageCount(total),
+    totalCount: collectionVisibleTotal(total),
+    hasMoreBeyondWindow: collectionHasOverflow(total),
+  };
+}
 
 const draftRowSchema = z
   .object({

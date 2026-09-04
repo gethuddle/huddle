@@ -22,6 +22,46 @@ import { DomainError } from "@/lib/errors";
 const emptyPage = { items: [], page: 1, pageCount: 1, totalCount: 0 };
 
 describe("PeoplePage", () => {
+  it("retains a valid draft return during canonical search-page correction", async () => {
+    const returnTo = "/events/new?draft=60000000-0000-4000-8000-000000000111";
+    await expect(
+      PeoplePage({ searchParams: Promise.resolve({ q: "hello", searchPage: "502", returnTo }) }),
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(mocks.redirect).toHaveBeenCalledWith(
+      expect.stringContaining(`returnTo=${encodeURIComponent(returnTo)}`),
+    );
+  });
+  it.each([
+    "https://evil.example",
+    "//evil.example",
+    "/events/new?draft=invalid",
+    "/events/new?draft=60000000-0000-4000-8000-000000000111&next=https://evil.example",
+    "/events/new?draft=60000000-0000-4000-8000-000000000111#evil",
+    "/events/new?draft=60000000-0000-4000-8000-000000000111&draft=60000000-0000-4000-8000-000000000222",
+  ])("rejects unsafe or non-draft return %s", async (returnTo) => {
+    render(await PeoplePage({ searchParams: Promise.resolve({ returnTo }) }));
+    expect(screen.queryByRole("link", { name: "Return to event draft" })).not.toBeInTheDocument();
+  });
+  it("retains the private draft return through search, clearing and paging", async () => {
+    const returnTo = "/events/new?draft=60000000-0000-4000-8000-000000000111";
+    mocks.listPeopleHub.mockResolvedValue({ ...emptyPage, totalCount: 21, pageCount: 2 });
+    const { container } = render(
+      await PeoplePage({ searchParams: Promise.resolve({ q: "hello", returnTo }) }),
+    );
+    expect(screen.getByRole("link", { name: "Return to event draft" })).toHaveAttribute(
+      "href",
+      returnTo,
+    );
+    expect(container.querySelector('input[name="returnTo"]')).toHaveValue(returnTo);
+    expect(screen.getByRole("link", { name: "Clear search" })).toHaveAttribute(
+      "href",
+      `/people?returnTo=${encodeURIComponent(returnTo)}`,
+    );
+    expect(screen.getByLabelText("Go to next page")).toHaveAttribute(
+      "href",
+      expect.stringContaining(`returnTo=${encodeURIComponent(returnTo)}`),
+    );
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.redirect.mockImplementation(() => {

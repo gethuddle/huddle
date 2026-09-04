@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { unstable_rethrow } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { openArchivedVenueBillingPortalAction } from "../actions";
@@ -18,7 +19,8 @@ export function ArchivedVenueBillingControl({ slug }: { slug: string }) {
             try {
               const result = await openArchivedVenueBillingPortalAction({ slug });
               if (!result.ok) setMessage(result.error.message);
-            } catch {
+            } catch (error) {
+              unstable_rethrow(error);
               setMessage("The billing portal could not open. Please try again.");
             }
           })

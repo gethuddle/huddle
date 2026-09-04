@@ -42,7 +42,11 @@ in Explore. Owner portal, duplicate activation redelivery, and the scheduler wer
 also verified. This manual hosted result does not imply that every lifecycle or
 B13 scenario ran against hosted services; automated tests still never call Polar.
 
-## Thirty-seven deterministic Playwright scenarios
+## Current local hardening inventory
+
+The subsequent 4 September corrective branch adds automatic venue naming, live authenticated identifier checks, secure dual-email confirmation, private draft recovery, complete venue draft lifecycle, server-owned workspace switching, and verified local map-worker assets. There are now 41 Playwright cases, including a real worker initialization regression with deterministic raster imagery; [the hardening acceptance record](../evidence/submission-hardening/ACCEPTANCE.md) is authoritative for their current run status. The 37-case VB01 result above remains historical evidence. Local checks neither update production nor complete B13.
+
+## Baseline scenarios and current extensions
 
 Numbered journeys 01–17 and 19 are in `tests/e2e/auth.spec.ts`; journey 18 is in
 `tests/e2e/assisted-discovery.spec.ts`. Provider input is a saved, normalized fixture inserted
@@ -98,6 +102,8 @@ includes a one-time product request/approval/calendar mutation against dedicated
 accounts and a fresh event.
 
 ## Database coverage
+
+The hardening follow-up adds five forward migrations and six pgTAP files. Its fresh isolated 54-file run passed 2,606 assertions, including real concurrent automatic-address allocation, private summary retention with continued revocation, safe venue/draft management, and same-policy fixture-event pagination. The final full-stack evidence and remaining hosted checks are linked above.
 
 The current source adds VB01 entitlement, visibility, deadline, concurrency, and
 integrated-regression pgTAP files to the earlier database matrix. The isolated local
