@@ -6,7 +6,10 @@ import { VenueSettingsForm } from "@/features/venues/workspace/components/venue-
 import { VenueClosureControl } from "@/features/venues/workspace/components/venue-closure-control";
 import { VenueSpaceEditor } from "@/features/venues/workspace/components/venue-space-editor";
 import { getVenueSettings } from "@/features/venues/workspace/queries";
-import { getAuthorizedVenueWorkspaceBySlug } from "@/features/workspaces/queries";
+import {
+  getAuthorizedVenueWorkspaceBySlug,
+  getAuthorizedVenueWorkspaceSummaryBySlug,
+} from "@/features/workspaces/queries";
 
 type VenueSettingsPageProps = Readonly<{
   params: Promise<Readonly<{ slug: string }>>;
@@ -15,9 +18,14 @@ type VenueSettingsPageProps = Readonly<{
 export default async function VenueSettingsPage({ params }: VenueSettingsPageProps) {
   const parsed = venueRouteSlugSchema.safeParse((await params).slug);
   if (!parsed.success) notFound();
-  const workspace = await getAuthorizedVenueWorkspaceBySlug(parsed.data);
+  const workspacePromise = getAuthorizedVenueWorkspaceBySlug(parsed.data);
+  const authorizedWorkspace = await getAuthorizedVenueWorkspaceSummaryBySlug(parsed.data);
+  if (authorizedWorkspace === null) notFound();
+  const settingsPromise = getVenueSettings(authorizedWorkspace.id);
+  void settingsPromise.catch(() => undefined);
+  const workspace = await workspacePromise;
   if (workspace === null) notFound();
-  const settings = await getVenueSettings(workspace.id);
+  const settings = await settingsPromise;
   if (settings === null) notFound();
 
   return (

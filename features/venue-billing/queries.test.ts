@@ -4,8 +4,14 @@ import {
   getVenueCheckoutReturn,
   getArchivedVenueBillingContext,
 } from "./queries";
-const mocks = vi.hoisted(() => ({ actor: vi.fn(), rpc: vi.fn(), service: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  actor: vi.fn(),
+  createClient: vi.fn(),
+  rpc: vi.fn(),
+  service: vi.fn(),
+}));
 vi.mock("@/features/auth/actor", () => ({ requireActor: mocks.actor }));
+vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("@/lib/supabase/service-role", () => ({
   createServiceRoleClient: () => ({ rpc: mocks.service }),
 }));
@@ -49,6 +55,7 @@ const safe = {
 beforeEach(() => {
   vi.resetAllMocks();
   mocks.actor.mockResolvedValue({ user: { id }, supabase: { rpc: mocks.rpc } });
+  mocks.createClient.mockResolvedValue({ rpc: mocks.rpc });
   mocks.rpc.mockResolvedValue({ data: safe, error: null });
   mocks.service.mockResolvedValue({
     data: {
@@ -72,6 +79,8 @@ beforeEach(() => {
 });
 it("only accepts the safe 13-field projection", async () => {
   expect(await getVenueBillingContext(id)).toEqual(safe);
+  expect(mocks.createClient).toHaveBeenCalledOnce();
+  expect(mocks.actor).not.toHaveBeenCalled();
   mocks.rpc.mockResolvedValue({ data: { ...safe, polar_subscription_id: "private" }, error: null });
   await expect(getVenueBillingContext(id)).rejects.toThrow();
 });

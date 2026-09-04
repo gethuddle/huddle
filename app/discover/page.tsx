@@ -7,6 +7,7 @@ import { DiscoveryFiltersForm } from "@/features/discovery/components/discovery-
 import { ExploreTabs } from "@/features/discovery/components/explore-tabs";
 import { parseDiscoveryFiltersResult } from "@/features/discovery/schemas";
 import { getFixtureById } from "@/features/sports/browse";
+import { getDiscoveryViewerCacheScope } from "@/features/workspaces/queries";
 
 export const metadata: Metadata = {
   title: "Explore watch events — Huddle",
@@ -18,7 +19,11 @@ type DiscoverPageProps = Readonly<{
 }>;
 
 export default async function DiscoverPage({ searchParams }: DiscoverPageProps) {
-  const [rawSearchParams, catalog] = await Promise.all([searchParams, getDiscoveryCatalog()]);
+  const [rawSearchParams, catalog, viewerCacheScope] = await Promise.all([
+    searchParams,
+    getDiscoveryCatalog(),
+    getDiscoveryViewerCacheScope(),
+  ]);
 
   const parsedFilters = parseDiscoveryFiltersResult(rawSearchParams);
   if (!parsedFilters.ok) {
@@ -63,6 +68,7 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps) 
           locationMode: "browser",
           generatedAt: new Date().toISOString(),
           requiresPrivateCache: true,
+          viewerCacheScope,
         }}
       />
     </section>

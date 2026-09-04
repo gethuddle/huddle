@@ -1,6 +1,6 @@
 "use client";
 
-import { QueryClient, QueryClientProvider, useInfiniteQuery } from "@tanstack/react-query";
+import { QueryClientProvider, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { LocateFixed, Map as MapIcon, X } from "lucide-react";
 import { useEffect, useState, useSyncExternalStore } from "react";
 
@@ -19,6 +19,7 @@ import { formatIsraelKickoff } from "@/features/sports/time";
 import { AddressSearch } from "@/features/locations/components/address-search";
 import type { AddressSuggestion } from "@/features/locations/types";
 import type { DiscoveryApiPage, DiscoveryEvent, DiscoveryPage } from "@/features/discovery/types";
+import { getDiscoveryQueryClient } from "@/features/discovery/query-client";
 import {
   parseSessionOrigin,
   readSessionOrigin,
@@ -27,6 +28,20 @@ import {
 
 type Coordinates = Readonly<{ lat: number; lng: number }>;
 type LocationState = "idle" | "locating" | "browser" | "address" | "denied";
+
+function discoveryQueryKey(
+  viewerCacheScope: string,
+  filters: DiscoveryFilters,
+  coordinates: Coordinates | null,
+) {
+  return [
+    "event-discovery",
+    viewerCacheScope,
+    discoveryFilterIdentity(filters),
+    filters.limit,
+    coordinates,
+  ] as const;
+}
 
 function useDesktopViewport() {
   return useSyncExternalStore(
@@ -87,8 +102,9 @@ function DiscoveryFeedInner({
   const [locationLabel, setLocationLabel] = useState("");
   const [mobileMapOpen, setMobileMapOpen] = useState(false);
   const isDesktop = useDesktopViewport();
+  const queryClient = useQueryClient();
   const query = useInfiniteQuery({
-    queryKey: ["event-discovery", discoveryFilterIdentity(filters), coordinates],
+    queryKey: discoveryQueryKey(initialPage.viewerCacheScope, filters, coordinates),
     initialPageParam: null as string | null,
     queryFn: ({ pageParam }) => fetchDiscoveryPage(filters, coordinates, pageParam),
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
@@ -108,6 +124,10 @@ function DiscoveryFeedInner({
           }
         : undefined,
     retry: 1,
+    // Reuse cached results immediately after tab navigation, then reconcile
+    // attendance, event, and entitlement changes in the background.
+    refetchOnMount: "always",
+    refetchOnWindowFocus: "always",
     staleTime: 30_000,
   });
 
@@ -115,7 +135,12 @@ function DiscoveryFeedInner({
     const stored = readSessionOrigin(window.sessionStorage);
     if (stored !== null) {
       const restoreTimer = window.setTimeout(() => {
-        setCoordinates({ lat: stored.lat, lng: stored.lng });
+        const restoredCoordinates = { lat: stored.lat, lng: stored.lng };
+        void queryClient.invalidateQueries({
+          queryKey: discoveryQueryKey(initialPage.viewerCacheScope, filters, restoredCoordinates),
+          refetchType: "none",
+        });
+        setCoordinates(restoredCoordinates);
         setLocationLabel(stored.label);
         setLocationState(stored.kind);
       }, 0);
@@ -227,7 +252,7 @@ function DiscoveryFeedInner({
             <Skeleton className="h-40 rounded-2xl" key={index} />
           ))}
         </div>
-      ) : query.isError ? (
+      ) : query.isError && query.data === undefined ? (
         <div className="mt-8 rounded-2xl border border-sand/30 bg-sand/10 p-6" role="alert">
           <p className="font-semibold text-foreground">Discovery could not load.</p>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -239,6 +264,11 @@ function DiscoveryFeedInner({
         </div>
       ) : (
         <>
+          {query.isRefetchError ? (
+            <p className="mt-4 text-sm text-muted-foreground" role="status">
+              Couldn’t refresh events. Showing recent results.
+            </p>
+          ) : null}
           <div className="mt-8 grid items-start gap-8 lg:grid-cols-[minmax(0,0.86fr)_minmax(28rem,1.14fr)] xl:gap-10">
             <section aria-labelledby="discovery-results-heading" className="min-w-0">
               <div className="flex items-end justify-between gap-4">
@@ -383,7 +413,7 @@ export function DiscoveryFeed(
     initialPage: DiscoveryPage;
   }>,
 ) {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(getDiscoveryQueryClient);
   return (
     <QueryClientProvider client={queryClient}>
       <DiscoveryFeedInner initialPage={props.initialPage} filters={props.filters} />

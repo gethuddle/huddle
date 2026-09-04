@@ -63,10 +63,10 @@ select is(
         'list_my_saved_items',
         'list_people_hub'
       )
-      and procedure.provolatile = 'v'
+      and procedure.provolatile = 's'
   ),
   5::bigint,
-  'lock-capable Fan projections remain callable through PostgREST'
+  'Fan projections run read-only so independent dashboard reads do not serialize'
 );
 
 select ok(

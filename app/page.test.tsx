@@ -139,6 +139,7 @@ describe("Home", () => {
 
     render(await Home());
     expect(screen.getByText("Welcome back, Fan One")).toBeVisible();
+    expect(mocks.getFanHome).toHaveBeenCalledWith("Fan One");
     expect(mocks.createClient).not.toHaveBeenCalled();
   });
 

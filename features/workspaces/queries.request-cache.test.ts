@@ -33,7 +33,11 @@ vi.mock("@/features/venues/workspace/queries", () => ({
 }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 
-import { getAppShellState, getAuthorizedVenueWorkspaceBySlug } from "./queries";
+import {
+  getAppShellState,
+  getAuthorizedVenueWorkspaceBySlug,
+  getDiscoveryViewerCacheScope,
+} from "./queries";
 
 const venueId = "e4000000-0000-4000-8000-000000000102";
 
@@ -72,12 +76,15 @@ it("shares one request-scoped workspace-list RPC between the shell and venue aut
   });
   mocks.billing.mockResolvedValue(expiredVenueBilling);
 
-  const [shell, workspace] = await Promise.all([
+  const [shell, workspace, viewerScope] = await Promise.all([
     getAppShellState(),
     getAuthorizedVenueWorkspaceBySlug("corner"),
+    getDiscoveryViewerCacheScope(),
   ]);
 
   expect(shell.workspace.available).toHaveLength(1);
   expect(workspace).toMatchObject({ id: venueId, role: "owner" });
+  expect(viewerScope).toBe("fan:e4000000-0000-4000-8000-000000000101");
+  expect(mocks.getClaims).toHaveBeenCalledOnce();
   expect(mocks.rpc.mock.calls.filter(([name]) => name === "list_my_workspaces")).toHaveLength(1);
 });

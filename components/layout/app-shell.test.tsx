@@ -95,6 +95,7 @@ describe("AppShell", () => {
     render(await AppShell({ children: <h1>Fan Home</h1> }));
 
     const navigation = screen.getByRole("navigation", { name: "Fan navigation" });
+    expect(navigation.querySelector("[data-pending]")).not.toBeInTheDocument();
     expect(
       within(navigation)
         .getAllByRole("link")

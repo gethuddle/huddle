@@ -36,6 +36,7 @@ describe("FanBottomNavigation", () => {
         .getByRole("link", { name: "Ask" })
         .querySelector('[data-slot="ask-navigation-mark"]'),
     ).toHaveClass("bg-primary");
+    expect(navigation.querySelector("[data-pending]")).not.toBeInTheDocument();
     expect(within(navigation).queryByText(/create venue/i)).not.toBeInTheDocument();
   });
 });

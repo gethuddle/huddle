@@ -78,7 +78,7 @@ describe("workspace actions", () => {
       `fan:${fanId}`,
       expect.objectContaining({ httpOnly: true, sameSite: "lax", path: "/" }),
     );
-    expect(mocks.revalidatePath).toHaveBeenCalledWith("/", "layout");
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
     expect(mocks.redirect).toHaveBeenCalledWith("/", "replace");
 
     form.set("kind", "venue");

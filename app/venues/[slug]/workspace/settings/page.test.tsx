@@ -1,14 +1,35 @@
 // @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
-import { expect, it, vi } from "vitest";
+import { beforeEach, expect, it, vi } from "vitest";
 import { expiredVenueBilling } from "@/tests/fixtures/venue-billing";
 import Page from "./page";
-const query = vi.hoisted(() => vi.fn());
-vi.mock("@/features/workspaces/queries", () => ({ getAuthorizedVenueWorkspaceBySlug: query }));
+const mocks = vi.hoisted(() => ({ query: vi.fn(), settings: vi.fn(), summary: vi.fn() }));
+const query = mocks.query;
+vi.mock("@/features/workspaces/queries", () => ({
+  getAuthorizedVenueWorkspaceBySlug: mocks.query,
+  getAuthorizedVenueWorkspaceSummaryBySlug: mocks.summary,
+}));
 vi.mock("@/features/venues/workspace/queries", () => ({
   listVenueCalendar: async () => [],
   getVenueToday: async () => ({ nextEvent: null, todayEvents: [], attention: [], setupTasks: [] }),
-  getVenueSettings: async () => ({
+  getVenueSettings: mocks.settings,
+}));
+vi.mock("next/navigation", () => ({
+  notFound: () => {
+    throw new Error("not found");
+  },
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.summary.mockResolvedValue({
+    id: "venue",
+    slug: "corner",
+    name: "Corner",
+    role: "owner",
+    kind: "venue",
+  });
+  mocks.settings.mockResolvedValue({
     id: "venue",
     slug: "corner",
     name: "Corner",
@@ -19,14 +40,8 @@ vi.mock("@/features/venues/workspace/queries", () => ({
     defaultAttendanceMode: "open_door",
     defaultRequiresApproval: false,
     spaces: [{ id: "area", name: "Main screen", capacity: 80, active: true }],
-  }),
-}));
-vi.mock("next/navigation", () => ({
-  notFound: () => {
-    throw new Error("not found");
-  },
-  useRouter: () => ({ refresh: vi.fn() }),
-}));
+  });
+});
 it("keeps expired information accessible and forwards safe restrictions", async () => {
   query.mockResolvedValue({
     id: "venue",
@@ -41,4 +56,12 @@ it("keeps expired information accessible and forwards safe restrictions", async 
   expect(screen.queryByRole("button", { name: "Add viewing area" })).not.toBeInTheDocument();
   expect(screen.queryByRole("link", { name: "View public page" })).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: /archive|close venue/i })).toBeEnabled();
+});
+
+it("keeps a mid-request membership loss non-disclosing even if the parallel settings read fails", async () => {
+  query.mockResolvedValue(null);
+  mocks.settings.mockRejectedValue(new Error("database membership denied"));
+
+  await expect(Page({ params: Promise.resolve({ slug: "corner" }) })).rejects.toThrow("not found");
+  expect(mocks.settings).toHaveBeenCalledWith("venue");
 });

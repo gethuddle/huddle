@@ -4,7 +4,6 @@ import { Compass, Home, Library, MessageCircleQuestion, Search } from "lucide-re
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { NavigationPendingIndicator } from "@/components/navigation/navigation-pending-indicator";
 import { cn } from "@/lib/utils";
 
 const FAN_NAVIGATION = [
@@ -67,7 +66,6 @@ export function FanBottomNavigation({
               <Icon className={emphasized ? "size-[1.125rem]" : "size-5"} />
             </span>
             <span className="truncate">{label}</span>
-            <NavigationPendingIndicator />
           </Link>
         );
       })}

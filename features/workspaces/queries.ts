@@ -1,5 +1,6 @@
 import "server-only";
 
+import { randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import { cache } from "react";
 
@@ -36,6 +37,26 @@ export const listMyWorkspaces = cache(async function listMyWorkspaces(): Promise
   return mapWorkspaceRows(data);
 });
 
+const getViewerIdentity = cache(async function getViewerIdentity(): Promise<
+  Readonly<{ certain: boolean; viewerId: string | null }>
+> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getClaims();
+  if (error !== null) return { certain: false, viewerId: null };
+  return {
+    certain: true,
+    viewerId: typeof data?.claims.sub === "string" ? data.claims.sub : null,
+  };
+});
+
+export const getDiscoveryViewerCacheScope = cache(
+  async function getDiscoveryViewerCacheScope(): Promise<string> {
+    const identity = await getViewerIdentity();
+    if (identity.viewerId !== null) return `fan:${identity.viewerId}`;
+    return identity.certain ? "anonymous" : `uncertain:${randomUUID()}`;
+  },
+);
+
 export async function listMyRecoverableWorkspaces(): Promise<readonly WorkspaceSummary[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("list_my_workspace_recovery");
@@ -44,9 +65,8 @@ export async function listMyRecoverableWorkspaces(): Promise<readonly WorkspaceS
 }
 
 export const getAppShellState = cache(async function getAppShellState(): Promise<AppShellState> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.getClaims();
-  if (error !== null || typeof data?.claims.sub !== "string") {
+  const identity = await getViewerIdentity();
+  if (identity.viewerId === null) {
     return {
       isSignedIn: false,
       workspace: { active: null, available: [] },

@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   getDiscoveryCatalog: vi.fn(),
   getDiscoveryFreshness: vi.fn(),
   getFixtureById: vi.fn(),
+  getDiscoveryViewerCacheScope: vi.fn(),
 }));
 
 vi.mock("@/features/discovery/catalog", () => ({
@@ -19,6 +20,9 @@ vi.mock("@/features/discovery/catalog", () => ({
 
 vi.mock("@/features/sports/browse", () => ({
   getFixtureById: mocks.getFixtureById,
+}));
+vi.mock("@/features/workspaces/queries", () => ({
+  getDiscoveryViewerCacheScope: mocks.getDiscoveryViewerCacheScope,
 }));
 
 describe("DiscoverPage", () => {
@@ -34,6 +38,9 @@ describe("DiscoverPage", () => {
       status: "unknown",
     });
     mocks.getFixtureById.mockResolvedValue({ match: null, freshness: null });
+    mocks.getDiscoveryViewerCacheScope.mockResolvedValue(
+      "fan:52000000-0000-4000-8000-000000000499",
+    );
   });
 
   it("renders location-first discovery without requiring a city catalog", async () => {

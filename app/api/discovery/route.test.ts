@@ -29,6 +29,7 @@ const emptyPage = {
   locationMode: "browser" as const,
   generatedAt: "2026-08-27T20:00:00.000Z",
   requiresPrivateCache: false,
+  viewerCacheScope: "anonymous",
 };
 
 const legacyExpandedPage = {
@@ -126,5 +127,6 @@ describe("GET /api/discovery", () => {
     expect(response.status).toBe(200);
     expect(body.items).toHaveLength(1);
     expect(JSON.stringify(body)).not.toContain("viewerAttendanceStatus");
+    expect(JSON.stringify(body)).not.toContain("viewerCacheScope");
   });
 });

@@ -3,7 +3,12 @@ import { render, screen } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { expiredVenueBilling } from "@/tests/fixtures/venue-billing";
 import Page from "./page";
-const mocks = vi.hoisted(() => ({ workspace: vi.fn(), history: vi.fn(), redirect: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  workspace: vi.fn(),
+  workspaceSummary: vi.fn(),
+  history: vi.fn(),
+  redirect: vi.fn(),
+}));
 const query = mocks.workspace;
 const historyItem = {
   id: "e2000000-0000-4000-8000-000000000101",
@@ -19,6 +24,7 @@ const historyItem = {
 };
 vi.mock("@/features/workspaces/queries", () => ({
   getAuthorizedVenueWorkspaceBySlug: mocks.workspace,
+  getAuthorizedVenueWorkspaceSummaryBySlug: mocks.workspaceSummary,
 }));
 vi.mock("@/features/venues/workspace/queries", () => ({
   listVenueCalendar: async () => [],
@@ -47,6 +53,13 @@ vi.mock("next/navigation", () => ({
 const redirectSentinel = new Error("NEXT_REDIRECT");
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.workspaceSummary.mockResolvedValue({
+    id: "venue",
+    slug: "corner",
+    name: "Corner",
+    role: "owner",
+    kind: "venue",
+  });
   mocks.redirect.mockImplementation(() => {
     throw redirectSentinel;
   });

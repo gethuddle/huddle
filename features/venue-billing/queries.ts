@@ -4,6 +4,7 @@ import { cache } from "react";
 import type { VenueBillingContext } from "./types";
 import { requireActor } from "@/features/auth/actor";
 import { DomainError, domainErrorFromDatabase } from "@/lib/errors";
+import { createClient } from "@/lib/supabase/server";
 import { getCheckoutContext } from "./database";
 import { billingContextSchema, archivedVenueBillingContextSchema } from "./schemas";
 
@@ -23,7 +24,10 @@ export async function getArchivedVenueBillingContext(slug: string) {
 
 export const getVenueBillingContext = cache(
   async (venueId: string): Promise<VenueBillingContext> => {
-    const { supabase } = await requireActor("common");
+    // This RPC performs the common-actor and concrete Venue membership checks
+    // itself. Avoid repeating Auth and profile reads before that authoritative
+    // database boundary.
+    const supabase = await createClient();
     const { data, error } = await supabase.rpc("get_venue_billing_context", {
       input_venue_id: z.uuid().parse(venueId),
     });

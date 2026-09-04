@@ -43,8 +43,8 @@ select is(
     from pg_proc as procedure
     where procedure.oid = to_regprocedure('public.get_venue_workspace(uuid)')
   ),
-  'v'::"char",
-  'the replaced Venue workspace projection remains lock-safe through PostgREST'
+  's'::"char",
+  'the replaced Venue workspace projection remains authorized and read-only'
 );
 select is(
   (
@@ -52,8 +52,8 @@ select is(
     from pg_proc as procedure
     where procedure.oid = to_regprocedure('public.list_venue_calendar(uuid,integer)')
   ),
-  'v'::"char",
-  'the replaced Venue calendar projection remains lock-safe through PostgREST'
+  's'::"char",
+  'the replaced Venue calendar projection remains authorized and read-only'
 );
 
 insert into auth.users (
