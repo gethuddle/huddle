@@ -276,50 +276,15 @@ describe("listMyGroupsForViewer", () => {
       season_label: "2026",
       last_synced_at: "2026-08-30T05:00:00Z",
     };
-    const fixtureQuery: Record<string, ReturnType<typeof vi.fn>> = {};
-    fixtureQuery.select = vi.fn(() => fixtureQuery);
-    fixtureQuery.eq = vi.fn(() => fixtureQuery);
-    fixtureQuery.or = vi.fn(() => fixtureQuery);
-    fixtureQuery.order = vi.fn(() => fixtureQuery);
-    fixtureQuery.limit = vi.fn().mockResolvedValue({ data: [fixtureRow], error: null });
-    const supabase = { rpc: mocks.rpc, from: vi.fn(() => fixtureQuery) };
+    const supabase = { rpc: mocks.rpc, from: vi.fn() };
     mocks.createClient.mockResolvedValue(supabase);
-    mocks.rpc.mockImplementation(async (name: string, args: Record<string, unknown>) => {
-      if (name === "list_my_events") {
-        if (args.input_bucket === "upcoming") return { data: [eventRow], error: null };
-        return {
-          data: Array.from({ length: 50 }, (_, index) => ({
-            ...eventRow,
-            event_id: `c5000000-0000-4000-8000-${String(index + 599).padStart(12, "0")}`,
-            title: `Unpublished draft ${index + 1}`,
-            starts_at: "2026-09-01T18:00:00Z",
-            status: "draft",
-            bucket: "hosting",
-            relationship_label: "Draft",
-            can_manage: true,
-          })),
-          error: null,
-        };
-      }
-      if (name === "list_attention_items") return { data: [], error: null };
-      if (name === "list_my_saved_items") {
-        if (args.input_bucket === "team") return { data: [savedRow], error: null };
-        if (args.input_bucket === "competition") {
-          return {
-            data: [
-              {
-                ...savedRow,
-                item_id: "c5000000-0000-4000-8000-000000000201",
-                kind: "competition",
-                label: "Current State League",
-                href: "/matches?competition=c5000000-0000-4000-8000-000000000201",
-              },
-            ],
-            error: null,
-          };
-        }
-      }
-      return { data: null, error: { message: "unexpected RPC" } };
+    mocks.rpc.mockResolvedValue({
+      data: {
+        next_event: eventRow,
+        attention: [],
+        suggestion: fixtureRow,
+      },
+      error: null,
     });
 
     await expect(getFanHome("Fan One")).resolves.toMatchObject({
@@ -333,28 +298,19 @@ describe("listMyGroupsForViewer", () => {
       },
     });
     expect(mocks.createClient).toHaveBeenCalledOnce();
-    expect(supabase.from).toHaveBeenCalledWith("public_future_matches");
-    expect(fixtureQuery.or).toHaveBeenCalledWith(
-      `home_team_id.in.(${teamId}),away_team_id.in.(${teamId}),competition_id.in.(c5000000-0000-4000-8000-000000000201)`,
-    );
-    expect(mocks.rpc).toHaveBeenCalledWith("list_my_saved_items", {
-      input_bucket: "team",
-      input_limit: 50,
-      input_offset: 0,
-    });
-    expect(mocks.rpc).toHaveBeenCalledWith("list_my_saved_items", {
-      input_bucket: "competition",
-      input_limit: 50,
-      input_offset: 0,
-    });
-    expect(mocks.rpc).not.toHaveBeenCalledWith(
-      "list_my_saved_items",
-      expect.objectContaining({ input_bucket: "all" }),
-    );
-    expect(mocks.rpc).not.toHaveBeenCalledWith(
-      "list_my_events",
-      expect.objectContaining({ input_bucket: "hosting" }),
-    );
+    expect(mocks.rpc).toHaveBeenCalledOnce();
+    expect(mocks.rpc).toHaveBeenCalledWith("get_fan_home");
+    expect(supabase.from).not.toHaveBeenCalled();
     expect(mocks.loadTeamVisualsByName).not.toHaveBeenCalled();
+  });
+
+  it("rejects a malformed Fan Home projection instead of rendering partial data", async () => {
+    mocks.createClient.mockResolvedValue({ rpc: mocks.rpc });
+    mocks.rpc.mockResolvedValue({
+      data: { next_event: null, attention: "not-an-array", suggestion: null },
+      error: null,
+    });
+
+    await expect(getFanHome("Fan One")).rejects.toMatchObject({ code: "INTERNAL_ERROR" });
   });
 });

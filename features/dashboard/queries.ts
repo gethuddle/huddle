@@ -41,6 +41,14 @@ const myEventRowSchema = z
   })
   .strict();
 
+const fanHomeProjectionSchema = z
+  .object({
+    next_event: myEventRowSchema.nullable(),
+    attention: z.array(z.record(z.string(), z.unknown())),
+    suggestion: z.record(z.string(), z.unknown()).nullable(),
+  })
+  .strict();
+
 const myGroupRelationshipRowSchema = z
   .object({
     group_id: z.uuid(),
@@ -389,42 +397,6 @@ export async function getMyHuddleOverview(
   };
 }
 
-const PUBLIC_MATCH_SELECT =
-  "id, sport_id, sport_slug, competition_id, competition_code, competition_name, home_team_id, home_team_name, home_team_short_name, home_team_tla, away_team_id, away_team_name, away_team_short_name, away_team_tla, starts_at, status, matchday, stage, season_label, last_synced_at, home_team_crest_url, away_team_crest_url";
-
-async function getHomeFixtureSuggestion(
-  supabase: ServerClient,
-  teamFollows: readonly SavedItem[],
-  competitionFollows: readonly SavedItem[],
-): Promise<PublicMatchDto | null> {
-  const teamIds = teamFollows.filter((item) => item.kind === "team").map((item) => item.id);
-  const competitionIds = competitionFollows
-    .filter((item) => item.kind === "competition")
-    .map((item) => item.id);
-  if (teamIds.length === 0 && competitionIds.length === 0) return null;
-
-  const filters = [
-    teamIds.length > 0 ? `home_team_id.in.(${teamIds.join(",")})` : null,
-    teamIds.length > 0 ? `away_team_id.in.(${teamIds.join(",")})` : null,
-    competitionIds.length > 0 ? `competition_id.in.(${competitionIds.join(",")})` : null,
-  ].filter((filter): filter is string => filter !== null);
-
-  const query = supabase
-    .from("public_future_matches")
-    .select(PUBLIC_MATCH_SELECT)
-    .order("starts_at", { ascending: true })
-    .order("id", { ascending: true })
-    .or(filters.join(","));
-  const { data, error } = await query.limit(1);
-  if (error !== null) throw new DomainError("INTERNAL_ERROR", { cause: error });
-  if (data.length === 0) return null;
-  try {
-    return toPublicMatchDto(data[0]);
-  } catch (cause) {
-    throw new DomainError("INTERNAL_ERROR", { cause });
-  }
-}
-
 export async function getFanHome(displayName: string | null): Promise<
   Readonly<{
     displayName: string | null;
@@ -433,43 +405,30 @@ export async function getFanHome(displayName: string | null): Promise<
     suggestion: PublicMatchDto | null;
   }>
 > {
-  // AppShell already resolved the active Fan label. The protected RPCs remain
-  // the authoritative eligibility boundary, avoiding another Auth round trip.
+  // AppShell already resolved the active Fan label. The protected Home RPC
+  // remains the authoritative eligibility boundary, avoiding another Auth round trip.
   const supabase = await createClient();
-  const [upcomingResult, attentionResult, teamsResult, competitionsResult] = await Promise.all([
-    supabase.rpc("list_my_events", {
-      input_bucket: "upcoming",
-      input_limit: 1,
-      input_offset: 0,
-    }),
-    supabase.rpc("list_attention_items", { input_limit: 5 }),
-    supabase.rpc("list_my_saved_items", {
-      input_bucket: "team",
-      input_limit: 50,
-      input_offset: 0,
-    }),
-    supabase.rpc("list_my_saved_items", {
-      input_bucket: "competition",
-      input_limit: 50,
-      input_offset: 0,
-    }),
-  ]);
-  const firstError =
-    upcomingResult.error ?? attentionResult.error ?? teamsResult.error ?? competitionsResult.error;
-  if (firstError !== null) throw domainErrorFromDatabase(firstError);
+  const { data, error } = await supabase.rpc("get_fan_home");
+  if (error !== null) throw domainErrorFromDatabase(error);
 
-  const [events, teamFollows, competitionFollows] = await Promise.all([
-    parseEvents(supabase, upcomingResult.data, { includeTeamVisuals: false }),
-    parseSaved(supabase, teamsResult.data, { includeTeamVisuals: false }),
-    parseSaved(supabase, competitionsResult.data, { includeTeamVisuals: false }),
-  ]);
+  try {
+    const projection = fanHomeProjectionSchema.parse(data);
+    const events = await parseEvents(
+      supabase,
+      projection.next_event === null ? [] : [projection.next_event],
+      { includeTeamVisuals: false },
+    );
 
-  return {
-    displayName,
-    nextEvent: events.at(0) ?? null,
-    attention: parseAttentionItems(attentionResult.data),
-    suggestion: await getHomeFixtureSuggestion(supabase, teamFollows, competitionFollows),
-  };
+    return {
+      displayName,
+      nextEvent: events.at(0) ?? null,
+      attention: parseAttentionItems(projection.attention),
+      suggestion: projection.suggestion === null ? null : toPublicMatchDto(projection.suggestion),
+    };
+  } catch (cause) {
+    if (cause instanceof DomainError) throw cause;
+    throw new DomainError("INTERNAL_ERROR", { cause });
+  }
 }
 
 export async function listMyGroupsForViewer(limit = 6): Promise<readonly MyGroup[]> {

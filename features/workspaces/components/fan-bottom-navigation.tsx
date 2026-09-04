@@ -40,6 +40,7 @@ export function FanBottomNavigation({
     >
       {navigation.map(({ label, href, icon: Icon }) => {
         const current = fanDestinationIsCurrent(pathname, href);
+        const exactDestination = pathname === href;
         const emphasized = href === "/ask";
         return (
           <Link
@@ -51,7 +52,8 @@ export function FanBottomNavigation({
               current && !emphasized && "bg-muted",
             )}
             href={href}
-            key={href}
+            key={`${href}:${exactDestination ? "current" : "available"}`}
+            prefetch={!exactDestination}
           >
             <span
               aria-hidden="true"

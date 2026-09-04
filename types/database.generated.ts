@@ -2828,6 +2828,7 @@ export type Database = {
           viewer_is_authenticated: boolean
         }[]
       }
+      get_fan_home: { Args: never; Returns: Json }
       get_group_by_slug: {
         Args: { lookup_slug: string }
         Returns: {
