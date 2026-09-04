@@ -40,6 +40,7 @@ import type {
 import type { AttendanceActionState } from "@/features/attendance/state";
 
 type MutationIntent = "revoke" | "review" | "remove" | "cancel";
+type SubmitMutation = (intent: MutationIntent, data: FormData, onAcknowledged?: () => void) => void;
 
 function EventManagementControlsInner({
   attendance,
@@ -80,17 +81,23 @@ function EventManagementControlsInner({
     },
   });
 
-  function submit(intent: MutationIntent, formData: FormData) {
-    if (!canOperate) return;
+  const feedback = <AttendanceActionFeedback state={mutation.data} error={mutation.error} />;
+
+  const submit: SubmitMutation = (intent, formData, onAcknowledged) => {
+    if (!canOperate || mutation.isPending) return;
     formData.set("mutationIntent", intent);
     formData.set("eventId", eventId);
-    mutation.mutate(formData);
-  }
+    mutation.mutate(formData, {
+      onSuccess: (result) => {
+        if (result.ok) onAcknowledged?.();
+      },
+    });
+  };
 
   if (attendanceMode === "open_door") {
     return (
       <div className="space-y-8">
-        <AttendanceActionFeedback state={mutation.data} />
+        {feedback}
         <section className="rounded-xl bg-muted px-5 py-4">
           <h2 className="text-xl font-semibold text-foreground">Open-door event</h2>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
@@ -99,7 +106,7 @@ function EventManagementControlsInner({
           </p>
         </section>
         {canOperate && eventStatus === "published" ? (
-          <CancelEventControl disabled={mutation.isPending} submit={submit} />
+          <CancelEventControl disabled={mutation.isPending} feedback={feedback} submit={submit} />
         ) : null}
       </div>
     );
@@ -107,7 +114,7 @@ function EventManagementControlsInner({
 
   return (
     <div className="space-y-8">
-      <AttendanceActionFeedback state={mutation.data} />
+      {feedback}
 
       <Card>
         <CardHeader>
@@ -155,12 +162,18 @@ function EventManagementControlsInner({
                     key={invitation.invitation_id}
                   >
                     <div>
-                      <Link
-                        className="font-semibold text-foreground hover:text-forest"
-                        href={`/people/${invitation.invitee_handle}`}
-                      >
-                        {invitation.invitee_display_name} · @{invitation.invitee_handle}
-                      </Link>
+                      {invitation.invitee_handle !== null ? (
+                        <Link
+                          className="font-semibold text-foreground hover:text-forest"
+                          href={`/people/${invitation.invitee_handle}`}
+                        >
+                          {invitation.invitee_display_name} · @{invitation.invitee_handle}
+                        </Link>
+                      ) : (
+                        <span className="font-semibold text-foreground">
+                          {invitation.invitee_display_name}
+                        </span>
+                      )}
                       <p className="mt-1 text-xs text-muted-foreground">{invitation.status}</p>
                     </div>
                     {canOperate && invitation.status === "pending" ? (
@@ -199,12 +212,18 @@ function EventManagementControlsInner({
                   >
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
-                        <Link
-                          className="font-semibold text-foreground hover:text-forest"
-                          href={`/people/${row.requester_handle}`}
-                        >
-                          {row.requester_display_name} · @{row.requester_handle}
-                        </Link>
+                        {row.requester_handle !== null ? (
+                          <Link
+                            className="font-semibold text-foreground hover:text-forest"
+                            href={`/people/${row.requester_handle}`}
+                          >
+                            {row.requester_display_name} · @{row.requester_handle}
+                          </Link>
+                        ) : (
+                          <span className="font-semibold text-foreground">
+                            {row.requester_display_name}
+                          </span>
+                        )}
                         <p className="mt-1 text-sm text-muted-foreground"></p>
                       </div>
                       <Badge variant="outline">{row.status}</Badge>
@@ -269,6 +288,7 @@ function EventManagementControlsInner({
                         <RemoveAttendeeControl
                           attendanceId={row.attendance_id}
                           disabled={mutation.isPending}
+                          feedback={feedback}
                           submit={submit}
                         />
                       ) : null}
@@ -282,7 +302,7 @@ function EventManagementControlsInner({
       </Card>
 
       {canOperate && eventStatus === "published" ? (
-        <CancelEventControl disabled={mutation.isPending} submit={submit} />
+        <CancelEventControl disabled={mutation.isPending} feedback={feedback} submit={submit} />
       ) : null}
     </div>
   );
@@ -313,7 +333,7 @@ function DecisionButton({
   children: ReactNode;
   decision: "approve" | "decline";
   disabled: boolean;
-  submit: (intent: MutationIntent, data: FormData) => void;
+  submit: SubmitMutation;
   variant?: "outline";
 }>) {
   return (
@@ -337,22 +357,29 @@ function DecisionButton({
 function RemoveAttendeeControl({
   attendanceId,
   disabled,
+  feedback,
   submit,
 }: Readonly<{
   attendanceId: string;
   disabled: boolean;
-  submit: (intent: MutationIntent, data: FormData) => void;
+  feedback: ReactNode;
+  submit: SubmitMutation;
 }>) {
   const [open, setOpen] = useState(false);
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (disabled) return;
     const data = new FormData(event.currentTarget);
     data.set("attendanceId", attendanceId);
-    submit("remove", data);
-    setOpen(false);
+    submit("remove", data, () => setOpen(false));
   }
   return (
-    <AlertDialog onOpenChange={setOpen} open={open}>
+    <AlertDialog
+      onOpenChange={(nextOpen) => {
+        if (!disabled) setOpen(nextOpen);
+      }}
+      open={open}
+    >
       <AlertDialogTrigger asChild>
         <Button disabled={disabled} type="button" variant="destructive">
           Remove attendee
@@ -369,10 +396,16 @@ function RemoveAttendeeControl({
         <form className="space-y-4" onSubmit={onSubmit}>
           <div className="space-y-2">
             <Label htmlFor={`removal-reason-${attendanceId}`}>Reason (optional)</Label>
-            <Textarea id={`removal-reason-${attendanceId}`} maxLength={500} name="reason" />
+            <Textarea
+              disabled={disabled}
+              id={`removal-reason-${attendanceId}`}
+              maxLength={500}
+              name="reason"
+            />
           </div>
+          {feedback}
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep attendee</AlertDialogCancel>
+            <AlertDialogCancel disabled={disabled}>Keep attendee</AlertDialogCancel>
             <Button disabled={disabled} type="submit" variant="destructive">
               Confirm removal
             </Button>
@@ -385,16 +418,18 @@ function RemoveAttendeeControl({
 
 function CancelEventControl({
   disabled,
+  feedback,
   submit,
 }: Readonly<{
   disabled: boolean;
-  submit: (intent: MutationIntent, data: FormData) => void;
+  feedback: ReactNode;
+  submit: SubmitMutation;
 }>) {
   const [open, setOpen] = useState(false);
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    submit("cancel", new FormData(event.currentTarget));
-    setOpen(false);
+    if (disabled) return;
+    submit("cancel", new FormData(event.currentTarget), () => setOpen(false));
   }
   return (
     <section className="border-t border-border pt-8">
@@ -405,7 +440,12 @@ function CancelEventControl({
         </p>
       </div>
       <div className="mt-4">
-        <AlertDialog onOpenChange={setOpen} open={open}>
+        <AlertDialog
+          onOpenChange={(nextOpen) => {
+            if (!disabled) setOpen(nextOpen);
+          }}
+          open={open}
+        >
           <AlertDialogTrigger asChild>
             <Button disabled={disabled} type="button" variant="destructive">
               Cancel event
@@ -422,10 +462,18 @@ function CancelEventControl({
             <form className="space-y-4" onSubmit={onSubmit}>
               <div className="space-y-2">
                 <Label htmlFor="cancel-reason">Cancellation reason</Label>
-                <Textarea id="cancel-reason" maxLength={500} minLength={3} name="reason" required />
+                <Textarea
+                  disabled={disabled}
+                  id="cancel-reason"
+                  maxLength={500}
+                  minLength={3}
+                  name="reason"
+                  required
+                />
               </div>
+              {feedback}
               <AlertDialogFooter>
-                <AlertDialogCancel>Keep event</AlertDialogCancel>
+                <AlertDialogCancel disabled={disabled}>Keep event</AlertDialogCancel>
                 <Button disabled={disabled} type="submit" variant="destructive">
                   Confirm cancellation
                 </Button>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CURRENT_COMMUNITY_RULES } from "@/content/community-rules";
 import { activateFanOnboardingAction, saveProfileAction } from "@/features/profiles/actions";
+import { ProfileHandleField } from "./profile-handle-field";
 import { INITIAL_PROFILE_ACTION_STATE, type ProfileActionState } from "@/features/profiles/state";
 import {
   clearSessionFormDraft,
@@ -61,6 +63,7 @@ function ProfileFeedback({ state }: Readonly<{ state: ProfileActionState }>) {
 }
 
 export function ProfileForm({ draftOwnerId, initialValue, mode = "settings" }: ProfileFormProps) {
+  const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const draftKey =
     mode === "onboarding" && draftOwnerId !== undefined
@@ -85,9 +88,10 @@ export function ProfileForm({ draftOwnerId, initialValue, mode = "settings" }: P
   useEffect(() => {
     if (state?.ok === true && state.data.redirectTo !== null) {
       if (draftKey !== null) clearSessionFormDraft(draftKey);
-      window.location.assign(state.data.redirectTo);
+      router.replace(state.data.redirectTo);
+      router.refresh();
     }
-  }, [draftKey, state]);
+  }, [draftKey, state, router]);
 
   useEffect(() => {
     if (draftKey === null || formRef.current === null) return;
@@ -95,7 +99,12 @@ export function ProfileForm({ draftOwnerId, initialValue, mode = "settings" }: P
     // Resume substantive profile work, but require legal confirmations fresh. Besides
     // being the safer consent model, this prevents a late hydration restore from
     // replaying a stale unchecked value over the user's current click.
-    if (draft !== null) restoreFormDraft(formRef.current, draft, { restoreChecked: false });
+    if (draft !== null) {
+      restoreFormDraft(formRef.current, draft, { restoreChecked: false });
+      formRef.current
+        .querySelector<HTMLInputElement>('[name="handle"]')
+        ?.dispatchEvent(new Event("input", { bubbles: true }));
+    }
   }, [draftKey]);
 
   return (
@@ -136,36 +145,11 @@ export function ProfileForm({ draftOwnerId, initialValue, mode = "settings" }: P
           <FieldError id="profile-display-name-error" messages={fieldErrors?.displayName} />
         </div>
 
-        <div>
-          <Label className="text-foreground" htmlFor="profile-handle">
-            Handle
-          </Label>
-          <div className="relative">
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute left-4 top-[1.05rem] text-muted-foreground"
-            >
-              @
-            </span>
-            <Input
-              aria-describedby="profile-handle-help profile-handle-error"
-              aria-invalid={fieldErrors?.handle === undefined ? undefined : true}
-              autoCapitalize="none"
-              autoComplete="username"
-              className="mt-2 pl-9"
-              defaultValue={values.handle}
-              id="profile-handle"
-              maxLength={30}
-              name="handle"
-              placeholder="matchday_fan"
-              required
-            />
-          </div>
-          <span className="mt-2 block text-xs text-muted-foreground" id="profile-handle-help">
-            3–30 letters, numbers, or underscores. Huddle stores it in lowercase.
-          </span>
-          <FieldError id="profile-handle-error" messages={fieldErrors?.handle} />
-        </div>
+        <ProfileHandleField
+          defaultValue={values.handle}
+          currentHandle={initialValue.handle}
+          errors={fieldErrors?.handle}
+        />
       </div>
 
       <div>

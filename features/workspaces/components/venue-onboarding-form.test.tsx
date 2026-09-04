@@ -12,7 +12,60 @@ vi.mock("@/features/workspaces/actions", () => ({
 import { VenueOnboardingForm } from "./venue-onboarding-form";
 
 describe("VenueOnboardingForm", () => {
+  it("marks invalid onboarding fields and connects each explanation", async () => {
+    const suggestion = {
+      id: "osm-101",
+      label: "10 Herzl Street, Haifa, Israel",
+      latitude: 32.815,
+      longitude: 34.989,
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ suggestions: [suggestion] }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      ),
+    );
+    const fields = {
+      name: ["Name needed"],
+      description: ["Description needed"],
+      mainSpaceName: ["Area needed"],
+      mainSpaceCapacity: ["Capacity needed"],
+      houseInformation: ["Too long"],
+      representationAttested: ["Confirm representation"],
+    };
+    mocks.activateVenueOnboardingAction.mockResolvedValue({
+      ok: false,
+      error: {
+        code: "VALIDATION_FAILED",
+        message: "Check the highlighted fields and try again.",
+        fields,
+      },
+    });
+    render(<VenueOnboardingForm ownerId="account-errors" />);
+    await userEvent.type(screen.getByRole("combobox", { name: "Public address" }), "10 Herzl");
+    await userEvent.click(await screen.findByRole("option", { name: suggestion.label }));
+    await userEvent.click(screen.getByRole("button", { name: "Create venue account" }));
+    for (const [label, message] of [
+      ["Venue name", "Name needed"],
+      ["Public description", "Description needed"],
+      ["Area name", "Area needed"],
+      ["Capacity", "Capacity needed"],
+      ["House information (optional)", "Too long"],
+    ]) {
+      expect(screen.getByLabelText(label)).toHaveAttribute("aria-invalid", "true");
+      expect(screen.getByLabelText(label)).toHaveAccessibleDescription(
+        expect.stringContaining(message),
+      );
+    }
+    expect(
+      screen.getByRole("checkbox", { name: /authorized to manage/ }),
+    ).toHaveAccessibleDescription("Confirm representation");
+  });
   beforeEach(() => {
+    vi.clearAllMocks();
     window.sessionStorage.clear();
     mocks.activateVenueOnboardingAction.mockResolvedValue({
       ok: false,
@@ -57,7 +110,7 @@ describe("VenueOnboardingForm", () => {
     render(<VenueOnboardingForm ownerId="account-a" />);
 
     await user.type(screen.getByRole("textbox", { name: "Venue name" }), "Match Corner");
-    await user.type(screen.getByRole("textbox", { name: "Venue URL" }), "match-corner");
+    expect(screen.queryByRole("textbox", { name: "Venue URL" })).not.toBeInTheDocument();
     await user.type(screen.getByRole("combobox", { name: "Public address" }), "10 Herzl Street");
     await user.click(await screen.findByRole("option", { name: suggestion.label }));
     await user.type(
@@ -73,7 +126,6 @@ describe("VenueOnboardingForm", () => {
     await waitFor(() => expect(mocks.activateVenueOnboardingAction).toHaveBeenCalledOnce());
     expect(mocks.activateVenueOnboardingAction).toHaveBeenCalledWith({
       name: "Match Corner",
-      slug: "match-corner",
       address: suggestion,
       description: "A welcoming match-day venue.",
       mainSpaceName: "Main screen",
@@ -143,7 +195,6 @@ describe("VenueOnboardingForm", () => {
     const first = render(<VenueOnboardingForm {...props} />);
 
     await user.type(screen.getByRole("textbox", { name: "Venue name" }), "Match House");
-    await user.type(screen.getByRole("textbox", { name: "Venue URL" }), "match-house");
     await user.type(screen.getByRole("combobox", { name: "Public address" }), "10 Herzl Street");
     await user.click(await screen.findByRole("option", { name: suggestion.label }));
     await user.type(
@@ -160,7 +211,7 @@ describe("VenueOnboardingForm", () => {
 
     render(<VenueOnboardingForm {...props} />);
     expect(screen.getByRole("textbox", { name: "Venue name" })).toHaveValue("Match House");
-    expect(screen.getByRole("textbox", { name: "Venue URL" })).toHaveValue("match-house");
+    expect(screen.queryByRole("textbox", { name: "Venue URL" })).not.toBeInTheDocument();
     expect(await screen.findByText("Confirmed public address")).toBeVisible();
     expect(screen.getByText(suggestion.label)).toBeVisible();
     expect(screen.getByRole("textbox", { name: "Public description" })).toHaveValue(

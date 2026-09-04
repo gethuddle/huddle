@@ -14,6 +14,49 @@ import type {
   VenueWorkspace,
 } from "./types";
 
+const venueEventManagementRowSchema = z
+  .object({
+    event_id: z.uuid(),
+    venue_id: z.uuid(),
+    venue_slug: z.string(),
+    match_id: z.uuid(),
+    attendance_mode: z.enum(["open_door", "reservations"]),
+    venue_space_id: z.uuid().nullable(),
+    venue_space_name: z.string().nullable(),
+    audience: z.enum(["public", "team_followers"]),
+    audience_team_id: z.uuid().nullable(),
+    capacity: z.number().int().positive().nullable(),
+    title: z.string(),
+    description: z.string(),
+    expected_activity: z.string(),
+    cost_description: z.string(),
+    event_rules: z.string(),
+    commercial_affiliation: z.string(),
+    host_presence_confirmed: z.boolean(),
+    requires_approval: z.boolean(),
+    status: z.enum(["draft", "published", "cancelled", "completed"]),
+    starts_at: z.string(),
+    ends_at: z.string(),
+  })
+  .strict();
+
+export type ManagedVenueEvent = z.infer<typeof venueEventManagementRowSchema>;
+
+export async function getVenueEventForManagement(
+  eventId: string,
+): Promise<ManagedVenueEvent | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_venue_event_for_management", {
+    input_event_id: eventId,
+  });
+  if (error !== null) throw domainErrorFromDatabase(error);
+  const row = data.at(0);
+  if (row === undefined) return null;
+  const parsed = venueEventManagementRowSchema.safeParse(row);
+  if (!parsed.success) throw new DomainError("INTERNAL_ERROR", { cause: parsed.error });
+  return parsed.data;
+}
+
 export function filterUpcomingVenueCalendar(
   calendar: readonly VenueCalendarEntry[],
   nowMilliseconds: number,

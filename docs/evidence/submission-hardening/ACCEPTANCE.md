@@ -1,0 +1,84 @@
+# Submission hardening — local acceptance
+
+Date: 4 September 2026. Branch: `codex/submission-hardening`, based on `b07f542d798c45fd3cea25482b2473bebcdeb09f`.
+
+**Status: local implementation and integrated acceptance passed. Nothing in this change has been published or deployed.** This record uses current command results, not historical CI; hosted release and presentation checks remain separate below.
+
+## Scope and isolation
+
+This implements the [17-finding audit](../../qa-audit-2026-09-04.md), its bounded performance work, and the approved additions for automatic venue addresses, identifier availability, and account settings. Fan/private hosting remains free; commercial publishing remains per-venue Polar Sandbox only. No real-money switch, venue verification, or new external dependency was added.
+
+Acceptance runs in a detached disposable worktree at `/private/tmp/huddle-hardening.lO7JZD/acceptance`, with a separate Supabase project `huddle-submission-hardening` (API 55321, database 55322, mailbox 55324). The test environment injects only local credentials and blocks Polar network access. Provider and sports behavior use sanitized fixtures. No hosted migration, email, checkout, subscription mutation, or production test account was created by this remediation.
+
+Local targeting incident: an early timing command ran in the ordinary checkout and created one synthetic account/venue/fixture and related catalog rows before failing. Exact generated records were inspected and removed with a guarded transaction; readback showed no remaining synthetic accounts/venues/matches/teams. Existing competition metadata may have had its sync timestamp advanced. No ordinary schema reset or migration occurred. All later acceptance commands explicitly target the disposable checkout.
+
+## Resolution map
+
+| Finding | Implementation and regression evidence |
+| --- | --- |
+| F01, F04 | Authorized venue draft editor, save/publish/cancel, open-door management entry; visible Calendar → draft → editor → publish → detail → return journey. Past-fixture draft cancellation stays available only while the management entitlement permits it; expired billing grace still denies cancellation. Started/ended published editing is blocked. |
+| F02, F06 | Nullable retained/deleted identities render neutral unlinked labels in moderation and group administration; no identity reconstruction. |
+| F03, F07, F08 | Forward SQL preserves eligible private-participant summaries through kickoff/history, projects elapsed published events as completed, and denies erased-host tokens. Revocation/block/group/Fan/suspension tests retain address expiry and privacy. |
+| F05 | Successful framework redirects propagate from checkout/portal actions; genuine transport/domain failures still display recovery feedback. No live checkout was started. |
+| F09, F10, F11 | Settings canonical URL replacement, field-associated validation/focus, early planner attendance-mode correction. |
+| F12 | Attendance network failures preserve form/dialog state, show feedback, and restore usable controls; no optimistic seat-success claim. |
+| F13 | Bounded, reachable review/invitation pagination with real beyond-first-page fixtures. Invitation page counts and offsets share the same limit; the final page explains overflow instead of linking into a page-501/502 loop. |
+| F14 | Safe owner-only saved-draft list, resume/confirmed discard, People detour return preservation, save-and-exit, and dirty-link confirmation. No private draft JSON/address in list DTO. |
+| F15 | Allowlisted Venue-origin return links across event/detail/manage workflows. |
+| F16 | Deterministic Israel-calendar raw-query date handling; supported expressions resolve correctly, past/unsupported compound expressions clarify instead of silently searching another date. |
+| F17 | Audience guidance distinguishes private homes from discoverable-group public-place previews. |
+| Additional | Catalog search includes names/short names/TLA beyond the first 100; React pagination keys corrected. Billing page omits its self-navigation prompt. Venue creation generates a hyphenated address with numeric collision suffixes; optional settings field explains Huddle page address versus business website. |
+| Account settings | Debounced authorized boolean-only username/address hints, normalized values, abort/stale-result handling, and final database uniqueness. Existing password/username edits made easier to reach. Email change reauthenticates the current account and requires Supabase secure dual-inbox confirmation via passive links and explicit POST; it does not authenticate the link recipient. |
+| Acceptance-discovered pagination | Investigation of a populated repeated browser failure found both a test selecting the wrong same-team fixture and a real fixed first-20 limit in match detail. The test now selects the intended date/kickoff, filters Explore to that fixture, and uses real Explore/fixture paging. A fifth forward migration and bounded UI pagination preserve existing audience/billing policy while making later fixture pages reachable; page-limit and empty-later-page recovery have explicit regressions. Neither issue was hidden by emptying the test database or increasing a fixed limit. |
+| Acceptance-discovered map worker | The built MapLibre v6 bundle inferred an empty worker URL and received the page HTML; a hashed worker alone also lacked its relative shared-module filename. Both maps now configure a version-matched same-origin worker, with build/dev preparation copying the installed worker, sibling module and upstream license. This follows [MapLibre's Next.js guidance](https://maplibre.org/maplibre-gl-js/docs/#installation), without a CDN, dependency upgrade, new API, or location-policy change. The browser regression failed against the old build, then verified initialized real workers and 200 JavaScript worker/shared responses for discovery and private pin picking. |
+
+## Performance evidence and limits
+
+Request-scoped shell deduplication avoids repeated workspace/moderator reads without cross-user caching. Home stops loading unused team visuals. Independent Home, authorized Venue/billing, and discovery enrichment reads run in parallel. Mobile no longer mounts a hidden desktop map. Source configuration selects Vercel `fra1` near the already configured Frankfurt database; this is not a deployed-region change.
+
+A proposed root loading fallback was removed after a controlled local comparison: on the same populated test database, Home heading-visible time fell from roughly 415 ms with that new fallback to 142 ms without it; Today remained about 350 ms. This comparison justifies removing the regression, not a production speedup claim. The earlier smaller-data baseline Home median was 105 ms and is not directly comparable. The installed React fallback scheduling includes a 300 ms throttle; that is a plausible mechanism, not a separate measured network delay.
+
+Final browser acceptance records five local full-navigation heading-visible/TTFB samples per Home/Today, plus real desktop/mobile Explore workspace switching. These are small-sample local browser timings, **not** Core Web Vitals, Lighthouse, load-test percentiles, or live Israel-network measurements. Chrome DevTools performance tracing was unavailable. Hosted speed must be remeasured after an authorized release.
+
+Final built-app sample (five full navigations, populated disposable database):
+
+| Page | Heading-visible median | Range | Request-to-first-byte median |
+| --- | ---: | ---: | ---: |
+| Fan Home | 125 ms | 117–163 ms | 95 ms |
+| Venue Today | 353 ms | 348–353 ms | 11 ms |
+
+The same real browser case switches from Explore to Venue Today at 1280 and 375 px, reloads there, and switches back to Fan Home. No browser page error or horizontal document overflow was observed in that case. A server-owned replace redirect now makes navigation independent of the previous client component's effect; the prior intermittent report was not independently reproduced in the original local case.
+
+## Verification ledger
+
+- Pinned Node 24.19.0 / npm 11.17.0; clean disposable `npm ci`: 592 packages. Final `npm audit --audit-level=high` reports zero vulnerabilities.
+- Fresh disposable reset applied all 49 migrations, including the five new forward migrations `20260904160000` through `20260904164000`; database schema lint passed.
+- Identifier regressions: absent RPCs reproduced RED; 61 assertions GREEN including an observed two-transaction slug collision with base/`-2`, independent owners, inactive entitlements, and exact fixture cleanup.
+- Full database/RLS suite: 54 files / 2,606 assertions pass; generated TypeScript types match the clean schema. Two historical fixtures/assertions were reconciled: retained cancellation calendar summaries omit the revoked location, and completed direct-invite attendance now has its real accepted invitation record. No permission was loosened to satisfy a fixture.
+- Independent cross-reviews covered all task groups and final SQL/auth corrections. The final identifier/email correction review independently passed 86 tests. An email-result browser cleanup gap and stale field errors were corrected before browser acceptance.
+- `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm run security:audit`, and `git diff --check`: pass. `npm run build:local` passes in the disposable environment. No dependencies or lockfile changes.
+- `HUDDLE_AUTOMATION_BLOCK_POLAR_NETWORK=true npm run test:coverage`: 237 passing files / 1,482 passing tests, one intentionally skipped live-model file/test. Coverage: 82.95% statements, 74.82% branches, 86.55% functions, 87.09% lines. Async UI tests explicitly wait for committed feedback and pending-state completion; no sleeps, retries, or raised timeouts were added to hide failures.
+- Rebuilt focused browser gate: 3/3 pass, including real worker initialization on both maps, exact fixture planning, and personalized discovery. An earlier populated-database run explicitly reached fixture page 2; the clean-reset run separately verifies schema reproducibility.
+- Final full browser result: **41/41 pass in 5.8 minutes**, with zero configured retries. All cases use the production build, local-only sports/payment fixtures and one deterministic browser worker. Coverage includes full 1280/768/375 px Fan/Venue journeys, both billing viewports, 1364 px layout, auth/security, attendance/private-location revocation, group/moderation workflows, and assisted discovery. The worker regression supplies deterministic raster imagery; ordinary map journeys may request public OpenStreetMap tiles.
+
+The server emitted React/Next `The destination stream closed early` messages during navigation-interruption journeys. Installed React binds that message to destination-stream closure; covered browser assertions continued successfully. This is recorded rather than represented as a warning-free server run. No framework patch or global error suppression was introduced. The earlier missing React list-key warning was corrected.
+
+## Release and presentation checks still separate
+
+1. Explicitly authorize publication/release; run protected CI and review the final diff. No commit, push, PR, merge, or deployment is implicit in this local work.
+2. Verify target and remote migration ledger, dry-run then apply only the new forward migrations under separate authority. Deploy matching app code and confirm `fra1` placement.
+3. Apply/check the explicitly targeted Supabase Auth email-change template/redirect allowlist and secure dual-confirmation settings. Local mailbox proof does not establish hosted email delivery.
+4. Recheck deployed app/migration/Auth parity, actual Sandbox return/webhook recovery and authenticated Home/Today/Explore latency with authorized test accounts. Keep real money disabled.
+5. Partners rehearse the submitted core loop and explain the changes. No claim is made that a human rehearsal, screen-reader audit, penetration test, load test, or every browser/device has been completed.
+
+Dirty internal-link cancellation and supported browser navigation interception are tested. Browsers without a cancelable Navigation API do not gain a universal Back/Forward unsaved-change guarantee. Saved drafts remain the recovery mechanism.
+
+## Authorized release follow-up
+
+The user subsequently approved commit, push, pull request, merge after CI, deployment, and a repeat audit specifically on `https://huddle.co.il`. This approval is not evidence that those steps have completed.
+
+Fresh pre-release review found an additional retained-identity boundary: event invitation/attendance projections can contain a null handle after account erasure. The application now accepts those two nullable fields, renders the database-provided tombstone without a profile link, and excludes unavailable identities from invitation candidates. Four regressions first failed on the original implementation; the corrected three-file focused suite passed 37 tests and an independent review. No database authorization or migration changed.
+
+The old production smoke incorrectly expected the removed City selector and an obsolete Groups heading. Its City assertion failed against the live site; the updated non-mutating anonymous smoke passed, covering the actual distance/date/fixture controls, session-only address entry, empty-safe discovery, Groups and Data sources. This checks the existing deployment, not the pending release. The full controlled authenticated audit remains a post-deployment gate.
+
+The frozen release source was reaccepted in the disposable stack after both corrections: 237 files / 1,487 tests passed, with one opt-in live-model test skipped; coverage was 82.97% statements, 74.93% branches, 86.55% functions and 87.11% lines. All 49 migrations, schema lint, 54 pgTAP files / 2,606 assertions and generated-type parity passed. Formatting, lint, TypeScript, production build, security audit and diff hygiene passed. The final full browser run passed all 41 tests in 5.9 minutes with zero configured retries. These release results supersede the earlier local counts above, not the still-separate hosted checks.

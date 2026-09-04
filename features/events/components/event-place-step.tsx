@@ -244,7 +244,11 @@ export function EventPlaceStep({
           />
           <Choice
             checked={audience === "group"}
-            description="Appears in Explore only to active members of one group."
+            description={
+              placeKind === "home"
+                ? "Appears in Explore only to active members of one group. The exact home address stays protected until attendance is approved."
+                : "For a discoverable group, eligible signed-in fans can preview this public-place event. Only active members of the group can request attendance."
+            }
             disabled={catalog.groups.length === 0}
             label="Group"
             name="audience"

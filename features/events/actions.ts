@@ -16,6 +16,7 @@ import {
   eventDraftSaveInputSchema,
   privateEventFormSchema,
   venueEventFormSchema,
+  venueEventEditValuesSchema,
 } from "@/features/events/schemas";
 import type {
   EventDraftActionData,
@@ -65,7 +66,9 @@ export async function saveEventDraftStepAction(rawInput: unknown): Promise<Event
 
   try {
     const { supabase } = await requireActor("fan");
-    return actionSuccess(toSafeDraftActionData(await saveEventDraft(supabase, parsed.data)));
+    const draft = await saveEventDraft(supabase, parsed.data);
+    revalidatePath("/events/drafts");
+    return actionSuccess(toSafeDraftActionData(draft));
   } catch (error) {
     return actionFailure(error);
   }
@@ -92,6 +95,7 @@ export async function discardEventDraftAction(
   try {
     const { supabase } = await requireActor("authenticated");
     await discardEventDraft(supabase, parsed.data.draftId);
+    revalidatePath("/events/drafts");
     return actionSuccess({ message: "Draft discarded." });
   } catch (error) {
     return actionFailure(error);
@@ -115,6 +119,7 @@ export async function finalizeEventDraftAction(
   revalidatePath("/");
   revalidatePath("/dashboard");
   revalidatePath("/events");
+  revalidatePath("/events/drafts");
   revalidatePath(`/events/${event.id}`);
   revalidatePath("/discover");
   redirect(`/events/${event.id}?created=1`);
@@ -317,6 +322,71 @@ export async function saveVenueEventAction(
   formData: FormData,
 ): Promise<VenueEventMutationState> {
   const values = submittedVenueEventValues(formData);
+  if (values.eventId !== "") {
+    try {
+      const identity = z
+        .object({
+          eventId: z.uuid(),
+          venueId: z.uuid(),
+          venueSlug: venueEventFormSchema.shape.venueSlug,
+          intent: z.enum(["draft", "publish", "cancel"]),
+        })
+        .parse({
+          eventId: values.eventId,
+          venueId: values.venueId,
+          venueSlug: values.venueSlug,
+          intent: formData.get("intent"),
+        });
+      const inputValues =
+        identity.intent === "cancel"
+          ? {}
+          : venueEventEditValuesSchema.parse({
+              title: values.title,
+              description: values.description,
+              expectedActivity: values.expectedActivity,
+              costDescription: values.costDescription,
+              eventRules: values.eventRules,
+              commercialAffiliation: values.commercialAffiliation,
+              hostPresenceConfirmed: values.hostPresenceConfirmed,
+              capacity: values.capacity,
+              requiresApproval: values.requiresApproval,
+            });
+      const [{ supabase }, requestId] = await Promise.all([
+        requireActor({ venueId: identity.venueId }),
+        getRequestId(),
+      ]);
+      const { data, error } = await supabase.rpc("save_venue_event", {
+        input_event_id: identity.eventId,
+        input_values: inputValues,
+        input_intent: identity.intent,
+        audit_request_id: requestId,
+      });
+      if (error !== null) throw domainErrorFromDatabase(error);
+      const event = z
+        .object({ event_id: z.uuid(), status: z.enum(["draft", "published", "cancelled"]) })
+        .strict()
+        .parse(data.at(0));
+      revalidatePath(`/events/${event.event_id}`);
+      revalidatePath(`/events/${event.event_id}/manage`);
+      revalidatePath(`/venues/${identity.venueSlug}/workspace`, "layout");
+      revalidatePath(`/venues/${identity.venueSlug}`);
+      revalidatePath("/discover");
+      return {
+        ok: true,
+        data: {
+          message:
+            event.status === "cancelled"
+              ? "Draft cancelled. Its history is retained."
+              : event.status === "draft"
+                ? "Venue draft saved."
+                : "Venue event published.",
+          event: { id: event.event_id, status: event.status },
+        },
+      };
+    } catch (error) {
+      return venueEventFailure(error, values, previousState);
+    }
+  }
   const parsed = venueEventFormSchema.safeParse({
     ...values,
     intent: formData.get("intent"),

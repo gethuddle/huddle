@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { unstable_rethrow } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { startVenueCheckoutAction } from "../actions";
@@ -26,7 +27,8 @@ export function VenuePlanPicker({
           try {
             const result = await startVenueCheckoutAction({ venueId, plan });
             if (!result.ok) setMessage(result.error.message);
-          } catch {
+          } catch (error) {
+            unstable_rethrow(error);
             setMessage("Checkout could not open. Please try again.");
           }
         });

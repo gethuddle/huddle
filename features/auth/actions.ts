@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import {
   knownPasswordUpdateSchema,
+  emailChangeRequestSchema,
   passwordResetRequestSchema,
   passwordUpdateSchema,
   signInSchema,
@@ -244,6 +245,49 @@ export async function updatePasswordAction(
       ? "/auth/sign-in?password=changed"
       : "/auth/sign-in?password=changed&sessions=unconfirmed",
   );
+}
+
+export async function changeEmailAction(
+  _previousState: AuthActionState,
+  formData: FormData,
+): Promise<AuthActionState> {
+  const parsed = emailChangeRequestSchema.safeParse({
+    email: formData.get("email"),
+    currentPassword: formData.get("currentPassword"),
+  });
+  if (!parsed.success) return actionFailure(parsed.error);
+  const supabase = await createClient();
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (error !== null) return currentUserFailure(error);
+    const user = data.user;
+    if (user?.email === undefined) return actionFailure(new DomainError("AUTH_REQUIRED"));
+    const reauthentication = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: parsed.data.currentPassword,
+    });
+    if (reauthentication.error !== null) return currentPasswordFailure(reauthentication.error);
+    if (reauthentication.data.user?.id !== user.id)
+      return actionFailure(new DomainError("AUTH_REQUIRED"));
+    // Provider secure email change remains authoritative. Never perform an email
+    // existence lookup or disclose duplicate-address/provider validation results.
+    await supabase.auth.updateUser(
+      { email: parsed.data.email },
+      {
+        emailRedirectTo: new URL(
+          "/auth/email-change/confirm",
+          getPublicEnvironment().NEXT_PUBLIC_APP_URL,
+        ).toString(),
+      },
+    );
+    return actionSuccess({
+      message:
+        "If this change can be requested, confirmation links will arrive at both your current and new email addresses. Complete both confirmations; your sign-in email does not change until verification finishes.",
+      redirectTo: null,
+    });
+  } catch (cause) {
+    return actionFailure(new DomainError("UPSTREAM_UNAVAILABLE", { cause }));
+  }
 }
 
 export async function changePasswordAction(

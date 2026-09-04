@@ -7,7 +7,7 @@ vi.mock("@/features/sports/team-visuals", () => ({
   loadTeamVisualsByName: mocks.loadTeamVisualsByName,
 }));
 
-import { getEventSummary, listMatchEvents, listVenueEvents } from "./queries";
+import { getEventSummary, listMatchEventPage, listMatchEvents, listVenueEvents } from "./queries";
 
 const eventId = "60000000-0000-4000-8000-000000000101";
 const matchId = "60000000-0000-4000-8000-000000000102";
@@ -205,5 +205,72 @@ describe("event safe projections", () => {
       input_match_id: matchId,
       input_limit: 20,
     });
+  });
+
+  it("uses a bounded 21-item lookahead page for match-event navigation", async () => {
+    rpc.mockResolvedValue({
+      data: Array.from({ length: 21 }, (_, index) => ({
+        event_id: `60000000-0000-4000-8000-${String(index + 201).padStart(12, "0")}`,
+        title: `Watch event ${index + 1}`,
+        home_team_name: "Arsenal FC",
+        away_team_name: "Chelsea FC",
+        competition_name: "Premier League",
+        starts_at: "2026-09-01T17:00:00Z",
+        audience: "public",
+        audience_team_name: null,
+        capacity: null,
+        approved_attendee_count: 0,
+        requires_approval: false,
+      })),
+      error: null,
+    });
+
+    const page = await listMatchEventPage(matchId, 2);
+    expect(page.events).toHaveLength(20);
+    expect(page.events[0]).toMatchObject({ title: "Watch event 1" });
+    expect(page.hasNext).toBe(true);
+    expect(rpc).toHaveBeenCalledWith("list_match_events_page", {
+      input_match_id: matchId,
+      input_limit: 21,
+      input_offset: 20,
+    });
+  });
+
+  it("does not advertise a page beyond the bounded RPC offset window", async () => {
+    rpc.mockResolvedValue({
+      data: Array.from({ length: 21 }, (_, index) => ({
+        event_id: `60000000-0000-4000-8000-${String(index + 301).padStart(12, "0")}`,
+        title: `Window event ${index + 1}`,
+        home_team_name: "Arsenal FC",
+        away_team_name: "Chelsea FC",
+        competition_name: "Premier League",
+        starts_at: "2026-09-01T17:00:00Z",
+        audience: "public",
+        audience_team_name: null,
+        capacity: null,
+        approved_attendee_count: 0,
+        requires_approval: false,
+      })),
+      error: null,
+    });
+
+    await expect(listMatchEventPage(matchId, 501)).resolves.toMatchObject({
+      hasNext: false,
+      reachedWindowEnd: true,
+    });
+    expect(rpc).toHaveBeenCalledWith("list_match_events_page", {
+      input_match_id: matchId,
+      input_limit: 21,
+      input_offset: 10_000,
+    });
+  });
+
+  it("surfaces a match-event paging RPC failure instead of returning an empty page", async () => {
+    rpc.mockResolvedValue({
+      data: null,
+      error: { code: "P0001", message: "The match event listing failed." },
+    });
+
+    await expect(listMatchEventPage(matchId)).rejects.toThrow();
   });
 });

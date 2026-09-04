@@ -10,7 +10,7 @@ select no_plan();
 do $setup$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('b10_attendance_setup', connection_text);
   perform extensions.dblink_exec(
@@ -260,7 +260,7 @@ $setup$;
 do $invitation_connections$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('b10_invite_a', connection_text);
   perform extensions.dblink_connect('b10_invite_b', connection_text);
@@ -386,7 +386,7 @@ select is(
 do $capacity_connections$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('b10_approve_a', connection_text);
   perform extensions.dblink_connect('b10_approve_b', connection_text);
@@ -491,7 +491,7 @@ select is(
 do $prepare_block_race$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('b10_prepare_block_race', connection_text);
   perform extensions.dblink_exec(
@@ -505,7 +505,7 @@ $prepare_block_race$;
 do $block_connections$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('b10_block_worker', connection_text);
   perform extensions.dblink_connect('b10_review_worker', connection_text);
@@ -612,7 +612,7 @@ reset role;
 do $cleanup$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('b10_attendance_cleanup', connection_text);
   perform extensions.dblink_exec(

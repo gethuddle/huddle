@@ -11,6 +11,16 @@ describe("AuthLinkConfirmation", () => {
     window.history.replaceState(null, "", "/auth/verify/confirm");
   });
 
+  it("keeps email-change credentials passive until the dedicated explicit POST", async () => {
+    window.location.hash = "#token_hash=email-change-secret&type=email_change";
+    render(<AuthLinkConfirmation purpose="email_change" />);
+    const button = await screen.findByRole("button", { name: "Continue securely" });
+    expect(screen.getByRole("heading", { name: "Confirm email change" })).toBeVisible();
+    expect(button.closest("form")).toHaveAttribute("action", "/auth/email-change/confirm/consume");
+    expect(window.location.hash).toBe("");
+    expect(screen.getByText(/both email addresses/i)).toBeVisible();
+  });
+
   it("reads a fragment, removes it from browser history, and waits for explicit submission", async () => {
     window.location.hash = "#token_hash=secret-token&type=email";
     const replaceState = vi.spyOn(window.history, "replaceState");

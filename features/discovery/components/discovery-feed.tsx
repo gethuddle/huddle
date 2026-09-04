@@ -2,7 +2,7 @@
 
 import { QueryClient, QueryClientProvider, useInfiniteQuery } from "@tanstack/react-query";
 import { LocateFixed, Map as MapIcon, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { EmptyState } from "@/components/states/empty-state";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,24 @@ import {
 
 type Coordinates = Readonly<{ lat: number; lng: number }>;
 type LocationState = "idle" | "locating" | "browser" | "address" | "denied";
+
+function useDesktopViewport() {
+  return useSyncExternalStore(
+    (notify) => {
+      if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+        return () => undefined;
+      }
+      const media = window.matchMedia("(min-width: 1024px)");
+      media.addEventListener("change", notify);
+      return () => media.removeEventListener("change", notify);
+    },
+    () =>
+      typeof window !== "undefined" && typeof window.matchMedia === "function"
+        ? window.matchMedia("(min-width: 1024px)").matches
+        : false,
+    () => false,
+  );
+}
 
 function groupEventsByMatch(events: readonly DiscoveryEvent[]) {
   const groups = new Map<string, DiscoveryEvent[]>();
@@ -68,6 +86,7 @@ function DiscoveryFeedInner({
   const [locationState, setLocationState] = useState<LocationState>("idle");
   const [locationLabel, setLocationLabel] = useState("");
   const [mobileMapOpen, setMobileMapOpen] = useState(false);
+  const isDesktop = useDesktopViewport();
   const query = useInfiniteQuery({
     queryKey: ["event-discovery", discoveryFilterIdentity(filters), coordinates],
     initialPageParam: null as string | null,
@@ -309,18 +328,17 @@ function DiscoveryFeedInner({
               </div>
             </section>
 
-            <aside
-              aria-label="Desktop discovery map"
-              className="sticky top-28 hidden min-w-0 lg:block"
-            >
-              <DiscoveryMap events={events} userLocation={coordinates} />
-              <p className="mt-3 text-center text-xs leading-5 text-muted-foreground">
-                Pins are limited to public Venues and public places. Home locations never appear.
-              </p>
-            </aside>
+            {isDesktop ? (
+              <aside aria-label="Desktop discovery map" className="sticky top-28 min-w-0">
+                <DiscoveryMap events={events} userLocation={coordinates} />
+                <p className="mt-3 text-center text-xs leading-5 text-muted-foreground">
+                  Pins are limited to public Venues and public places. Home locations never appear.
+                </p>
+              </aside>
+            ) : null}
           </div>
 
-          {mobileMapOpen ? (
+          {mobileMapOpen && !isDesktop ? (
             <div
               aria-label="Map of nearby places"
               aria-modal="true"

@@ -25,6 +25,11 @@ import {
 } from "@/features/workspaces/state";
 import { getServerEnvironment } from "@/lib/env/server";
 import type { Database } from "@/types/database.generated";
+import {
+  HUDDLE_SESSION_CLEANUP_COOKIE_NAME,
+  HUDDLE_SESSION_CLEANUP_COOKIE_VALUES,
+  huddleSessionCleanupCookieOptions,
+} from "@/features/auth/session-cleanup-cookie";
 
 const MAX_AUTH_LINK_BODY_BYTES = 8 * 1024;
 const verifiedClaimsSchema = z.object({
@@ -48,6 +53,7 @@ function redirectResponse(appUrl: string, path: string) {
 }
 
 function expiredPath(purpose: AuthLinkPurpose) {
+  if (purpose === "email_change") return "/auth/email-change?status=expired";
   return purpose === "email"
     ? "/auth/verify?status=expired"
     : "/auth/forgot-password?status=expired";
@@ -199,6 +205,46 @@ export async function consumeAuthLink(request: NextRequest, purpose: AuthLinkPur
             return exchangeResult;
           });
 
+    if (purpose === "email_change") {
+      if (result.error !== null) throw new Error("Email change confirmation unavailable.");
+      // Secure dual-email confirmation intentionally returns no session after
+      // its first token. That is pending verification, never ordinary sign-in.
+      if (result.data.session !== null) {
+        linkSessionEstablished = true;
+        const claimsResult = await supabase.auth.getClaims(result.data.session.access_token);
+        const claims = verifiedClaimsSchema.safeParse(claimsResult.data?.claims);
+        if (
+          claimsResult.error !== null ||
+          !claims.success ||
+          claims.data.sub !== result.data.user?.id
+        ) {
+          throw new Error("Email change identity could not be verified.");
+        }
+        try {
+          await supabase.auth.signOut({ scope: "local" });
+        } catch {
+          // Confirmation already happened. Always clear the local link session.
+        }
+      }
+      expireSupabaseCookies(response, supabaseCookieScopes);
+      response.cookies.set(RECOVERY_GRANT_COOKIE_NAME, "", {
+        ...recoveryGrantCookieOptions(environment.HUDDLE_ENVIRONMENT),
+        maxAge: 0,
+      });
+      response.cookies.set(WORKSPACE_COOKIE_NAME, "", { ...workspaceCookieOptions(), maxAge: 0 });
+      response.cookies.set(
+        HUDDLE_SESSION_CLEANUP_COOKIE_NAME,
+        HUDDLE_SESSION_CLEANUP_COOKIE_VALUES.signOut,
+        huddleSessionCleanupCookieOptions(environment.HUDDLE_ENVIRONMENT),
+      );
+      response.headers.set(
+        "location",
+        new URL("/auth/email-change?status=received", environment.NEXT_PUBLIC_APP_URL).toString(),
+      );
+      applyNoStore(response);
+      return response;
+    }
+
     if (result.error !== null || result.data.session === null || result.data.user === null) {
       throw new Error("The email credential could not establish a complete session.");
     }
@@ -290,6 +336,18 @@ export async function consumeAuthLink(request: NextRequest, purpose: AuthLinkPur
       // The response stays expired. Cookie expiry below does not depend on the provider.
     }
     expireSupabaseCookies(response, supabaseCookieScopes);
+    if (purpose === "email_change") {
+      response.cookies.set(RECOVERY_GRANT_COOKIE_NAME, "", {
+        ...recoveryGrantCookieOptions(environment.HUDDLE_ENVIRONMENT),
+        maxAge: 0,
+      });
+      response.cookies.set(WORKSPACE_COOKIE_NAME, "", { ...workspaceCookieOptions(), maxAge: 0 });
+      response.cookies.set(
+        HUDDLE_SESSION_CLEANUP_COOKIE_NAME,
+        HUDDLE_SESSION_CLEANUP_COOKIE_VALUES.signOut,
+        huddleSessionCleanupCookieOptions(environment.HUDDLE_ENVIRONMENT),
+      );
+    }
   }
 
   applyNoStore(response);

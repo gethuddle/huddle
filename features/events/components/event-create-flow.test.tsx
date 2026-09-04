@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import Link from "next/link";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { EventDraftValues } from "@/features/events/schemas";
@@ -21,6 +22,9 @@ vi.mock("@/features/events/actions", () => ({
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mocks.push, replace: mocks.replace, refresh: vi.fn() }),
+  unstable_rethrow: (error: unknown) => {
+    if (error instanceof Error && error.message === "NEXT_REDIRECT") throw error;
+  },
 }));
 vi.mock("@/features/locations/components/address-search", () => ({
   AddressSearch: ({
@@ -95,7 +99,255 @@ function saved(
 }
 
 describe("EventCreateFlow", () => {
-  afterEach(() => vi.unstubAllGlobals());
+  it("confirms a dirty draft before an actual outside Next link can navigate", async () => {
+    const navigate = vi.fn();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    render(
+      <>
+        <Link
+          href="/explore"
+          onClick={(event) => {
+            event.preventDefault();
+            navigate();
+          }}
+        >
+          Explore
+        </Link>
+        <EventCreateFlow
+          catalog={catalog}
+          initialDraft={{
+            id: draftId,
+            step: 2,
+            values: { matchId, title: "Saved title" },
+            savedAt: "2026-09-04T10:00:00Z",
+          }}
+        />
+      </>,
+    );
+    await userEvent.type(screen.getByLabelText("Event title"), " changed");
+    await userEvent.click(screen.getByRole("link", { name: "Explore" }));
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining("without saving"));
+    expect(navigate).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Event title")).toHaveValue("Saved title changed");
+    confirm.mockReturnValue(true);
+    await userEvent.click(screen.getByRole("link", { name: "Explore" }));
+    expect(navigate).toHaveBeenCalledOnce();
+    confirm.mockRestore();
+  });
+
+  it("blocks outside links while saving and removes the guard when the flow unmounts", async () => {
+    const navigate = vi.fn();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const pending = Promise.withResolvers<ReturnType<typeof saved>>();
+    mocks.saveEventDraftStepAction.mockReturnValue(pending.promise);
+    const view = render(
+      <>
+        <Link
+          href="/explore"
+          onClick={(event) => {
+            event.preventDefault();
+            navigate();
+          }}
+        >
+          Explore
+        </Link>
+        <EventCreateFlow catalog={catalog} initialMatchId={matchId} />
+      </>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Save and exit" }));
+    try {
+      await userEvent.click(screen.getByRole("link", { name: "Explore" }));
+      expect(navigate).not.toHaveBeenCalled();
+      expect(confirm).not.toHaveBeenCalled();
+    } finally {
+      await act(async () => pending.resolve(saved(1, { matchId })));
+    }
+    view.rerender(
+      <Link
+        href="/explore"
+        onClick={(event) => {
+          event.preventDefault();
+          navigate();
+        }}
+      >
+        Explore
+      </Link>,
+    );
+    await userEvent.click(screen.getByRole("link", { name: "Explore" }));
+    expect(navigate).toHaveBeenCalledOnce();
+    confirm.mockRestore();
+  });
+
+  it("cancels supported same-document history traversal without rewriting history", async () => {
+    const navigation = new EventTarget();
+    vi.stubGlobal("navigation", navigation);
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const pushState = vi.spyOn(window.history, "pushState");
+    const replaceState = vi.spyOn(window.history, "replaceState");
+    render(
+      <EventCreateFlow
+        catalog={catalog}
+        initialDraft={{
+          id: draftId,
+          step: 2,
+          values: { matchId, title: "Saved title" },
+          savedAt: "2026-09-04T10:00:00Z",
+        }}
+      />,
+    );
+    await userEvent.type(screen.getByLabelText("Event title"), " changed");
+    const traverse = new Event("navigate", { cancelable: true });
+    Object.assign(traverse, { navigationType: "traverse", destination: { sameDocument: true } });
+    navigation.dispatchEvent(traverse);
+    expect(traverse.defaultPrevented).toBe(true);
+    confirm.mockClear();
+    const unsupported = new Event("navigate");
+    Object.assign(unsupported, { navigationType: "traverse", destination: { sameDocument: true } });
+    navigation.dispatchEvent(unsupported);
+    expect(confirm).not.toHaveBeenCalled();
+    expect(unsupported.defaultPrevented).toBe(false);
+    expect(pushState).not.toHaveBeenCalled();
+    expect(replaceState).not.toHaveBeenCalled();
+    confirm.mockRestore();
+    pushState.mockRestore();
+    replaceState.mockRestore();
+  });
+
+  it("does not warn for clean links or modified clicks that keep the dirty editor open", async () => {
+    const navigate = vi.fn();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    render(
+      <>
+        <Link
+          href="/explore"
+          onClick={(event) => {
+            event.preventDefault();
+            navigate();
+          }}
+        >
+          Explore
+        </Link>
+        <EventCreateFlow
+          catalog={catalog}
+          initialDraft={{
+            id: draftId,
+            step: 2,
+            values: { matchId, title: "Saved title" },
+            savedAt: "2026-09-04T10:00:00Z",
+          }}
+        />
+      </>,
+    );
+    await userEvent.click(screen.getByRole("link", { name: "Explore" }));
+    expect(navigate).toHaveBeenCalledOnce();
+    await userEvent.type(screen.getByLabelText("Event title"), " changed");
+    const newTabClick = new MouseEvent("click", { bubbles: true, cancelable: true, ctrlKey: true });
+    screen.getByRole("link", { name: "Explore" }).dispatchEvent(newTabClick);
+    expect(navigate).toHaveBeenCalledTimes(2);
+    expect(confirm).not.toHaveBeenCalled();
+  });
+  it("offers draft recovery until edits need saving, then keeps Save and exit available", async () => {
+    render(
+      <EventCreateFlow
+        catalog={catalog}
+        initialDraft={{
+          id: draftId,
+          step: 2,
+          values: { matchId, title: "Saved title" },
+          savedAt: "2026-09-04T10:00:00Z",
+        }}
+      />,
+    );
+    expect(screen.getByRole("link", { name: "Saved drafts" })).toHaveAttribute(
+      "href",
+      "/events/drafts",
+    );
+    await userEvent.type(screen.getByLabelText("Event title"), " changed");
+    expect(screen.queryByRole("link", { name: "Saved drafts" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save and exit" })).toBeEnabled();
+  });
+  it("prevents edits being overwritten while a draft save is pending", async () => {
+    let finish: (value: ReturnType<typeof saved>) => void = () => undefined;
+    mocks.saveEventDraftStepAction.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    render(
+      <EventCreateFlow
+        catalog={catalog}
+        initialDraft={{
+          id: draftId,
+          step: 2,
+          values: { matchId, title: "Saved title" },
+          savedAt: "2026-09-04T10:00:00Z",
+        }}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Save and exit" }));
+    try {
+      expect(screen.getByLabelText("Event title")).toBeDisabled();
+    } finally {
+      await act(async () => finish(saved(2, { matchId, title: "Saved title" })));
+    }
+  });
+  it("saves the current step before leaving for the recoverable draft list", async () => {
+    render(<EventCreateFlow catalog={catalog} initialMatchId={matchId} />);
+    await userEvent.click(screen.getByRole("button", { name: "Save and exit" }));
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith("/events/drafts"));
+    expect(mocks.saveEventDraftStepAction).toHaveBeenCalledWith(
+      expect.objectContaining({ step: 1, values: expect.objectContaining({ matchId }) }),
+    );
+  });
+  it("explains public-place group previews without overpromising members-only visibility", () => {
+    render(
+      <EventCreateFlow
+        catalog={{
+          ...catalog,
+          groups: [
+            {
+              id: "60000000-0000-4000-8000-000000000222",
+              name: "Supporters",
+              slug: "supporters",
+              lifecycle: "active",
+            },
+          ],
+        }}
+        initialDraft={{
+          id: draftId,
+          step: 2,
+          values: { matchId, placeKind: "public_place", audience: "group" },
+          savedAt: "2026-09-04T10:00:00Z",
+        }}
+      />,
+    );
+    expect(
+      screen.getByRole("radio", { name: /Group.*eligible signed-in fans can preview/i }),
+    ).toBeVisible();
+    expect(screen.queryByText(/Appears in Explore only to active members/)).not.toBeInTheDocument();
+  });
+  it("keeps the wizard pending until step save acknowledges and shows transport failure", async () => {
+    let rejectSave: (error: Error) => void = () => undefined;
+    mocks.saveEventDraftStepAction.mockImplementation(
+      () =>
+        new Promise((_resolve, reject) => {
+          rejectSave = reject;
+        }),
+    );
+    render(<EventCreateFlow catalog={catalog} initialMatchId={matchId} />);
+    await userEvent.click(screen.getByRole("button", { name: "Next: place and audience" }));
+    expect(screen.getByRole("button", { name: "Saving…" })).toBeDisabled();
+    rejectSave(new Error("Offline"));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/try again/i);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Next: place and audience" })).toBeEnabled(),
+    );
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -123,6 +375,7 @@ describe("EventCreateFlow", () => {
     await user.click(screen.getByRole("button", { name: "Next: place and audience" }));
 
     expect(await screen.findByRole("heading", { name: "Place and audience" })).toBeVisible();
+    await waitFor(() => expect(screen.getByRole("textbox", { name: "Event title" })).toBeEnabled());
     expect(mocks.saveEventDraftStepAction).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
@@ -151,8 +404,10 @@ describe("EventCreateFlow", () => {
     expect(screen.getByRole("button", { name: "Edit match" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Edit place and audience" })).toBeVisible();
 
+    await waitFor(() => expect(screen.getByRole("button", { name: "Back" })).toBeEnabled());
     await user.click(screen.getByRole("button", { name: "Back" }));
     expect(await screen.findByRole("heading", { name: "Place and audience" })).toBeVisible();
+    await waitFor(() => expect(screen.getByRole("textbox", { name: "Event title" })).toBeEnabled());
     expect(mocks.saveEventDraftStepAction).toHaveBeenLastCalledWith(
       expect.objectContaining({ id: draftId, step: 2 }),
     );
@@ -180,6 +435,7 @@ describe("EventCreateFlow", () => {
     await user.click(await screen.findByRole("button", { name: new RegExp(remoteMatch.label) }));
     await user.click(screen.getByRole("button", { name: "Next: place and audience" }));
 
+    await waitFor(() => expect(screen.getByRole("textbox", { name: "Event title" })).toBeEnabled());
     await user.type(screen.getByRole("textbox", { name: "Event title" }), "Late final night");
     await user.type(
       screen.getByRole("textbox", { name: "Description" }),
@@ -227,8 +483,10 @@ describe("EventCreateFlow", () => {
         }),
       ),
     );
-    expect(mocks.push).toHaveBeenCalledWith(
-      `/people?returnTo=${encodeURIComponent(`/events/new?draft=${draftId}`)}`,
+    await waitFor(() =>
+      expect(mocks.push).toHaveBeenCalledWith(
+        `/people?returnTo=${encodeURIComponent(`/events/new?draft=${draftId}`)}`,
+      ),
     );
   });
 
@@ -380,6 +638,10 @@ describe("EventCreateFlow", () => {
     await user.click(screen.getByRole("checkbox", { name: /I will be present/ }));
     await user.click(screen.getByRole("button", { name: "Next: review and publish" }));
 
+    expect(await screen.findByRole("heading", { name: "Review and publish" })).toBeVisible();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Publish event" })).toBeEnabled(),
+    );
     await waitFor(() => expect(mocks.saveEventDraftStepAction).toHaveBeenCalledOnce());
     const savedInput = mocks.saveEventDraftStepAction.mock.calls[0]?.[0];
     expect(savedInput).toMatchObject({
@@ -415,13 +677,13 @@ describe("EventCreateFlow", () => {
 
     await user.click(screen.getByRole("button", { name: "Next: review and publish" }));
 
-    const alert = screen.getByRole("alert");
+    const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("Fix 4 details before review");
     expect(alert).toHaveTextContent("Use at least 3 characters for the event title.");
     expect(alert).toHaveTextContent("Use at least 10 characters for the description.");
     expect(alert).toHaveTextContent("Choose the private address and pin.");
     expect(alert).toHaveTextContent("Confirm that you will be present.");
-    expect(screen.getByRole("textbox", { name: "Event title" })).toHaveFocus();
+    await waitFor(() => expect(screen.getByRole("textbox", { name: "Event title" })).toHaveFocus());
     expect(screen.getByRole("textbox", { name: "Event title" })).toHaveAttribute(
       "aria-invalid",
       "true",
@@ -464,6 +726,10 @@ describe("EventCreateFlow", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Publish event" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Navigation did not complete.");
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Publish event" })).toBeEnabled(),
+    );
     await waitFor(() => expect(mocks.finalizeEventDraftAction).toHaveBeenCalledWith({ draftId }));
   });
 });

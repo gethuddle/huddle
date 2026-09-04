@@ -5,6 +5,12 @@ import { z } from "zod";
 import { getGroupDetail, type GroupDetail } from "@/features/groups/detail";
 import type { GroupManagementSection } from "@/features/groups/schemas";
 import { DomainError, domainErrorFromDatabase } from "@/lib/errors";
+import {
+  collectionHasOverflow,
+  collectionOffset,
+  collectionPageCount,
+  collectionPageInput,
+} from "@/lib/pagination";
 import { createClient } from "@/lib/supabase/server";
 
 export const GROUP_MANAGEMENT_PAGE_SIZE = 20;
@@ -12,7 +18,7 @@ export const GROUP_MANAGEMENT_PAGE_SIZE = 20;
 const applicationRowSchema = z
   .object({
     user_id: z.uuid(),
-    handle: z.string(),
+    handle: z.string().nullable(),
     display_name: z.string(),
     application_message: z.string().nullable(),
     application_source: z.enum(["discoverable", "invite"]),
@@ -35,7 +41,7 @@ const memberRowSchema = z
 const inviteRowSchema = z
   .object({
     invite_id: z.uuid(),
-    creator_handle: z.string(),
+    creator_handle: z.string().nullable(),
     expires_at: z.string(),
     max_uses: z.number().int().positive(),
     use_count: z.number().int().nonnegative(),
@@ -49,10 +55,10 @@ const inviteRowSchema = z
 const banRowSchema = z
   .object({
     user_id: z.uuid(),
-    handle: z.string(),
+    handle: z.string().nullable(),
     display_name: z.string(),
     reason: z.string(),
-    banned_by_handle: z.string(),
+    banned_by_handle: z.string().nullable(),
     banned_at: z.string(),
     total_count: z.number().int().nonnegative(),
   })
@@ -73,7 +79,7 @@ const eventSubmissionRowSchema = z
     event_id: z.uuid(),
     title: z.string(),
     status: z.enum(["draft", "pending_group_review", "published", "cancelled", "completed"]),
-    submitter_handle: z.string(),
+    submitter_handle: z.string().nullable(),
     submitter_display_name: z.string(),
     audience: z.enum(["public", "team_followers", "group", "friends", "invite_only"]),
     audience_group_name: z.string().nullable(),
@@ -93,9 +99,9 @@ const directInvitationRowSchema = z
   .object({
     invitation_id: z.uuid(),
     invitee_id: z.uuid(),
-    invitee_handle: z.string(),
+    invitee_handle: z.string().nullable(),
     invitee_display_name: z.string(),
-    inviter_handle: z.string(),
+    inviter_handle: z.string().nullable(),
     invitation_status: z.enum(["pending", "accepted", "declined", "revoked"]),
     created_at: z.string(),
     responded_at: z.string().nullable(),
@@ -106,7 +112,7 @@ const directInvitationRowSchema = z
 
 export type GroupApplication = Readonly<{
   userId: string;
-  handle: string;
+  handle: string | null;
   displayName: string;
   message: string | null;
   source: "discoverable" | "invite";
@@ -123,7 +129,7 @@ export type GroupAdminMember = Readonly<{
 
 export type GroupInviteMetadata = Readonly<{
   id: string;
-  creatorHandle: string;
+  creatorHandle: string | null;
   expiresAt: string;
   maxUses: number;
   useCount: number;
@@ -134,10 +140,10 @@ export type GroupInviteMetadata = Readonly<{
 
 export type GroupBan = Readonly<{
   userId: string;
-  handle: string;
+  handle: string | null;
   displayName: string;
   reason: string;
-  bannedByHandle: string;
+  bannedByHandle: string | null;
   bannedAt: string;
 }>;
 
@@ -152,7 +158,7 @@ export type GroupEventSubmission = Readonly<{
   id: string;
   title: string;
   status: "draft" | "pending_group_review" | "published" | "cancelled" | "completed";
-  submitterHandle: string;
+  submitterHandle: string | null;
   submitterDisplayName: string;
   audience: "public" | "team_followers" | "group" | "friends" | "invite_only";
   audienceGroupName: string | null;
@@ -171,9 +177,9 @@ export type GroupEventSubmission = Readonly<{
 export type GroupDirectInvitation = Readonly<{
   id: string;
   inviteeId: string;
-  inviteeHandle: string;
+  inviteeHandle: string | null;
   inviteeDisplayName: string;
-  inviterHandle: string;
+  inviterHandle: string | null;
   status: "pending" | "accepted" | "declined" | "revoked";
   createdAt: string;
   respondedAt: string | null;
@@ -182,7 +188,9 @@ export type GroupDirectInvitation = Readonly<{
 
 export type GroupOverviewAttention = Readonly<{
   applications: readonly GroupApplication[];
+  applicationTotalCount: number;
   events: readonly GroupEventSubmission[];
+  eventTotalCount: number;
 }>;
 
 type SettingsPage<T> = Readonly<{
@@ -192,12 +200,17 @@ type SettingsPage<T> = Readonly<{
   totalCount: number;
 }>;
 
+type BoundedSettingsPage<T> = SettingsPage<T> &
+  Readonly<{
+    hasOverflow: boolean;
+  }>;
+
 export type GroupSettings = Readonly<{
   group: GroupDetail;
   members: SettingsPage<GroupAdminMember>;
   rules: readonly GroupManagedRule[];
   bans: SettingsPage<GroupBan>;
-  directInvitations: readonly GroupDirectInvitation[];
+  directInvitations: BoundedSettingsPage<GroupDirectInvitation>;
 }>;
 
 type ManagementBase = Readonly<{
@@ -318,11 +331,26 @@ function settingsPage<T>(
   return { items, page, ...countResult(rows) };
 }
 
+function boundedSettingsPage<T>(
+  items: readonly T[],
+  rows: readonly Readonly<{ total_count: number }>[],
+  page: number,
+): BoundedSettingsPage<T> {
+  const totalCount = rows.at(0)?.total_count ?? 0;
+  return {
+    items,
+    page,
+    totalCount,
+    pageCount: collectionPageCount(totalCount),
+    hasOverflow: collectionHasOverflow(totalCount),
+  };
+}
+
 export async function getGroupOverviewAttention(
   group: GroupDetail,
 ): Promise<GroupOverviewAttention> {
   if (group.viewerRole !== "owner" && group.viewerRole !== "admin") {
-    return { applications: [], events: [] };
+    return { applications: [], applicationTotalCount: 0, events: [], eventTotalCount: 0 };
   }
 
   const supabase = await createClient();
@@ -334,11 +362,15 @@ export async function getGroupOverviewAttention(
   if (applicationResult.error !== null) throw domainErrorFromDatabase(applicationResult.error);
   if (eventResult.error !== null) throw domainErrorFromDatabase(eventResult.error);
 
+  const applicationRows = parseRows(applicationRowSchema, applicationResult.data);
+  const eventRows = parseRows(eventSubmissionRowSchema, eventResult.data);
   return {
-    applications: parseRows(applicationRowSchema, applicationResult.data).map(applicationItem),
-    events: parseRows(eventSubmissionRowSchema, eventResult.data)
+    applications: applicationRows.map(applicationItem),
+    applicationTotalCount: countResult(applicationRows).totalCount,
+    events: eventRows
       .filter((row) => row.status === "pending_group_review")
       .map(eventSubmissionItem),
+    eventTotalCount: countResult(eventRows).totalCount,
   };
 }
 
@@ -346,12 +378,14 @@ export async function getGroupSettings(
   slug: string,
   membersPage = 1,
   bansPage = 1,
+  invitationsPage = 1,
 ): Promise<GroupSettings | null> {
   const group = await getGroupDetail(slug);
   if (group === null || (group.viewerRole !== "owner" && group.viewerRole !== "admin")) return null;
 
   const safeMembersPage = Math.max(1, Math.trunc(membersPage));
   const safeBansPage = Math.max(1, Math.trunc(bansPage));
+  const safeInvitationsPage = collectionPageInput(invitationsPage).page;
   const supabase = await createClient();
   const [memberResult, ruleResult, banResult, directInvitationResult] = await Promise.all([
     supabase.rpc("list_group_admin_members", {
@@ -371,8 +405,8 @@ export async function getGroupSettings(
     }),
     supabase.rpc("list_group_direct_invitations", {
       input_group_id: group.id,
-      input_offset: 0,
-      input_limit: 50,
+      input_offset: collectionOffset(safeInvitationsPage),
+      input_limit: GROUP_MANAGEMENT_PAGE_SIZE,
     }),
   ]);
   if (memberResult.error !== null) throw domainErrorFromDatabase(memberResult.error);
@@ -388,12 +422,14 @@ export async function getGroupSettings(
   const directInvitationRows = parseRows(directInvitationRowSchema, directInvitationResult.data);
   if (
     (memberRows.length === 0 && safeMembersPage > 1) ||
-    (banRows.length === 0 && safeBansPage > 1)
+    (banRows.length === 0 && safeBansPage > 1) ||
+    (directInvitationRows.length === 0 && safeInvitationsPage > 1)
   ) {
     return getGroupSettings(
       slug,
       memberRows.length === 0 ? 1 : safeMembersPage,
       banRows.length === 0 ? 1 : safeBansPage,
+      directInvitationRows.length === 0 ? 1 : safeInvitationsPage,
     );
   }
 
@@ -402,7 +438,11 @@ export async function getGroupSettings(
     members: settingsPage(memberRows.map(memberItem), memberRows, safeMembersPage),
     rules: ruleRows.map(ruleItem),
     bans: settingsPage(banRows.map(banItem), banRows, safeBansPage),
-    directInvitations: directInvitationRows.map(directInvitationItem),
+    directInvitations: boundedSettingsPage(
+      directInvitationRows.map(directInvitationItem),
+      directInvitationRows,
+      safeInvitationsPage,
+    ),
   };
 }
 

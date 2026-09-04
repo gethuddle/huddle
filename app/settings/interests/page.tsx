@@ -133,9 +133,10 @@ export default async function InterestSettingsPage({ searchParams }: InterestSet
   const viewer = await getInterestViewer();
   if (viewer.state !== "eligible") return <AccessState state={viewer.state} />;
 
-  const [catalog, rawFilters] = await Promise.all([getInterestCatalog(), searchParams]);
+  const rawFilters = await searchParams;
   const query = firstValue(rawFilters.q).trim().slice(0, 80);
   const normalizedQuery = query.toLocaleLowerCase("en");
+  const catalog = await getInterestCatalog(query);
   const followedOnly = firstValue(rawFilters.followed) === "on";
   const followed = new Set(viewer.followedKeys);
   const items: InterestItem[] = [

@@ -315,6 +315,21 @@ describe("executeAssistedDiscovery", () => {
     );
   });
 
+  it.each(["Liverpool tonight or tomorrow", "Liverpool next weekend"])(
+    "clarifies an unsupported date expression without searching: %s",
+    async (query) => {
+      const deps = dependencies();
+      const response = await executeAssistedDiscovery(
+        { kind: "interpret", query, origin: { lat: 31.778, lng: 35.235 } },
+        actorId,
+        deps,
+      );
+      expect(response).toMatchObject({ status: "clarification", reason: "invalid_date" });
+      expect(deps.search).not.toHaveBeenCalled();
+      expect(deps.loadCatalog).not.toHaveBeenCalled();
+    },
+  );
+
   it("returns clarification for unresolved entities and never searches broadly", async () => {
     const deps = dependencies({
       interpreter: {

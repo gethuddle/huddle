@@ -41,7 +41,7 @@ export async function listMyRecoverableWorkspaces(): Promise<readonly WorkspaceS
   return mapWorkspaceRows(data);
 }
 
-export async function getAppShellState(): Promise<AppShellState> {
+export const getAppShellState = cache(async function getAppShellState(): Promise<AppShellState> {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
   if (error !== null || typeof data?.claims.sub !== "string") {
@@ -75,7 +75,7 @@ export async function getAppShellState(): Promise<AppShellState> {
       isModerator: moderatorResult.error === null && moderatorResult.data === true,
     },
   };
-}
+});
 
 export async function getWorkspaceShellContext(): Promise<WorkspaceShellContext> {
   return (await getAppShellState()).workspace;
@@ -131,9 +131,12 @@ export const getAuthorizedVenueWorkspaceBySlug = cache(
     );
     if (workspace === undefined) return null;
     try {
-      const venue = await getVenueWorkspace(workspace.id);
+      const [venue, billing] = await Promise.all([
+        getVenueWorkspace(workspace.id),
+        getVenueBillingContext(workspace.id),
+      ]);
       if (venue === null) return null;
-      return { ...venue, billing: await getVenueBillingContext(workspace.id) };
+      return { ...venue, billing };
     } catch {
       return null;
     }

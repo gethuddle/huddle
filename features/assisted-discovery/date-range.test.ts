@@ -5,6 +5,16 @@ import { resolveIntentDateRange } from "./date-range";
 describe("assisted-discovery Israel date ranges", () => {
   const tuesday = new Date("2026-09-01T09:00:00.000Z");
 
+  it("keeps tonight to one Israel date even when the model omits its date", () => {
+    expect(
+      resolveIntentDateRange(
+        { temporal: "unspecified", weekday: null, explicitStartDate: null, explicitEndDate: null },
+        new Date("2026-09-04T09:00:00Z"),
+        "Where can I watch Liverpool tonight?",
+      ),
+    ).toEqual({ ok: true, fromDate: "2026-09-04", toDate: "2026-09-04" });
+  });
+
   it.each([
     ["unspecified", "2026-09-01", "2026-09-15"],
     ["today", "2026-09-01", "2026-09-01"],

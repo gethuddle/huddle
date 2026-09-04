@@ -1,6 +1,10 @@
 export type SupabaseAuthConfigPayload = Readonly<{
   site_url: string;
   uri_allow_list: string;
+  mailer_autoconfirm: boolean;
+  mailer_secure_email_change_enabled: boolean;
+  mailer_subjects_email_change: string;
+  mailer_templates_email_change_content: string;
   password_min_length: number;
   password_required_characters: string;
   rate_limit_email_sent: number;

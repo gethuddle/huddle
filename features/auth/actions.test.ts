@@ -7,6 +7,7 @@ import {
 
 import {
   changePasswordAction,
+  changeEmailAction,
   requestPasswordResetAction,
   signInAction,
   signOutAction,
@@ -69,6 +70,9 @@ function formData(values: Readonly<Record<string, string>>) {
 describe("auth Server Actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.signInWithPassword.mockReset();
+    mocks.updateUser.mockReset();
+    mocks.getUser.mockReset();
     mocks.cookies.mockResolvedValue({
       get: mocks.cookieGet,
       getAll: mocks.cookieGetAll,
@@ -99,6 +103,62 @@ describe("auth Server Actions", () => {
       },
       rpc: mocks.rpc,
     });
+  });
+
+  it("reauthenticates the same account before requesting secure email change", async () => {
+    mocks.getUser.mockResolvedValue({
+      data: { user: { id: "actor", email: "old@example.com" } },
+      error: null,
+    });
+    mocks.signInWithPassword.mockResolvedValue({ data: { user: { id: "actor" } }, error: null });
+    mocks.updateUser.mockResolvedValue({ data: {}, error: null });
+    const result = await changeEmailAction(
+      null,
+      formData({ email: "NEW@example.com", currentPassword: "current-secret" }),
+    );
+    expect(mocks.signInWithPassword).toHaveBeenCalledWith({
+      email: "old@example.com",
+      password: "current-secret",
+    });
+    expect(mocks.updateUser).toHaveBeenCalledWith(
+      { email: "new@example.com" },
+      { emailRedirectTo: "https://huddle.test/auth/email-change/confirm" },
+    );
+    expect(result).toMatchObject({ ok: true, data: { message: expect.stringContaining("both") } });
+    expect(JSON.stringify(result)).not.toContain("current-secret");
+  });
+
+  it("keeps duplicate-address responses indistinguishable from accepted requests", async () => {
+    mocks.getUser.mockResolvedValue({
+      data: { user: { id: "actor", email: "old@example.com" } },
+      error: null,
+    });
+    mocks.signInWithPassword.mockResolvedValue({ data: { user: { id: "actor" } }, error: null });
+    mocks.updateUser.mockResolvedValueOnce({ data: {}, error: null }).mockResolvedValueOnce({
+      data: {},
+      error: new AuthApiError("Already registered", 422, "email_exists"),
+    });
+    const input = formData({ email: "new@example.com", currentPassword: "current-secret" });
+    expect(await changeEmailAction(null, input)).toEqual(await changeEmailAction(null, input));
+  });
+
+  it("does not request email changes for invalid credentials, mismatched actors or invalid email", async () => {
+    mocks.getUser.mockResolvedValue({
+      data: { user: { id: "actor", email: "old@example.com" } },
+      error: null,
+    });
+    mocks.signInWithPassword
+      .mockResolvedValueOnce({
+        data: { user: null },
+        error: new AuthApiError("Invalid credentials", 400, "invalid_credentials"),
+      })
+      .mockResolvedValueOnce({ data: { user: { id: "different" } }, error: null });
+    for (const email of ["new@example.com", "new@example.com", "invalid"]) {
+      expect(
+        await changeEmailAction(null, formData({ email, currentPassword: "current-secret" })),
+      ).toMatchObject({ ok: false });
+    }
+    expect(mocks.updateUser).not.toHaveBeenCalled();
   });
 
   it("fails closed before signup when enabled Turnstile verification fails", async () => {

@@ -20,6 +20,13 @@ const base = {
 };
 
 describe("VenueCalendar", () => {
+  it("opens saved drafts in the editor and preserves Calendar as the return destination", () => {
+    render(<VenueCalendar slug="corner" events={[{ ...base, status: "draft" }]} />);
+    expect(screen.getByRole("link", { name: /Derby night/ })).toHaveAttribute(
+      "href",
+      `/events/${base.id}/manage?returnTo=%2Fvenues%2Fcorner%2Fworkspace%2Fcalendar`,
+    );
+  });
   it("defaults to the accessible agenda and switches to Israel-date month groups", async () => {
     const user = userEvent.setup();
     render(

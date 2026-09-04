@@ -8,6 +8,10 @@
     "npm": ">=11.17.0 <12"
   },
   "scripts": {
+    "prepare:maps": "node scripts/prepare-maplibre-assets.mjs",
+    "predev": "npm run prepare:maps",
+    "predev:local": "npm run prepare:maps",
+    "prebuild": "npm run prepare:maps",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

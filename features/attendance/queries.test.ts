@@ -38,6 +38,47 @@ const attendanceRow = {
 };
 
 describe("listEventAttendance", () => {
+  it("retains revoked invitations whose erased invitee no longer has a handle", async () => {
+    const row = {
+      invitation_id: "90000000-0000-4000-8000-000000000701",
+      invitee_id: attendanceRow.user_id,
+      invitee_handle: null,
+      invitee_display_name: "Deleted account",
+      status: "revoked",
+      responded_at: "2026-09-04T12:00:00Z",
+      created_at: "2026-08-28T12:00:00Z",
+      total_count: 1,
+    };
+    mocks.rpc.mockResolvedValue({ data: [row], error: null });
+    await expect(listEventInvitations("90000000-0000-4000-8000-000000000401", 1)).resolves.toEqual([
+      row,
+    ]);
+    mocks.rpc.mockResolvedValue({ data: [{ ...row, invitee_handle: 123 }], error: null });
+    await expect(
+      listEventInvitations("90000000-0000-4000-8000-000000000401", 1),
+    ).rejects.toMatchObject({ code: "INTERNAL_ERROR" });
+  });
+
+  it("retains left attendance during erased-account provider cleanup without granting review", async () => {
+    const row = {
+      ...attendanceRow,
+      requester_handle: null,
+      requester_display_name: "Deleted account",
+      status: "left",
+      review_mode: "none",
+      review_reason: null,
+      can_approve: false,
+    };
+    mocks.rpc.mockResolvedValue({ data: [row], error: null });
+    await expect(listEventAttendance("90000000-0000-4000-8000-000000000401", 1)).resolves.toEqual([
+      row,
+    ]);
+    mocks.rpc.mockResolvedValue({ data: [{ ...row, can_approve: true }], error: null });
+    await expect(
+      listEventAttendance("90000000-0000-4000-8000-000000000401", 1),
+    ).rejects.toMatchObject({ code: "INTERNAL_ERROR" });
+  });
+
   it("preserves a bounded cancelled calendar status and rejects unknown status", async () => {
     const row = {
       event_id: "90000000-0000-4000-8000-000000000401",

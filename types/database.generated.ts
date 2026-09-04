@@ -2518,6 +2518,30 @@ export type Database = {
           verification_status: string
         }[]
       }
+      create_venue_workspace_auto: {
+        Args: {
+          audit_request_id?: string
+          input_address_text: string
+          input_adult_attested: boolean
+          input_default_attendance_mode: string
+          input_default_requires_approval: boolean
+          input_description: string
+          input_facilities: string[]
+          input_house_information: string
+          input_latitude: number
+          input_longitude: number
+          input_main_space_capacity: number
+          input_main_space_name: string
+          input_name: string
+          input_representation_attested: boolean
+          input_rules_version: number
+        }
+        Returns: {
+          slug: string
+          venue_id: string
+          verification_status: string
+        }[]
+      }
       create_venue_workspace_v2: {
         Args: {
           audit_request_id?: string
@@ -2899,6 +2923,32 @@ export type Database = {
         }
         Returns: Json
       }
+      get_venue_event_for_management: {
+        Args: { input_event_id: string }
+        Returns: {
+          attendance_mode: string
+          audience: string
+          audience_team_id: string
+          capacity: number
+          commercial_affiliation: string
+          cost_description: string
+          description: string
+          ends_at: string
+          event_id: string
+          event_rules: string
+          expected_activity: string
+          host_presence_confirmed: boolean
+          match_id: string
+          requires_approval: boolean
+          starts_at: string
+          status: string
+          title: string
+          venue_id: string
+          venue_slug: string
+          venue_space_id: string
+          venue_space_name: string
+        }[]
+      }
       get_venue_for_management: {
         Args: { lookup_slug: string }
         Returns: {
@@ -2955,6 +3005,14 @@ export type Database = {
           venue_id: string
           verification_status: string
         }[]
+      }
+      is_profile_handle_available: {
+        Args: { input_handle: string }
+        Returns: boolean
+      }
+      is_venue_slug_available: {
+        Args: { input_slug: string; input_venue_id: string }
+        Returns: boolean
       }
       leave_event: {
         Args: { audit_request_id?: string; input_attendance_id: string }
@@ -3239,6 +3297,26 @@ export type Database = {
           title: string
         }[]
       }
+      list_match_events_page: {
+        Args: {
+          input_limit?: number
+          input_match_id: string
+          input_offset?: number
+        }
+        Returns: {
+          approved_attendee_count: number
+          audience: string
+          audience_team_name: string
+          away_team_name: string
+          capacity: number
+          competition_name: string
+          event_id: string
+          home_team_name: string
+          requires_approval: boolean
+          starts_at: string
+          title: string
+        }[]
+      }
       list_moderation_actions: {
         Args: {
           input_active_only?: boolean
@@ -3293,6 +3371,19 @@ export type Database = {
           target_id: string
           target_label: string
           target_type: string
+        }[]
+      }
+      list_my_event_drafts: {
+        Args: { input_limit?: number; input_offset?: number }
+        Returns: {
+          away_team_name: string
+          draft_id: string
+          home_team_name: string
+          starts_at: string
+          step: number
+          title: string
+          total_count: number
+          updated_at: string
         }[]
       }
       list_my_event_participation: {
@@ -3790,6 +3881,18 @@ export type Database = {
           private_longitude: number
           step: number
           updated_at: string
+        }[]
+      }
+      save_venue_event: {
+        Args: {
+          audit_request_id?: string
+          input_event_id: string
+          input_intent: string
+          input_values: Json
+        }
+        Returns: {
+          event_id: string
+          status: string
         }[]
       }
       save_venue_space: {

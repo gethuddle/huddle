@@ -2,7 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DomainError } from "@/lib/errors";
 
-import { discardEventDraft, finalizeEventDraft, getEventDraft, saveEventDraft } from "./drafts";
+import {
+  discardEventDraft,
+  finalizeEventDraft,
+  getEventDraft,
+  saveEventDraft,
+  listMyEventDrafts,
+} from "./drafts";
 
 const draftId = "66000000-0000-4000-8000-000000000101";
 const groupId = "66000000-0000-4000-8000-000000000102";
@@ -36,6 +42,49 @@ describe("event draft adapter", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    rpc.mockReset();
+  });
+  it("lists bounded owner drafts with safe incomplete summaries", async () => {
+    rpc.mockResolvedValue({
+      data: [
+        {
+          draft_id: draftId,
+          title: null,
+          step: 1,
+          home_team_name: null,
+          away_team_name: null,
+          starts_at: null,
+          updated_at: "2026-09-04T10:00:00Z",
+          total_count: 21,
+        },
+      ],
+      error: null,
+    });
+    const result = await listMyEventDrafts(client, 2);
+    expect(result.items[0]).toMatchObject({ id: draftId, title: null, step: 1 });
+    expect(result).toMatchObject({ page: 2, pageCount: 2, totalCount: 21 });
+    expect(rpc).toHaveBeenCalledWith("list_my_event_drafts", { input_limit: 20, input_offset: 20 });
+    expect(JSON.stringify(result)).not.toMatch(/private_address|longitude|latitude|draft_values/);
+  });
+  it("recovers an emptied last draft page and rejects expanded private data", async () => {
+    rpc.mockResolvedValueOnce({ data: [], error: null }).mockResolvedValueOnce({
+      data: [
+        {
+          draft_id: draftId,
+          title: "Saved",
+          step: 2,
+          home_team_name: "Home",
+          away_team_name: "Away",
+          starts_at: "2026-09-05T10:00:00Z",
+          updated_at: "2026-09-04T10:00:00Z",
+          total_count: 1,
+        },
+      ],
+      error: null,
+    });
+    expect(await listMyEventDrafts(client, 2)).toMatchObject({ page: 1, totalCount: 1 });
+    rpc.mockResolvedValue({ data: [{ ...draftRow(), total_count: 1 }], error: null });
+    await expect(listMyEventDrafts(client, 1)).rejects.toMatchObject({ code: "INTERNAL_ERROR" });
   });
 
   it("sends only canonical safe JSON while protected values use separate RPC arguments", async () => {

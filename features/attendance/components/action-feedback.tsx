@@ -5,7 +5,17 @@ import type { AttendanceActionState } from "@/features/attendance/state";
 
 export function AttendanceActionFeedback({
   state,
-}: Readonly<{ state: AttendanceActionState | undefined }>) {
+  error,
+}: Readonly<{ state: AttendanceActionState | undefined; error?: unknown }>) {
+  if (error != null) {
+    return (
+      <Alert role="alert" variant="destructive">
+        <AlertDescription>
+          We couldn&apos;t confirm this change. Check the current event state before trying again.
+        </AlertDescription>
+      </Alert>
+    );
+  }
   if (state === undefined) return null;
   return (
     <Alert

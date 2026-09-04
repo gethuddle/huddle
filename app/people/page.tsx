@@ -26,6 +26,7 @@ import {
 import { ProfileAccessState } from "@/features/profiles/components/profile-access-state";
 import { DomainError } from "@/lib/errors";
 import { collectionPageInput } from "@/lib/pagination";
+import { safeEventDraftReturnTo } from "@/features/events/draft-return";
 
 export const metadata: Metadata = {
   title: "People — Huddle",
@@ -41,6 +42,7 @@ function first(value: string | string[] | undefined): string | undefined {
 }
 
 type PeoplePageState = Readonly<{
+  returnTo: string | null;
   query: string;
   searchPage: number;
   suggestedPage: number;
@@ -51,6 +53,7 @@ type PeoplePageState = Readonly<{
 
 export default async function PeoplePage({ searchParams }: PeoplePageProps) {
   const raw = await searchParams;
+  const returnTo = safeEventDraftReturnTo(first(raw.returnTo));
   const focusedRelationship = first(raw.bucket) === "incoming" ? "incoming" : null;
   const rawQuery = first(raw.q);
   const parsedSearch = peopleSearchQuerySchema.safeParse({
@@ -76,6 +79,7 @@ export default async function PeoplePage({ searchParams }: PeoplePageProps) {
       peopleHref(
         {
           query: parsedSearch.data.q,
+          returnTo,
           searchPage: searchPageInput.page,
           suggestedPage: pages.suggested,
           friendsPage: pages.accepted,
@@ -101,6 +105,7 @@ export default async function PeoplePage({ searchParams }: PeoplePageProps) {
       peopleHref(
         {
           query: "",
+          returnTo,
           searchPage: 1,
           suggestedPage: pages.suggested,
           friendsPage: pages.accepted,
@@ -159,6 +164,7 @@ export default async function PeoplePage({ searchParams }: PeoplePageProps) {
   const activeQuery = parsedSearch.success ? parsedSearch.data.q : "";
   const attemptedQuery = typeof rawQuery === "string" ? rawQuery.slice(0, 50) : "";
   const requestedState: PeoplePageState = {
+    returnTo,
     query: activeQuery,
     searchPage: parsedSearch.success ? parsedSearch.data.page : 1,
     suggestedPage: pages.suggested,
@@ -167,6 +173,7 @@ export default async function PeoplePage({ searchParams }: PeoplePageProps) {
     sentPage: pages.sent,
   };
   const canonicalState: PeoplePageState = {
+    returnTo,
     query: activeQuery,
     searchPage: hub.search?.page ?? 1,
     suggestedPage: hub.suggested?.page ?? 1,
@@ -185,6 +192,11 @@ export default async function PeoplePage({ searchParams }: PeoplePageProps) {
 
   return (
     <section className="py-12 sm:py-16">
+      {returnTo ? (
+        <Button asChild variant="outline">
+          <Link href={returnTo}>Return to event draft</Link>
+        </Button>
+      ) : null}
       <div>
         <p className="text-sm font-medium text-forest">Community</p>
         <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-foreground sm:text-4xl">
@@ -201,6 +213,7 @@ export default async function PeoplePage({ searchParams }: PeoplePageProps) {
         className="mt-10 rounded-[1.375rem] border border-border bg-card p-5"
         method="get"
       >
+        {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
         <Label htmlFor="people-query">Name or Huddle handle</Label>
         <div className="mt-2 flex flex-col gap-3 sm:flex-row">
           <Input
@@ -217,7 +230,9 @@ export default async function PeoplePage({ searchParams }: PeoplePageProps) {
           </Button>
           {activeQuery === "" ? null : (
             <Button asChild className="min-h-11 rounded-full" variant="outline">
-              <Link href="/people">Clear search</Link>
+              <Link href={returnTo ? `/people?${new URLSearchParams({ returnTo })}` : "/people"}>
+                Clear search
+              </Link>
             </Button>
           )}
         </div>
@@ -420,6 +435,7 @@ function canonicalPeopleSection(
 
 function peopleHref(state: PeoplePageState, anchor: PeopleBucket): string {
   const params = new URLSearchParams();
+  if (state.returnTo !== null) params.set("returnTo", state.returnTo);
   if (state.query.length > 0) {
     params.set("q", state.query);
     params.set("searchPage", String(state.searchPage));

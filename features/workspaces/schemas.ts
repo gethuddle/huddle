@@ -67,6 +67,7 @@ export const commonOnboardingRowsSchema = z.array(commonOnboardingRowSchema).max
 
 export const venueOnboardingSubmissionSchema = venueWorkspaceActivationBaseSchema
   .omit({
+    slug: true,
     addressText: true,
     longitude: true,
     latitude: true,

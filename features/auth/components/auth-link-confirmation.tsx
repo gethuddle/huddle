@@ -48,7 +48,12 @@ export function AuthLinkConfirmation({ purpose }: AuthLinkConfirmationProps) {
   }
 
   if (credential === null) {
-    const requestHref = purpose === "email" ? "/auth/sign-up" : "/auth/forgot-password";
+    const requestHref =
+      purpose === "email_change"
+        ? "/account/security"
+        : purpose === "email"
+          ? "/auth/sign-up"
+          : "/auth/forgot-password";
     return (
       <AuthCard
         description="For your security, Huddle links are short-lived and can be used only once."
@@ -67,7 +72,11 @@ export function AuthLinkConfirmation({ purpose }: AuthLinkConfirmationProps) {
         </Alert>
         <Button asChild className="mt-5" size="lg">
           <Link href={requestHref}>
-            {purpose === "email" ? "Request another email" : "Request another reset link"}
+            {purpose === "email_change"
+              ? "Return to account security"
+              : purpose === "email"
+                ? "Request another email"
+                : "Request another reset link"}
           </Link>
         </Button>
       </AuthCard>
@@ -75,7 +84,11 @@ export function AuthLinkConfirmation({ purpose }: AuthLinkConfirmationProps) {
   }
 
   const action =
-    purpose === "email" ? "/auth/verify/confirm/consume" : "/auth/reset-password/confirm/consume";
+    purpose === "email_change"
+      ? "/auth/email-change/confirm/consume"
+      : purpose === "email"
+        ? "/auth/verify/confirm/consume"
+        : "/auth/reset-password/confirm/consume";
 
   function markSubmitting(event: FormEvent<HTMLFormElement>) {
     const submitButton =
@@ -88,9 +101,11 @@ export function AuthLinkConfirmation({ purpose }: AuthLinkConfirmationProps) {
   return (
     <AuthCard
       description={
-        purpose === "email"
-          ? "Confirm this browser before Huddle verifies the email address."
-          : "Confirm this browser before Huddle opens the password reset form."
+        purpose === "email_change"
+          ? "Complete the confirmation links sent to both email addresses. Opening this page alone does not change your email."
+          : purpose === "email"
+            ? "Confirm this browser before Huddle verifies the email address."
+            : "Confirm this browser before Huddle opens the password reset form."
       }
       eyebrow="Secure link"
       footer={
@@ -98,7 +113,13 @@ export function AuthLinkConfirmation({ purpose }: AuthLinkConfirmationProps) {
           Cancel and sign in
         </Link>
       }
-      title={purpose === "email" ? "Verify your email" : "Reset your password"}
+      title={
+        purpose === "email_change"
+          ? "Confirm email change"
+          : purpose === "email"
+            ? "Verify your email"
+            : "Reset your password"
+      }
     >
       <Alert>
         <AlertDescription>

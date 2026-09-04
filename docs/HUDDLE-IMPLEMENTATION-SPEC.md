@@ -84,6 +84,8 @@ Deferred behavior MUST NOT be represented by fake controls, placeholder entitlem
 
 ### 2.1 Accounts and trust
 
+- Approved submission-polish revision, 4 September 2026 (implemented and locally verified; not deployed): signed-in users can change their email from Account Security only after current-password reauthentication of the same account. Supabase remains the authority for secure email-change confirmation; do not disable confirmation of the old/new addresses, auto-verify an address, or expose whether a proposed email belongs to another account. The existing passive-fragment and explicit same-origin POST requirements apply to email-change links too. Show a neutral pending-confirmation outcome, not an immediate-success claim.
+- Handle creation and editing provide debounced, stale-response-safe availability feedback next to the field. Exact normalized availability is a signed-in boolean-only projection, excluding the current account's own handle; no email, identity record, or privileged account search is returned. Final database uniqueness remains authoritative even after an Available hint.
 - Supabase Auth MUST own credentials and email verification; Huddle MUST NOT store password hashes.
 - Signup and recovery requests MUST return the same public response for known, unknown, and already-confirmed addresses; Huddle MUST NOT perform a privileged account-existence lookup for browser copy.
 - New passwords MUST contain 15–72 characters without composition rules. Sign-in MUST continue accepting any existing non-empty password up to the provider's 72-character boundary.
@@ -204,6 +206,8 @@ Deferred behavior MUST NOT be represented by fake controls, placeholder entitlem
 - The canonical rules are a versioned, repository-owned document. A material rules update increments `rules_version`; users must accept the new version before their next community mutation, while retaining read/access needed to leave events or seek safety help.
 
 ### 2.8 Commercial boundary and `VB01` venue entitlement
+
+- Approved submission-polish revision, 4 September 2026: venue creation never asks the operator to supply a URL slug. The database atomically derives a lowercase hyphenated Huddle URL from the business name and appends a numeric suffix on collision. This is a Huddle page address, not the venue's own website. An authorized operator may optionally edit it later in settings, with immediate debounced exact-match availability feedback and final database uniqueness enforcement. A check never reserves the URL or bypasses membership, trust, draft or billing rules. On the Billing screen itself, retain the truthful private/entitlement explanation without directing the operator to the page they already occupy.
 
 Fan features, friendships, supporter groups, RSVP, and private hosting are free. `VB01` is one independent **Polar Sandbox** recurring entitlement per commercial venue: Monthly ₪15 or Annual ₪150, no trial, tier, discount, plan change, pause, seats, or real-money payment. Polar Sandbox is the billing source of truth and Supabase holds a per-venue authorization/visibility projection. The detailed provider/resource binding is in the approved [Polar design](./superpowers/specs/2026-09-03-polar-venue-subscriptions-design.md); this section is the normative product and authorization contract.
 

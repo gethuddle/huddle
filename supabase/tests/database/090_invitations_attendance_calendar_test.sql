@@ -1009,9 +1009,14 @@ select throws_ok(
   $$select * from public.get_private_event_location('90000000-0000-4000-8000-000000000402',null)$$,
   'P0001', 'LOCATION_NOT_AUTHORIZED', 'cancellation revokes a previously approved address read'
 );
-select throws_ok(
-  $$select * from public.get_calendar_event('90000000-0000-4000-8000-000000000402',null)$$,
-  'P0001', 'NOT_FOUND', 'cancellation also revokes the private calendar projection'
+select is(
+  (select location_text from public.get_calendar_event('90000000-0000-4000-8000-000000000402',null)),
+  null::text, 'retained cancellation calendar summary never returns the revoked private location'
+);
+select is(
+  (select event_id from public.get_calendar_event('90000000-0000-4000-8000-000000000402',null)),
+  '90000000-0000-4000-8000-000000000402'::uuid,
+  'the approved participant can export the retained cancellation summary'
 );
 
 select * from finish();

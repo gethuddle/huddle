@@ -108,7 +108,7 @@ for (const width of [1280, 375]) {
     const manager = await actor(run, "admin");
     const attendee = await actor(run, "fan");
     const stranger = await actor(run, "other");
-    const slug = `billing-${run}`;
+    let slug = `offline-venue-${run}`;
     const venueName = `Offline Venue ${run}`;
     const contexts: BrowserContext[] = [];
     async function actorPage(email: string) {
@@ -140,7 +140,7 @@ for (const width of [1280, 375]) {
       );
       await page.goto("/onboarding/venue");
       await page.getByRole("textbox", { name: "Venue name" }).fill(venueName);
-      await page.getByRole("textbox", { name: "Venue URL" }).fill(slug);
+      await expect(page.getByRole("textbox", { name: "Huddle page address" })).toHaveCount(0);
       await page.getByRole("combobox", { name: "Public address" }).fill("12 Hanassi Boulevard");
       await page.getByRole("option", { name: "12 Hanassi Boulevard, Haifa, Israel" }).click();
       await page
@@ -154,6 +154,7 @@ for (const width of [1280, 375]) {
       await expect(page).toHaveURL(new RegExp(`/venues/${slug}/workspace/billing$`));
       await expect(page.getByRole("heading", { name: "Venue billing" })).toBeVisible();
       await expect(page.getByText("Venue is private", { exact: true })).toBeVisible();
+      await expect(page.getByRole("link", { name: "Open Billing", exact: true })).toHaveCount(0);
       await expect(page.getByRole("radio")).toHaveCount(2);
       await expect(page.getByRole("radio", { name: "Monthly — ₪15/month" })).toBeChecked();
       await expect(page.getByRole("radio", { name: "Annual — ₪150/year" })).toBeVisible();
@@ -167,6 +168,24 @@ for (const width of [1280, 375]) {
         where v.slug = ${sql(slug)};
       `)[0];
       expect(venue.status).toBe("inactive");
+      const duplicate = await owner.api.rpc("create_venue_workspace_auto", {
+        input_name: venueName,
+        input_address_text: "12 Hanassi Boulevard, Haifa, Israel",
+        input_longitude: 34.99928,
+        input_latitude: 32.81303,
+        input_description: "A second local-only venue testing an automatic address collision.",
+        input_main_space_name: "Main screen",
+        input_main_space_capacity: 40,
+        input_facilities: [],
+        input_house_information: "Respect other fans.",
+        input_default_attendance_mode: "reservations",
+        input_default_requires_approval: true,
+        input_adult_attested: true,
+        input_representation_attested: true,
+        input_rules_version: 1,
+      });
+      expect(duplicate.error).toBeNull();
+      expect(duplicate.data?.[0]?.slug).toBe(`${slug}-2`);
       rows(`insert into public.venue_memberships (venue_id,user_id,role)
         values (${sql(venue.id)}::uuid,${sql(manager.id)}::uuid,'admin') returning venue_id;`);
       const adminPage = await actorPage(manager.email);
@@ -409,6 +428,25 @@ for (const width of [1280, 375]) {
       ).toBe("cancelled");
 
       await page.goto(`/venues/${slug}/workspace/settings`);
+      const address = page.getByRole("textbox", { name: "Huddle page address" });
+      await expect(page.getByText(/not your business website/)).toBeVisible();
+      await address.fill("a".repeat(60));
+      await expect(page.locator("#venue-settings-slug-preview code")).toHaveText(
+        `/venues/${"a".repeat(60)}`,
+      );
+      await noOverflow(page);
+      await address.fill(`${slug}-2`);
+      await expect(page.getByRole("status").filter({ hasText: /already taken/ })).toBeVisible();
+      const renamedSlug = `${slug}-renamed`;
+      await address.fill(renamedSlug);
+      await expect(
+        page.getByRole("status").filter({ hasText: /available.*reserved/i }),
+      ).toBeVisible();
+      await page.getByRole("button", { name: "Save venue", exact: true }).click();
+      await expect(page).toHaveURL(new RegExp(`/venues/${renamedSlug}/workspace/settings$`));
+      slug = renamedSlug;
+      await page.reload();
+      await expect(address).toHaveValue(slug);
       await page.getByRole("button", { name: "Close venue", exact: true }).click();
       const closure = page.getByRole("alertdialog");
       await expect(closure).toContainText("does not cancel your demo subscription");

@@ -10,7 +10,7 @@ select no_plan();
 do $setup$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('common_onboarding_setup', connection_text);
   perform extensions.dblink_exec(
@@ -39,7 +39,7 @@ $setup$;
 do $connections$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('common_onboarding_first', connection_text);
   perform extensions.dblink_connect('common_onboarding_second', connection_text);

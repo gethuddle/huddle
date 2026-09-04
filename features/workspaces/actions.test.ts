@@ -7,10 +7,15 @@ const mocks = vi.hoisted(() => ({
   getRequestId: vi.fn(),
   requireActor: vi.fn(),
   revalidatePath: vi.fn(),
+  redirect: vi.fn(),
 }));
 
 vi.mock("next/headers", () => ({ cookies: mocks.cookies }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
+vi.mock("next/navigation", () => ({
+  RedirectType: { replace: "replace" },
+  redirect: mocks.redirect,
+}));
 vi.mock("@/features/auth/actor", () => ({ requireActor: mocks.requireActor }));
 vi.mock("@/lib/request-id/server", () => ({ getRequestId: mocks.getRequestId }));
 
@@ -33,7 +38,7 @@ describe("workspace actions", () => {
     mocks.getRequestId.mockResolvedValue("e4000000-0000-4000-8000-000000000199");
   });
 
-  it("writes the remembered cookie only after current workspace revalidation", async () => {
+  it("redirects from the Server Action only after writing the validated workspace selection", async () => {
     const rpc = vi.fn().mockResolvedValue({
       data: [
         {
@@ -47,19 +52,22 @@ describe("workspace actions", () => {
       error: null,
     });
     mocks.requireActor.mockResolvedValue({ supabase: { rpc } });
+    const redirectSentinel = new Error("NEXT_REDIRECT;replace;/");
+    mocks.redirect.mockImplementation(() => {
+      throw redirectSentinel;
+    });
     const form = new FormData();
     form.set("kind", "fan");
     form.set("id", fanId);
 
-    await expect(selectWorkspaceAction(null, form)).resolves.toMatchObject({
-      ok: true,
-      data: { redirectTo: "/" },
-    });
+    await expect(selectWorkspaceAction(null, form)).rejects.toBe(redirectSentinel);
     expect(mocks.cookieSet).toHaveBeenCalledWith(
       "huddle-workspace",
       `fan:${fanId}`,
       expect.objectContaining({ httpOnly: true, sameSite: "lax", path: "/" }),
     );
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/", "layout");
+    expect(mocks.redirect).toHaveBeenCalledWith("/", "replace");
 
     form.set("kind", "venue");
     form.set("id", venueId);
@@ -214,7 +222,7 @@ describe("workspace actions", () => {
 
   it("activates a Venue through the common gate and revalidates membership before the cookie", async () => {
     const rpc = vi.fn().mockImplementation(async (name: string) =>
-      name === "create_venue_workspace_v2"
+      name === "create_venue_workspace_auto"
         ? {
             data: [
               {
@@ -243,7 +251,6 @@ describe("workspace actions", () => {
     await expect(
       activateVenueOnboardingAction({
         name: "Match Corner",
-        slug: "match-corner",
         address: {
           id: "osm-101",
           label: "10 Herzl Street, Haifa, Israel",
@@ -267,7 +274,7 @@ describe("workspace actions", () => {
     expect(mocks.requireActor).toHaveBeenCalledWith("common");
     expect(rpc).toHaveBeenNthCalledWith(
       1,
-      "create_venue_workspace_v2",
+      "create_venue_workspace_auto",
       expect.objectContaining({
         input_default_attendance_mode: "reservations",
         input_address_text: "10 Herzl Street, Haifa, Israel",
@@ -275,6 +282,7 @@ describe("workspace actions", () => {
         input_latitude: 32.815,
       }),
     );
+    expect(rpc.mock.calls[0]?.[1]).not.toHaveProperty("input_slug");
     expect(rpc).toHaveBeenNthCalledWith(2, "list_my_workspaces");
     expect(mocks.cookieSet).toHaveBeenCalledWith(
       "huddle-workspace",
@@ -285,7 +293,7 @@ describe("workspace actions", () => {
 
   it("does not remember a newly created Venue until current membership is visible", async () => {
     const rpc = vi.fn().mockImplementation(async (name: string) =>
-      name === "create_venue_workspace_v2"
+      name === "create_venue_workspace_auto"
         ? {
             data: [
               {
@@ -303,7 +311,6 @@ describe("workspace actions", () => {
     await expect(
       activateVenueOnboardingAction({
         name: "Match Corner",
-        slug: "match-corner",
         address: {
           id: "osm-101",
           label: "10 Herzl Street, Haifa, Israel",
@@ -321,5 +328,30 @@ describe("workspace actions", () => {
       }),
     ).resolves.toMatchObject({ ok: false });
     expect(mocks.cookieSet).not.toHaveBeenCalled();
+  });
+
+  it("rejects a caller-supplied onboarding slug before it can reach the allocation RPC", async () => {
+    await expect(
+      activateVenueOnboardingAction({
+        name: "Match Corner",
+        slug: "caller-selected-url",
+        address: {
+          id: "osm-101",
+          label: "10 Herzl Street, Haifa, Israel",
+          longitude: 34.989,
+          latitude: 32.815,
+        },
+        description: "A welcoming match-day venue.",
+        mainSpaceName: "Main screen",
+        mainSpaceCapacity: 80,
+        defaultAttendanceMode: "reservations",
+        facilities: [],
+        houseInformation: "",
+        defaultRequiresApproval: false,
+        representationAttested: true,
+      }),
+    ).resolves.toMatchObject({ ok: false });
+
+    expect(mocks.requireActor).not.toHaveBeenCalled();
   });
 });

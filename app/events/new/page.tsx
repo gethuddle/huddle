@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { requireActor } from "@/features/auth/actor";
@@ -11,6 +12,7 @@ import { venueRouteSlugSchema } from "@/features/venues/schemas";
 import { getVenueCreationViewerState } from "@/features/venues/viewer";
 import { getAuthorizedVenueWorkspaceBySlug } from "@/features/workspaces/queries";
 import { DomainError } from "@/lib/errors";
+import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "Host an event — Huddle",
@@ -43,18 +45,25 @@ export default async function NewEventPage({ searchParams }: NewEventPageProps) 
   }
   if (viewerState === "complete-profile") {
     return (
-      <ProfileAccessState
-        actionHref={`/settings/profile?next=${encodeURIComponent(resumePath)}`}
-        actionLabel="Complete profile"
-        description="Verify your email, confirm you are 18+, accept the current rules, and complete your profile before hosting."
-        eyebrow="Profile required"
-        title="Finish joining before hosting."
-      />
+      <>
+        <Button asChild className="mt-8" variant="outline">
+          <Link href="/events/drafts">Saved drafts</Link>
+        </Button>
+        <ProfileAccessState
+          actionHref={`/settings/profile?next=${encodeURIComponent(resumePath)}`}
+          actionLabel="Complete profile"
+          description="Verify your email, confirm you are 18+, accept the current rules, and complete your profile before hosting."
+          eyebrow="Profile required"
+          title="Finish joining before hosting."
+        />
+      </>
     );
   }
   if (viewerState === "not-permitted") {
     return (
       <ProfileAccessState
+        actionHref="/events/drafts"
+        actionLabel="Saved drafts"
         description="This account cannot create or manage events."
         eyebrow="Not permitted"
         title="Event hosting is unavailable."
@@ -93,6 +102,11 @@ export default async function NewEventPage({ searchParams }: NewEventPageProps) 
 
   return (
     <section className="py-12 sm:py-16">
+      {catalog.matches.length === 0 ? (
+        <Button asChild className="mb-6" variant="outline">
+          <Link href="/events/drafts">Saved drafts</Link>
+        </Button>
+      ) : null}
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div>
           <p className="text-sm font-medium text-forest">Host an event</p>

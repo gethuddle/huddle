@@ -9,12 +9,18 @@ import { addressSuggestionsSchema } from "@/features/locations/schemas";
 import type { AddressSuggestion, LocationSearchPurpose } from "@/features/locations/types";
 
 type AddressSearchProps = Readonly<{
+  error?: string;
   initialQuery?: string;
   onConfirm: (suggestion: AddressSuggestion | null) => void;
   purpose: LocationSearchPurpose;
 }>;
 
-export function AddressSearch({ initialQuery = "", onConfirm, purpose }: AddressSearchProps) {
+export function AddressSearch({
+  initialQuery = "",
+  onConfirm,
+  purpose,
+  error,
+}: AddressSearchProps) {
   const listboxId = useId();
   const [query, setQuery] = useState(initialQuery);
   const [suggestions, setSuggestions] = useState<readonly AddressSuggestion[]>([]);
@@ -110,6 +116,8 @@ export function AddressSearch({ initialQuery = "", onConfirm, purpose }: Address
                 : "Public address"}
           </Label>
           <Input
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? `${listboxId}-error` : undefined}
             aria-activedescendant={
               activeIndex < 0 ? undefined : `${listboxId}-option-${activeIndex}`
             }
@@ -149,6 +157,11 @@ export function AddressSearch({ initialQuery = "", onConfirm, purpose }: Address
             role="combobox"
             value={query}
           />
+          {error ? (
+            <p className="mt-2 text-sm text-destructive" id={`${listboxId}-error`}>
+              {error}
+            </p>
+          ) : null}
           {suggestions.length > 0 ? (
             <div
               aria-label="Address results"

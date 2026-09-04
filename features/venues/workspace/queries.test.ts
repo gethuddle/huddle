@@ -11,6 +11,7 @@ import {
   getVenueWorkspace,
   listUpcomingVenueCalendar,
   listVenueCalendar,
+  getVenueEventForManagement,
 } from "./queries";
 
 const venueId = "d3000000-0000-4000-8000-000000000301";
@@ -31,6 +32,19 @@ function workspaceRow() {
 }
 
 describe("Venue workspace projections", () => {
+  it("returns no editor data when the management RPC denies visibility", async () => {
+    mocks.rpc.mockResolvedValue({ data: [], error: null });
+    await expect(getVenueEventForManagement(eventId)).resolves.toBeNull();
+  });
+  it("does not expose malformed or expanded event management projections", async () => {
+    mocks.rpc.mockResolvedValue({
+      data: [{ event_id: eventId, private_address_text: "Unexpected private address" }],
+      error: null,
+    });
+    await expect(getVenueEventForManagement(eventId)).rejects.toMatchObject({
+      code: "INTERNAL_ERROR",
+    });
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.createClient.mockResolvedValue({ rpc: mocks.rpc });

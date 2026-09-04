@@ -4,6 +4,7 @@ import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import ProfileSettingsPage from "./page";
+vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn(), refresh: vi.fn() }) }));
 
 const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),

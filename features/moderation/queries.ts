@@ -29,7 +29,7 @@ const myReportSchema = z
 const moderationReportSchema = z
   .object({
     report_id: z.uuid(),
-    reporter_handle: z.string(),
+    reporter_handle: z.string().nullable(),
     target_type: z.enum(moderationTargetTypes),
     target_id: z.uuid(),
     target_label: z.string(),
@@ -73,7 +73,7 @@ const moderationAppealSchema = z
   .object({
     appeal_id: z.uuid(),
     moderation_action_id: z.uuid(),
-    appellant_handle: z.string(),
+    appellant_handle: z.string().nullable(),
     action: z.enum(moderationActionKinds),
     appeal_reason: z.string(),
     status: z.enum(["open", "reviewing", "upheld", "modified", "reversed"]),

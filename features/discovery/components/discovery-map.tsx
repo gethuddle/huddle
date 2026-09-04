@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { StyleSpecification } from "maplibre-gl";
 
 import type { DiscoveryEvent } from "@/features/discovery/types";
+import { loadMapLibreRuntime } from "@/features/locations/maplibre-runtime";
 import { formatIsraelKickoff } from "@/features/sports/time";
 
 type UserLocation = Readonly<{ lat: number; lng: number }>;
@@ -54,7 +55,7 @@ export const createMapLibreDiscoveryMap: DiscoveryMapFactory = async (
   container,
   { locations, onLocationSelect, userLocation },
 ) => {
-  const maplibre = await import("maplibre-gl");
+  const maplibre = await loadMapLibreRuntime();
   const firstLocation = locations[0];
   if (firstLocation === undefined) throw new Error("A discovery map needs a public location.");
   const center: [number, number] = userLocation

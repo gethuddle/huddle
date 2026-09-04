@@ -7,7 +7,7 @@ select no_plan();
 -- Only synthetic records, committed through a separate local connection.
 do $setup$
 begin
- perform dblink_connect('vb8_setup','host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable');
+ perform dblink_connect('vb8_setup',format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr())));
  perform dblink_exec('vb8_setup',$remote$
 insert into auth.users(instance_id,id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at)
 select '00000000-0000-0000-0000-000000000000', ('e9000000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid,
@@ -61,7 +61,7 @@ $setup$;
 create temporary table race_evidence(label text,waiting boolean,rows_free boolean,result text);
 do $races$
 declare
- conn text:='host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+ conn text:=format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
  worker_pid integer; scenario record; observed boolean; row_free boolean; result text; deadline timestamptz;
 begin
  perform dblink_connect('vb8_holder',conn);
@@ -124,7 +124,7 @@ select is(result,'ok',label||' completes after token release without deadlock') 
 create temporary table webhook_races(label text,waiting boolean,outcome text,event_status text);
 do $signed_races$
 declare
- conn text:='host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+ conn text:=format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
  helper text:=$helper$
  create function pg_temp.deliver(w text,t text,s text,version integer,days integer default 30,g integer default 1,failure_days integer default 1)
  returns text language sql as $body$
@@ -299,7 +299,7 @@ select is(result,case when label='archive versus attachment' then 'P0001:INVALID
 -- lock; recovery can win the same token while its row still looks due.
 create temporary table sweep_evidence(label text,count integer);
 do $sweep$
-declare conn text:='host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable'; n integer;
+declare conn text:=format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr())); n integer;
 begin
  perform dblink_connect('vb8_first',conn); perform dblink_connect('vb8_second',conn);
  perform dblink_exec('vb8_first','begin');
@@ -326,7 +326,7 @@ select is(count,case when label='first sweep owns transition' then 1 else 0 end,
 
 do $cleanup$
 begin
- perform dblink_connect('vb8_cleanup','host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable');
+ perform dblink_connect('vb8_cleanup',format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr())));
  perform dblink_exec('vb8_cleanup',$remote$
  delete from public.security_audit_events where resource_id::text like 'e9000000%' or actor_id::text like 'e9000000%';
  delete from private.polar_webhook_events where venue_id::text like 'e9000000%';

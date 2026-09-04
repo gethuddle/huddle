@@ -10,7 +10,7 @@ select no_plan();
 do $setup$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('account_erasure_setup', connection_text);
   perform extensions.dblink_exec(
@@ -142,7 +142,7 @@ $setup$;
 create temporary table billing_lock_evidence(label text,waiting boolean,profile_unlocked boolean,actor_locked boolean,sorted_venues boolean,completed boolean);
 do $lock_order$
 declare
-  connection_text text := 'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+  connection_text text := format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
   scenario record;
   worker_pid integer;
   actor_key bigint;
@@ -208,7 +208,7 @@ select ok(completed,label||' completes after release without a deadlock') from b
 do $write_first_connections$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('account_write_first', connection_text);
   perform extensions.dblink_connect('account_erase_second', connection_text);
@@ -302,7 +302,7 @@ select is(
 do $erase_first_connections$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('account_erase_first', connection_text);
   perform extensions.dblink_connect('account_subscribe_after', connection_text);
@@ -430,7 +430,7 @@ select is(
 do $cleanup$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('account_erasure_cleanup', connection_text);
   perform extensions.dblink_exec(

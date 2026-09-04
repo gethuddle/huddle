@@ -38,32 +38,29 @@ test("@session-smoke anonymous production pages and provider attribution are pub
   await page.getByRole("button", { name: "Change Explore search" }).click();
   await expect(page.getByRole("searchbox", { name: "Specific fixture (optional)" })).toBeVisible();
 
-  await page.goto("/discover?city=tel-aviv-yafo");
+  await page.goto("/discover");
   await expect(page.getByRole("heading", { name: "Explore watch events" })).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Discovery is temporarily unavailable." }),
   ).toHaveCount(0);
   await page.getByRole("button", { name: "Change Explore search" }).click();
-  const cityFallback = page.getByRole("combobox", { name: "City" });
-  await expect(cityFallback).toBeVisible();
-  expect(await cityFallback.getByRole("option").count()).toBeGreaterThanOrEqual(13);
-  await expect(cityFallback.getByRole("option", { name: "Jerusalem" })).toHaveCount(1);
+  await expect(page.getByRole("combobox", { name: "Distance", exact: true })).toBeVisible();
+  await expect(page.getByLabel("From", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("To", { exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.getByText("Search an area or address", { exact: true }).click();
+  await expect(page.getByRole("combobox", { name: "Area or address" })).toBeVisible();
 
-  await page.goto("/discover?city=tel-aviv-yafo");
-  const firstEvent = page.getByRole("article").first();
-  const eventTitle = await firstEvent.getByRole("heading").innerText();
-  await firstEvent.getByRole("link", { name: "Open event" }).click();
-  await expect(page.getByRole("heading", { name: eventTitle })).toBeVisible();
-  const backToExplore = page.getByRole("link", { name: "Back to Explore" });
-  await expect(backToExplore).toHaveAttribute("href", /\/discover[?]/);
-  await backToExplore.click();
-  await expect(page).toHaveURL(/\/discover[?]/);
+  // Public discovery can legitimately be empty. The controlled fresh-event
+  // journey below owns attendance/calendar assertions, not an arbitrary first row.
+  await expect(page.getByRole("heading", { name: /\d+ watch events? nearby/ })).toBeVisible();
+  await expect(page.getByText("Discovery could not load.", { exact: true })).toHaveCount(0);
 
   await page.goto("/groups");
-  await expect(
-    page.getByRole("heading", { name: "Support together, beyond match day." }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Find a group that fits." })).toBeVisible();
   await expect(page.getByRole("searchbox", { name: "Group name" })).toBeVisible();
+  await page.goto("/data-sources");
+  await expect(page.getByRole("heading", { name: "Where fixture data comes from." })).toBeVisible();
   expect(providerRequestCount).toBe(0);
 });
 

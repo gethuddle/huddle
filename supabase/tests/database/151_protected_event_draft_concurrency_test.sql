@@ -10,7 +10,7 @@ select no_plan();
 do $setup$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('task7_concurrency_setup', connection_text);
   perform extensions.dblink_exec(
@@ -301,7 +301,7 @@ $setup$;
 do $double_connections$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('task7_finalize_first', connection_text);
   perform extensions.dblink_connect('task7_finalize_second', connection_text);
@@ -405,7 +405,7 @@ select is(
 do $save_finalize_connections$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('task7_save_before_finalize', connection_text);
   perform extensions.dblink_connect('task7_finalize_after_save', connection_text);
@@ -493,7 +493,7 @@ select is(
 do $save_discard_connections$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('task7_save_before_discard', connection_text);
   perform extensions.dblink_connect('task7_discard_after_save', connection_text);
@@ -653,7 +653,7 @@ create temporary table task7_pair_backend_pids (
 do $reverse_pair_connections$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('task7_pair_block_low', connection_text);
   perform extensions.dblink_connect('task7_pair_block_high', connection_text);
@@ -904,7 +904,7 @@ select is(
 do $promotion_connections$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('task7_role_promoter', connection_text);
   perform extensions.dblink_connect('task7_group_publisher', connection_text);
@@ -996,7 +996,7 @@ select is(
 do $demotion_connections$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('task7_role_demoter', connection_text);
   perform extensions.dblink_connect('task7_group_reviewer', connection_text);
@@ -1086,7 +1086,7 @@ select is(
 do $cleanup$
 declare
   connection_text constant text :=
-    'host=supabase_db_huddle port=5432 dbname=postgres user=postgres password=postgres sslmode=disable';
+    format('host=%s port=5432 dbname=postgres user=postgres password=postgres sslmode=disable', host(inet_server_addr()));
 begin
   perform extensions.dblink_connect('task7_concurrency_cleanup', connection_text);
   perform extensions.dblink_exec(

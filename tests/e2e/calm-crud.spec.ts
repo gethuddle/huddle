@@ -295,6 +295,155 @@ async function secondSession(context: BrowserContext, email: string) {
   return page;
 }
 
+test("submission navigation timing and Explore workspace switching", async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
+  const endpoint = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://invalid.test");
+  expect(["127.0.0.1", "localhost"]).toContain(endpoint.hostname);
+  const run = suffix();
+  const owner = await seedFan(run, "timing_owner");
+  const fixture = await seedFixture(run);
+  const venue = await createVenueEvent(owner.client, fixture, run);
+  const followed = await owner.client.from("subscriptions").insert({
+    user_id: owner.id,
+    kind: "team",
+    team_id: fixture.homeTeamId,
+  });
+  if (followed.error !== null) throw followed.error;
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await signIn(page, owner.email);
+  const measurements: Record<string, { contentMs: number; ttfbMs: number }[]> = {};
+  async function measure(label: string, route: string, heading: string) {
+    const samples = [];
+    for (let repeat = 0; repeat < 5; repeat += 1) {
+      const started = performance.now();
+      await page.goto(route);
+      await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
+      const contentMs = Math.round(performance.now() - started);
+      const ttfbMs = await page.evaluate(() => {
+        const navigation = performance.getEntriesByType(
+          "navigation",
+        )[0] as PerformanceNavigationTiming;
+        return Math.round(navigation.responseStart - navigation.requestStart);
+      });
+      samples.push({ contentMs, ttfbMs });
+    }
+    measurements[label] = samples;
+  }
+  await measure("fanHome", "/", "Ready for your next match day?");
+  // Exercise the user's reported origin at both widths, with actual server
+  // action/cookie navigation rather than a mocked router.
+  for (const width of [1280, 375]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/discover");
+    await page.locator('button[aria-label="Switch workspace"]:visible').first().click();
+    await page.getByRole("menuitem", { name: new RegExp(venue.name) }).click();
+    await expect(page).toHaveURL(new RegExp(`/venues/${venue.slug}/workspace$`));
+    await expect(page.getByRole("heading", { name: "Today", exact: true })).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "Today", exact: true })).toBeVisible();
+    if (width === 1280) await measure("venueToday", `/venues/${venue.slug}/workspace`, "Today");
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
+    await page.locator('button[aria-label="Switch workspace"]:visible').first().click();
+    await page.getByRole("menuitem", { name: new RegExp(owner.displayName) }).click();
+    await expect(page).toHaveURL(/^http:\/\/(?:localhost|127\.0\.0\.1):3000\/$/);
+  }
+  expect(errors).toEqual([]);
+  const evidence = JSON.stringify({
+    label: process.env.HUDDLE_PERF_LABEL ?? "current",
+    measurements,
+  });
+  console.log(`[local-navigation] ${evidence}`);
+  await testInfo.attach("local-navigation.json", {
+    body: evidence,
+    contentType: "application/json",
+  });
+});
+
+test("built discovery and pin-picker maps start a same-origin worker with its shared module", async ({
+  page,
+}) => {
+  const run = suffix();
+  const owner = await seedFan(run, "map_owner");
+  const fixture = await seedFixture(run);
+  await createVenueEvent(owner.client, fixture, run);
+  const pageErrors: string[] = [];
+  const moduleErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  page.on("console", (message) => {
+    if (/Failed to load module|MIME type/i.test(message.text())) moduleErrors.push(message.text());
+  });
+  // The worker and its imports are real production assets. Only external
+  // raster imagery is replaced with a deterministic local pixel.
+  await page.route("https://tile.openstreetmap.org/**", (route) =>
+    route.fulfill({
+      contentType: "image/png",
+      body: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j8FEAAAAASUVORK5CYII=",
+        "base64",
+      ),
+    }),
+  );
+  await page.context().grantPermissions(["geolocation"], {
+    origin: "http://127.0.0.1:3000",
+  });
+  await page.context().setGeolocation({ latitude: 32.81303, longitude: 34.99928 });
+  await signIn(page, owner.email);
+
+  async function expectInitializedMapWorker() {
+    const workerPattern = /\/maplibre\/\d+\.\d+\.\d+\/maplibre-gl-worker\.mjs$/;
+    await expect
+      .poll(() => page.workers().filter((worker) => workerPattern.test(worker.url())).length)
+      .toBeGreaterThan(0);
+    const worker = page.workers().find((candidate) => workerPattern.test(candidate.url()));
+    if (worker === undefined) throw new Error("The application map worker did not start.");
+    expect(new URL(worker.url()).origin).toBe(new URL(page.url()).origin);
+    // The pinned MapLibre worker installs this actor only after its ESM imports
+    // execute. A canvas or HTML marker alone does not prove worker readiness.
+    await expect
+      .poll(() =>
+        worker.evaluate(() => {
+          const scope = globalThis as unknown as { worker?: { actor?: unknown } };
+          return scope.worker?.actor !== undefined;
+        }),
+      )
+      .toBe(true);
+    for (const asset of [worker.url(), new URL("./maplibre-gl-shared.mjs", worker.url()).href]) {
+      const response = await page.request.get(asset);
+      expect(response.status()).toBe(200);
+      expect(response.headers()["content-type"]).toMatch(/(?:java|ecma)script/);
+    }
+  }
+
+  await page.goto(`/discover?match=${fixture.matchId}`);
+  await expect(page.getByRole("article").first()).toBeVisible();
+  await expectInitializedMapWorker();
+
+  await page.goto(`/events/new?matchId=${fixture.matchId}`);
+  await page.getByRole("button", { name: "Next: place and audience" }).click();
+  const homeAddress = `Synthetic map test ${run}, Haifa`;
+  await page.route("**/api/locations/search", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        suggestions: [
+          { id: `map-${run}`, label: homeAddress, latitude: 32.81303, longitude: 34.99928 },
+        ],
+      }),
+    }),
+  );
+  await page.getByRole("combobox", { name: "Home address" }).fill(homeAddress);
+  await page.getByRole("option", { name: homeAddress }).click();
+  await expect(
+    page.getByRole("region", { name: "Map for choosing a meeting point" }),
+  ).toBeVisible();
+  await expectInitializedMapWorker();
+  expect(pageErrors).toEqual([]);
+  expect(moduleErrors).toEqual([]);
+});
+
 test("Explore exact-fixture search preserves its route context", async ({ page }) => {
   const run = suffix();
   const viewer = await seedFan(run, "viewer");

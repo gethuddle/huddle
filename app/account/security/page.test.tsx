@@ -10,7 +10,10 @@ import AccountSecurityPage from "./page";
 const mocks = vi.hoisted(() => ({ getAppShellState: vi.fn() }));
 
 vi.mock("@/features/workspaces/queries", () => ({ getAppShellState: mocks.getAppShellState }));
-vi.mock("@/features/auth/actions", () => ({ changePasswordAction: vi.fn() }));
+vi.mock("@/features/auth/actions", () => ({
+  changePasswordAction: vi.fn(),
+  changeEmailAction: vi.fn(),
+}));
 
 describe("AccountSecurityPage", () => {
   beforeEach(() => vi.clearAllMocks());
@@ -35,7 +38,13 @@ describe("AccountSecurityPage", () => {
 
     render(await AccountSecurityPage());
 
-    expect(screen.getByRole("heading", { name: "Change your password." })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Manage account security." })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Request email change" })).toBeVisible();
+    expect(screen.getByLabelText("Current password for email change")).toBeVisible();
+    expect(screen.getByRole("link", { name: "Change username" })).toHaveAttribute(
+      "href",
+      "/settings/profile",
+    );
     expect(screen.getByText(/asks Supabase to revoke the rest/i)).toBeVisible();
     expect(screen.queryByText(/signs out every session/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText("Current password")).toBeVisible();

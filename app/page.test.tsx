@@ -140,6 +140,33 @@ describe("Home", () => {
     expect(mocks.redirect).not.toHaveBeenCalled();
   });
 
+  it("starts the profile and Fan Home reads together after resolving the viewer", async () => {
+    mocks.getAppShellState.mockResolvedValue({
+      isSignedIn: true,
+      workspace: { active: fan, available: [fan], isModerator: false },
+    });
+    let resolveProfile:
+      ((value: { data: { display_name: string } | null; error: null }) => void) | undefined;
+    const profile = new Promise<{ data: { display_name: string } | null; error: null }>(
+      (resolve) => {
+        resolveProfile = resolve;
+      },
+    );
+    const maybeSingle = vi.fn(() => profile);
+    mocks.createClient.mockResolvedValue({
+      auth: { getClaims: vi.fn().mockResolvedValue({ data: { claims: { sub: fan.id } } }) },
+      from: vi.fn(() => ({ select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle })) })) })),
+    });
+
+    const home = Home();
+    await waitFor(() => expect(maybeSingle).toHaveBeenCalledOnce());
+    expect(mocks.getFanHome).toHaveBeenCalledOnce();
+    resolveProfile?.({ data: { display_name: "Fan One" }, error: null });
+
+    render(await home);
+    expect(screen.getByText("Welcome back, Fan One")).toBeVisible();
+  });
+
   it("shows one next event and one followed fixture suggestion without duplicating the library", async () => {
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: true,

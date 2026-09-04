@@ -21,8 +21,19 @@ export type InterestCatalog = Readonly<{
   }>[];
 }>;
 
-export async function getInterestCatalog(): Promise<InterestCatalog> {
+export async function getInterestCatalog(teamSearch = ""): Promise<InterestCatalog> {
   const supabase = createAnonymousServerClient();
+  const normalizedTeamSearch = teamSearch.trim();
+  let teamQuery = supabase
+    .from("teams")
+    .select("id, name, short_name, tla, crest_url, sport_id")
+    .eq("active", true);
+  if (normalizedTeamSearch.length > 0) {
+    const pattern = escapeLikePattern(normalizedTeamSearch);
+    teamQuery = teamQuery.or(
+      [`name.ilike.${pattern}`, `short_name.ilike.${pattern}`, `tla.ilike.${pattern}`].join(","),
+    );
+  }
   const [sportResult, competitionResult, teamResult] = await Promise.all([
     supabase.from("sports").select("id, name, slug").eq("active", true).order("name").limit(20),
     supabase
@@ -31,12 +42,7 @@ export async function getInterestCatalog(): Promise<InterestCatalog> {
       .eq("active", true)
       .order("name")
       .limit(100),
-    supabase
-      .from("teams")
-      .select("id, name, short_name, tla, crest_url, sport_id")
-      .eq("active", true)
-      .order("name")
-      .limit(100),
+    teamQuery.order("name").limit(100),
   ]);
 
   const error = sportResult.error ?? competitionResult.error ?? teamResult.error;
@@ -59,4 +65,13 @@ export async function getInterestCatalog(): Promise<InterestCatalog> {
       sportId: team.sport_id,
     })),
   };
+}
+
+function escapeLikePattern(value: string) {
+  const escaped = value
+    .replaceAll("\\", "\\\\")
+    .replaceAll("%", "\\%")
+    .replaceAll("_", "\\_")
+    .replaceAll('"', '\\"');
+  return `"%${escaped}%"`;
 }

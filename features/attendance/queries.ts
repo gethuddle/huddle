@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 const invitationRowSchema = z.object({
   invitation_id: z.uuid(),
   invitee_id: z.uuid(),
-  invitee_handle: z.string(),
+  invitee_handle: z.string().nullable(),
   invitee_display_name: z.string(),
   status: z.enum(["pending", "accepted", "declined", "revoked"]),
   responded_at: z.string().nullable(),
@@ -35,7 +35,7 @@ const attendanceRowSchema = z
   .object({
     attendance_id: z.uuid(),
     user_id: z.uuid(),
-    requester_handle: z.string(),
+    requester_handle: z.string().nullable(),
     requester_display_name: z.string(),
     status: z.enum(["requested", "approved", "declined", "left", "removed"]),
     source: z.enum(["self_request", "direct_invite"]),

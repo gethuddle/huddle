@@ -43,6 +43,112 @@ const venue = {
 } as const;
 
 describe("FixturePlanner", () => {
+  it("lets a capacityless area change reservations to open door before Review", async () => {
+    render(
+      <FixturePlanner
+        catalog={catalog}
+        initialMatchId={matchOne}
+        venue={{ ...venue, spaces: [{ ...venue.spaces[0], capacity: null }] }}
+        billing={{
+          canPublish: true,
+          canPrepareDrafts: true,
+          publishCutoffAt: null,
+          blockedReason: null,
+        }}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Review events" })).toBeDisabled();
+    await userEvent.selectOptions(
+      screen.getByRole("combobox", { name: /Attendance for Arsenal/ }),
+      "open_door",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Review events" }));
+    expect(screen.getByRole("button", { name: "Publish batch" })).toBeEnabled();
+  });
+  it("associates nested batch errors with the editable field", async () => {
+    mocks.planVenueEventsAction.mockResolvedValue({
+      ok: false,
+      error: {
+        code: "VALIDATION_FAILED",
+        message: "Check the highlighted fields and try again.",
+        fields: { "items.0.title": ["Use at least 3 characters."] },
+      },
+    });
+    render(
+      <FixturePlanner
+        catalog={catalog}
+        initialMatchId={matchOne}
+        venue={venue}
+        billing={{
+          canPublish: true,
+          canPrepareDrafts: true,
+          publishCutoffAt: null,
+          blockedReason: null,
+        }}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Review events" }));
+    await userEvent.type(screen.getByLabelText("Custom title (optional)"), "ab");
+    await userEvent.click(screen.getByRole("button", { name: "Save batch as drafts" }));
+    expect(screen.getByLabelText("Custom title (optional)")).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
+    expect(screen.getByLabelText("Custom title (optional)")).toHaveAccessibleDescription(
+      "Use at least 3 characters.",
+    );
+  });
+  it("focuses and explains invalid overrides in the second batch item without losing edits", async () => {
+    mocks.planVenueEventsAction.mockResolvedValue({
+      ok: false,
+      error: {
+        code: "VALIDATION_FAILED",
+        message: "Check the highlighted fields and try again.",
+        fields: {
+          "items.1.title": ["Title too short"],
+          "items.1.capacity": ["Capacity must be positive"],
+          "items.1.description": ["Description too short"],
+        },
+      },
+    });
+    render(
+      <FixturePlanner
+        catalog={{
+          ...catalog,
+          matches: [
+            catalog.matches[0],
+            { ...catalog.matches[1], startsAt: "2026-09-13T18:00:00Z" },
+          ],
+        }}
+        initialMatchId={matchOne}
+        venue={venue}
+        billing={{
+          canPublish: true,
+          canPrepareDrafts: true,
+          publishCutoffAt: null,
+          blockedReason: null,
+        }}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Any date" }));
+    await userEvent.click(screen.getByRole("button", { name: /Liverpool vs Everton/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Review events" }));
+    await userEvent.type(screen.getAllByLabelText("Custom title (optional)")[1], "ab");
+    await userEvent.click(screen.getByRole("button", { name: "Save batch as drafts" }));
+    expect(screen.getAllByLabelText("Custom title (optional)")[0]).not.toHaveAttribute(
+      "aria-invalid",
+    );
+    expect(screen.getAllByLabelText("Custom title (optional)")[1]).toHaveAccessibleDescription(
+      "Title too short",
+    );
+    expect(screen.getAllByLabelText("Custom title (optional)")[1]).toHaveValue("ab");
+    expect(screen.getAllByLabelText("Lower capacity (optional)")[1]).toHaveAccessibleDescription(
+      "Capacity must be positive",
+    );
+    expect(
+      screen.getAllByLabelText("Custom description (optional)")[1],
+    ).toHaveAccessibleDescription("Description too short");
+  });
   beforeEach(() => vi.clearAllMocks());
   afterEach(() => vi.unstubAllGlobals());
 

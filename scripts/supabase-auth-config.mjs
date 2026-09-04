@@ -24,7 +24,9 @@ export function buildAuthConfigPayload(siteUrl) {
 
   return {
     site_url: origin,
-    uri_allow_list: `${origin}/auth/verify/confirm,${origin}/auth/reset-password/confirm`,
+    uri_allow_list: `${origin}/auth/verify/confirm,${origin}/auth/reset-password/confirm,${origin}/auth/email-change/confirm`,
+    mailer_autoconfirm: false,
+    mailer_secure_email_change_enabled: true,
     password_min_length: 15,
     password_required_characters: "",
     // Match the selected provider allowance so Supabase's default 30/hour cap is not tighter.
@@ -36,9 +38,11 @@ export function buildAuthConfigPayload(siteUrl) {
     mailer_notifications_password_changed_enabled: true,
     mailer_subjects_confirmation: "Confirm your Huddle account",
     mailer_subjects_recovery: "Reset your Huddle password",
+    mailer_subjects_email_change: "Confirm your Huddle email change",
     mailer_subjects_password_changed_notification: "Your Huddle password was changed",
     mailer_templates_confirmation_content: readTemplate("confirmation.html"),
     mailer_templates_recovery_content: readTemplate("recovery.html"),
+    mailer_templates_email_change_content: readTemplate("email-change.html"),
     mailer_templates_password_changed_notification_content: readTemplate("password-changed.html"),
   };
 }

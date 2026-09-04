@@ -71,7 +71,7 @@ export default async function AccountPage() {
           <CardHeader>
             <CardTitle className="text-xl font-semibold">Account security</CardTitle>
             <CardDescription>
-              Change your password or permanently delete your account.
+              Change your email or password, or permanently delete your account.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -104,7 +104,7 @@ export default async function AccountPage() {
             ) : (
               <>
                 <Button asChild variant="outline">
-                  <Link href="/settings/profile">Profile</Link>
+                  <Link href="/settings/profile">Profile and username</Link>
                 </Button>
                 <Button asChild variant="outline">
                   <Link href="/settings/interests">Interests</Link>

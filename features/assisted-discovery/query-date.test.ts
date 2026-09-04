@@ -6,6 +6,43 @@ describe("resolveQueryDateRange", () => {
   const wednesday = new Date("2026-09-02T09:00:00.000Z");
 
   it.each([
+    ["tonight", "2026-09-04", "2026-09-04"],
+    ["this evening", "2026-09-04", "2026-09-04"],
+    ["day after tomorrow", "2026-09-06", "2026-09-06"],
+    ["from Friday to Sunday", "2026-09-04", "2026-09-06"],
+    ["Friday–Sunday", "2026-09-04", "2026-09-06"],
+  ])("resolves the whole relative expression %s", (phrase, fromDate, toDate) => {
+    expect(resolveQueryDateRange(`Liverpool ${phrase}`, new Date("2026-09-04T09:00:00Z"))).toEqual({
+      kind: "resolved",
+      fromDate,
+      toDate,
+    });
+  });
+
+  it.each([
+    ["yesterday", "past"],
+    ["last Friday", "past"],
+    ["this week", "invalid"],
+    ["next weekend", "invalid"],
+    ["today or tomorrow", "invalid"],
+    ["tomorrow and next Friday", "invalid"],
+    ["Friday or Sunday", "invalid"],
+    ["not tomorrow", "invalid"],
+    ["on 2026-09-05 or 2026-09-07", "invalid"],
+    ["October 5 and October 7", "invalid"],
+    ["October or November", "invalid"],
+    ["tomorrow in October", "invalid"],
+    ["on 2026-09-05, 2026-09-07 and 2026-09-09", "invalid"],
+    ["before October 5", "invalid"],
+    ["at the weekend", "invalid"],
+  ])("clarifies %s instead of ignoring or partially matching it", (phrase, reason) => {
+    expect(resolveQueryDateRange(`Liverpool ${phrase}`, new Date("2026-09-04T09:00:00Z"))).toEqual({
+      kind: "invalid",
+      reason,
+    });
+  });
+
+  it.each([
     ["anything in October", "2026-10-01", "2026-10-31"],
     ["anything in October 2027", "2027-10-01", "2027-10-31"],
     ["anything on 5 October", "2026-10-05", "2026-10-05"],
@@ -20,6 +57,14 @@ describe("resolveQueryDateRange", () => {
       fromDate,
       toDate,
     });
+  });
+
+  it.each([
+    ["from 2026-09-05 to 2026-09-07", "2026-09-05", "2026-09-07"],
+    ["from October 5 through October 7", "2026-10-05", "2026-10-07"],
+    ["between October 5 and October 7", "2026-10-05", "2026-10-07"],
+  ])("keeps a clearly stated calendar range %s", (query, fromDate, toDate) => {
+    expect(resolveQueryDateRange(query, wednesday)).toEqual({ kind: "resolved", fromDate, toDate });
   });
 
   it("clamps the current month to today", () => {

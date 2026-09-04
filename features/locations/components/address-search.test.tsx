@@ -19,6 +19,25 @@ afterEach(() => {
 });
 
 describe("AddressSearch", () => {
+  it("associates a parent form address error with its search input", () => {
+    const ValidatedAddressSearch = AddressSearch as ComponentType<
+      ComponentProps<typeof AddressSearch> & { error?: string }
+    >;
+    render(
+      <ValidatedAddressSearch
+        purpose="public_address"
+        onConfirm={vi.fn()}
+        error="Confirm a valid public address"
+      />,
+    );
+    expect(screen.getByRole("combobox", { name: "Public address" })).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
+    expect(screen.getByRole("combobox", { name: "Public address" })).toHaveAccessibleDescription(
+      "Confirm a valid public address",
+    );
+  });
   it("prefills and searches a named area supplied by assisted discovery", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ suggestions: [suggestion] }), {

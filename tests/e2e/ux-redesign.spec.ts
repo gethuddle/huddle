@@ -59,7 +59,7 @@ function journeyIdentity(project: JourneyProject) {
     groupName: `UX14 ${project.label} Circle`,
     eventTitle: `UX14 ${project.label} Fan Huddle`,
     venueName: `UX14 ${project.label} Match House`,
-    venueSlug: `ux14-${project.key}-venue`,
+    venueSlug: `ux14-${project.key}-match-house`,
     publishedVenueTitles: [
       `UX14 ${project.label} Venue Night One`,
       `UX14 ${project.label} Venue Night Two`,
@@ -990,7 +990,7 @@ test("complete deterministic Fan and Venue workspace journey", async ({
     ).toBeVisible();
     await expectNoCityControl(page);
     await page.getByRole("textbox", { name: "Venue name" }).fill(identity.venueName);
-    await page.getByRole("textbox", { name: "Venue URL" }).fill(identity.venueSlug);
+    await expect(page.getByRole("textbox", { name: "Huddle page address" })).toHaveCount(0);
     await expect(page.locator('input[name="longitude"], input[name="latitude"]')).toHaveCount(0);
     await page.getByRole("combobox", { name: "Public address" }).fill(venueAddressQuery);
     await expect(
@@ -1069,7 +1069,9 @@ test("complete deterministic Fan and Venue workspace journey", async ({
       })
       .click();
     await page.getByRole("button", { name: "Save venue" }).click();
-    await expect(page.getByRole("status")).toHaveText("Venue profile and defaults updated.");
+    await expect(
+      page.getByRole("status").filter({ hasText: "Venue profile and defaults updated." }),
+    ).toHaveText("Venue profile and defaults updated.");
 
     const addAreaButton = page.getByRole("button", { name: "Add viewing area" });
     const addAreaForm = addAreaButton.locator("xpath=ancestor::form[1]");
@@ -1127,7 +1129,7 @@ test("complete deterministic Fan and Venue workspace journey", async ({
     const publishedEventPath = await page
       .getByRole("link", { name: identity.publishedVenueTitles[0] })
       .getAttribute("href");
-    expect(publishedEventPath).toMatch(/^\/events\/[0-9a-f-]{36}$/);
+    expect(publishedEventPath).toMatch(/^\/events\/[0-9a-f-]{36}\?returnTo=/);
 
     await participantPage.goto(journeyUrl(participantPage, `/venues/${identity.venueSlug}`));
     await expect(participantPage.getByRole("heading", { name: identity.venueName })).toBeVisible();
@@ -1169,7 +1171,8 @@ test("complete deterministic Fan and Venue workspace journey", async ({
     ).toBeVisible();
     await expect(page.getByText("Open door · no guest list")).toBeVisible();
 
-    await page.goto(journeyUrl(page, `${publishedEventPath}/manage`));
+    await page.goto(journeyUrl(page, publishedEventPath!));
+    await page.getByRole("link", { name: "Manage event", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Open-door event" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Invite people" })).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Attendance queue" })).toHaveCount(0);
@@ -1188,7 +1191,7 @@ test("complete deterministic Fan and Venue workspace journey", async ({
     const draftEventPath = await page
       .getByRole("link", { name: identity.draftVenueTitles[0] })
       .getAttribute("href");
-    expect(draftEventPath).toMatch(/^\/events\/[0-9a-f-]{36}$/);
+    expect(draftEventPath).toMatch(/^\/events\/[0-9a-f-]{36}\/manage\?returnTo=/);
     await page.getByRole("button", { name: "Draft" }).click();
     await expect(page.getByRole("link", { name: identity.draftVenueTitles[0] })).toBeVisible();
     await expect(page.getByRole("link", { name: identity.publishedVenueTitles[0] })).toHaveCount(0);
@@ -1197,6 +1200,36 @@ test("complete deterministic Fan and Venue workspace journey", async ({
     await participantPage.goto(journeyUrl(participantPage, draftEventPath!));
     await expect(
       participantPage.getByRole("heading", { name: "This page isn’t available." }),
+    ).toBeVisible();
+
+    // A saved venue draft is recoverable through the actual calendar UI, not
+    // merely through a direct backend call or knowledge of its identifier.
+    await page.getByRole("link", { name: identity.draftVenueTitles[0] }).click();
+    await expect(page.getByRole("heading", { name: "Edit venue draft" })).toBeVisible();
+    const updatedDraftTitle = `${identity.draftVenueTitles[0]} edited`;
+    await page.getByRole("textbox", { name: "Event title" }).fill(updatedDraftTitle);
+    await page.getByRole("button", { name: "Save draft", exact: true }).click();
+    await expect(page.getByRole("status").filter({ hasText: "Venue draft saved." })).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole("textbox", { name: "Event title" })).toHaveValue(updatedDraftTitle);
+    await page.getByRole("button", { name: "Publish event", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Save changes", exact: true })).toBeVisible();
+    await page.getByRole("link", { name: "Event details" }).click();
+    await page.getByRole("link", { name: "Back to venue" }).click();
+    await expect(page).toHaveURL(new RegExp(`/venues/${identity.venueSlug}/workspace/calendar$`));
+    await page.getByRole("link", { name: identity.draftVenueTitles[1] }).click();
+    await page.getByRole("button", { name: "Cancel draft", exact: true }).click();
+    await page.getByRole("button", { name: "Keep draft", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Publish event", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Cancel draft", exact: true }).click();
+    await page.getByRole("button", { name: "Confirm cancellation", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Publish event", exact: true })).toHaveCount(0);
+    await page.reload();
+    await expect(
+      page.getByRole("heading", { name: identity.draftVenueTitles[1], exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Editing is unavailable. Event details and history remain available."),
     ).toBeVisible();
 
     await page.goto(journeyUrl(page, "/account"));

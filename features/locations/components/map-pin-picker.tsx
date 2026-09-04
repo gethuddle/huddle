@@ -9,6 +9,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import type { StyleSpecification } from "maplibre-gl";
+import { loadMapLibreRuntime } from "@/features/locations/maplibre-runtime";
 
 import { Button } from "@/components/ui/button";
 import type { PrivatePoint } from "@/features/locations/types";
@@ -70,7 +71,7 @@ export const createMapLibrePrivatePinMap: PrivatePinMapFactory = async (
   container,
   { initialPoint, onPinMoved, onPinRejected },
 ) => {
-  const maplibre = await import("maplibre-gl");
+  const maplibre = await loadMapLibreRuntime();
   const map = new maplibre.Map({
     container,
     style: osmStyle,

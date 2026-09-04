@@ -36,6 +36,34 @@ const baseProps = {
 describe("EventParticipationControls", () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it("shows a safe transport error without claiming attendance and allows retry", async () => {
+    mocks.requestOrJoinEventAction.mockRejectedValueOnce(new Error("private diagnostic"));
+    render(<EventParticipationControls {...baseProps} />);
+    await userEvent.click(screen.getByRole("button", { name: "Request to attend" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/couldn't confirm/i);
+    expect(document.body).not.toHaveTextContent("private diagnostic");
+    expect(screen.getByRole("button", { name: "Request to attend" })).toBeEnabled();
+    expect(mocks.refresh).not.toHaveBeenCalled();
+  });
+
+  it("shows a failed leave inside the still-open dialog", async () => {
+    mocks.leaveEventAction.mockRejectedValueOnce(new Error("private diagnostic"));
+    render(
+      <EventParticipationControls
+        {...baseProps}
+        viewerAttendanceId="attendance"
+        viewerAttendanceStatus="approved"
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Leave event" }));
+    await userEvent.click(screen.getByRole("button", { name: "Confirm leave" }));
+    expect(await within(screen.getByRole("alertdialog")).findByRole("alert")).toHaveTextContent(
+      /couldn't confirm/i,
+    );
+    expect(screen.getByRole("button", { name: "Confirm leave" })).toBeEnabled();
+    expect(mocks.refresh).not.toHaveBeenCalled();
+  });
+
   it("submits one-account attendance without optimistically claiming a seat", async () => {
     let resolveAction: ((value: { ok: true; data: { message: string } }) => void) | undefined;
     mocks.requestOrJoinEventAction.mockImplementation(

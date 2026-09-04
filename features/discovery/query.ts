@@ -122,17 +122,17 @@ export async function getDiscoveryPage(filters: DiscoveryFilters): Promise<Disco
     ownedVenueRows.some((row) => row.has_more);
   const rows = combinedRows.slice(0, filters.limit);
   const hasMore = sourceHasMore || combinedRows.length > rows.length;
-  const teamVisuals = await loadTeamVisualsByName(
-    supabase,
-    rows.flatMap((row) => [row.home_team_name, row.away_team_name]),
-  );
-
-  const mapResult =
+  const [teamVisuals, mapResult] = await Promise.all([
+    loadTeamVisualsByName(
+      supabase,
+      rows.flatMap((row) => [row.home_team_name, row.away_team_name]),
+    ),
     rows.length === 0
-      ? { data: [], error: null }
-      : await supabase.rpc("get_public_event_map_points", {
+      ? Promise.resolve({ data: [], error: null })
+      : supabase.rpc("get_public_event_map_points", {
           input_event_ids: rows.map((row) => row.event_id),
-        });
+        }),
+  ]);
   if (mapResult.error !== null) throw domainErrorFromDatabase(mapResult.error);
   let mapPoints: z.infer<typeof discoveryMapPointRowSchema>[];
   try {
