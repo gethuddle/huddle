@@ -87,6 +87,13 @@ only after that real signed delivery passed. Final deployment
 `dpl_GpuZBCkNwyj7ytYA3okuD4V7wBdf` is Ready and assigned to `huddle.co.il`.
 The owner portal was opened again after that deployment and successfully reached
 the Sandbox subscription view without another sign-in, confirming restored transport.
+Three obsolete immutable deployments still exposed receivers configured with the
+retired secret. After verifying the current domain/aliases, those exact builds were
+removed with the deployment CLI's safe mode. Their receiver URLs now return
+`404 DEPLOYMENT_NOT_FOUND`; the live receiver still returns its expected unsigned
+`403`. No current deployment, project, database, venue, event, or subscription was
+removed. The historical code remains in Git and can be rebuilt with current secrets;
+the obsolete deployment URLs are not restore targets.
 Future provider reads use allowlisted counts/statuses, never general accessibility
 dumps or provider screenshots. The obsolete secret must never be reused.
 

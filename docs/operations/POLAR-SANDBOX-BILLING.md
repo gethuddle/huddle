@@ -165,6 +165,14 @@ redeliver failed deliveries if required, then reconcile any delivery gap. A temp
 mismatch fails closed. This does not promise that events sent while disabled are
 retained.
 
+Also inventory immutable deployment URLs that retain the retired secret: changing
+the current domain's environment does not update old receivers. Verify the live
+domain points to the replacement deployment, then protect or retire only the exact
+obsolete deployments under the maintenance authorization. Never remove the project,
+current deployment, or database. Verify old receivers are inaccessible and the live
+receiver still rejects unsigned requests. Rebuild historical code with current
+secrets if needed; do not roll back to a retired credential.
+
 If an application or migration defect is found, stop the rollout and make a reviewed
 forward fix. Do not roll back by exposing an unpaid venue, weakening entitlement
 checks, deleting history, or restoring a database snapshot without separate explicit
