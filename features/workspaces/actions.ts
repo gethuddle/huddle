@@ -9,6 +9,7 @@ import { CURRENT_COMMUNITY_RULES_VERSION } from "@/content/community-rules";
 import { requireActor } from "@/features/auth/actor";
 import { actionFailure, actionSuccess, DomainError, domainErrorFromDatabase } from "@/lib/errors";
 import { getRequestId } from "@/lib/request-id/server";
+import { createClient } from "@/lib/supabase/server";
 
 import {
   commonOnboardingInputSchema,
@@ -51,7 +52,11 @@ export async function selectWorkspaceAction(
 
   let destination: string;
   try {
-    const { supabase } = await requireActor("authenticated");
+    const supabase = await createClient();
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
+    if (claimsError !== null || typeof claimsData?.claims.sub !== "string") {
+      throw new DomainError("AUTH_REQUIRED", { cause: claimsError });
+    }
     const { data, error } = await supabase.rpc("list_my_workspaces");
     if (error !== null) throw domainErrorFromDatabase(error);
     const rows = workspaceRowsSchema.parse(data);

@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { expiredVenueBilling } from "@/tests/fixtures/venue-billing";
 
@@ -72,7 +71,7 @@ describe("workspace shell query", () => {
   it("returns a public-safe empty context when signed out", async () => {
     await expect(getAppShellState()).resolves.toEqual({
       isSignedIn: false,
-      workspace: { active: null, available: [], isModerator: false },
+      workspace: { active: null, available: [] },
     });
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
@@ -103,7 +102,6 @@ describe("workspace shell query", () => {
       workspace: {
         active: { kind: "fan", id: fanId },
         available: [{ kind: "fan", id: fanId }],
-        isModerator: true,
       },
     });
   });
@@ -135,29 +133,27 @@ describe("workspace shell query", () => {
     expect(mocks.getClaims).toHaveBeenCalledOnce();
   });
 
-  it("marks the shell's authorized workspace and moderator reads for React request-scoped deduplication", async () => {
+  it("does not query moderation status while rendering an ordinary workspace shell", async () => {
     mocks.getClaims.mockResolvedValue({ data: { claims: { sub: fanId } }, error: null });
-    mocks.rpc.mockImplementation(async (name: string) => ({
-      data:
-        name === "list_my_workspaces"
-          ? [
-              {
-                workspace_kind: "fan",
-                workspace_id: fanId,
-                slug: "matchday_fan",
-                name: "Matchday Fan",
-                role: "fan",
-              },
-            ]
-          : false,
+    mocks.rpc.mockResolvedValue({
+      data: [
+        {
+          workspace_kind: "fan",
+          workspace_id: fanId,
+          slug: "matchday_fan",
+          name: "Matchday Fan",
+          role: "fan",
+        },
+      ],
       error: null,
-    }));
+    });
 
-    const source = readFileSync(new URL("./queries.ts", import.meta.url), "utf8");
-
-    expect(source).toContain("export const getAppShellState = cache(");
-    expect(source).toContain('supabase.rpc("list_my_workspaces")');
-    expect(source).toContain('supabase.rpc("viewer_is_platform_moderator")');
+    await expect(getAppShellState()).resolves.toMatchObject({
+      isSignedIn: true,
+      workspace: { active: { kind: "fan", id: fanId } },
+    });
+    expect(mocks.rpc).toHaveBeenCalledOnce();
+    expect(mocks.rpc).toHaveBeenCalledWith("list_my_workspaces");
   });
 
   it("maps only the authenticated actor existing workspaces for stale-rules recovery", async () => {

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { boundedPageSchema } from "@/lib/pagination";
+
 export const GROUP_SEARCH_PAGE_SIZE = 20;
 
 function firstSearchParam(value: unknown): unknown {
@@ -14,6 +16,7 @@ const groupSearchFiltersSchema = z
     q: optionalString,
     team: optionalUuid,
     cursor: z.preprocess(firstSearchParam, z.string().trim().min(1).max(1024).optional()),
+    page: z.preprocess(firstSearchParam, boundedPageSchema.optional()),
     limit: z.preprocess(
       firstSearchParam,
       z.coerce.number().int().min(1).max(50).default(GROUP_SEARCH_PAGE_SIZE),

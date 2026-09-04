@@ -16,7 +16,6 @@ export type WorkspaceSelection = Readonly<{
 export type WorkspaceShellContext = Readonly<{
   active: WorkspaceSummary | null;
   available: readonly WorkspaceSummary[];
-  isModerator: boolean;
 }>;
 
 export type AppShellState = Readonly<{

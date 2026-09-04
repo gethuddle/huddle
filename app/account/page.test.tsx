@@ -10,10 +10,14 @@ import AccountPage from "./page";
 const mocks = vi.hoisted(() => ({
   getAppShellState: vi.fn(),
   getWorkspaceSetupAvailability: vi.fn(),
+  viewerIsPlatformModerator: vi.fn(),
 }));
 vi.mock("@/features/workspaces/queries", () => ({
   getAppShellState: mocks.getAppShellState,
   getWorkspaceSetupAvailability: mocks.getWorkspaceSetupAvailability,
+}));
+vi.mock("@/features/moderation/queries", () => ({
+  viewerIsPlatformModerator: mocks.viewerIsPlatformModerator,
 }));
 vi.mock("@/features/workspaces/components/workspace-switcher", () => ({
   WorkspaceSwitcher: () => <p>Workspace switcher</p>,
@@ -36,9 +40,10 @@ describe("AccountPage", () => {
       canStartFan: true,
       canStartVenue: true,
     });
+    mocks.viewerIsPlatformModerator.mockResolvedValue(false);
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: true,
-      workspace: { active: fan, available: [fan], isModerator: false },
+      workspace: { active: fan, available: [fan] },
     } satisfies AppShellState);
   });
 
@@ -67,10 +72,7 @@ describe("AccountPage", () => {
   });
 
   it("shows the moderation destination only after server authorization", async () => {
-    mocks.getAppShellState.mockResolvedValue({
-      isSignedIn: true,
-      workspace: { active: fan, available: [fan], isModerator: true },
-    } satisfies AppShellState);
+    mocks.viewerIsPlatformModerator.mockResolvedValue(true);
 
     render(await AccountPage());
 
@@ -80,10 +82,19 @@ describe("AccountPage", () => {
     );
   });
 
+  it("keeps Account usable and hides moderation when its authorization read fails", async () => {
+    mocks.viewerIsPlatformModerator.mockRejectedValue(new Error("temporary database failure"));
+
+    render(await AccountPage());
+
+    expect(screen.getByRole("heading", { name: "Your Huddle, in one place." })).toBeVisible();
+    expect(screen.queryByRole("link", { name: "Open moderation" })).not.toBeInTheDocument();
+  });
+
   it("does not offer setup actions that the current account cannot complete", async () => {
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: true,
-      workspace: { active: null, available: [], isModerator: false },
+      workspace: { active: null, available: [] },
     } satisfies AppShellState);
     mocks.getWorkspaceSetupAvailability.mockResolvedValue({
       canStartFan: false,

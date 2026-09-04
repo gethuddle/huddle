@@ -28,6 +28,21 @@ export type VenueCalendarEntry = Readonly<{
   requiresApproval: boolean;
 }>;
 
+export const venueCalendarStatuses = [
+  "all",
+  "draft",
+  "published",
+  "full",
+  "cancelled",
+  "completed",
+] as const;
+export type VenueCalendarStatus = (typeof venueCalendarStatuses)[number];
+export type VenueCalendarPage = Readonly<{
+  items: readonly VenueCalendarEntry[];
+  page: number;
+  totalCount: number;
+}>;
+
 export type VenueTodayEvent = VenueCalendarEntry &
   Readonly<{
     waitingAttendeeCount: number;

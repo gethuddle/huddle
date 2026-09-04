@@ -25,14 +25,14 @@ describe("forgot-password page", () => {
     mocks.getAuthTurnstileSiteKey.mockReturnValue(undefined);
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: false,
-      workspace: { active: null, available: [], isModerator: false },
+      workspace: { active: null, available: [] },
     } satisfies AppShellState);
   });
 
   it("lets a signed-in account recover or switch accounts with a clear warning", async () => {
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: true,
-      workspace: { active: null, available: [], isModerator: false },
+      workspace: { active: null, available: [] },
     } satisfies AppShellState);
 
     render(await ForgotPasswordPage({ searchParams: Promise.resolve({}) }));

@@ -32,6 +32,18 @@ describe("group search filters", () => {
     expect(query.get("cursor")).toBe("signed-cursor");
   });
 
+  it.each(["999999999999999999999999999999", "not-a-page", "1e999"])(
+    "recovers safely from the unused page query %s without changing cursor pagination",
+    (page) => {
+      expect(parseGroupSearchFilters({ cursor: "signed-cursor", page })).toEqual({
+        query: null,
+        teamId: null,
+        cursor: "signed-cursor",
+        limit: 20,
+      });
+    },
+  );
+
   it.each([
     { q: "x" },
     { q: "a".repeat(81) },

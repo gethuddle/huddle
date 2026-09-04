@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, LoaderCircle } from "lucide-react";
 import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
@@ -69,6 +69,7 @@ export function WorkspaceSwitcher({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
+            aria-busy={pending}
             aria-label="Switch workspace"
             className={`max-w-full rounded-full ${appearance === "compact" ? "" : "min-h-12 gap-2 px-2.5"}`}
             disabled={pending}
@@ -93,7 +94,15 @@ export function WorkspaceSwitcher({
                 </span>
               ) : null}
             </span>
-            <ChevronsUpDown aria-hidden="true" />
+            {pending ? (
+              <LoaderCircle
+                aria-hidden="true"
+                className="animate-spin motion-reduce:animate-none"
+                data-slot="workspace-switch-spinner"
+              />
+            ) : (
+              <ChevronsUpDown aria-hidden="true" />
+            )}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align={align} aria-label="Workspace switcher" className="min-w-64">

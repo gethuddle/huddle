@@ -7,11 +7,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signUpAction } from "@/features/auth/actions";
 import { FieldError, FormFeedback } from "@/features/auth/components/form-feedback";
-import { INITIAL_AUTH_ACTION_STATE } from "@/features/auth/state";
+import { INITIAL_AUTH_ACTION_STATE, type AuthActionState } from "@/features/auth/state";
 import { TurnstileWidget } from "@/features/auth/components/turnstile-widget";
 
 export function SignUpForm({ turnstileSiteKey }: Readonly<{ turnstileSiteKey?: string }>) {
-  const [state, formAction, pending] = useActionState(signUpAction, INITIAL_AUTH_ACTION_STATE);
+  const [credentials, setCredentials] = useState({
+    confirmPassword: "",
+    email: "",
+    password: "",
+  });
+  const [state, formAction, pending] = useActionState(
+    async (previousState: AuthActionState, formData: FormData): Promise<AuthActionState> => {
+      const nextState = await signUpAction(previousState, formData);
+      if (nextState?.ok === true) setCredentials({ confirmPassword: "", email: "", password: "" });
+      return nextState;
+    },
+    INITIAL_AUTH_ACTION_STATE,
+  );
   const fieldErrors = state?.ok === false ? state.error.fields : undefined;
   const [turnstileReady, setTurnstileReady] = useState(turnstileSiteKey === undefined);
 
@@ -34,9 +46,13 @@ export function SignUpForm({ turnstileSiteKey }: Readonly<{ turnstileSiteKey?: s
           id="sign-up-email"
           inputMode="email"
           name="email"
+          onChange={(event) =>
+            setCredentials((current) => ({ ...current, email: event.target.value }))
+          }
           placeholder="you@example.com"
           required
           type="email"
+          value={credentials.email}
         />
         <FieldError id="sign-up-email-error" messages={fieldErrors?.email} />
       </div>
@@ -52,8 +68,12 @@ export function SignUpForm({ turnstileSiteKey }: Readonly<{ turnstileSiteKey?: s
           className="mt-2"
           id="sign-up-password"
           name="password"
+          onChange={(event) =>
+            setCredentials((current) => ({ ...current, password: event.target.value }))
+          }
           required
           type="password"
+          value={credentials.password}
         />
         <span className="mt-2 block text-xs text-muted-foreground" id="sign-up-password-help">
           Use 15–72 characters. A long passphrase works well.
@@ -72,8 +92,12 @@ export function SignUpForm({ turnstileSiteKey }: Readonly<{ turnstileSiteKey?: s
           className="mt-2"
           id="sign-up-confirm-password"
           name="confirmPassword"
+          onChange={(event) =>
+            setCredentials((current) => ({ ...current, confirmPassword: event.target.value }))
+          }
           required
           type="password"
+          value={credentials.confirmPassword}
         />
         <FieldError id="sign-up-confirm-password-error" messages={fieldErrors?.confirmPassword} />
       </div>

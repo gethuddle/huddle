@@ -28,7 +28,7 @@ vi.mock("@/features/auth/turnstile", () => ({
 
 const anonymousState: AppShellState = {
   isSignedIn: false,
-  workspace: { active: null, available: [], isModerator: false },
+  workspace: { active: null, available: [] },
 };
 
 describe("sign-in page", () => {
@@ -45,7 +45,7 @@ describe("sign-in page", () => {
   it("redirects an already signed-in account instead of rendering another login form", async () => {
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: true,
-      workspace: { active: null, available: [], isModerator: false },
+      workspace: { active: null, available: [] },
     } satisfies AppShellState);
 
     await SignInPage({ searchParams: Promise.resolve({}) });

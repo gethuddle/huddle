@@ -5,9 +5,21 @@ import { useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { VenueCalendarEntry } from "@/features/venues/workspace/types";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import type { VenueCalendarEntry, VenueCalendarStatus } from "@/features/venues/workspace/types";
 import { cn } from "@/lib/utils";
-import { venueEventHref } from "@/features/venues/workspace/event-links";
+import { venueCollectionHref, venueEventHref } from "@/features/venues/workspace/event-links";
+import {
+  collectionHasOverflow,
+  collectionPageCount,
+  collectionVisibleTotal,
+} from "@/lib/pagination";
 
 const FILTERS = ["Draft", "Published", "Full", "Cancelled", "Completed"] as const;
 type CalendarFilter = (typeof FILTERS)[number];
@@ -49,13 +61,37 @@ export function VenueCalendar({
   events,
   surface = "calendar",
   slug,
+  status: serverStatus,
+  page = 1,
+  totalCount,
 }: Readonly<{
   events: readonly VenueCalendarEntry[];
   surface?: "calendar" | "events";
   slug?: string;
+  status?: VenueCalendarStatus;
+  page?: number;
+  totalCount?: number;
 }>) {
   const [view, setView] = useState<"agenda" | "month">("agenda");
-  const [filter, setFilter] = useState<CalendarFilter | null>(null);
+  const [localFilter, setLocalFilter] = useState<CalendarFilter | null>(null);
+  const filter =
+    serverStatus === undefined
+      ? localFilter
+      : serverStatus === "all"
+        ? null
+        : (
+            {
+              draft: "Draft",
+              published: "Published",
+              full: "Full",
+              cancelled: "Cancelled",
+              completed: "Completed",
+            } as const
+          )[serverStatus];
+  const returnTo =
+    slug && serverStatus !== undefined
+      ? venueCollectionHref(slug, surface, serverStatus, page)
+      : undefined;
   const visible = useMemo(
     () => events.filter((event) => filter === null || statusFor(event) === filter),
     [events, filter],
@@ -70,7 +106,7 @@ export function VenueCalendar({
   }, [visible]);
 
   return (
-    <div className="mt-8">
+    <div className="mt-8 scroll-mt-24" id={`venue-${surface}`}>
       <div className="flex flex-wrap items-center justify-between gap-4">
         {surface === "calendar" ? (
           <div
@@ -100,18 +136,51 @@ export function VenueCalendar({
           <p className="text-sm font-semibold text-foreground">All venue events</p>
         )}
         <div aria-label="Event status" className="flex flex-wrap gap-2">
-          {FILTERS.map((candidate) => (
-            <Button
-              aria-pressed={filter === candidate}
-              key={candidate}
-              onClick={() => setFilter((current) => (current === candidate ? null : candidate))}
-              size="sm"
-              type="button"
-              variant={filter === candidate ? "default" : "outline"}
-            >
-              {candidate}
+          {serverStatus !== undefined && slug ? (
+            <Button asChild size="sm" variant={filter === null ? "default" : "outline"}>
+              <Link
+                aria-current={filter === null ? "page" : undefined}
+                href={venueCollectionHref(slug, surface, "all", 1)}
+              >
+                All
+              </Link>
             </Button>
-          ))}
+          ) : null}
+          {FILTERS.map((candidate) =>
+            serverStatus !== undefined && slug ? (
+              <Button
+                asChild
+                key={candidate}
+                size="sm"
+                variant={filter === candidate ? "default" : "outline"}
+              >
+                <Link
+                  aria-current={filter === candidate ? "page" : undefined}
+                  href={venueCollectionHref(
+                    slug,
+                    surface,
+                    candidate.toLowerCase() as VenueCalendarStatus,
+                    1,
+                  )}
+                >
+                  {candidate}
+                </Link>
+              </Button>
+            ) : (
+              <Button
+                aria-pressed={filter === candidate}
+                key={candidate}
+                onClick={() =>
+                  setLocalFilter((current) => (current === candidate ? null : candidate))
+                }
+                size="sm"
+                type="button"
+                variant={filter === candidate ? "default" : "outline"}
+              >
+                {candidate}
+              </Button>
+            ),
+          )}
         </div>
       </div>
 
@@ -130,7 +199,7 @@ export function VenueCalendar({
               key={event.id}
               href={
                 slug
-                  ? venueEventHref(event.id, slug, surface, event.status === "draft")
+                  ? venueEventHref(event.id, slug, surface, event.status === "draft", returnTo)
                   : `/events/${event.id}`
               }
             />
@@ -148,7 +217,13 @@ export function VenueCalendar({
                       className="block min-h-11 rounded-xl bg-muted p-3 outline-none hover:ring-1 hover:ring-border-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                       href={
                         slug
-                          ? venueEventHref(event.id, slug, surface, event.status === "draft")
+                          ? venueEventHref(
+                              event.id,
+                              slug,
+                              surface,
+                              event.status === "draft",
+                              returnTo,
+                            )
                           : `/events/${event.id}`
                       }
                     >
@@ -164,6 +239,43 @@ export function VenueCalendar({
           ))}
         </div>
       )}
+      {totalCount !== undefined && collectionHasOverflow(totalCount) ? (
+        <p className="mt-4 text-sm text-muted-foreground">
+          Showing the first {collectionVisibleTotal(totalCount).toLocaleString("en-US")} events. Use
+          the filters to narrow the collection.
+        </p>
+      ) : null}
+      {totalCount !== undefined && collectionPageCount(totalCount) > 1 ? (
+        <Pagination className="mt-10">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                aria-disabled={page === 1}
+                href={
+                  page > 1 && slug && serverStatus
+                    ? venueCollectionHref(slug, surface, serverStatus, page - 1)
+                    : undefined
+                }
+              />
+            </PaginationItem>
+            <PaginationItem>
+              <span className="px-4 text-sm text-muted-foreground">
+                Page {page} of {collectionPageCount(totalCount)}
+              </span>
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationNext
+                aria-disabled={page >= collectionPageCount(totalCount)}
+                href={
+                  page < collectionPageCount(totalCount) && slug && serverStatus
+                    ? venueCollectionHref(slug, surface, serverStatus, page + 1)
+                    : undefined
+                }
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      ) : null}
     </div>
   );
 }

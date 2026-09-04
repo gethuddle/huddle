@@ -92,10 +92,79 @@ describe("VenueCalendar", () => {
   });
 
   it("provides a focused event directory without duplicating calendar view controls", () => {
-    render(<VenueCalendar events={[base]} surface="events" />);
+    render(
+      <VenueCalendar
+        events={[base]}
+        surface="events"
+        slug="corner"
+        status="published"
+        page={2}
+        totalCount={41}
+      />,
+    );
 
     expect(screen.queryByRole("tablist", { name: "Calendar view" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Derby night/ })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Published" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Published" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: /Derby night/ })).toHaveAttribute(
+      "href",
+      expect.stringContaining(
+        "returnTo=%2Fvenues%2Fcorner%2Fworkspace%2Fevents%3Fstatus%3Dpublished%26page%3D2%23venue-events",
+      ),
+    );
+    expect(screen.getByText("Page 2 of 3")).toBeVisible();
+    expect(screen.getByLabelText("Go to next page")).toHaveAttribute(
+      "href",
+      "/venues/corner/workspace/events?status=published&page=3#venue-events",
+    );
+  });
+
+  it("uses links that reset paging so the server filters before pagination", () => {
+    render(
+      <VenueCalendar
+        events={[base]}
+        surface="calendar"
+        slug="corner"
+        status="all"
+        page={13}
+        totalCount={251}
+      />,
+    );
+    expect(screen.getByRole("link", { name: "Completed" })).toHaveAttribute(
+      "href",
+      "/venues/corner/workspace/calendar?status=completed&page=1#venue-calendar",
+    );
+  });
+
+  it.each(["calendar", "events"] as const)(
+    "anchors the %s collection below the sticky shell",
+    (surface) => {
+      const { container } = render(
+        <VenueCalendar
+          events={[base]}
+          surface={surface}
+          slug="corner"
+          status="all"
+          totalCount={1}
+        />,
+      );
+      expect(container.querySelector(`#venue-${surface}`)).toHaveClass("scroll-mt-24");
+    },
+  );
+
+  it("explains when more events exist beyond the standard collection window", () => {
+    render(
+      <VenueCalendar
+        events={[base]}
+        surface="events"
+        slug="corner"
+        status="all"
+        page={501}
+        totalCount={10_021}
+      />,
+    );
+    expect(screen.getByText(/Showing the first 10,020 events/)).toHaveTextContent(
+      "Showing the first 10,020 events. Use the filters to narrow the collection.",
+    );
   });
 });

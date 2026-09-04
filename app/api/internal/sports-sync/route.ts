@@ -1,5 +1,7 @@
+import { revalidateTag } from "next/cache";
 import { type NextRequest, NextResponse } from "next/server";
 
+import { sportsCatalogCacheTag } from "@/features/sports/cache";
 import {
   sportsSyncRequestBodyIsTooLarge,
   sportsSyncRequestSchema,
@@ -85,6 +87,17 @@ export async function POST(request: NextRequest) {
       provider,
       reason: parsedBody.reason,
     });
+    try {
+      revalidateTag(sportsCatalogCacheTag(environment.NEXT_PUBLIC_SUPABASE_URL), { expire: 0 });
+    } catch {
+      // The database sync has already committed. Its six-hour cache expiry is a
+      // safe fallback, so a transient cache failure must not invite a duplicate
+      // provider retry or misreport the completed synchronization as failed.
+      safeLog("warn", "route.cache_revalidation_failed", {
+        requestId,
+        route: "/api/internal/sports-sync",
+      });
+    }
 
     safeLog("info", "route.completed", {
       requestId,

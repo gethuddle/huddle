@@ -648,9 +648,9 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 - [x] Add schema/action/component/E2E tests and comprehensive pgTAP coverage for the lifecycle, stale JWT, home-location exception, active-token rule, sensitive-message removal, concurrency, and idempotency.
 - [x] Complete the local database reset, focused erasure and concurrency pgTAP suites, schema lint, generated-type regeneration, and generated-type freshness check.
 - [x] Complete the full database regression suite, build, E2E, and full acceptance run before publication.
-- [ ] Deploy the account-erasure migration and verify one fresh-browser production deletion only after separate explicit authorization.
+- [x] Deploy the account-erasure migration after separate explicit authorization and verify matching production migration/application parity. Do not use destructive deletion of a real production account as a routine acceptance probe.
 
-**Current delivery status (3 September 2026):** the isolated implementation branch contains the migration, application/UI changes, and tests. Its fresh complete acceptance run passed formatting, lint, typecheck, 1,057 unit/component assertions with one live-model test skipped, reset and schema lint, 1,746 database/RLS assertions including the 49 focused erasure and 12 concurrency assertions, generated-type freshness, the production build, all 35 Playwright journeys, the secret audit, and diff hygiene. Independent database/security and UI reviews found no remaining blocker. The account-erasure migration has not been deployed to production and no hosted deletion result is claimed.
+**Delivery status updated 4 September 2026:** the isolated implementation passed formatting, lint, typecheck, 1,057 unit/component assertions with one live-model test skipped, reset and schema lint, 1,746 database/RLS assertions including the 49 focused erasure and 12 concurrency assertions, generated-type freshness, the production build, all 35 Playwright journeys, the secret audit, and diff hygiene. Independent database/security and UI reviews found no blocker. It merged through PR #54, and its migration and matching application code were subsequently deployed with verified production parity. Destructive deletion of a real production account remains excluded from routine hosted acceptance.
 
 **Tests/evidence:** exact input bounds; same-user reauthentication and RPC/provider ordering; provider failure/retry; sign-out transport-failure cleanup; cookie and consumed-marker-gated browser-state clearing without replay; dialog accessibility/responsiveness; forced RLS; stale-JWT direct-read and mutation denial while privileged checks prove retained history exists; owned-object archival; future-event cancellation; invitation/attendance/membership transitions; application-message removal; active-only token revocation; exact-location deletion plus ordinary guard preservation; canonical actor concurrency; idempotent residue cleanup; one audit event; and retained pseudonymous history.
 
@@ -1366,7 +1366,7 @@ evidence for merge; hosted checks remain B13 (`D02`–`D04`).
 - [x] Ensure previews do not mutate production by default.
 - [ ] Create/configure Supabase and Vercel only with both partners' explicit approval.
 - [x] Apply the committed 12-migration history before deploying code that requires it.
-- [ ] Apply the new account-erasure migration before exposing account deletion in production; it is not deployed as of 3 September 2026.
+- [x] Apply the account-erasure migration before exposing account deletion in production; matching migration/application parity was verified on 4 September 2026.
 - [ ] Configure public URLs, Auth redirects, allowed origins, and environment-specific secrets.
 - [x] Run the separately authorized guarded production Auth configuration apply and immediate exact `npm run auth:config:check`; both passed on 3 September 2026. Fresh email/browser acceptance remains pending.
 - [ ] Verify anonymous public browse and signed-in session behavior.
@@ -1503,7 +1503,7 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 
 ## 18. The rule to remember
 
-**4 September submission-hardening follow-up:** the coordinated corrective slice addresses the 17-finding audit, performance/navigation work, automatic venue addresses, availability hints, secure email changes, fixture pagination, and map-worker loading. Its writer status is **review (local acceptance passed)**, not a merged release or B13 completion. [Current acceptance evidence](./evidence/submission-hardening/ACCEPTANCE.md) records passing isolated checks and the remaining separately authorized hosted/rehearsal gates. The historical milestone ledger above is not rewritten by local changes.
+**4 September submission-hardening release:** the coordinated corrective slice addresses the 17-finding audit, performance/navigation work, automatic venue addresses, availability hints, secure email changes, fixture pagination, and map-worker loading. It passed isolated acceptance and required CI, merged through [PR #58](https://github.com/gethuddle/huddle/pull/58) as [`9a485916`](https://github.com/gethuddle/huddle/commit/9a4859168201589da3d3ab2a743ab163cc620a58), and was deployed with matching production migrations and Auth configuration. [Acceptance evidence](./evidence/submission-hardening/ACCEPTANCE.md) keeps that release distinct from later production-audit corrections and the still-separate full B13 presentation rehearsal.
 
 For every delivery milestone:
 

@@ -1192,10 +1192,10 @@ test("complete deterministic Fan and Venue workspace journey", async ({
       .getByRole("link", { name: identity.draftVenueTitles[0] })
       .getAttribute("href");
     expect(draftEventPath).toMatch(/^\/events\/[0-9a-f-]{36}\/manage\?returnTo=/);
-    await page.getByRole("button", { name: "Draft" }).click();
+    await page.getByRole("link", { name: "Draft", exact: true }).click();
     await expect(page.getByRole("link", { name: identity.draftVenueTitles[0] })).toBeVisible();
     await expect(page.getByRole("link", { name: identity.publishedVenueTitles[0] })).toHaveCount(0);
-    await page.getByRole("button", { name: "Draft" }).click();
+    await page.getByRole("link", { name: "All", exact: true }).click();
 
     await participantPage.goto(journeyUrl(participantPage, draftEventPath!));
     await expect(
@@ -1216,7 +1216,11 @@ test("complete deterministic Fan and Venue workspace journey", async ({
     await expect(page.getByRole("button", { name: "Save changes", exact: true })).toBeVisible();
     await page.getByRole("link", { name: "Event details" }).click();
     await page.getByRole("link", { name: "Back to venue" }).click();
-    await expect(page).toHaveURL(new RegExp(`/venues/${identity.venueSlug}/workspace/calendar$`));
+    await expect(page).toHaveURL(
+      new RegExp(
+        `/venues/${identity.venueSlug}/workspace/calendar\\?status=all&page=1#venue-calendar$`,
+      ),
+    );
     await page.getByRole("link", { name: identity.draftVenueTitles[1] }).click();
     await page.getByRole("button", { name: "Cancel draft", exact: true }).click();
     await page.getByRole("button", { name: "Keep draft", exact: true }).click();

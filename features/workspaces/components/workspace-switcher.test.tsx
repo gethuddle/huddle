@@ -128,4 +128,43 @@ describe("WorkspaceSwitcher", () => {
       "We could not switch workspaces. Please try again.",
     );
   });
+
+  it("shows immediate progress while a workspace switch is waiting for the server", async () => {
+    const user = userEvent.setup();
+    let finishSwitch: (() => void) | undefined;
+    mocks.selectWorkspaceAction.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finishSwitch = () =>
+          resolve({
+            ok: false,
+            error: { code: "UPSTREAM_UNAVAILABLE", message: "Try again." },
+          });
+      }),
+    );
+    render(
+      <WorkspaceSwitcher
+        active={{ kind: "fan", id: fanId, slug: "fan_one", label: "Fan One", role: "fan" }}
+        available={[
+          { kind: "fan", id: fanId, slug: "fan_one", label: "Fan One", role: "fan" },
+          {
+            kind: "venue",
+            id: venueId,
+            slug: "match-corner",
+            label: "Match Corner",
+            role: "owner",
+          },
+        ]}
+      />,
+    );
+
+    const trigger = screen.getByRole("button", { name: "Switch workspace" });
+    await user.click(trigger);
+    await user.click(await screen.findByRole("menuitem", { name: /Match Corner/ }));
+
+    await waitFor(() => expect(trigger).toHaveAttribute("aria-busy", "true"));
+    expect(trigger.querySelector('[data-slot="workspace-switch-spinner"]')).toBeVisible();
+
+    finishSwitch?.();
+    await waitFor(() => expect(trigger).toHaveAttribute("aria-busy", "false"));
+  });
 });

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SignOutButton } from "@/features/auth/components/sign-out-button";
+import { viewerIsPlatformModerator } from "@/features/moderation/queries";
 import { ProfileAccessState } from "@/features/profiles/components/profile-access-state";
 import { WorkspaceSwitcher } from "@/features/workspaces/components/workspace-switcher";
 import { getAppShellState, getWorkspaceSetupAvailability } from "@/features/workspaces/queries";
@@ -10,9 +11,10 @@ import { getAppShellState, getWorkspaceSetupAvailability } from "@/features/work
 export const metadata = { title: "Account — Huddle" };
 
 export default async function AccountPage() {
-  const [state, setupAvailability] = await Promise.all([
+  const [state, setupAvailability, isModerator] = await Promise.all([
     getAppShellState(),
     getWorkspaceSetupAvailability(),
+    viewerIsPlatformModerator().catch(() => false),
   ]);
   if (!state.isSignedIn) {
     return (
@@ -148,7 +150,7 @@ export default async function AccountPage() {
           </CardContent>
         </Card>
 
-        {state.workspace.isModerator ? (
+        {isModerator ? (
           <Card className="rounded-[1.375rem] shadow-none">
             <CardHeader>
               <CardTitle className="text-xl font-semibold">Platform moderation</CardTitle>

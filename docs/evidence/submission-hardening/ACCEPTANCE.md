@@ -2,7 +2,7 @@
 
 Date: 4 September 2026. Branch: `codex/submission-hardening`, based on `b07f542d798c45fd3cea25482b2473bebcdeb09f`.
 
-**Status: local implementation and integrated acceptance passed. Nothing in this change has been published or deployed.** This record uses current command results, not historical CI; hosted release and presentation checks remain separate below.
+**Release status update:** the locally accepted source later passed required CI in [PR #58](https://github.com/gethuddle/huddle/pull/58), merged as [`9a485916`](https://github.com/gethuddle/huddle/commit/9a4859168201589da3d3ab2a743ab163cc620a58), and was deployed with matching production migrations and Auth configuration on 4 September 2026. The command ledger below remains the pre-release local evidence; later production-audit corrections are tracked separately and do not rewrite those historical results.
 
 ## Scope and isolation
 
@@ -75,7 +75,7 @@ Dirty internal-link cancellation and supported browser navigation interception a
 
 ## Authorized release follow-up
 
-The user subsequently approved commit, push, pull request, merge after CI, deployment, and a repeat audit specifically on `https://huddle.co.il`. This approval is not evidence that those steps have completed.
+The user subsequently approved commit, push, pull request, merge after CI, deployment, and a repeat audit specifically on `https://huddle.co.il`. PR #58 completed those release steps at exact merge SHA `9a4859168201589da3d3ab2a743ab163cc620a58`; the repeat production audit then identified bounded signup-field retention, Venue history reachability, malformed Groups pagination, and remaining navigation-latency follow-ups for a separate corrective release.
 
 Fresh pre-release review found an additional retained-identity boundary: event invitation/attendance projections can contain a null handle after account erasure. The application now accepts those two nullable fields, renders the database-provided tombstone without a profile link, and excludes unavailable identities from invitation candidates. Four regressions first failed on the original implementation; the corrected three-file focused suite passed 37 tests and an independent review. No database authorization or migration changed.
 
