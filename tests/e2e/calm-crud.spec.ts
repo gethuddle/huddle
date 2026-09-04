@@ -362,6 +362,151 @@ test("submission navigation timing and Explore workspace switching", async ({ pa
   });
 });
 
+test("primary Fan navigation warms personalized destinations before click", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(60_000);
+  const run = suffix();
+  const owner = await seedFan(run, "prefetch_owner");
+  const rscRequests: Array<{
+    path: string;
+    request: object;
+    settled: boolean;
+  }> = [];
+  const timings: Array<{ transition: string; visibleMilliseconds: number }> = [];
+
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (!url.searchParams.has("_rsc")) return;
+    rscRequests.push({
+      path: url.pathname,
+      request,
+      settled: false,
+    });
+  });
+  const markRequestSettled = (request: object) => {
+    const observed = rscRequests.find((candidate) => candidate.request === request);
+    if (observed !== undefined) observed.settled = true;
+  };
+  page.on("requestfinished", markRequestSettled);
+  page.on("requestfailed", markRequestSettled);
+
+  const waitForSettledPrefetch = async (path: string, from = 0) => {
+    await expect
+      .poll(
+        () => {
+          const matching = rscRequests.slice(from).filter((request) => request.path === path);
+          return matching.length > 0 && matching.every((request) => request.settled);
+        },
+        { message: `${path} should finish warming before it is clicked`, timeout: 15_000 },
+      )
+      .toBe(true);
+  };
+
+  await signIn(page, owner.email);
+  rscRequests.length = 0;
+  await page.goto("/");
+  const navigation = page.getByRole("navigation", { name: "Fan navigation" });
+  await expect(navigation).toBeVisible();
+
+  const forwardDestinations = [
+    { label: "Explore", path: "/discover", landmark: "Explore watch events" },
+    { label: "Ask Huddle", path: "/ask", landmark: "Ask Huddle" },
+    {
+      label: "My Huddle",
+      path: "/dashboard",
+      landmark: "Your events, groups and saved places.",
+    },
+    { label: "People", path: "/people", landmark: "People" },
+  ] as const;
+
+  for (const destination of forwardDestinations) {
+    await waitForSettledPrefetch(destination.path);
+  }
+
+  for (const [index, destination] of forwardDestinations.entries()) {
+    const clickStart = rscRequests.length;
+    const forwardStartedAt = performance.now();
+    await navigation.getByRole("link", { name: destination.label, exact: true }).click();
+    await expect(
+      page.getByRole("heading", { name: destination.landmark, exact: true }),
+    ).toBeVisible();
+    const forwardMilliseconds = performance.now() - forwardStartedAt;
+    timings.push({
+      transition: `Home -> ${destination.label}`,
+      visibleMilliseconds: Math.round(forwardMilliseconds),
+    });
+    expect(
+      rscRequests.slice(clickStart).filter((request) => request.path === destination.path),
+    ).toEqual([]);
+
+    // The first client navigation also warms the hard-loaded Home route.
+    // Later return clicks reuse that private five-minute Router Cache entry.
+    if (index === 0) await waitForSettledPrefetch("/", clickStart);
+
+    const returnStart = rscRequests.length;
+    const returnStartedAt = performance.now();
+    await navigation.getByRole("link", { name: "Home", exact: true }).click();
+    await expect(
+      page.getByRole("heading", { name: "Ready for your next match day?", exact: true }),
+    ).toBeVisible();
+    const returnMilliseconds = performance.now() - returnStartedAt;
+    timings.push({
+      transition: `${destination.label} -> Home`,
+      visibleMilliseconds: Math.round(returnMilliseconds),
+    });
+    expect(rscRequests.slice(returnStart).filter((request) => request.path === "/")).toEqual([]);
+  }
+
+  rscRequests.length = 0;
+  await page.goto("/groups");
+  await expect(
+    page.getByRole("heading", { name: "Find a group that fits.", exact: true }),
+  ).toBeVisible();
+  await waitForSettledPrefetch("/discover");
+  const exploreFromGroupStart = rscRequests.length;
+  const exploreFromGroupStartedAt = performance.now();
+  await navigation.getByRole("link", { name: "Explore", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Explore watch events", exact: true }),
+  ).toBeVisible();
+  const exploreFromGroupMilliseconds = performance.now() - exploreFromGroupStartedAt;
+  timings.push({
+    transition: "Groups -> Explore",
+    visibleMilliseconds: Math.round(exploreFromGroupMilliseconds),
+  });
+  expect(
+    rscRequests.slice(exploreFromGroupStart).filter((request) => request.path === "/discover"),
+  ).toEqual([]);
+
+  await page.setViewportSize({ width: 375, height: 812 });
+  rscRequests.length = 0;
+  await page.goto("/");
+  const mobileNavigation = page.getByRole("navigation", { name: "Fan mobile navigation" });
+  await expect(mobileNavigation).toBeVisible();
+  await waitForSettledPrefetch("/ask");
+  const mobileAskStart = rscRequests.length;
+  await mobileNavigation.getByRole("link", { name: "Ask", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Ask Huddle", exact: true })).toBeVisible();
+  expect(rscRequests.slice(mobileAskStart).filter((request) => request.path === "/ask")).toEqual(
+    [],
+  );
+  await waitForSettledPrefetch("/", mobileAskStart);
+  const mobileHomeStart = rscRequests.length;
+  await mobileNavigation.getByRole("link", { name: "Home", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Ready for your next match day?", exact: true }),
+  ).toBeVisible();
+  expect(rscRequests.slice(mobileHomeStart).filter((request) => request.path === "/")).toEqual([]);
+
+  const timingEvidence = JSON.stringify(timings);
+  console.log(`[fan-navigation-cache] ${timingEvidence}`);
+  await testInfo.attach("fan-navigation-cache.json", {
+    body: timingEvidence,
+    contentType: "application/json",
+  });
+});
+
 test("built discovery and pin-picker maps start a same-origin worker with its shared module", async ({
   page,
 }) => {

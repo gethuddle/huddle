@@ -60,6 +60,8 @@ export function SiteHeader({
               aria-label="Huddle home"
               className="inline-flex min-h-11 shrink-0 items-center gap-3 rounded-full outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               href={homeHref}
+              key={`${homeHref}:${pathname === homeHref ? "current" : "available"}`}
+              prefetch={fanActive ? pathname !== homeHref : undefined}
             >
               <BrandMark decorative priority size={28} />
               <span className="text-xl font-semibold tracking-[-0.035em]">Huddle</span>
@@ -73,6 +75,7 @@ export function SiteHeader({
                   ({ href }) => assistedDiscoveryEnabled || href !== "/ask",
                 ).map(({ desktopLabel, href }) => {
                   const current = fanDestinationIsCurrent(pathname, href);
+                  const exactDestination = pathname === href;
                   return (
                     <Link
                       aria-current={current ? "page" : undefined}
@@ -82,7 +85,8 @@ export function SiteHeader({
                           "text-forest after:absolute after:inset-x-4 after:bottom-0 after:h-0.5 after:rounded-full after:bg-forest",
                       )}
                       href={href}
-                      key={href}
+                      key={`${href}:${exactDestination ? "current" : "available"}`}
+                      prefetch={!exactDestination}
                     >
                       {desktopLabel}
                     </Link>

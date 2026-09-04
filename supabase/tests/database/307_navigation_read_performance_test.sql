@@ -14,6 +14,7 @@ select is(
       and procedure.oid = any (array[
         'public.list_attention_items(integer)'::regprocedure,
         'public.list_my_events(text,integer,integer)'::regprocedure,
+        'public.get_fan_home()'::regprocedure,
         'public.list_my_group_relationships(text,integer,integer)'::regprocedure,
         'public.list_my_saved_items(text,integer,integer)'::regprocedure,
         'public.list_people_hub(text,text,integer,integer)'::regprocedure,
@@ -31,7 +32,7 @@ select is(
       and procedure.prosecdef
       and procedure.proconfig = array['search_path=""']::text[]
   ),
-  14::bigint,
+  15::bigint,
   'navigation projections are stable read-only security-definer functions'
 );
 
@@ -41,6 +42,7 @@ select is(
     from unnest(array[
       'public.list_attention_items(integer)'::regprocedure,
       'public.list_my_events(text,integer,integer)'::regprocedure,
+      'public.get_fan_home()'::regprocedure,
       'public.list_my_group_relationships(text,integer,integer)'::regprocedure,
       'public.list_my_saved_items(text,integer,integer)'::regprocedure,
       'public.list_people_hub(text,text,integer,integer)'::regprocedure,
@@ -58,7 +60,7 @@ select is(
       and not pg_catalog.has_function_privilege('anon', target.procedure_oid, 'execute')
       and not pg_catalog.has_function_privilege('public', target.procedure_oid, 'execute')
   ),
-  14::bigint,
+  15::bigint,
   'read-only optimization preserves authenticated-only execution privileges'
 );
 
