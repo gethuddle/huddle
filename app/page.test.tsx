@@ -44,26 +44,6 @@ const fan = {
   role: "fan" as const,
 };
 
-function mockViewer(sub: string | null, displayName: string | null = null) {
-  mocks.createClient.mockResolvedValue({
-    auth: {
-      getClaims: vi.fn().mockResolvedValue({
-        data: { claims: sub === null ? {} : { sub } },
-      }),
-    },
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          maybeSingle: vi.fn().mockResolvedValue({
-            data: displayName === null ? null : { display_name: displayName },
-            error: null,
-          }),
-        })),
-      })),
-    })),
-  });
-}
-
 describe("Home", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -74,18 +54,22 @@ describe("Home", () => {
     mocks.redirect.mockImplementation(() => {
       throw new Error("NEXT_REDIRECT");
     });
-    mockViewer(null);
-    mocks.getFanHome.mockResolvedValue({ nextEvent: null, attention: [], suggestion: null });
+    mocks.getFanHome.mockResolvedValue({
+      displayName: null,
+      nextEvent: null,
+      attention: [],
+      suggestion: null,
+    });
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: false,
-      workspace: { active: null, available: [], isModerator: false },
+      workspace: { active: null, available: [] },
     });
   });
 
   it("routes an active Venue operator from the global root to Venue Today", async () => {
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: true,
-      workspace: { active: venue, available: [venue], isModerator: false },
+      workspace: { active: venue, available: [venue] },
     });
 
     await expect(Home()).rejects.toThrow("NEXT_REDIRECT");
@@ -118,10 +102,8 @@ describe("Home", () => {
   it("renders Fan Home for an active Fan workspace", async () => {
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: true,
-      workspace: { active: fan, available: [fan], isModerator: false },
+      workspace: { active: fan, available: [fan] },
     });
-    mockViewer(fan.id, "Fan One");
-
     render(await Home());
 
     expect(screen.getByRole("heading", { name: "Ready for your next match day?" })).toBeVisible();
@@ -140,40 +122,33 @@ describe("Home", () => {
     expect(mocks.redirect).not.toHaveBeenCalled();
   });
 
-  it("starts the profile and Fan Home reads together after resolving the viewer", async () => {
+  it("renders the authorized Fan Home greeting without another page-level Supabase read", async () => {
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: true,
-      workspace: { active: fan, available: [fan], isModerator: false },
+      workspace: { active: fan, available: [fan] },
     });
-    let resolveProfile:
-      ((value: { data: { display_name: string } | null; error: null }) => void) | undefined;
-    const profile = new Promise<{ data: { display_name: string } | null; error: null }>(
-      (resolve) => {
-        resolveProfile = resolve;
-      },
+    mocks.createClient.mockRejectedValue(
+      new Error("Home must not create a second Supabase client for Fan identity"),
     );
-    const maybeSingle = vi.fn(() => profile);
-    mocks.createClient.mockResolvedValue({
-      auth: { getClaims: vi.fn().mockResolvedValue({ data: { claims: { sub: fan.id } } }) },
-      from: vi.fn(() => ({ select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle })) })) })),
+    mocks.getFanHome.mockResolvedValue({
+      displayName: "Fan One",
+      nextEvent: null,
+      attention: [],
+      suggestion: null,
     });
 
-    const home = Home();
-    await waitFor(() => expect(maybeSingle).toHaveBeenCalledOnce());
-    expect(mocks.getFanHome).toHaveBeenCalledOnce();
-    resolveProfile?.({ data: { display_name: "Fan One" }, error: null });
-
-    render(await home);
+    render(await Home());
     expect(screen.getByText("Welcome back, Fan One")).toBeVisible();
+    expect(mocks.createClient).not.toHaveBeenCalled();
   });
 
   it("shows one next event and one followed fixture suggestion without duplicating the library", async () => {
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: true,
-      workspace: { active: fan, available: [fan], isModerator: false },
+      workspace: { active: fan, available: [fan] },
     });
-    mockViewer(fan.id, "Fan One");
     mocks.getFanHome.mockResolvedValue({
+      displayName: "Fan One",
       nextEvent: {
         id: "c5000000-0000-4000-8000-000000000501",
         title: "North London watch",
@@ -235,10 +210,8 @@ describe("Home", () => {
   it("keeps assisted discovery off Home now that Ask has its own destination", async () => {
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: true,
-      workspace: { active: fan, available: [fan], isModerator: false },
+      workspace: { active: fan, available: [fan] },
     });
-    mockViewer(fan.id, "Fan One");
-
     render(await Home());
 
     expect(
@@ -249,10 +222,8 @@ describe("Home", () => {
   it("routes a brand-new signed-in account with no workspace to setup choice", async () => {
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: true,
-      workspace: { active: null, available: [], isModerator: false },
+      workspace: { active: null, available: [] },
     });
-    mockViewer("e4000000-0000-4000-8000-000000000103");
-
     await expect(Home()).rejects.toThrow("NEXT_REDIRECT");
     expect(mocks.redirect).toHaveBeenCalledWith("/onboarding");
   });
@@ -260,10 +231,8 @@ describe("Home", () => {
   it("routes a stale-rules Venue account with no currently valid workspace to recovery", async () => {
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: true,
-      workspace: { active: null, available: [], isModerator: false },
+      workspace: { active: null, available: [] },
     });
-    mockViewer("e4000000-0000-4000-8000-000000000104");
-
     await expect(Home()).rejects.toThrow("NEXT_REDIRECT");
     expect(mocks.redirect).toHaveBeenCalledWith("/onboarding");
     expect(mocks.redirect).not.toHaveBeenCalledWith("/settings/profile");

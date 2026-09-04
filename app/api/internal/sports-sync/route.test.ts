@@ -10,8 +10,13 @@ const mocks = vi.hoisted(() => ({
   createAnonymousServerClient: vi.fn(),
   createProvider: vi.fn(),
   createServiceRoleClient: vi.fn(),
+  revalidateTag: vi.fn(),
   runSportsSync: vi.fn(),
   safeLog: vi.fn(),
+}));
+
+vi.mock("next/cache", () => ({
+  revalidateTag: mocks.revalidateTag,
 }));
 
 vi.mock("@/lib/env/server", () => ({
@@ -146,6 +151,10 @@ describe("POST /api/internal/sports-sync", () => {
       provider: expect.objectContaining({ kind: "provider" }),
       reason: "manual",
     });
+    expect(mocks.revalidateTag).toHaveBeenCalledOnce();
+    expect(mocks.revalidateTag).toHaveBeenCalledWith("sports-catalog:example.supabase.co", {
+      expire: 0,
+    });
     expect(mocks.safeLog).toHaveBeenCalledWith(
       "info",
       "route.completed",
@@ -163,6 +172,33 @@ describe("POST /api/internal/sports-sync", () => {
     expect(response.status).toBe(200);
     expect(mocks.runSportsSync).toHaveBeenCalledWith(
       expect.objectContaining({ reason: "scheduled" }),
+    );
+  });
+
+  it("keeps a committed synchronization successful when cache invalidation fails", async () => {
+    mocks.revalidateTag.mockImplementationOnce(() => {
+      throw new Error("cache unavailable");
+    });
+
+    const response = await POST(syncRequest({ secret: "expected-sync-secret" }));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      runId: "50000000-0000-4000-8000-000000000001",
+      summary: { matchesChanged: 2 },
+    });
+    expect(mocks.safeLog).toHaveBeenCalledWith(
+      "warn",
+      "route.cache_revalidation_failed",
+      expect.objectContaining({
+        requestId: expect.any(String),
+        route: "/api/internal/sports-sync",
+      }),
+    );
+    expect(mocks.safeLog).toHaveBeenCalledWith(
+      "info",
+      "route.completed",
+      expect.objectContaining({ outcome: "succeeded", status: 200 }),
     );
   });
 
@@ -204,6 +240,7 @@ describe("POST /api/internal/sports-sync", () => {
     await expect(response.json()).resolves.toMatchObject({
       error: { code: "SYNC_ALREADY_RUNNING" },
     });
+    expect(mocks.revalidateTag).not.toHaveBeenCalled();
   });
 
   it("returns a safe 503 without provider payload details after a failed run", async () => {
@@ -220,5 +257,6 @@ describe("POST /api/internal/sports-sync", () => {
     expect(body).toMatchObject({ error: { code: "UPSTREAM_UNAVAILABLE" } });
     expect(JSON.stringify(body)).not.toContain("provider-token");
     expect(JSON.stringify(body)).not.toContain("raw provider payload");
+    expect(mocks.revalidateTag).not.toHaveBeenCalled();
   });
 });

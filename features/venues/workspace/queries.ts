@@ -3,10 +3,13 @@ import "server-only";
 import { z } from "zod";
 
 import { DomainError, domainErrorFromDatabase } from "@/lib/errors";
+import { boundedPage, collectionOffset } from "@/lib/pagination";
 import { createClient } from "@/lib/supabase/server";
 
 import type {
   VenueCalendarEntry,
+  VenueCalendarPage,
+  VenueCalendarStatus,
   VenueFacility,
   VenueSettings,
   VenueTodayEvent,
@@ -144,6 +147,9 @@ const venueSettingsRowSchema = z
 const venueTodayEventRowSchema = venueCalendarRowSchema.safeExtend({
   waiting_attendee_count: z.number().int().nonnegative(),
 });
+const venueCalendarPageRowSchema = venueCalendarRowSchema.safeExtend({
+  total_count: z.number().int().nonnegative(),
+});
 const venueAttentionRowSchema = z
   .object({
     event_id: z.uuid(),
@@ -235,6 +241,46 @@ export async function listVenueCalendar(
         approvedAttendeeCount: row.approved_attendee_count,
         requiresApproval: row.requires_approval,
       }));
+  } catch (cause) {
+    throw new DomainError("INTERNAL_ERROR", { cause });
+  }
+}
+
+export async function listVenueCalendarPage(
+  venueId: string,
+  status: VenueCalendarStatus,
+  rawPage: unknown,
+): Promise<VenueCalendarPage> {
+  const page = boundedPage(rawPage);
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("list_venue_calendar_page", {
+    input_venue_id: venueId,
+    input_status: status,
+    input_limit: 20,
+    input_offset: collectionOffset(page),
+  });
+  if (error !== null) throw domainErrorFromDatabase(error);
+  try {
+    const rows = z.array(venueCalendarPageRowSchema).parse(data);
+    return {
+      page,
+      totalCount: rows.at(0)?.total_count ?? 0,
+      items: rows.map((row) => ({
+        id: row.event_id,
+        title: row.title,
+        status: row.status,
+        startsAt: row.starts_at,
+        endsAt: row.ends_at,
+        venueSpace:
+          row.venue_space_id === null || row.venue_space_name === null
+            ? null
+            : { id: row.venue_space_id, name: row.venue_space_name },
+        attendanceMode: row.attendance_mode,
+        capacity: row.capacity,
+        approvedAttendeeCount: row.approved_attendee_count,
+        requiresApproval: row.requires_approval,
+      })),
+    };
   } catch (cause) {
     throw new DomainError("INTERNAL_ERROR", { cause });
   }

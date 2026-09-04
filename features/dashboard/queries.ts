@@ -426,12 +426,13 @@ async function getHomeFixtureSuggestion(
 
 export async function getFanHome(): Promise<
   Readonly<{
+    displayName: string | null;
     nextEvent: MyEvent | null;
     attention: readonly AttentionItem[];
     suggestion: PublicMatchDto | null;
   }>
 > {
-  const { supabase } = await requireActor("fan");
+  const { supabase, profile } = await requireActor("fan");
   const [upcomingResult, attentionResult, teamsResult, competitionsResult] = await Promise.all([
     supabase.rpc("list_my_events", {
       input_bucket: "upcoming",
@@ -461,6 +462,7 @@ export async function getFanHome(): Promise<
   ]);
 
   return {
+    displayName: profile.display_name,
     nextEvent: events.at(0) ?? null,
     attention: parseAttentionItems(attentionResult.data),
     suggestion: await getHomeFixtureSuggestion(supabase, teamFollows, competitionFollows),

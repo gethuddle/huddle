@@ -52,6 +52,37 @@ describe("auth forms", () => {
     expect(await screen.findByRole("status")).toHaveTextContent(
       "If that address can receive Huddle mail",
     );
+    expect(screen.getByRole("textbox", { name: "Email address" })).toHaveValue("");
+    expect(screen.getByLabelText("Password")).toHaveValue("");
+    expect(screen.getByLabelText("Confirm password")).toHaveValue("");
+  });
+
+  it("keeps signup credentials available for correction after validation fails", async () => {
+    mocks.signUpAction.mockResolvedValue({
+      ok: false,
+      error: {
+        code: "VALIDATION_FAILED",
+        message: "Check the highlighted fields and try again.",
+        fields: { confirmPassword: ["Passwords must match."] },
+      },
+    });
+    const user = userEvent.setup();
+
+    render(<SignUpForm />);
+
+    const email = screen.getByRole("textbox", { name: "Email address" });
+    const password = screen.getByLabelText("Password");
+    const confirmation = screen.getByLabelText("Confirm password");
+
+    await user.type(email, "fan@example.com");
+    await user.type(password, "matchday-strong");
+    await user.type(confirmation, "different-password");
+    await user.click(screen.getByRole("button", { name: "Create account" }));
+
+    expect(await screen.findByText("Passwords must match.")).toBeVisible();
+    expect(email).toHaveValue("fan@example.com");
+    expect(password).toHaveValue("matchday-strong");
+    expect(confirmation).toHaveValue("different-password");
   });
 
   it("renders a generic sign-in error without exposing provider details", async () => {

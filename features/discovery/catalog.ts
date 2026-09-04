@@ -1,5 +1,9 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
+
+import { SPORTS_CATALOG_REVALIDATE_SECONDS, sportsCatalogCacheTag } from "@/features/sports/cache";
+import { getPublicEnvironment } from "@/lib/env/public";
 import { DomainError } from "@/lib/errors";
 import { createAnonymousServerClient } from "@/lib/supabase/anonymous";
 import { deriveFixtureFreshness, type FixtureFreshness } from "@/features/sports/freshness";
@@ -9,7 +13,7 @@ export type DiscoveryCatalog = Readonly<{
   teams: readonly Readonly<{ id: string; name: string; shortName: string | null }>[];
 }>;
 
-export async function getDiscoveryCatalog(): Promise<DiscoveryCatalog> {
+async function loadDiscoveryCatalog(): Promise<DiscoveryCatalog> {
   const supabase = createAnonymousServerClient();
   const [competitionsResult, teamsResult] = await Promise.all([
     supabase
@@ -40,6 +44,20 @@ export async function getDiscoveryCatalog(): Promise<DiscoveryCatalog> {
       shortName: team.short_name,
     })),
   };
+}
+
+const catalogEnvironment = getPublicEnvironment();
+const getCachedDiscoveryCatalog = unstable_cache(
+  loadDiscoveryCatalog,
+  ["discovery-sports-catalog-v1", catalogEnvironment.NEXT_PUBLIC_SUPABASE_URL],
+  {
+    revalidate: SPORTS_CATALOG_REVALIDATE_SECONDS,
+    tags: [sportsCatalogCacheTag(catalogEnvironment.NEXT_PUBLIC_SUPABASE_URL)],
+  },
+);
+
+export async function getDiscoveryCatalog(): Promise<DiscoveryCatalog> {
+  return getCachedDiscoveryCatalog();
 }
 
 export async function getDiscoveryFreshness(): Promise<FixtureFreshness> {

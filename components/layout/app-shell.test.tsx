@@ -27,7 +27,7 @@ vi.mock("@/lib/env/server", () => ({
 
 const anonymousState: AppShellState = {
   isSignedIn: false,
-  workspace: { active: null, available: [], isModerator: false },
+  workspace: { active: null, available: [] },
 };
 
 describe("AppShell", () => {
@@ -89,7 +89,7 @@ describe("AppShell", () => {
     };
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: true,
-      workspace: { active: fan, available: [fan], isModerator: false },
+      workspace: { active: fan, available: [fan] },
     } satisfies AppShellState);
 
     render(await AppShell({ children: <h1>Fan Home</h1> }));
@@ -122,7 +122,7 @@ describe("AppShell", () => {
     };
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: true,
-      workspace: { active: fan, available: [fan], isModerator: false },
+      workspace: { active: fan, available: [fan] },
     } satisfies AppShellState);
 
     render(await AppShell({ children: <section>Ask conversation</section> }));
@@ -143,7 +143,7 @@ describe("AppShell", () => {
     };
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: true,
-      workspace: { active: fan, available: [fan], isModerator: false },
+      workspace: { active: fan, available: [fan] },
     } satisfies AppShellState);
 
     render(await AppShell({ children: <h1>Reset password</h1> }));
@@ -158,7 +158,7 @@ describe("AppShell", () => {
   it("keeps a signed-in identity with no workspace focused on choosing setup", async () => {
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: true,
-      workspace: { active: null, available: [], isModerator: false },
+      workspace: { active: null, available: [] },
     } satisfies AppShellState);
 
     render(await AppShell({ children: <h1>Onboarding</h1> }));
@@ -182,7 +182,7 @@ describe("AppShell", () => {
     };
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: true,
-      workspace: { active: venue, available: [venue], isModerator: false },
+      workspace: { active: venue, available: [venue] },
     } satisfies AppShellState);
 
     render(await AppShell({ children: <h1>Venue Calendar</h1> }));
@@ -230,7 +230,7 @@ describe("AppShell", () => {
     };
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: true,
-      workspace: { active: fan, available: [fan, venue], isModerator: false },
+      workspace: { active: fan, available: [fan, venue] },
     } satisfies AppShellState);
 
     render(await AppShell({ children: <h1>Venue Today</h1> }));

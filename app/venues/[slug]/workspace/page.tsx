@@ -4,7 +4,10 @@ import { VenueVerificationBadge } from "@/features/venues/components/venue-verif
 import { venueRouteSlugSchema } from "@/features/venues/schemas";
 import { TodayDashboard } from "@/features/venues/workspace/components/today-dashboard";
 import { getVenueToday } from "@/features/venues/workspace/queries";
-import { getAuthorizedVenueWorkspaceBySlug } from "@/features/workspaces/queries";
+import {
+  getAuthorizedVenueWorkspaceBySlug,
+  getAuthorizedVenueWorkspaceSummaryBySlug,
+} from "@/features/workspaces/queries";
 
 type VenueTodayPageProps = Readonly<{
   params: Promise<Readonly<{ slug: string }>>;
@@ -13,9 +16,18 @@ type VenueTodayPageProps = Readonly<{
 export default async function VenueTodayPage({ params }: VenueTodayPageProps) {
   const parsed = venueRouteSlugSchema.safeParse((await params).slug);
   if (!parsed.success) notFound();
-  const workspace = await getAuthorizedVenueWorkspaceBySlug(parsed.data);
+  const workspacePromise = getAuthorizedVenueWorkspaceBySlug(parsed.data);
+  const authorizedWorkspace = await getAuthorizedVenueWorkspaceSummaryBySlug(parsed.data);
+  if (authorizedWorkspace === null) notFound();
+
+  const snapshotPromise = getVenueToday(authorizedWorkspace.id);
+  // The detailed projection still gates every rendered Venue capability. The
+  // protected Today RPC can run concurrently because it independently checks
+  // the same active Venue membership in PostgreSQL.
+  void snapshotPromise.catch(() => undefined);
+  const workspace = await workspacePromise;
   if (workspace === null) notFound();
-  const snapshot = await getVenueToday(workspace.id);
+  const snapshot = await snapshotPromise;
   const today = new Intl.DateTimeFormat("en-IL", {
     timeZone: "Asia/Jerusalem",
     weekday: "long",

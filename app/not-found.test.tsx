@@ -16,7 +16,7 @@ describe("not-found state", () => {
   it("uses non-enumerating copy and signed-out recovery", async () => {
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: false,
-      workspace: { active: null, available: [], isModerator: false },
+      workspace: { active: null, available: [] },
     });
     render(await NotFound());
 
@@ -41,7 +41,6 @@ describe("not-found state", () => {
           role: "fan",
         },
         available: [],
-        isModerator: false,
       },
     });
     render(await NotFound());

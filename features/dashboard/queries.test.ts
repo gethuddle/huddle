@@ -286,7 +286,10 @@ describe("listMyGroupsForViewer", () => {
     fixtureQuery.order = vi.fn(() => fixtureQuery);
     fixtureQuery.limit = vi.fn().mockResolvedValue({ data: [fixtureRow], error: null });
     const supabase = { rpc: mocks.rpc, from: vi.fn(() => fixtureQuery) };
-    mocks.requireActor.mockResolvedValue({ supabase });
+    mocks.requireActor.mockResolvedValue({
+      supabase,
+      profile: { display_name: "Fan One" },
+    });
     mocks.rpc.mockImplementation(async (name: string, args: Record<string, unknown>) => {
       if (name === "list_my_events") {
         if (args.input_bucket === "upcoming") return { data: [eventRow], error: null };
@@ -326,6 +329,7 @@ describe("listMyGroupsForViewer", () => {
     });
 
     await expect(getFanHome()).resolves.toMatchObject({
+      displayName: "Fan One",
       nextEvent: { id: eventId },
       attention: [],
       suggestion: {
@@ -334,6 +338,7 @@ describe("listMyGroupsForViewer", () => {
         awayTeam: { name: "Current Away FC" },
       },
     });
+    expect(mocks.requireActor).toHaveBeenCalledWith("fan");
     expect(supabase.from).toHaveBeenCalledWith("public_future_matches");
     expect(fixtureQuery.or).toHaveBeenCalledWith(
       `home_team_id.in.(${teamId}),away_team_id.in.(${teamId}),competition_id.in.(c5000000-0000-4000-8000-000000000201)`,

@@ -11,6 +11,7 @@ import {
   getVenueWorkspace,
   listUpcomingVenueCalendar,
   listVenueCalendar,
+  listVenueCalendarPage,
   getVenueEventForManagement,
 } from "./queries";
 
@@ -102,6 +103,39 @@ describe("Venue workspace projections", () => {
     expect(mocks.rpc).toHaveBeenCalledWith("list_venue_calendar", {
       input_venue_id: venueId,
       input_limit: 25,
+    });
+  });
+
+  it("requests a filtered later calendar page through the shared bounded offset convention", async () => {
+    mocks.rpc.mockResolvedValue({
+      data: [
+        {
+          event_id: eventId,
+          title: "Elapsed derby",
+          status: "completed",
+          starts_at: "2026-09-01T17:00:00Z",
+          ends_at: "2026-09-01T20:00:00Z",
+          venue_space_id: spaceId,
+          venue_space_name: "Main screen",
+          attendance_mode: "reservations",
+          capacity: 80,
+          approved_attendee_count: 4,
+          requires_approval: false,
+          total_count: 251,
+        },
+      ],
+      error: null,
+    });
+    await expect(listVenueCalendarPage(venueId, "completed", 13)).resolves.toMatchObject({
+      page: 13,
+      totalCount: 251,
+      items: [{ id: eventId, status: "completed" }],
+    });
+    expect(mocks.rpc).toHaveBeenCalledWith("list_venue_calendar_page", {
+      input_venue_id: venueId,
+      input_status: "completed",
+      input_limit: 20,
+      input_offset: 240,
     });
   });
 

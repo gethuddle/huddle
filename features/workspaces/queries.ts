@@ -27,12 +27,14 @@ export function mapWorkspaceRows(raw: unknown): readonly WorkspaceSummary[] {
   }
 }
 
-export async function listMyWorkspaces(): Promise<readonly WorkspaceSummary[]> {
+export const listMyWorkspaces = cache(async function listMyWorkspaces(): Promise<
+  readonly WorkspaceSummary[]
+> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("list_my_workspaces");
   if (error !== null) throw new DomainError("INTERNAL_ERROR", { cause: error });
   return mapWorkspaceRows(data);
-}
+});
 
 export async function listMyRecoverableWorkspaces(): Promise<readonly WorkspaceSummary[]> {
   const supabase = await createClient();
@@ -47,24 +49,14 @@ export const getAppShellState = cache(async function getAppShellState(): Promise
   if (error !== null || typeof data?.claims.sub !== "string") {
     return {
       isSignedIn: false,
-      workspace: { active: null, available: [], isModerator: false },
+      workspace: { active: null, available: [] },
     };
   }
 
-  const [workspaceResult, moderatorResult, cookieStore] = await Promise.all([
-    supabase.rpc("list_my_workspaces"),
-    supabase.rpc("viewer_is_platform_moderator"),
+  const [available, cookieStore] = await Promise.all([
+    listMyWorkspaces().catch(() => [] as readonly WorkspaceSummary[]),
     cookies(),
   ]);
-
-  let available: readonly WorkspaceSummary[] = [];
-  if (workspaceResult.error === null) {
-    try {
-      available = mapWorkspaceRows(workspaceResult.data);
-    } catch {
-      available = [];
-    }
-  }
   const remembered = parseWorkspaceCookie(cookieStore.get(WORKSPACE_COOKIE_NAME)?.value);
 
   return {
@@ -72,7 +64,6 @@ export const getAppShellState = cache(async function getAppShellState(): Promise
     workspace: {
       active: chooseWorkspace(available, remembered),
       available,
-      isModerator: moderatorResult.error === null && moderatorResult.data === true,
     },
   };
 });
@@ -114,10 +105,10 @@ export async function getWorkspaceSetupAvailability(): Promise<
   return { canStartFan: true, canStartVenue: true };
 }
 
-export const getAuthorizedVenueWorkspaceBySlug = cache(
-  async function getAuthorizedVenueWorkspaceBySlug(
+export const getAuthorizedVenueWorkspaceSummaryBySlug = cache(
+  async function getAuthorizedVenueWorkspaceSummaryBySlug(
     slug: string,
-  ): Promise<AuthorizedVenueWorkspace | null> {
+  ): Promise<WorkspaceSummary | null> {
     let available: readonly WorkspaceSummary[];
     try {
       available = await listMyWorkspaces();
@@ -126,10 +117,18 @@ export const getAuthorizedVenueWorkspaceBySlug = cache(
       // projection failures therefore share the same non-disclosing result.
       return null;
     }
-    const workspace = available.find(
-      (candidate) => candidate.kind === "venue" && candidate.slug === slug,
+    return (
+      available.find((candidate) => candidate.kind === "venue" && candidate.slug === slug) ?? null
     );
-    if (workspace === undefined) return null;
+  },
+);
+
+export const getAuthorizedVenueWorkspaceBySlug = cache(
+  async function getAuthorizedVenueWorkspaceBySlug(
+    slug: string,
+  ): Promise<AuthorizedVenueWorkspace | null> {
+    const workspace = await getAuthorizedVenueWorkspaceSummaryBySlug(slug);
+    if (workspace === null) return null;
     try {
       const [venue, billing] = await Promise.all([
         getVenueWorkspace(workspace.id),

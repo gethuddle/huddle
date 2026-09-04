@@ -4,7 +4,9 @@ const mocks = vi.hoisted(() => ({
   cookieSet: vi.fn(),
   cookieGet: vi.fn(),
   cookies: vi.fn(),
+  createClient: vi.fn(),
   getRequestId: vi.fn(),
+  getClaims: vi.fn(),
   requireActor: vi.fn(),
   revalidatePath: vi.fn(),
   redirect: vi.fn(),
@@ -17,6 +19,7 @@ vi.mock("next/navigation", () => ({
   redirect: mocks.redirect,
 }));
 vi.mock("@/features/auth/actor", () => ({ requireActor: mocks.requireActor }));
+vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("@/lib/request-id/server", () => ({ getRequestId: mocks.getRequestId }));
 
 import { CURRENT_COMMUNITY_RULES_VERSION } from "@/content/community-rules";
@@ -38,7 +41,7 @@ describe("workspace actions", () => {
     mocks.getRequestId.mockResolvedValue("e4000000-0000-4000-8000-000000000199");
   });
 
-  it("redirects from the Server Action only after writing the validated workspace selection", async () => {
+  it("switches with verified claims and one current workspace projection", async () => {
     const rpc = vi.fn().mockResolvedValue({
       data: [
         {
@@ -51,7 +54,11 @@ describe("workspace actions", () => {
       ],
       error: null,
     });
-    mocks.requireActor.mockResolvedValue({ supabase: { rpc } });
+    mocks.getClaims.mockResolvedValue({
+      data: { claims: { sub: fanId } },
+      error: null,
+    });
+    mocks.createClient.mockResolvedValue({ auth: { getClaims: mocks.getClaims }, rpc });
     const redirectSentinel = new Error("NEXT_REDIRECT;replace;/");
     mocks.redirect.mockImplementation(() => {
       throw redirectSentinel;
@@ -61,6 +68,11 @@ describe("workspace actions", () => {
     form.set("id", fanId);
 
     await expect(selectWorkspaceAction(null, form)).rejects.toBe(redirectSentinel);
+    expect(mocks.createClient).toHaveBeenCalledOnce();
+    expect(mocks.getClaims).toHaveBeenCalledOnce();
+    expect(mocks.requireActor).not.toHaveBeenCalled();
+    expect(rpc).toHaveBeenCalledOnce();
+    expect(rpc).toHaveBeenCalledWith("list_my_workspaces");
     expect(mocks.cookieSet).toHaveBeenCalledWith(
       "huddle-workspace",
       `fan:${fanId}`,
@@ -73,6 +85,25 @@ describe("workspace actions", () => {
     form.set("id", venueId);
     await expect(selectWorkspaceAction(null, form)).resolves.toMatchObject({ ok: false });
     expect(mocks.cookieSet).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects an invalid signed session before changing workspace state", async () => {
+    const rpc = vi.fn();
+    const claimsError = new Error("invalid JWT");
+    mocks.getClaims.mockResolvedValue({ data: null, error: claimsError });
+    mocks.createClient.mockResolvedValue({ auth: { getClaims: mocks.getClaims }, rpc });
+    const form = new FormData();
+    form.set("kind", "fan");
+    form.set("id", fanId);
+
+    await expect(selectWorkspaceAction(null, form)).resolves.toMatchObject({
+      ok: false,
+      error: { code: "AUTH_REQUIRED", message: "Sign in to continue." },
+    });
+    expect(rpc).not.toHaveBeenCalled();
+    expect(mocks.cookieSet).not.toHaveBeenCalled();
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
+    expect(mocks.redirect).not.toHaveBeenCalled();
   });
 
   it("records common safety without activating either workspace", async () => {

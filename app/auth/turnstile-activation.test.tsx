@@ -22,7 +22,7 @@ describe("server-controlled auth Turnstile activation", () => {
     vi.resetModules();
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: false,
-      workspace: { active: null, available: [], isModerator: false },
+      workspace: { active: null, available: [] },
     });
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "publishable-key");

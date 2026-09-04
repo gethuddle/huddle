@@ -4,6 +4,7 @@ import { Compass, Home, Library, MessageCircleQuestion, Search } from "lucide-re
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { NavigationPendingIndicator } from "@/components/navigation/navigation-pending-indicator";
 import { cn } from "@/lib/utils";
 
 const FAN_NAVIGATION = [
@@ -45,7 +46,7 @@ export function FanBottomNavigation({
           <Link
             aria-current={current ? "page" : undefined}
             className={cn(
-              "flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[0.68rem] font-semibold text-muted-foreground outline-none transition focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
+              "relative flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[0.68rem] font-semibold text-muted-foreground outline-none transition focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
               emphasized && "text-forest",
               current && "text-forest",
               current && !emphasized && "bg-muted",
@@ -66,6 +67,7 @@ export function FanBottomNavigation({
               <Icon className={emphasized ? "size-[1.125rem]" : "size-5"} />
             </span>
             <span className="truncate">{label}</span>
+            <NavigationPendingIndicator />
           </Link>
         );
       })}

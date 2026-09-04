@@ -3601,6 +3601,28 @@ export type Database = {
           venue_space_name: string
         }[]
       }
+      list_venue_calendar_page: {
+        Args: {
+          input_limit?: number
+          input_offset?: number
+          input_status?: string
+          input_venue_id: string
+        }
+        Returns: {
+          approved_attendee_count: number
+          attendance_mode: string
+          capacity: number
+          ends_at: string
+          event_id: string
+          requires_approval: boolean
+          starts_at: string
+          status: string
+          title: string
+          total_count: number
+          venue_space_id: string
+          venue_space_name: string
+        }[]
+      }
       list_venue_events: {
         Args: { input_limit?: number; lookup_slug: string }
         Returns: {

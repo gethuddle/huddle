@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { BrandMark } from "@/components/brand/brand-mark";
+import { NavigationPendingIndicator } from "@/components/navigation/navigation-pending-indicator";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -85,6 +86,7 @@ export function SiteHeader({
                       key={href}
                     >
                       {desktopLabel}
+                      <NavigationPendingIndicator />
                     </Link>
                   );
                 })}

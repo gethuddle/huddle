@@ -21,7 +21,7 @@ describe("AccountSecurityPage", () => {
   it("keeps password controls private from signed-out visitors", async () => {
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: false,
-      workspace: { active: null, available: [], isModerator: false },
+      workspace: { active: null, available: [] },
     } satisfies AppShellState);
 
     render(await AccountSecurityPage());
@@ -33,7 +33,7 @@ describe("AccountSecurityPage", () => {
   it("offers current-password reauthentication to a signed-in account", async () => {
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: true,
-      workspace: { active: null, available: [], isModerator: false },
+      workspace: { active: null, available: [] },
     } satisfies AppShellState);
 
     render(await AccountSecurityPage());

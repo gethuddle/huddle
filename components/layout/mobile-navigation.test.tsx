@@ -22,7 +22,6 @@ describe("MobileNavigation", () => {
         role: "fan",
       },
       available: [],
-      isModerator: false,
     };
 
     render(<MobileNavigation assistedDiscoveryEnabled context={fanContext} />);
@@ -51,7 +50,6 @@ describe("MobileNavigation", () => {
         role: "admin",
       },
       available: [],
-      isModerator: false,
     };
 
     render(<MobileNavigation assistedDiscoveryEnabled context={venueContext} />);
@@ -69,12 +67,7 @@ describe("MobileNavigation", () => {
   });
 
   it("does not invent private navigation without an active workspace", () => {
-    render(
-      <MobileNavigation
-        assistedDiscoveryEnabled
-        context={{ active: null, available: [], isModerator: false }}
-      />,
-    );
+    render(<MobileNavigation assistedDiscoveryEnabled context={{ active: null, available: [] }} />);
 
     expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
   });
@@ -89,7 +82,6 @@ describe("MobileNavigation", () => {
         role: "fan",
       },
       available: [],
-      isModerator: false,
     };
 
     render(<MobileNavigation assistedDiscoveryEnabled={false} context={fanContext} />);

@@ -25,7 +25,7 @@ describe("sign-up page", () => {
     mocks.getAuthTurnstileSiteKey.mockReturnValue(undefined);
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: false,
-      workspace: { active: null, available: [], isModerator: false },
+      workspace: { active: null, available: [] },
     } satisfies AppShellState);
   });
 
@@ -43,7 +43,7 @@ describe("sign-up page", () => {
   it("redirects a signed-in account instead of offering a second signup", async () => {
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: true,
-      workspace: { active: null, available: [], isModerator: false },
+      workspace: { active: null, available: [] },
     } satisfies AppShellState);
 
     await SignUpPage();

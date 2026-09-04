@@ -28,7 +28,7 @@ describe("OnboardingPage", () => {
     });
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: true,
-      workspace: { active: null, available: [], isModerator: false },
+      workspace: { active: null, available: [] },
     } satisfies AppShellState);
     mocks.getWorkspaceSetupAvailability.mockResolvedValue({
       canStartFan: true,
@@ -92,7 +92,7 @@ describe("OnboardingPage", () => {
     };
     mocks.getAppShellState.mockResolvedValue({
       isSignedIn: true,
-      workspace: { active: venue, available: [venue], isModerator: false },
+      workspace: { active: venue, available: [venue] },
     } satisfies AppShellState);
     mocks.listMyRecoverableWorkspaces.mockResolvedValue([venue]);
 

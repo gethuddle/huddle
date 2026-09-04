@@ -16,7 +16,6 @@ import { formatIsraelDateValue, formatIsraelKickoff } from "@/features/sports/ti
 import { getAppShellState } from "@/features/workspaces/queries";
 import { workspaceLanding } from "@/features/workspaces/state";
 import { DomainError } from "@/lib/errors";
-import { createClient } from "@/lib/supabase/server";
 
 const journey = [
   {
@@ -56,25 +55,12 @@ export default async function Home() {
     redirect(workspaceLanding(workspace.active));
   }
 
-  const supabase = await createClient();
-  const { data: claimsData } = await supabase.auth.getClaims();
-  const viewerId = typeof claimsData?.claims.sub === "string" ? claimsData.claims.sub : null;
-  let displayName: string | null = null;
-  let fanHome: Awaited<ReturnType<typeof getFanHome>> | null = null;
-
-  if (viewerId !== null) {
-    const [profileResult, nextFanHome] = await Promise.all([
-      supabase.from("profiles").select("display_name").eq("id", viewerId).maybeSingle(),
-      getFanHome().catch((error: unknown) => {
-        if (!(error instanceof DomainError) || error.code === "INTERNAL_ERROR") throw error;
-        return null;
-      }),
-    ]);
-    displayName = profileResult.error === null ? (profileResult.data?.display_name ?? null) : null;
-    fanHome = nextFanHome;
-  }
-
   if (workspace.active?.kind === "fan") {
+    const fanHome = await getFanHome().catch((error: unknown) => {
+      if (!(error instanceof DomainError) || error.code === "INTERNAL_ERROR") throw error;
+      return null;
+    });
+    const displayName = fanHome?.displayName ?? null;
     const nextEvent = fanHome?.nextEvent ?? null;
     const suggestion = fanHome?.suggestion ?? null;
     return (
@@ -235,8 +221,8 @@ export default async function Home() {
               <Link href="/discover">Explore watch events</Link>
             </Button>
             <Button asChild size="lg" variant="outline">
-              <Link href={viewerId === null ? "/auth/sign-up" : "/settings/profile"}>
-                {viewerId === null ? "Create your account" : "Finish account setup"}
+              <Link href={state.isSignedIn ? "/settings/profile" : "/auth/sign-up"}>
+                {state.isSignedIn ? "Finish account setup" : "Create your account"}
               </Link>
             </Button>
           </div>
