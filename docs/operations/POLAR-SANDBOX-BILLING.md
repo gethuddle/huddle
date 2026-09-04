@@ -1,10 +1,11 @@
 # Polar Sandbox venue billing runbook
 
-**Status:** local implementation acceptance passed in an isolated disposable project.
-The user separately authorized Task 11 configuration, publication, merge after CI,
-and deployment on 4 September 2026. Hosted preconfiguration is in progress; the
-[acceptance record](../evidence/vb01/ACCEPTANCE.md) distinguishes completed actions
-from pending checks. This document itself does not authorize a hosted mutation.
+**Status:** local implementation and the authorized hosted Sandbox happy path passed
+on 4 September 2026. The [acceptance record](../evidence/vb01/ACCEPTANCE.md) records
+the deployed commit, migrations, genuine activation, two independent subscriptions,
+future-fixture publication, and signing-secret maintenance. Remaining hosted lifecycle
+drills and whole-application B13 acceptance are not claimed complete. This document
+itself does not authorize a hosted mutation.
 
 ## Scope and fixed inventory
 

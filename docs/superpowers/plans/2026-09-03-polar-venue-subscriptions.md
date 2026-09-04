@@ -16,7 +16,7 @@ On 4 September 2026, the user asked to consolidate the five remaining tasks into
 
 - [x] **Phase 1 — Finish the feature (Tasks 7 + 8).** Complete venue-owner Billing screens, warnings and capability-aware controls together with deadline processing, retained fan history, cancelled-calendar output and safe venue closure. Implement and verify the lifecycle as one local feature batch. Prepare scheduler SQL locally; do not run it against hosted services.
 - [x] **Phase 2 — Make the demo release-ready (Tasks 9 + 10).** Complete deterministic fixtures and end-to-end journeys, run all local release/security gates, and finish the runbook, acceptance evidence and presentation documentation. No hosted changes or automatic Git publication.
-- [ ] **Phase 3 — Connect the live Sandbox and demonstrate it (Task 11).** Configure the remaining Polar Sandbox resources, secrets, webhook and hosted scheduler; apply the reviewed migrations, deploy and verify the live demo journey. This phase requires explicit approval for hosted changes and deployment. It still processes no real money.
+- [x] **Phase 3 — Connect the live Sandbox and demonstrate it (Task 11).** The authorized hosted happy path passed on 4 September 2026: reviewed migrations, configured Sandbox resources, signed activation, two independent subscriptions, public/Explore visibility, distant publication, scheduler, and rotated-key redelivery. Final evidence publication is the remaining handoff; broader B13 lifecycle/rehearsal checks are separately pending. It still processes no real money.
 
 Execution follows these phases in order. A request to start or continue a named phase covers its included local tasks as one batch; do not end the turn merely to ask for another confirmation between those internal tasks. Retain all detailed requirements, TDD, verification and independent-review gates below. Stop for a genuine blocker or any new authority requirement. Report completion at the phase boundary. This consolidation request itself authorizes plan/status-document edits only, not implementation, commits, publication, deployment or hosted mutations.
 
@@ -1572,6 +1572,17 @@ Fix every blocking finding as the original writer, rerun affected gates, and lea
 
 ### Task 11: Configure the Huddle Sandbox organization and perform the live demo smoke test
 
+**Hosted outcome — 4 September 2026:** happy path passed. PR #56 deployed the reviewed
+implementation after CI; both hosted databases match all 44 migrations. Two labelled
+demo venues activated through genuine signed Sandbox callbacks, remain Unverified,
+and have independent subscriptions under one owner. One clearly labelled October
+fixture was published beyond its initial paid period and appeared in public/Explore.
+The owner portal, duplicate UI guard, scheduler, and rotated-secret real redelivery
+passed. See [sanitized evidence](../../evidence/vb01/ACCEPTANCE.md). Activation was
+already complete when the return page was observed; no transient confirming screen
+is claimed. Hosted failure/renewal/cancellation/erasure drills remain separate from
+this happy-path result and their local deterministic coverage.
+
 **Authorization gate:** This entire task mutates hosted Polar/Supabase/Vercel/production state. Execute it only after the user explicitly asks for those actions. The creation of the `Huddle` Sandbox organization already completed does not authorize any remaining step.
 
 **External resources (no repository secrets):**
@@ -1599,11 +1610,11 @@ Create exactly:
 
 Both products were verified in the Sandbox catalogue on 4 September 2026. Their identifiers remain private; transfer to Production Vercel configuration belongs to Step 4. Do not create a second price/variant or real production copy.
 
-- [ ] **Step 4: Prepare least-privilege credentials and matching webhook secret**
+- [x] **Step 4: Prepare least-privilege credentials and matching webhook secret**
 
 Create one Sandbox organization access token with only the five runbook scopes. `customers:write` is present solely for account-erasure `deleteExternal(..., { anonymize: true })`; do not expose general customer mutation elsewhere. The current dashboard and [2026-04 create schema](https://polar.sh/docs/api-reference/2026-04/webhooks/create-webhook-endpoint.md) generate the signing secret, superseding the older general guide's custom-secret setup assumption. Privately prepare a high-entropy temporary bootstrap secret and keep the Production network guard true for the initial deployment. After the final route exists, create the endpoint, privately install its generated secret and redeploy before enabling checkout. Store credentials/bindings through the appropriate Vercel secret UI or direct CLI stdin with output suppressed; never paste values into chat, terminal output, docs, screenshots, or the repository. Only the authorized live host may call Sandbox; Preview/local/CI remain blocked with synthetic configuration. Existing-endpoint changes and secret rotation follow the separate approved maintenance procedure, not this first-setup sequence.
 
-- [ ] **Step 5: Apply the approved hosted rollout in runbook order**
+- [x] **Step 5: Apply the approved hosted rollout in runbook order**
 
 After confirming a backup/recovery point and correct project/host:
 
@@ -1617,7 +1628,7 @@ After confirming a backup/recovery point and correct project/host:
 
 Existing hosted venues intentionally leave public/acquisition surfaces at cutover and enter the single fixed seven-day `legacy_grace`; their existing management and participant paths remain private until activation or deadline expiry. Do not insert a fake active entitlement to preserve appearance or extend the cutover deadline.
 
-- [ ] **Step 6: Run the live Sandbox happy path**
+- [x] **Step 6: Run the live Sandbox happy path**
 
 With a presentation owner account:
 
@@ -1625,16 +1636,18 @@ With a presentation owner account:
 2. show the no-real-money Billing screen;
 3. choose one plan;
 4. complete Polar Sandbox checkout with the documented successful test card from the reviewed demo runbook, a future expiry, and any CVC;
-5. show that the return page remains confirming until the signed webhook lands;
+5. verify that the return does not grant entitlement: the live return was already
+   ready after signed activation, while deterministic local tests prove it remains
+   confirming before a webhook; do not claim an unobserved transient live state;
 6. verify the venue then appears in public venue view and Explore and can publish a distant fixture;
 7. confirm the subscription appears in Polar **Sales → Subscriptions** and the product in **Products**; and
 8. verify an owner with two venues can hold two independent subscriptions while a duplicate for one venue is blocked.
 
 Do not rely on an arbitrary Sandbox customer receiving email; Polar documents Sandbox email delivery only to organization members.
 
-- [ ] **Step 7: Record truthful, sanitized acceptance evidence**
+- [x] **Step 7: Record truthful, sanitized acceptance evidence**
 
-Update `docs/evidence/vb01/ACCEPTANCE.md` with date, environment, route/outcome, webhook event names/outcomes, scheduler status, and sanitized screenshots that contain no token, secret, signature, customer email, checkout URL, or full provider identifier. Mark VB01 hosted complete only after the live checks pass.
+Update `docs/evidence/vb01/ACCEPTANCE.md` with date, environment, route/outcome, webhook event names/outcomes, scheduler status, and secret-safe presentation evidence. No provider screenshot is retained: the final evidence uses allowlisted outcomes and public demo UI instead of capturing a credential-bearing dashboard. Never include a token, secret, signature, customer email, checkout URL, or full provider identifier. Mark the hosted happy path complete only after its live checks pass; retain unrun broader acceptance checks as pending.
 
 - [ ] **Step 8: Complete separately authorized publication and handoff**
 

@@ -20,7 +20,7 @@
 
 **Approved account-erasure revision:** 3 September 2026. Account Security now covers both known-password changes and immediate, irreversible self-service deletion. The flow requires current-password reauthentication and exact `DELETE`, atomically removes identity/private state while retaining only required pseudonymous history, and uses a tightly isolated server-only Supabase Auth soft deletion after database preparation. `VB01` supersedes that final direct preparation-to-Auth ordering for billing-aware V2 erasure: Polar customer anonymization/local cleanup must complete first, while legacy V1 remains fail-closed. Its new migration remains a separate production-deployment gate.
 
-**Approved `VB01` revision:** 3 September 2026. Commercial venues become public and may publish only after a per-venue Polar Sandbox entitlement. Tasks 1–10 passed local acceptance for that contract in an isolated disposable project; all separately authorized Task 11 hosted/demo work remains pending, so this is not deployment evidence.
+**Approved `VB01` revision:** 3 September 2026. Commercial venues become public and may publish only after a per-venue Polar Sandbox entitlement. Tasks 1–10 passed isolated local acceptance; the authorized hosted happy path passed on 4 September 2026 with two independent subscriptions and one distant demo event. The [acceptance record](./evidence/vb01/ACCEPTANCE.md) separates deployed evidence from remaining hosted lifecycle drills and broader B13 acceptance. No real payments are enabled.
 
 The source of truth for the course deliverables is the [official project brief](<../course-roadmap/project instructions.pdf>). The [course roadmap](../course-roadmap/ROADMAP.md) is a wider technology menu, not a requirement to use every tool mentioned in the lectures.
 
@@ -61,7 +61,7 @@ The fail-closed lifecycle is intentionally about venue publication, not social a
 
 ### Submitted MVP
 
-- Email/password authentication, common safety eligibility, optional Fan activation, and locally accepted `VB01` self-serve hidden-draft Venue activation; hosted/demo evidence remains pending.
+- Email/password authentication, common safety eligibility, optional Fan activation, and locally accepted `VB01` self-serve hidden-draft Venue activation with a verified hosted Sandbox happy path; broader B13 acceptance remains pending.
 - Immediate self-service account erasure with explicit removed/retained-data disclosure and no recovery window.
 - Public browsing of information that is safe to expose.
 - A football catalog and synchronized future fixtures.

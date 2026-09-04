@@ -34,6 +34,14 @@ not hosted configuration, a live Sandbox walkthrough, PR/main CI, or B13 evidenc
 Historical B12 numbers above remain dated accepted evidence, not current inventory.
 Hosted migration and production acceptance remain separately evidenced operations.
 
+The separately authorized 4 September 2026 VB01 rollout is recorded in
+[`ACCEPTANCE.md`](../evidence/vb01/ACCEPTANCE.md): PR #56 exact-head CI passed,
+Production/Preview reached 44-migration parity, two genuine Sandbox subscriptions
+activated independent demo venues, and one distant fixture appeared publicly and
+in Explore. Owner portal, duplicate activation redelivery, and the scheduler were
+also verified. This manual hosted result does not imply that every lifecycle or
+B13 scenario ran against hosted services; automated tests still never call Polar.
+
 ## Thirty-seven deterministic Playwright scenarios
 
 Numbered journeys 01–17 and 19 are in `tests/e2e/auth.spec.ts`; journey 18 is in
