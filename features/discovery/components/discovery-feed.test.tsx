@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { DiscoveryFilters } from "@/features/discovery/schemas";
 import type { DiscoveryPage } from "@/features/discovery/types";
+import { clearDiscoveryQueryClient } from "@/features/discovery/query-client";
 
 const mocks = vi.hoisted(() => ({ mapRender: vi.fn() }));
 
@@ -74,9 +75,11 @@ const initialPage: DiscoveryPage = {
   locationMode: "browser",
   generatedAt: "2026-08-27T12:00:00Z",
   requiresPrivateCache: true,
+  viewerCacheScope: "fan:test-viewer",
 };
 
 afterEach(() => {
+  clearDiscoveryQueryClient();
   vi.unstubAllGlobals();
   vi.clearAllMocks();
   window.sessionStorage.clear();

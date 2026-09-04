@@ -3,7 +3,12 @@ import { render, screen } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { expiredVenueBilling } from "@/tests/fixtures/venue-billing";
 import Page from "./page";
-const mocks = vi.hoisted(() => ({ workspace: vi.fn(), history: vi.fn(), redirect: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  workspace: vi.fn(),
+  workspaceSummary: vi.fn(),
+  history: vi.fn(),
+  redirect: vi.fn(),
+}));
 const query = mocks.workspace;
 const historyItem = {
   id: "e2000000-0000-4000-8000-000000000101",
@@ -19,6 +24,7 @@ const historyItem = {
 };
 vi.mock("@/features/workspaces/queries", () => ({
   getAuthorizedVenueWorkspaceBySlug: mocks.workspace,
+  getAuthorizedVenueWorkspaceSummaryBySlug: mocks.workspaceSummary,
 }));
 vi.mock("@/features/venues/workspace/queries", () => ({
   listVenueCalendar: async () => [],
@@ -47,9 +53,44 @@ vi.mock("next/navigation", () => ({
 const redirectSentinel = new Error("NEXT_REDIRECT");
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.workspaceSummary.mockResolvedValue({
+    id: "venue",
+    slug: "corner",
+    name: "Corner",
+    role: "owner",
+    kind: "venue",
+  });
   mocks.redirect.mockImplementation(() => {
     throw redirectSentinel;
   });
+});
+it("starts the protected history read before the detailed workspace projection finishes", async () => {
+  const detailed = Promise.withResolvers<{
+    id: string;
+    slug: string;
+    name: string;
+    role: "owner";
+    verificationStatus: "unverified";
+    billing: typeof expiredVenueBilling;
+  }>();
+  mocks.workspace.mockReturnValue(detailed.promise);
+  mocks.history.mockResolvedValue({ items: [], page: 1, totalCount: 0 });
+
+  const pending = Page({
+    params: Promise.resolve({ slug: "corner" }),
+    searchParams: Promise.resolve({}),
+  });
+  await vi.waitFor(() => expect(mocks.history).toHaveBeenCalledWith("venue", "all", 1));
+  detailed.resolve({
+    id: "venue",
+    slug: "corner",
+    name: "Corner",
+    role: "owner",
+    verificationStatus: "unverified",
+    billing: expiredVenueBilling,
+  });
+
+  await expect(pending).resolves.toBeDefined();
 });
 it("keeps expired information accessible and forwards safe restrictions", async () => {
   mocks.history.mockResolvedValue({ items: [], page: 1, totalCount: 0 });

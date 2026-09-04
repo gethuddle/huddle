@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { CURRENT_COMMUNITY_RULES_VERSION } from "@/content/community-rules";
 import { DomainError, type DomainErrorCode } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
@@ -72,9 +74,9 @@ export type ActorContext = Readonly<{
   profile: ActorProfile;
 }>;
 
-export async function requireActor(
+async function resolveActor(
   requirement: ActorRequirement,
-  clientFactory: ServerClientFactory = createClient,
+  clientFactory: ServerClientFactory,
 ): Promise<ActorContext> {
   const supabase = await clientFactory();
   const { data: authData } = await supabase.auth.getUser();
@@ -144,4 +146,26 @@ export async function requireActor(
   }
 
   return { supabase, user, profile };
+}
+
+function actorRequirementKey(requirement: ActorRequirement): string {
+  return typeof requirement === "string" ? requirement : `venue:${requirement.venueId}`;
+}
+
+const resolveRequestActor = cache(async (requirementKey: string): Promise<ActorContext> => {
+  const requirement: ActorRequirement = requirementKey.startsWith("venue:")
+    ? { venueId: requirementKey.slice("venue:".length) }
+    : (requirementKey as Exclude<ActorRequirement, { venueId: string }>);
+  return resolveActor(requirement, createClient);
+});
+
+export function requireActor(
+  requirement: ActorRequirement,
+  clientFactory: ServerClientFactory = createClient,
+): Promise<ActorContext> {
+  // Injected factories are isolated unit-test/application boundaries and must
+  // never share a context. Normal Server Component reads resolve once per
+  // request, keyed by the actual capability being checked.
+  if (clientFactory !== createClient) return resolveActor(requirement, clientFactory);
+  return resolveRequestActor(actorRequirementKey(requirement));
 }

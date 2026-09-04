@@ -4,7 +4,6 @@ import { z } from "zod";
 
 import { parseAttentionItems } from "@/features/attention/queries";
 import type { AttentionItem } from "@/features/attention/types";
-import { requireActor } from "@/features/auth/actor";
 import { toPublicMatchDto, type PublicMatchDto } from "@/features/sports/dto";
 import { loadTeamVisualsByName, type TeamVisual } from "@/features/sports/team-visuals";
 import { DomainError, domainErrorFromDatabase } from "@/lib/errors";
@@ -274,7 +273,7 @@ async function canonicalizeRpcPage<T extends CountedPageItem>(
   return { items: await requestPage(finalPage), page: finalPage };
 }
 
-type ServerClient = Awaited<ReturnType<typeof requireActor>>["supabase"];
+type ServerClient = Awaited<ReturnType<typeof createClient>>;
 
 async function loadEventPage(
   supabase: ServerClient,
@@ -367,7 +366,9 @@ export async function getMyHuddleOverview(
     throw new DomainError("VALIDATION_FAILED", { cause: savedBucketResult.error });
   }
 
-  const { supabase } = await requireActor("fan");
+  // Every RPC below independently asserts the current Fan in PostgreSQL. A
+  // second Auth API + profile preflight would only duplicate those gates.
+  const supabase = await createClient();
   const eventBucket = eventBucketResult.data;
   const groupBucket = groupBucketResult.data;
   const savedBucket = savedBucketResult.data;
@@ -392,7 +393,7 @@ const PUBLIC_MATCH_SELECT =
   "id, sport_id, sport_slug, competition_id, competition_code, competition_name, home_team_id, home_team_name, home_team_short_name, home_team_tla, away_team_id, away_team_name, away_team_short_name, away_team_tla, starts_at, status, matchday, stage, season_label, last_synced_at, home_team_crest_url, away_team_crest_url";
 
 async function getHomeFixtureSuggestion(
-  supabase: Awaited<ReturnType<typeof requireActor>>["supabase"],
+  supabase: ServerClient,
   teamFollows: readonly SavedItem[],
   competitionFollows: readonly SavedItem[],
 ): Promise<PublicMatchDto | null> {
@@ -424,7 +425,7 @@ async function getHomeFixtureSuggestion(
   }
 }
 
-export async function getFanHome(): Promise<
+export async function getFanHome(displayName: string | null): Promise<
   Readonly<{
     displayName: string | null;
     nextEvent: MyEvent | null;
@@ -432,7 +433,9 @@ export async function getFanHome(): Promise<
     suggestion: PublicMatchDto | null;
   }>
 > {
-  const { supabase, profile } = await requireActor("fan");
+  // AppShell already resolved the active Fan label. The protected RPCs remain
+  // the authoritative eligibility boundary, avoiding another Auth round trip.
+  const supabase = await createClient();
   const [upcomingResult, attentionResult, teamsResult, competitionsResult] = await Promise.all([
     supabase.rpc("list_my_events", {
       input_bucket: "upcoming",
@@ -462,7 +465,7 @@ export async function getFanHome(): Promise<
   ]);
 
   return {
-    displayName: profile.display_name,
+    displayName,
     nextEvent: events.at(0) ?? null,
     attention: parseAttentionItems(attentionResult.data),
     suggestion: await getHomeFixtureSuggestion(supabase, teamFollows, competitionFollows),

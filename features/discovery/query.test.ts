@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
-  getUser: vi.fn(),
+  getClaims: vi.fn(),
   loadTeamVisualsByName: vi.fn(),
   rpc: vi.fn(),
 }));
@@ -74,8 +74,8 @@ describe("event discovery query", () => {
   });
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.getUser.mockResolvedValue({
-      data: { user: { id: "52000000-0000-4000-8000-000000000403" } },
+    mocks.getClaims.mockResolvedValue({
+      data: { claims: { sub: "52000000-0000-4000-8000-000000000403" } },
       error: null,
     });
     mocks.loadTeamVisualsByName.mockResolvedValue(
@@ -101,7 +101,7 @@ describe("event discovery query", () => {
       error: null,
     }));
     mocks.createClient.mockResolvedValue({
-      auth: { getUser: mocks.getUser },
+      auth: { getClaims: mocks.getClaims },
       rpc: mocks.rpc,
     });
   });
@@ -132,6 +132,7 @@ describe("event discovery query", () => {
     });
     expect(result).toMatchObject({
       requiresPrivateCache: true,
+      viewerCacheScope: "fan:52000000-0000-4000-8000-000000000403",
       locationMode: "browser",
       items: [
         {
@@ -253,23 +254,25 @@ describe("event discovery query", () => {
   });
 
   it("fails closed to private caching when the auth lookup is uncertain", async () => {
-    mocks.getUser.mockResolvedValue({
-      data: { user: null },
+    mocks.getClaims.mockResolvedValue({
+      data: null,
       error: new Error("Auth service unavailable"),
     });
 
     const result = await getDiscoveryPage(filters);
 
     expect(result.requiresPrivateCache).toBe(true);
+    expect(result.viewerCacheScope).toMatch(/^uncertain:/);
     expect(mocks.rpc).not.toHaveBeenCalledWith("discover_owned_venue_events", expect.anything());
   });
 
   it("does not call the authenticated managed-Venue projection for an anonymous visitor", async () => {
-    mocks.getUser.mockResolvedValue({ data: { user: null }, error: null });
+    mocks.getClaims.mockResolvedValue({ data: { claims: null }, error: null });
 
     const result = await getDiscoveryPage(filters);
 
     expect(result.requiresPrivateCache).toBe(false);
+    expect(result.viewerCacheScope).toBe("anonymous");
     expect(mocks.rpc).not.toHaveBeenCalledWith("discover_owned_venue_events", expect.anything());
     expect(result.items).toHaveLength(1);
   });

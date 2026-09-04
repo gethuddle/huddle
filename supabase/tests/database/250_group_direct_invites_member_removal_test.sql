@@ -35,8 +35,8 @@ select is(
       and procedure.proname = 'list_my_group_invitations'
       and pg_get_function_identity_arguments(procedure.oid) = ''
   ),
-  'v'::"char",
-  'the recipient invitation projection remains writable-transaction safe through PostgREST'
+  's'::"char",
+  'the recipient invitation projection runs in a read-only transaction'
 );
 
 select is(

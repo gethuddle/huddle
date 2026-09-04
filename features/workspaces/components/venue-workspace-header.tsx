@@ -4,7 +4,6 @@ import { Building2, CalendarDays, Clock3, ListVideo } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { NavigationPendingIndicator } from "@/components/navigation/navigation-pending-indicator";
 import { cn } from "@/lib/utils";
 
 type VenueWorkspaceHeaderProps = Readonly<{
@@ -49,7 +48,6 @@ export function VenueWorkspaceHeader({ slug, venueName }: VenueWorkspaceHeaderPr
               key={href}
             >
               {label}
-              <NavigationPendingIndicator />
             </Link>
           );
         })}
@@ -82,7 +80,6 @@ export function VenueMobileNavigation({ slug }: Pick<VenueWorkspaceHeaderProps, 
           >
             <Icon aria-hidden="true" className="size-5" />
             {label}
-            <NavigationPendingIndicator />
           </Link>
         );
       })}

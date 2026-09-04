@@ -39,6 +39,7 @@ export type DiscoveryPage = Readonly<{
   locationMode: "browser";
   generatedAt: string;
   requiresPrivateCache: boolean;
+  viewerCacheScope: string;
 }>;
 
-export type DiscoveryApiPage = Omit<DiscoveryPage, "requiresPrivateCache">;
+export type DiscoveryApiPage = Omit<DiscoveryPage, "requiresPrivateCache" | "viewerCacheScope">;

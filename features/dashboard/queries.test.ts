@@ -5,11 +5,9 @@ const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
   maybeSingle: vi.fn(),
   loadTeamVisualsByName: vi.fn(),
-  requireActor: vi.fn(),
   rpc: vi.fn(),
 }));
 
-vi.mock("@/features/auth/actor", () => ({ requireActor: mocks.requireActor }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("@/features/sports/team-visuals", () => ({
   loadTeamVisualsByName: mocks.loadTeamVisualsByName,
@@ -93,7 +91,6 @@ describe("listMyGroupsForViewer", () => {
         ["Current Away FC", { tla: "CAF", crestUrl: null }],
       ]),
     );
-    mocks.requireActor.mockResolvedValue({ supabase: { rpc: mocks.rpc } });
   });
 
   it("keeps public group discovery usable when account personalization is restricted", async () => {
@@ -210,7 +207,7 @@ describe("listMyGroupsForViewer", () => {
       await expect(getMyHuddleOverview(options as never)).rejects.toMatchObject({
         code: "VALIDATION_FAILED",
       });
-      expect(mocks.requireActor).not.toHaveBeenCalled();
+      expect(mocks.createClient).not.toHaveBeenCalled();
       expect(mocks.rpc).not.toHaveBeenCalled();
     },
   );
@@ -286,10 +283,7 @@ describe("listMyGroupsForViewer", () => {
     fixtureQuery.order = vi.fn(() => fixtureQuery);
     fixtureQuery.limit = vi.fn().mockResolvedValue({ data: [fixtureRow], error: null });
     const supabase = { rpc: mocks.rpc, from: vi.fn(() => fixtureQuery) };
-    mocks.requireActor.mockResolvedValue({
-      supabase,
-      profile: { display_name: "Fan One" },
-    });
+    mocks.createClient.mockResolvedValue(supabase);
     mocks.rpc.mockImplementation(async (name: string, args: Record<string, unknown>) => {
       if (name === "list_my_events") {
         if (args.input_bucket === "upcoming") return { data: [eventRow], error: null };
@@ -328,7 +322,7 @@ describe("listMyGroupsForViewer", () => {
       return { data: null, error: { message: "unexpected RPC" } };
     });
 
-    await expect(getFanHome()).resolves.toMatchObject({
+    await expect(getFanHome("Fan One")).resolves.toMatchObject({
       displayName: "Fan One",
       nextEvent: { id: eventId },
       attention: [],
@@ -338,7 +332,7 @@ describe("listMyGroupsForViewer", () => {
         awayTeam: { name: "Current Away FC" },
       },
     });
-    expect(mocks.requireActor).toHaveBeenCalledWith("fan");
+    expect(mocks.createClient).toHaveBeenCalledOnce();
     expect(supabase.from).toHaveBeenCalledWith("public_future_matches");
     expect(fixtureQuery.or).toHaveBeenCalledWith(
       `home_team_id.in.(${teamId}),away_team_id.in.(${teamId}),competition_id.in.(c5000000-0000-4000-8000-000000000201)`,

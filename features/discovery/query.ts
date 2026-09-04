@@ -1,5 +1,6 @@
 import "server-only";
 
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 
 import { cursorFilterKey, decodeEventCursor, encodeEventCursor } from "@/features/discovery/cursor";
@@ -55,7 +56,15 @@ const discoveryMapPointRowSchema = z
 export async function getDiscoveryPage(filters: DiscoveryFilters): Promise<DiscoveryPage> {
   const supabase = await createClient();
   if (filters.lat === null || filters.lng === null) throw new DomainError("VALIDATION_FAILED");
-  const authResult = await supabase.auth.getUser();
+  // Verified claims are sufficient to decide whether to ask PostgreSQL for
+  // the actor's managed-Venue rows. The RPC remains the authorization source,
+  // while this avoids a separate Auth server round trip on every Explore load.
+  const authResult = await supabase.auth.getClaims();
+  const viewerId =
+    authResult.error === null && typeof authResult.data?.claims?.sub === "string"
+      ? authResult.data.claims.sub
+      : null;
+  const authenticated = viewerId !== null;
 
   const filterKey = cursorFilterKey(discoveryFilterIdentity(filters));
   const secret = getServerEnvironment().DISCOVERY_CURSOR_SECRET;
@@ -83,7 +92,7 @@ export async function getDiscoveryPage(filters: DiscoveryFilters): Promise<Disco
   const [reservationResult, openDoorResult, ownedVenueResult] = await Promise.all([
     supabase.rpc("discover_events", rpcInput),
     supabase.rpc("discover_open_door_events", rpcInput),
-    authResult.error === null && authResult.data.user !== null
+    authenticated
       ? supabase.rpc("discover_owned_venue_events", rpcInput)
       : Promise.resolve({ data: [], error: null }),
   ]);
@@ -157,9 +166,9 @@ export async function getDiscoveryPage(filters: DiscoveryFilters): Promise<Disco
         )
       : null;
 
-  // The request JWT can still authorize the RPC when getUser cannot confirm identity.
+  // The request JWT can still authorize an RPC when claims cannot be confirmed.
   // Treat that uncertainty as private so a user-scoped row set never enters shared cache.
-  const requiresPrivateCache = authResult.error !== null || authResult.data.user !== null;
+  const requiresPrivateCache = authResult.error !== null || authenticated;
 
   return {
     items: rows.map((row) => ({
@@ -206,5 +215,11 @@ export async function getDiscoveryPage(filters: DiscoveryFilters): Promise<Disco
     locationMode: "browser",
     generatedAt: new Date().toISOString(),
     requiresPrivateCache,
+    viewerCacheScope:
+      viewerId !== null
+        ? `fan:${viewerId}`
+        : authResult.error === null
+          ? "anonymous"
+          : `uncertain:${randomUUID()}`,
   };
 }

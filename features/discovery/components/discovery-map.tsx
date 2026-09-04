@@ -4,6 +4,7 @@ import Link from "next/link";
 import { MapPin } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { StyleSpecification } from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 
 import type { DiscoveryEvent } from "@/features/discovery/types";
 import { loadMapLibreRuntime } from "@/features/locations/maplibre-runtime";

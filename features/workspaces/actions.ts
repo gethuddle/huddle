@@ -73,7 +73,6 @@ export async function selectWorkspaceAction(
       serializeWorkspaceSelection(selection.data),
       workspaceCookieOptions(),
     );
-    revalidatePath("/", "layout");
     destination = workspaceLanding({
       kind: selected.workspace_kind,
       id: selected.workspace_id,

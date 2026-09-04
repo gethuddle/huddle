@@ -9,6 +9,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import type { StyleSpecification } from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { loadMapLibreRuntime } from "@/features/locations/maplibre-runtime";
 
 import { Button } from "@/components/ui/button";

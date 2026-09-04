@@ -48,6 +48,7 @@ describe("VenueWorkspaceHeader", () => {
     expect(within(navigation).getByRole("link", { name: "Calendar" })).not.toHaveClass(
       "bg-border-dark",
     );
+    expect(navigation.querySelector("[data-pending]")).not.toBeInTheDocument();
     expect(screen.queryByText(/friends|groups|host event/i)).not.toBeInTheDocument();
   });
 });

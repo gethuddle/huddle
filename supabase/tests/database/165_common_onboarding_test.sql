@@ -48,8 +48,8 @@ select is(
     where namespace.nspname = 'public'
       and procedure.oid = to_regprocedure('public.get_venue_workspace(uuid)')
   ),
-  'v'::"char",
-  'the lock-taking Venue workspace projection is callable through PostgREST'
+  's'::"char",
+  'the Venue workspace projection runs in a read-only transaction'
 );
 select is(
   (
@@ -59,8 +59,8 @@ select is(
     where namespace.nspname = 'public'
       and procedure.oid = to_regprocedure('public.list_venue_calendar(uuid,integer)')
   ),
-  'v'::"char",
-  'the lock-taking Venue calendar projection is callable through PostgREST'
+  's'::"char",
+  'the Venue calendar projection runs in a read-only transaction'
 );
 select is(
   (
@@ -68,8 +68,8 @@ select is(
     from pg_proc as procedure
     where procedure.oid = to_regprocedure('public.get_venue_for_management(text)')
   ),
-  'v'::"char",
-  'the management projection is callable through PostgREST'
+  's'::"char",
+  'the management projection runs in a read-only transaction'
 );
 select is(
   (
@@ -77,8 +77,8 @@ select is(
     from pg_proc as procedure
     where procedure.oid = to_regprocedure('public.list_managed_venue_events(uuid,integer)')
   ),
-  'v'::"char",
-  'the managed Venue event list is callable through PostgREST'
+  's'::"char",
+  'the managed Venue event list runs in a read-only transaction'
 );
 select ok(
   position(

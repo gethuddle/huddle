@@ -12,7 +12,7 @@ select function_privs_are('public','list_venue_calendar_page',array['uuid','text
 select function_privs_are('public','list_venue_calendar_page',array['uuid','text','integer','integer'],'authenticated',array['EXECUTE'],
   'authenticated actors may reach the internally authorized RPC');
 select is((select provolatile::text from pg_proc where oid='public.list_venue_calendar_page(uuid,text,integer,integer)'::regprocedure),
-  'v','the wrapper stays volatile because its actor assertion may take a row lock');
+  's','the history wrapper runs read-only so it never takes the write-only actor lock');
 select ok(pg_get_functiondef('public.list_venue_calendar_page(uuid,text,integer,integer)'::regprocedure)
   like '%private.actor_manages_venue(actor_id,input_venue_id)%',
   'the page RPC retains owner/admin authorization');

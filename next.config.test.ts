@@ -87,4 +87,15 @@ describe("Next.js deployment environment", () => {
       ]),
     );
   });
+
+  it("caches versioned MapLibre runtime assets immutably", async () => {
+    const { default: config } = await loadNextConfig();
+    const rules = await config.headers?.();
+    const maplibre = rules?.find((rule) => rule.source === "/maplibre/:version/:asset*");
+
+    expect(maplibre?.headers).toContainEqual({
+      key: "Cache-Control",
+      value: "public, max-age=31536000, immutable",
+    });
+  });
 });

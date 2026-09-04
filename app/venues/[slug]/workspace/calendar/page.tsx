@@ -6,7 +6,10 @@ import { VenueCalendar } from "@/features/venues/workspace/components/venue-cale
 import { listVenueCalendarPage } from "@/features/venues/workspace/queries";
 import { venueCollectionHref, venueCollectionState } from "@/features/venues/workspace/event-links";
 import { collectionPageCount } from "@/lib/pagination";
-import { getAuthorizedVenueWorkspaceBySlug } from "@/features/workspaces/queries";
+import {
+  getAuthorizedVenueWorkspaceBySlug,
+  getAuthorizedVenueWorkspaceSummaryBySlug,
+} from "@/features/workspaces/queries";
 
 type VenueCalendarPageProps = Readonly<{
   params: Promise<Readonly<{ slug: string }>>;
@@ -16,12 +19,18 @@ type VenueCalendarPageProps = Readonly<{
 export default async function VenueCalendarPage({ params, searchParams }: VenueCalendarPageProps) {
   const parsed = venueRouteSlugSchema.safeParse((await params).slug);
   if (!parsed.success) notFound();
-  const workspace = await getAuthorizedVenueWorkspaceBySlug(parsed.data);
-  if (workspace === null) notFound();
   const state = venueCollectionState(await searchParams);
   if (state.wasAboveWindow)
-    redirect(venueCollectionHref(workspace.slug, "calendar", state.status, state.page));
-  let history = await listVenueCalendarPage(workspace.id, state.status, state.page);
+    redirect(venueCollectionHref(parsed.data, "calendar", state.status, state.page));
+
+  const workspacePromise = getAuthorizedVenueWorkspaceBySlug(parsed.data);
+  const authorizedWorkspace = await getAuthorizedVenueWorkspaceSummaryBySlug(parsed.data);
+  if (authorizedWorkspace === null) notFound();
+  const historyPromise = listVenueCalendarPage(authorizedWorkspace.id, state.status, state.page);
+  void historyPromise.catch(() => undefined);
+  const workspace = await workspacePromise;
+  if (workspace === null) notFound();
+  let history = await historyPromise;
   if (state.page > 1 && history.items.length === 0) {
     const first = await listVenueCalendarPage(workspace.id, state.status, 1);
     const finalPage = collectionPageCount(first.totalCount);

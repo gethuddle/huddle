@@ -56,7 +56,7 @@ export default async function Home() {
   }
 
   if (workspace.active?.kind === "fan") {
-    const fanHome = await getFanHome().catch((error: unknown) => {
+    const fanHome = await getFanHome(workspace.active.label).catch((error: unknown) => {
       if (!(error instanceof DomainError) || error.code === "INTERNAL_ERROR") throw error;
       return null;
     });
