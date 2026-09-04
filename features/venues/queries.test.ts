@@ -12,6 +12,16 @@ describe("public Venue query", () => {
     mocks.createClient.mockResolvedValue({ rpc: mocks.rpc });
   });
 
+  it("rechecks public visibility on every read and never falls back to workspace data", async () => {
+    mocks.rpc.mockResolvedValue({ data: [], error: null });
+    await expect(getVenueBySlug("hidden-venue")).resolves.toBeNull();
+    await expect(getVenueBySlug("hidden-venue")).resolves.toBeNull();
+    expect(mocks.rpc.mock.calls).toEqual([
+      ["get_venue_by_slug", { lookup_slug: "hidden-venue" }],
+      ["get_venue_by_slug", { lookup_slug: "hidden-venue" }],
+    ]);
+  });
+
   it("maps only the controlled self-reported facilities from the safe projection", async () => {
     mocks.rpc.mockResolvedValue({
       data: [

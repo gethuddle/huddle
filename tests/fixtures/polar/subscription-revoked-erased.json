@@ -1,0 +1,43 @@
+{
+  "type": "subscription.revoked",
+  "timestamp": "2026-09-04T00:00:00Z",
+  "data": {
+    "id": "00000000-0000-4000-8000-000000000020",
+    "modified_at": "2026-09-04T00:00:00Z",
+    "amount": 1500,
+    "currency": "ils",
+    "recurring_interval": "month",
+    "recurring_interval_count": 1,
+    "status": "canceled",
+    "current_period_end": "2026-10-04T00:00:00Z",
+    "cancel_at_period_end": false,
+    "past_due_at": null,
+    "customer_id": "00000000-0000-4000-8000-000000000021",
+    "product_id": "00000000-0000-4000-8000-000000000002",
+    "checkout_id": "00000000-0000-4000-8000-000000000022",
+    "metadata": {
+      "huddle_venue_id": "00000000-0000-4000-8000-000000000011",
+      "huddle_checkout_attempt_id": "00000000-0000-4000-8000-000000000012",
+      "huddle_schema_version": "1"
+    },
+    "customer": {
+      "id": "00000000-0000-4000-8000-000000000021",
+      "external_id": null
+    },
+    "product": {
+      "id": "00000000-0000-4000-8000-000000000002",
+      "organization_id": "00000000-0000-4000-8000-000000000001",
+      "recurring_interval": "month",
+      "recurring_interval_count": 1
+    },
+    "prices": [
+      {
+        "id": "00000000-0000-4000-8000-000000000023",
+        "product_id": "00000000-0000-4000-8000-000000000002",
+        "amount_type": "fixed",
+        "price_amount": 1500,
+        "price_currency": "ils"
+      }
+    ]
+  }
+}

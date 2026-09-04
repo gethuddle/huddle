@@ -1,0 +1,16 @@
+import { expect, it } from "vitest";
+
+import {
+  CHECKOUT_CONFIRMATION_POLL_INTERVAL_MS,
+  CHECKOUT_CONFIRMATION_POLL_TIMEOUT_MS,
+  CHECKOUT_RECONCILIATION_TIMEOUT_MS,
+  POLAR_API_TIMEOUT_SECONDS,
+} from "./constants";
+
+it("keeps provider seconds separate from reservation and non-authoritative UI milliseconds", () => {
+  expect(POLAR_API_TIMEOUT_SECONDS).toBe(5);
+  expect(CHECKOUT_RECONCILIATION_TIMEOUT_MS).toBe(900_000);
+  expect(CHECKOUT_CONFIRMATION_POLL_INTERVAL_MS).toBe(2_000);
+  expect(CHECKOUT_CONFIRMATION_POLL_TIMEOUT_MS).toBe(60_000);
+  expect(CHECKOUT_CONFIRMATION_POLL_TIMEOUT_MS).toBeLessThan(CHECKOUT_RECONCILIATION_TIMEOUT_MS);
+});

@@ -33,6 +33,7 @@ describe("VenueOnboardingForm", () => {
     expect(container.querySelector('[name="latitude"]')).toBeNull();
     expect(container.querySelector('[name="longitude"]')).toBeNull();
     expect(screen.queryByText(/latitude|longitude/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/next.*demo plan/i)).toBeInTheDocument();
   });
 
   it("submits only the confirmed structured address selected from search", async () => {

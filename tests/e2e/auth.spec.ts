@@ -514,6 +514,17 @@ async function createVenueEvent(
   const venueId = venueResult.data.at(0)?.venue_id;
   if (venueId === undefined) throw new Error("Venue creation returned no venue ID.");
 
+  // This helper proves ordinary public events, so opt only this fixture into VB01.
+  localDatabaseQuery(`
+    update private.venue_billing_entitlements
+    set status = 'active', interval = 'month', interval_count = 1,
+        polar_customer_id = 'test-customer-' || venue_id,
+        polar_subscription_id = 'test-subscription-' || venue_id,
+        polar_product_id = 'test-product', polar_product_price_id = 'test-price',
+        amount = 1500, currency = 'ils', paid_through_at = statement_timestamp() + interval '365 days'
+    where venue_id = ${sqlLiteral(venueId)}::uuid;
+  `);
+
   const startsAt = new Date(fixture.startsAt);
   const input: Database["public"]["Functions"]["create_or_update_event"]["Args"] = {
     input_event_id: null as unknown as string,
@@ -1725,7 +1736,9 @@ test("completed users create venue and private events with safe projections", as
   await page.getByRole("checkbox", { name: /authorized to manage its Huddle listing/i }).click();
   await page.getByRole("button", { name: "Create venue account" }).click();
 
-  await expect(page).toHaveURL(new RegExp(`/venues/${venueSlug}/workspace$`));
+  await expect(page).toHaveURL(new RegExp(`/venues/${venueSlug}/workspace/billing$`));
+  await expect(page.getByText("Venue is private", { exact: true })).toBeVisible();
+  await page.goto(new URL(`/venues/${venueSlug}/workspace`, page.url()).toString());
   await expect(page.getByRole("button", { name: "Switch workspace" })).toContainText(
     `Match Corner ${suffix}`,
   );
@@ -1734,6 +1747,16 @@ test("completed users create venue and private events with safe projections", as
     page.getByLabel("Self-listed venue · business identity not checked by Huddle"),
   ).toBeVisible();
   await page.unroute("**/api/locations/search");
+  localDatabaseQuery(`
+    update private.venue_billing_entitlements
+    set status = 'active', interval = 'month', interval_count = 1,
+        polar_customer_id = 'test-customer-' || venue_id,
+        polar_subscription_id = 'test-subscription-' || venue_id,
+        polar_product_id = 'test-product', polar_product_price_id = 'test-price',
+        amount = 1500, currency = 'ils', paid_through_at = statement_timestamp() + interval '365 days'
+    where venue_id = (select id from public.venues where slug = ${sqlLiteral(venueSlug)});
+  `);
+  await page.reload();
   await page.getByRole("link", { name: "View public page" }).click();
   await expect(page).toHaveURL(new RegExp(`/venues/${venueSlug}$`));
   await expect(
@@ -1933,7 +1956,9 @@ test("a Venue-only operator completes the real onboarding boundary and publishes
     await page.getByRole("checkbox", { name: /authorized to manage its Huddle listing/i }).click();
     await page.getByRole("button", { name: "Create venue account" }).click();
 
-    await expect(page).toHaveURL(new RegExp(`/venues/${venueSlug}/workspace$`));
+    await expect(page).toHaveURL(new RegExp(`/venues/${venueSlug}/workspace/billing$`));
+    await expect(page.getByText("Venue is private", { exact: true })).toBeVisible();
+    await page.goto(new URL(`/venues/${venueSlug}/workspace`, page.url()).toString());
     await expect(page.getByRole("button", { name: "Switch workspace" })).toContainText(
       `Venue Only ${suffix}`,
     );
@@ -1952,6 +1977,17 @@ test("a Venue-only operator completes the real onboarding boundary and publishes
       `/venues/${venueSlug}/workspace`,
     );
 
+    // The hidden draft retains owner navigation; this existing journey then tests
+    // public commercial planning with an explicitly active local fixture.
+    localDatabaseQuery(`
+      update private.venue_billing_entitlements
+      set status = 'active', interval = 'month', interval_count = 1,
+          polar_customer_id = 'test-customer-' || venue_id,
+          polar_subscription_id = 'test-subscription-' || venue_id,
+          polar_product_id = 'test-product', polar_product_price_id = 'test-price',
+          amount = 1500, currency = 'ils', paid_through_at = statement_timestamp() + interval '365 days'
+      where venue_id = (select id from public.venues where slug = ${sqlLiteral(venueSlug)});
+    `);
     await page.goto(new URL("/", page.url()).toString());
     await expect(page).toHaveURL(new RegExp(`/venues/${venueSlug}/workspace$`));
     await page.getByRole("link", { name: "View public page" }).click();

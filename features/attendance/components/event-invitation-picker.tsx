@@ -32,10 +32,12 @@ export function EventInvitationPicker({
   candidates,
   eventId,
   remainingCapacity,
+  canInvite = true,
 }: Readonly<{
   candidates: readonly EventInvitationCandidate[];
   eventId: string;
   remainingCapacity: number;
+  canInvite?: boolean;
 }>) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -67,7 +69,7 @@ export function EventInvitationPicker({
   }
 
   function submit() {
-    if (selected.length === 0) return;
+    if (!canInvite || selected.length === 0) return;
     setFeedback(null);
     setFailed(false);
     startTransition(async () => {
@@ -89,6 +91,12 @@ export function EventInvitationPicker({
   }
 
   const personLabel = selected.length === 1 ? "person" : "people";
+  if (!canInvite)
+    return (
+      <p className="text-sm text-muted-foreground">
+        New invitations are unavailable for this event.
+      </p>
+    );
 
   return (
     <Dialog

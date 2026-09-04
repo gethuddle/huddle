@@ -187,18 +187,12 @@ export async function activateVenueOnboardingAction(
       serializeWorkspaceSelection({ kind: "venue", id: activated.venue_id }),
       workspaceCookieOptions(),
     );
-    const redirectTo = workspaceLanding({
-      kind: "venue",
-      id: current.workspace_id,
-      slug: current.slug,
-      label: current.name,
-      role: current.role,
-    });
+    const redirectTo = `/venues/${activated.slug}/workspace/billing`;
 
     revalidatePath("/", "layout");
     revalidatePath(`/venues/${activated.slug}`, "layout");
     return actionSuccess({
-      message: "Venue account is ready.",
+      message: "Venue details saved. Choose your demo plan in Billing.",
       redirectTo,
     });
   } catch (error) {

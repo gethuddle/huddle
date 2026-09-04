@@ -80,8 +80,9 @@ export default async function VenueOnboardingPage() {
           Give your business its own workspace.
         </h1>
         <p className="mt-4 text-lg leading-8 text-muted-foreground">
-          Huddle keeps venue operations separate from your optional Fan identity. New venues are
-          immediately usable and clearly labelled as self-listed until Huddle checks the business.
+          Huddle keeps venue operations separate from your optional Fan identity. Save your venue
+          details, then choose a demo plan in Billing. Your venue remains Unverified; no real money
+          is charged in Polar Sandbox.
         </p>
       </div>
       <div className="rounded-[1.375rem] border border-border bg-card p-6 sm:p-9">{content}</div>

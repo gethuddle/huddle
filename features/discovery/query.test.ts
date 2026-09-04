@@ -63,6 +63,15 @@ function safeRow() {
 }
 
 describe("event discovery query", () => {
+  it("does not retain previously visible venue results after all acquisition sources hide them", async () => {
+    const first = await getDiscoveryPage(filters);
+    expect(first.items).toHaveLength(1);
+    mocks.rpc.mockResolvedValue({ data: [], error: null });
+    const hidden = await getDiscoveryPage(filters);
+    expect(hidden.items).toEqual([]);
+    expect(hidden.nextCursor).toBeNull();
+    expect(hidden.requiresPrivateCache).toBe(true);
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getUser.mockResolvedValue({

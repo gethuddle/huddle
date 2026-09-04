@@ -190,18 +190,11 @@ export async function setVenueFollowAction(
     const { supabase, user } = await requireActor("fan");
 
     if (parsed.data.intent === "follow") {
-      const { error } = await supabase.from("venue_follows").insert({
-        user_id: user.id,
-        venue_id: parsed.data.venueId,
+      const { error } = await supabase.rpc("follow_venue", {
+        input_venue_id: parsed.data.venueId,
+        audit_request_id: await getRequestId(),
       });
-
-      if (error !== null && databaseCode(error) !== "23505") {
-        if (databaseCode(error) === "23503") throw new DomainError("NOT_FOUND", { cause: error });
-        if (databaseCode(error) === "42501") {
-          throw new DomainError("NOT_ALLOWED", { cause: error });
-        }
-        throw new DomainError("INTERNAL_ERROR", { cause: error });
-      }
+      if (error !== null) throw domainErrorFromDatabase(error);
     } else {
       const { error } = await supabase
         .from("venue_follows")

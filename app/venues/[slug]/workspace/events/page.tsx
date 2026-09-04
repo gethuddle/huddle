@@ -30,9 +30,11 @@ export default async function VenueEventsPage({ params }: VenueEventsPageProps) 
       {events.length === 0 ? (
         <EmptyState
           action={
-            <Button asChild>
-              <Link href={`/venues/${workspace.slug}/workspace/plan`}>Plan events</Link>
-            </Button>
+            workspace.billing.canPrepareDrafts ? (
+              <Button asChild>
+                <Link href={`/venues/${workspace.slug}/workspace/plan`}>Plan events</Link>
+              </Button>
+            ) : undefined
           }
           description="Pick one or more fixtures and Huddle will prefill each event from your Venue defaults."
           title="No venue events yet"

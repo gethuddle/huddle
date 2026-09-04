@@ -25,6 +25,11 @@ export default async function VenueCalendarPage({ params }: VenueCalendarPagePro
         {calendar.length} event{calendar.length === 1 ? "" : "s"} across drafts, published plans,
         and history.
       </p>
+      {!workspace.billing.canOperateExistingEvents ? (
+        <p className="mt-3 text-sm text-muted-foreground">
+          History remains available. Editing is locked.
+        </p>
+      ) : null}
 
       {calendar.length === 0 ? (
         <EmptyState

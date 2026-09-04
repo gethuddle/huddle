@@ -20,6 +20,8 @@
 
 **Approved account-erasure revision:** 3 September 2026. The `/account/security` contract now covers both a current-password change and immediate, irreversible self-service account deletion. Deletion requires bounded current-password reauthentication plus exact `DELETE` confirmation, performs one canonical actor-serialized and idempotent product-data transition, retains only required pseudonymous history, and then uses a server-only Supabase Auth soft deletion. The new database migration is separate from hosted production acceptance and MUST NOT be described as deployed until that evidence exists.
 
+**Approved `VB01` revision:** 3 September 2026. Commercial venue visibility and publishing are per-venue Polar Sandbox entitlements. Tasks 1–10 passed local acceptance for this approved contract and implementation module in an isolated disposable project; separately authorized Task 11 hosted/demo evidence remains pending, so it is not deployment evidence. It deliberately supersedes the older immediate-public Venue activation rule while preserving the free Fan/private-hosting scope, membership authorization, truthful business attestation, and visible `unverified` trust label.
+
 The keywords **MUST**, **MUST NOT**, **SHOULD**, and **MAY** express implementation priority. A MUST is part of acceptance for the submitted MVP unless this specification is deliberately revised.
 
 ---
@@ -69,7 +71,7 @@ The system MUST also let a venue-only operator activate an Unverified venue work
 - Google Calendar OAuth;
 - NBA integration and live scores;
 - route planning and paid address autocomplete beyond the implemented Photon/OpenStreetMap search and public-event map;
-- Stripe billing or subscription enforcement;
+- real-money/production payment processing, Stripe, ticket/payment handling, and any billing scope outside the approved Polar Sandbox `VB01` per-venue entitlement;
 - venue menus, offers, analytics, and promoted ranking;
 - ticket/payment handling;
 - generative recommendations, automatic content/event creation, and AI moderation beyond the bounded intent-extraction seam above.
@@ -201,17 +203,37 @@ Deferred behavior MUST NOT be represented by fake controls, placeholder entitlem
 - Group admins control group membership and group bans but cannot read or resolve platform reports.
 - The canonical rules are a versioned, repository-owned document. A material rules update increments `rules_version`; users must accept the new version before their next community mutation, while retaining read/access needed to leave events or seek safety help.
 
-### 2.8 Commercial boundary
+### 2.8 Commercial boundary and `VB01` venue entitlement
 
-- Fan features, friendships, groups, and private hosting are free.
-- In the course MVP, a commonly eligible venue operator may self-serve venue activation without payment or Fan activation. Activation MUST create the immediately usable `unverified` venue, one active owner membership, and its Venue workspace atomically.
-- Venue activation MUST record a truthful business-representation attestation and MUST NOT imply platform verification.
-- `unverified` MUST be visible wherever a venue is represented.
-- A generic Fan profile MUST NOT create or manage a venue. Every commercial venue mutation requires an active `owner` or `admin` Venue membership.
-- A venue is never an attendee and never consumes capacity. The same human MAY attend only through a separately activated Fan identity, where the one-account-per-attendee rule applies normally.
-- Production commercial publishing will later require a venue subscription entitlement.
-- The MVP MUST NOT create Stripe customers, checkout sessions, subscription tables, webhooks, or fake paid states.
-- Future promotion must be labelled and may reorder only already eligible results.
+Fan features, friendships, supporter groups, RSVP, and private hosting are free. `VB01` is one independent **Polar Sandbox** recurring entitlement per commercial venue: Monthly ₪15 or Annual ₪150, no trial, tier, discount, plan change, pause, seats, or real-money payment. Polar Sandbox is the billing source of truth and Supabase holds a per-venue authorization/visibility projection. The detailed provider/resource binding is in the approved [Polar design](./superpowers/specs/2026-09-03-polar-venue-subscriptions-design.md); this section is the normative product and authorization contract.
+
+1. A commonly eligible operator supplies venue information and a truthful business-representation attestation without activating Fan. Activation atomically creates an `unverified` venue, active owner membership, Venue workspace, and inactive entitlement as a **private management draft**. It is absent from public venue reads, Explore, maps, Ask, follows, public calendars, and every acquisition surface until entitlement is active.
+2. The journey is `venue details → hidden draft → owner chooses monthly/yearly → Polar Sandbox checkout → signed active webhook → public venue`. Browser input never chooses a provider customer/product/price/amount/owner. A checkout-success page is private progress only; a signed, validated, idempotently applied `subscription.active` webhook is the only initial-activation authority.
+3. Billing and authorization are distinct. Active `owner`/`admin` membership authorizes ordinary venue operations, but only the exact owner may initiate checkout, open a fresh pre-authenticated billing portal, cancel, or manage billing. An admin may see an internal status but has no billing action. Payment MUST NOT change `verification_status`: `unverified` remains visible and is only a truthful-attestation/trust label, never a statement of business verification.
+4. A venue is never an attendee and never consumes capacity. A human may attend only through a separately activated Fan identity under the one-account-per-attendee rule. Billing never weakens audience, block, suspension, moderation, private-location, attendance, or archive rules.
+
+The stored lifecycle state and current time define capabilities. Public visibility includes the public venue page, Explore, map, match/venue lists, saved-venue links, Ask, and every public DTO; **acquisition** includes new request/join, direct invitation, and accepting an unaccepted invitation. All failures deny rather than infer entitlement.
+
+| Entitlement state | Public visibility / acquisition / publishing | Private workspace and billing capability |
+| --- | --- | --- |
+| `payment_required` | Hidden; acquisition and publishing blocked. | Profile and unpublished-draft preparation only; exact owner may start checkout. |
+| `confirming` | Hidden; acquisition and publishing blocked. | Same preparation; owner sees only progress/retry. |
+| `active` | Visible; acquisition and publication for any future fixture allowed. No paid-through event-date horizon is imposed while active. | Ordinary operations; owner may open the portal. |
+| `canceling` before paid end | Venue remains visible, but only events starting before `paid_through_at` may stay public, acquire, or be published. | Ordinary operations; owner may undo cancellation in the portal if Polar permits. |
+| `past_due`, `provider_stale`, or `legacy_grace` before its fixed seven-day deadline | Hidden immediately; acquisition and publishing blocked. | Owner/admin may manage existing attendees and pending requests, edit/cancel existing events, work on private venue/space settings and unpublished drafts; `past_due` owner gets recovery, `provider_stale` gets neutral confirmation/recovery guidance, and `legacy_grace` owner may start checkout. |
+| `expired` | Hidden; acquisition and publishing blocked. | Read/history, archive, and recovery only. Portal remains available only while a provider binding is nonterminal; a new checkout is allowed only with no current binding (including legacy-expired) or after a signed terminal provider state releases it. |
+
+Existing pre-`VB01` venues receive one idempotent `legacy_grace` backfill from a single captured cutover timestamp. New venues start `payment_required` and receive no legacy grace. For `past_due`, the deadline is the first signed `past_due_at` plus seven days (only a signed event timestamp may substitute when absent); duplicates, delay, or repeated events never extend it. When an active paid-through period ends with no new provider snapshot, the venue becomes `provider_stale` at that time: it fails closed without falsely telling anyone that payment failed, and only a fully bound signed `order.paid` renewal proof may restore it. A bound `subscription.active` may recover `past_due`, but cannot prove a routine renewal or recover `provider_stale`.
+
+At grace expiry or paid cancellation end, only future published venue events become ordinary `cancelled` events. Drafts, attendance, invitations, audit/history, and already-started or past events remain; later recovery restores entitlement but never republishes or uncancels an already-cancelled event. A still-bound subscription may recover only through the portal; no duplicate checkout is created. A signed terminal `canceled`, `unpaid`, or `subscription.revoked` releases the binding. Unsupported/unknown/provider-mismatched/trialing/paused states never grant entitlement.
+
+Participants are the narrow privacy-safe exception to public hiding. Existing requested or approved participants retain scheduled-event detail, My Huddle, and authorized calendar access during payment-failure, provider-stale, or legacy grace; an unaccepted direct invitation cannot be accepted. During a still-unexpired voluntary cancellation period, they retain that private access for hidden events at/after the cutoff until the paid end. At either completed deadline, future events appear in their history only as `This event has been cancelled.`; a fan without that relationship gets normal not-found/unavailable behavior. Fan-facing cards, DTOs, calendars, errors, and copy MUST NOT disclose billing state, grace, invoices, or Polar.
+
+Every commercial read/mutation and cache path MUST evaluate the entitlement predicate: public discovery variants, venue/event lists, saved venues/follows, event detail and calendar export, direct/batch publishing, and all acquisition/invitation paths. Owner-aware discovery is not an exception. Billing-sensitive projections are dynamic and uncached; venue-hosted and participant-specific hidden ICS responses are `private, no-store`. A delayed sweep cannot leak access: timestamp-aware reads project a deadline-expired participant event as cancelled. A bounded, locked, idempotent sweep persists the same expiry/cancellation outcome; it never substitutes for direct authorization.
+
+An archived venue remains non-public regardless of entitlement. Archive closes local checkout attempts and never silently changes Polar; the exact owner may use a narrow archived-billing portal path only for an already-bound subscription. Account erasure is the sole provider-identity exception. `VB01` preserves the existing boolean `prepare_account_erasure` V1 contract: if Polar cleanup would be required, V1 raises `UPSTREAM_UNAVAILABLE` before commit so its local preparation rolls back. `VB01` also adds the billing-aware V2 preparation wrapper, which terminalizes every owned venue and closes checkout attempts, commits only bounded retryable cleanup state, and reports whether external cleanup is required. The Server Action then deletes/anonymizes the authenticated UUID external customer (a `404` is idempotent success), completes the guarded local cleanup, and only then deletes Supabase Auth. A transient V2 cleanup error leaves that prepared local state retryable and blocks Auth deletion. A late signed checkout/subscription/order event matching an erased actor's retained attempt marker grants nothing and triggers the same cleanup; only the matching erased-marker `subscription.revoked` may have a null external customer ID after anonymization.
+
+Future promotion must be labelled and may reorder only already eligible results. Real-money processing, tickets, menus, offers, analytics, paid ranking, and business verification remain deferred.
 
 ---
 
@@ -256,8 +278,8 @@ Authorization MUST be enforced twice for sensitive transitions: application logi
 | `/groups/[slug]/manage` | Owner/admin | Applications, members, roles, bans, rules, invites, submitted events; owner-only audited deletion/archive |
 | `/join/group/[token]` | Active Fan | Validate unlisted invite and submit membership application |
 | `/join/event/[token]` | Authenticated/Active Fan | Sign in if needed, atomically redeem a secure invite-only event token into a targeted invitation, then accept or decline on the event |
-| `/venues/[slug]` | Public | Venue summary, unverified badge, follow action, future event listings |
-| `/venues/new` | Commonly eligible account | Self-serve an Unverified venue, active owner membership, and Venue workspace with business-representation attestation |
+| `/venues/[slug]` | Public only while entitled; otherwise owner workspace/normal unavailable | Public entitled-venue summary, unverified badge, follow action, and future event listings; a hidden draft never leaks through this route |
+| `/venues/new` | Commonly eligible account | Self-serve a private Unverified venue draft, active owner membership, inactive entitlement, and Venue workspace with business-representation attestation |
 | `/venues/[slug]/manage` | Active Venue owner/admin | Edit the authorized venue and manage venue event links |
 | `/people/[handle]` | Public/signed-in safe projection | Safe profile, friendship/block state; never email/private attendance |
 | `/people` | Active Fan | Bounded safe search by display name or handle, excluding self, suspended profiles, and blocked pairs |
@@ -296,7 +318,7 @@ Unauthorized access MUST render a clear `not found`, `sign in`, `finish safety s
 
 **Group:** search → open the safe summary → apply (or open invite) → admin reviews → member sees group content → ordinary member submits event → a different current owner/admin approves. An event authored by a current owner/admin publishes atomically without self-review; later promotion never lets the creator approve or reject their own pending submission. A published public-place event may introduce an eligible Fan to an active discoverable group, but attendance waits for active membership.
 
-**Venue:** complete common safety eligibility → attest truthful business representation → atomically create an Unverified venue, active owner membership, and Venue workspace → choose synchronized fixtures whose dates and kickoff times are inherited → assign viewing areas → publish as open-door or reservation events. Fans either read “come along; no reservation” or attend/request through an active Fan identity. The venue itself is never an attendee.
+**Venue:** complete common safety eligibility → attest truthful business representation → atomically create a private Unverified venue draft, active owner membership, Venue workspace, and inactive entitlement → exact owner completes Polar Sandbox checkout → signed webhook activates public venue/publishing rights → choose synchronized fixtures whose dates and kickoff times are inherited → assign viewing areas → publish as open-door or reservation events. Fans either read “come along; no reservation” or attend/request through an active Fan identity. The venue itself is never an attendee.
 
 ### 4.3 UI component boundaries
 
@@ -897,7 +919,7 @@ Every community action follows: parse → authenticate → require common safety
 | `redeem_event_invite_token(token)` | Eligible authenticated Fan; lock/check digest, event, block, expiry/revocation/use limit, create one pending invitation, increment use only once |
 | `revoke_event_invite_token(invite_token_id)` | Invite-only event manager; revoke future redemption without deleting existing invitations/history |
 | `evaluate_group_discoverability(group_id)` | Return gate facts and activate only when all thresholds pass |
-| `activate_venue(input)` | Require common safety eligibility and truthful-representation attestation; create an Unverified venue, active owner membership, and workspace atomically without requiring Fan activation |
+| `activate_venue(input)` | Require common safety eligibility and truthful-representation attestation; create a private Unverified venue draft, active owner membership, inactive entitlement, and workspace atomically without requiring Fan activation |
 | `archive_venue(venue_id, confirmation)` | Current active owner only; exact-name confirmation; atomically hide venue/workspace from live reads, cancel future live events, revoke usable invitations, retain history, and audit |
 | `create_or_update_event(input)` | Enforce active Fan or Venue-membership authority, private-versus-business audience, open-door versus reservation invariants, venue-as-non-attendee, 12-person home cap, no guest count, group author role/publication behavior, and private location; reject material changes after approval |
 | `publish_group_event(event_id, decision)` | Current owner/admin authors publish atomically in the creation transaction; an ordinary-member pending event may be approved/rejected only by a current owner/admin whose user ID differs from `created_by`, with the identity check and decision audited |
@@ -932,14 +954,14 @@ Functions return stable domain error codes for expected failures.
 
 ### 7.6 Immediate account-erasure contract
 
-Account erasure begins only in Account Security. The Server Action validates the bounded current password and exact `DELETE`, obtains the current user through the ordinary SSR client, and reauthenticates that exact email/password pair. It then calls `prepare_account_erasure('DELETE', request_id)` as that authenticated user before a `server-only` service-role client calls `auth.admin.deleteUser(user.id, true)`. The `true` argument is deliberate Supabase Auth soft deletion: identities and sessions are removed while a non-reversible sanitized Auth tombstone preserves required foreign-key history. The password, service-role key, raw provider error, and former email or a digest of it MUST NOT enter product storage or logs.
+Account erasure begins only in Account Security. The Server Action validates the bounded current password and exact `DELETE`, obtains the current user through the ordinary SSR client, and reauthenticates that exact email/password pair. Before `VB01`, it calls the preserved boolean `prepare_account_erasure('DELETE', request_id)` V1 before a `server-only` service-role client calls `auth.admin.deleteUser(user.id, true)`. With `VB01`, it calls the versioned billing-aware V2 preparation wrapper instead; if V2 reports required cleanup, it deletes/anonymizes the authenticated UUID external Polar customer, completes guarded local cleanup, and only then calls `auth.admin.deleteUser`. V1 must raise `UPSTREAM_UNAVAILABLE` before commit when that cleanup would be required, while V2 intentionally preserves bounded retryable preparation state and blocks Auth deletion until cleanup succeeds. The `true` argument is deliberate Supabase Auth soft deletion: identities and sessions are removed while a non-reversible sanitized Auth tombstone preserves required foreign-key history. The password, service-role key, raw provider error, and former email or a digest of it MUST NOT enter product storage or logs.
 
-The preparation RPC derives its actor only from `auth.uid()`, uses the same canonical `private.serialize_actor_transaction()` boundary as other actor mutations, and locks the profile. Direct subscription and Venue-follow writes MUST enter that same serialization boundary and recheck the non-deleted profile so they cannot survive a concurrent erasure. A retry always reruns cleanup to reconcile residue, even when `deleted_at` is already set, but writes no second `account.erase.prepare` audit event.
+The preparation RPC derives its actor only from `auth.uid()`, uses the same canonical `private.serialize_actor_transaction()` boundary as other actor mutations, and locks the profile. `VB01` V2 then locks every owned venue in sorted UUID order before entitlement, venue, and event rows; direct subscription and Venue-follow writes MUST enter that same serialization boundary and recheck the non-deleted profile so they cannot survive a concurrent erasure. A retry always reruns cleanup to reconcile residue, even when `deleted_at` is already set, but writes no second `account.erase.prepare` audit event.
 
 One transaction performs the following removal or terminal transitions:
 
 - cancel every future live event directly hosted by the actor or hosted through a group or Venue they own;
-- archive each owned group and Venue without transferring ownership, and retain only the owner memberships required to keep those archived objects referentially valid;
+- archive each owned group and Venue without transferring ownership, and retain only the owner memberships required to keep those archived objects referentially valid; V2 also terminalizes every owned Venue entitlement, closes checkout attempts, and writes only bounded private external-cleanup state;
 - revoke pending event/group invitations involving the actor and only invite tokens that are still active at erasure time (`revoked_at is null`, unexpired, and below their use limit); expired or exhausted token history keeps its original outcome;
 - move the actor's current requested/approved attendance to `left`, end or revoke every non-owner active/pending group or Venue membership, and clear `group_memberships.application_message` on every one of the actor's membership rows, including rejected, left, and banned history;
 - delete the actor's follows/subscriptions, friendships, blocks, platform roles, actor rate counters, event drafts, and every exact home-location row for an event they directly hosted;
@@ -949,7 +971,7 @@ Historical attendance, membership lifecycle, event authorship, reports, moderati
 
 An already issued JWT may remain cryptographically valid until expiry after Auth deletion. Every mutation/common/Fan/safety/onboarding gate therefore rejects `deleted_at is not null`, and retained private-history read policies for group memberships, Venue memberships, event invitations, and attendance also require a non-deleted current profile. The narrow own-profile tombstone policy is the erased actor's only remaining direct product read; direct profile writes cannot reactivate it.
 
-After Auth soft deletion succeeds, the application clears Supabase, recovery-grant, and workspace cookies, sets a short-lived host-only HttpOnly completion marker, revalidates the signed-in shell, and redirects to `/auth/sign-in?account=deleted`. Only that server-issued marker may trigger clearing all namespaced Huddle `sessionStorage`; the status query alone MUST NOT erase browser state, unrelated tab keys remain untouched, and the marker MUST be consumed immediately after cleanup so subsequent anonymous state survives. Ordinary sign-out manually expires local Supabase/recovery/workspace cookies and redirects even when the provider logout call returns or throws a transport error, then uses the same one-time marker-gated Huddle-state cleanup on its anonymous Home landing. If the provider call fails after database preparation, the browser receives only a generic retryable error; the profile remains non-public and mutation-ineligible, and the same still-authenticated session may repeat preparation and retry the provider deletion.
+After Auth soft deletion succeeds, the application clears Supabase, recovery-grant, and workspace cookies, sets a short-lived host-only HttpOnly completion marker, revalidates the signed-in shell, and redirects to `/auth/sign-in?account=deleted`. Only that server-issued marker may trigger clearing all namespaced Huddle `sessionStorage`; the status query alone MUST NOT erase browser state, unrelated tab keys remain untouched, and the marker MUST be consumed immediately after cleanup so subsequent anonymous state survives. Ordinary sign-out manually expires local Supabase/recovery/workspace cookies and redirects even when the provider logout call returns or throws a transport error, then uses the same one-time marker-gated Huddle-state cleanup on its anonymous Home landing. A V2 Polar cleanup failure returns only generic `UPSTREAM_UNAVAILABLE`, leaves the profile non-public/mutation-ineligible with retryable local cleanup, and blocks Auth deletion; success/`404` completes cleanup before Auth deletion. A late matching checkout/subscription/order webhook has the same cleanup obligation and never restores entitlement. V1 raises that token before preparation commits.
 
 ---
 
@@ -1297,7 +1319,7 @@ Seed deterministic users, relationships, groups, venues, matches, and events. Re
 7. Owner/admin-authored group event publishes atomically; an ordinary-member submission remains hidden until a different current owner/admin approves it. In a two-account E2E, promoting the creator to admin still denies their self-approval/self-rejection, while a different current owner/admin can decide it.
 8. Home-event request: safe coarse distance context visible, exact address absent; address appears only after approval; material address/audience change then requires cancellation/new event.
 9. Home event rejects capacity above 12 and offers no plus-one; each approved account consumes exactly one seat.
-10. Venue-only onboarding creates an Unverified venue plus active owner membership without Fan activation; commercial mutations deny inactive/non-members; fixture planning inherits kickoff data; a public open-door event has no capacity, invitations, RSVP, queue, or residue; a reservation/team-followers event retains atomic seat and invitation behavior; the venue itself never attends.
+10. `VB01` extends the historical venue-only onboarding evidence: an Unverified private venue draft plus active owner membership/inactive entitlement is created without Fan activation; public presence, acquisition, and publishing require active entitlement while ordinary membership remains separately checked. Fixture planning inherits kickoff data; a public open-door event has no capacity, invitations, RSVP, queue, or residue; a reservation/team-followers event retains atomic seat and invitation behavior; the venue itself never attends.
 11. Capacity race: simultaneous approvals result in only available seats and stable rejected/conflict response.
 12. Host removes an approved attendee: history remains, event/address/calendar access is immediately denied.
 13. User blocks a future home-event host/attendee: friendship/direct interaction and attendance/address access are atomically removed without revealing the blocker.
@@ -1438,7 +1460,7 @@ The final submission may split product, test, scale, and security material into 
 3. **Architecture (2 min):** Next.js modular monolith, Supabase Auth/PostgreSQL/RLS/PostGIS, provider sync, Vercel.
 4. **Database and permissions (2 min):** events/audiences, relationships, separate home location, atomic capacity.
 5. **Tests, security, scale (2.5 min):** one pgTAP denial, one E2E flow, CI, indexes/pagination/cache, residual risks.
-6. **Trade-offs and next steps (1 min):** why assisted discovery uses only bounded AI intent extraction, and why there is no Redis, Socket.IO, Stripe, agent, RAG, or generative recommendation layer; venue subscription and NBA adapter later.
+6. **Trade-offs and next steps (1 min):** why assisted discovery uses only bounded AI intent extraction, why there is no Redis, Socket.IO, real-money Stripe/payment layer, agent, RAG, or generative recommendation layer; explain that `VB01` passed isolated local acceptance but still awaits separately authorized Task 11 hosted/demo evidence, and NBA remains later.
 
 The presenters MUST be able to explain each selected dependency, trace one browser action through server/database/RLS, and distinguish planned future features from the working submission.
 
@@ -1482,7 +1504,7 @@ The MVP is done only when:
 | Blocking | Immediate private control with relationship/attendance/address revocation | User protection does not wait for moderation |
 | Moderation | Confidential reports, proportional enforcement, and appeals | Group admins and platform moderators have distinct authority |
 | Reputation | Factual context, no score | Avoid gameable cold-start metric |
-| Venue MVP | Self-serve activated by a commonly eligible operator, membership-authorized, venue-as-non-attendee, and visibly Unverified | Demonstrates loop without billing/verification claim or invented Fan identity |
+| Venue / `VB01` | Self-serve private Unverified draft by a commonly eligible operator, membership-authorized operations, owner-only Sandbox entitlement, and venue-as-non-attendee | Demonstrates the loop without invented Fan identity; payment remains distinct from business verification and real money |
 | Calendar | RFC 5545 download | Broad compatibility without OAuth |
 | Realtime | None | No Socket.IO/Redis dependency |
 | State | Server + URL + narrow TanStack Query + local React | No unnecessary global store |

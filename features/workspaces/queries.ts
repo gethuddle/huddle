@@ -1,11 +1,13 @@
 import "server-only";
 
 import { cookies } from "next/headers";
+import { cache } from "react";
 
 import { DomainError } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
 import { getVenueWorkspace } from "@/features/venues/workspace/queries";
-import type { VenueWorkspace } from "@/features/venues/workspace/types";
+import { getVenueBillingContext } from "@/features/venue-billing/queries";
+import type { AuthorizedVenueWorkspace } from "./types";
 
 import { parseWorkspaceCookie, workspaceRowsSchema } from "./schemas";
 import { chooseWorkspace, WORKSPACE_COOKIE_NAME } from "./state";
@@ -112,24 +114,28 @@ export async function getWorkspaceSetupAvailability(): Promise<
   return { canStartFan: true, canStartVenue: true };
 }
 
-export async function getAuthorizedVenueWorkspaceBySlug(
-  slug: string,
-): Promise<VenueWorkspace | null> {
-  let available: readonly WorkspaceSummary[];
-  try {
-    available = await listMyWorkspaces();
-  } catch {
-    // Workspace routes are private. Authentication, authorization, and
-    // projection failures therefore share the same non-disclosing result.
-    return null;
-  }
-  const workspace = available.find(
-    (candidate) => candidate.kind === "venue" && candidate.slug === slug,
-  );
-  if (workspace === undefined) return null;
-  try {
-    return await getVenueWorkspace(workspace.id);
-  } catch {
-    return null;
-  }
-}
+export const getAuthorizedVenueWorkspaceBySlug = cache(
+  async function getAuthorizedVenueWorkspaceBySlug(
+    slug: string,
+  ): Promise<AuthorizedVenueWorkspace | null> {
+    let available: readonly WorkspaceSummary[];
+    try {
+      available = await listMyWorkspaces();
+    } catch {
+      // Workspace routes are private. Authentication, authorization, and
+      // projection failures therefore share the same non-disclosing result.
+      return null;
+    }
+    const workspace = available.find(
+      (candidate) => candidate.kind === "venue" && candidate.slug === slug,
+    );
+    if (workspace === undefined) return null;
+    try {
+      const venue = await getVenueWorkspace(workspace.id);
+      if (venue === null) return null;
+      return { ...venue, billing: await getVenueBillingContext(workspace.id) };
+    } catch {
+      return null;
+    }
+  },
+);

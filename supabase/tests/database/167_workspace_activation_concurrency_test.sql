@@ -43,6 +43,14 @@ begin
   perform extensions.dblink_exec(
     'workspace_activation_setup',
     $remote$
+      delete from private.venue_billing_entitlements as entitlement
+      using public.venues as venue
+      where entitlement.venue_id = venue.id
+        and venue.owner_id in (
+          'e4020000-0000-4000-8000-000000000101',
+          'e4020000-0000-4000-8000-000000000102',
+          'e4020000-0000-4000-8000-000000000103'
+        );
       delete from public.venues
       where owner_id in (
         'e4020000-0000-4000-8000-000000000101',

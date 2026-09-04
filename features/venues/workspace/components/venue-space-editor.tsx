@@ -14,9 +14,17 @@ export function VenueSpaceEditor({
   sortOrder,
   space = null,
   venueId,
-}: Readonly<{ sortOrder: number; space?: VenueSpace | null; venueId: string }>) {
+  canEdit = false,
+}: Readonly<{ sortOrder: number; space?: VenueSpace | null; venueId: string; canEdit?: boolean }>) {
   const [state, action, pending] = useActionState(saveVenueSpaceAction, null);
   const prefix = space?.id ?? "new";
+  if (!canEdit)
+    return space ? (
+      <p className="rounded-xl border border-border p-5">
+        {space.name} · {space.capacity === null ? "Open door" : `${space.capacity} places`} ·{" "}
+        {space.active ? "Active" : "Inactive"}
+      </p>
+    ) : null;
   return (
     <form action={action} className="rounded-[1.375rem] border border-border bg-card p-5">
       <input name="venueId" type="hidden" value={venueId} />

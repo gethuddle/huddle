@@ -1,7 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
 import { VenueVerificationBadge } from "@/features/venues/components/venue-verification-badge";
 import { venueRouteSlugSchema } from "@/features/venues/schemas";
 import { TodayDashboard } from "@/features/venues/workspace/components/today-dashboard";
@@ -39,13 +37,14 @@ export default async function VenueTodayPage({ params }: VenueTodayPageProps) {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <VenueVerificationBadge status={workspace.verificationStatus} />
-          <Button asChild variant="outline">
-            <Link href={`/venues/${workspace.slug}`}>View public page</Link>
-          </Button>
         </div>
       </div>
 
-      <TodayDashboard slug={workspace.slug} snapshot={snapshot} />
+      <TodayDashboard
+        slug={workspace.slug}
+        snapshot={snapshot}
+        canPrepareDrafts={workspace.billing.canPrepareDrafts}
+      />
     </section>
   );
 }

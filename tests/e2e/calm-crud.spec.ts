@@ -257,6 +257,16 @@ async function createVenueEvent(client: SupabaseClient<Database>, fixture: Fixtu
   if (venue.error !== null) throw venue.error;
   const venueId = venue.data.at(0)?.venue_id;
   if (venueId === undefined) throw new Error("Venue creation returned no ID.");
+  // Public-event fixture only; ordinary venue creation must remain inactive.
+  localDatabaseRows(`
+    update private.venue_billing_entitlements
+    set status = 'active', interval = 'month', interval_count = 1,
+        polar_customer_id = 'test-customer-' || venue_id,
+        polar_subscription_id = 'test-subscription-' || venue_id,
+        polar_product_id = 'test-product', polar_product_price_id = 'test-price',
+        amount = 1500, currency = 'ils', paid_through_at = statement_timestamp() + interval '365 days'
+    where venue_id = ${sqlLiteral(venueId)}::uuid returning venue_id;
+  `);
   const title = `Calm public event ${run}`;
   const result = await client.rpc(
     "create_or_update_event",
@@ -547,7 +557,8 @@ test("closing a Venue removes its live pages and cancels future events", async (
   await page.getByRole("button", { name: "Close venue", exact: true }).click();
   await page.getByRole("textbox", { name: "Venue name" }).fill(venue.name);
   await page.getByRole("button", { name: "Close venue permanently" }).click();
-  await expect(page).toHaveURL(/^http:\/\/(?:localhost|127\.0\.0\.1):3000\/$/);
+  await expect(page).toHaveURL(new RegExp(`/venues/${venue.slug}/billing$`));
+  await expect(page.getByRole("heading", { name: "Billing for a closed venue" })).toBeVisible();
 
   const storedEvent = localDatabaseRows<{ status: string }>(`
     select status::text

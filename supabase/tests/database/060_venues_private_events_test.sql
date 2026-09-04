@@ -80,7 +80,7 @@ select ok(not has_table_privilege('authenticated', 'public.events', 'select'), '
 select ok(not has_table_privilege('authenticated', 'public.event_private_locations', 'select'), 'exact locations cannot be selected directly');
 select ok(not has_table_privilege('authenticated', 'public.event_private_locations', 'update'), 'exact locations cannot be updated directly');
 select ok(not has_table_privilege('authenticated', 'public.event_private_locations', 'insert'), 'exact locations cannot be inserted directly');
-select ok(has_table_privilege('authenticated', 'public.venue_follows', 'insert'), 'eligible users may create an RLS-owned follow');
+select ok(has_function_privilege('authenticated', 'public.follow_venue(uuid,uuid)', 'execute') and not has_table_privilege('authenticated','public.venue_follows','insert'), 'eligible users follow through the serialized RPC only');
 select ok(not has_table_privilege('authenticated', 'public.event_invitations', 'insert'), 'invitations cannot be forged directly');
 select ok(not has_table_privilege('authenticated', 'public.event_attendance', 'insert'), 'attendance cannot be forged directly');
 
@@ -287,6 +287,13 @@ values
     2,
     40
   );
+
+-- These exact synthetic venues exercise public or publishing behavior.
+update private.venue_billing_entitlements set status='active',interval='month',interval_count=1,
+  polar_customer_id='fixture-customer',polar_subscription_id='fixture-'||venue_id::text,
+  polar_product_id='fixture-product',polar_product_price_id='fixture-price',amount=1500,currency='ils',
+  paid_through_at=statement_timestamp()+interval '365 days',first_activated_at=statement_timestamp()
+where venue_id in ('61000000-0000-4000-8000-000000000301','61000000-0000-4000-8000-000000000302');
 
 select throws_ok(
   $$update public.venues set slug = 'Bad Slug' where id = '61000000-0000-4000-8000-000000000301'$$,
@@ -516,8 +523,7 @@ select throws_ok(
   'the cityless venue update boundary rejects a crafted cross-owner edit'
 );
 
-insert into public.venue_follows (user_id, venue_id)
-values (auth.uid(), '61000000-0000-4000-8000-000000000301');
+select public.follow_venue('61000000-0000-4000-8000-000000000301',null);
 select is(
   (select count(*) from public.venue_follows),
   1::bigint,
@@ -527,9 +533,9 @@ select throws_ok(
   $$insert into public.venue_follows (user_id,venue_id) values ('61000000-0000-4000-8000-000000000102','61000000-0000-4000-8000-000000000301')$$,
   '42501', null, 'a caller cannot forge another user follow'
 );
-select throws_ok(
-  $$insert into public.venue_follows (user_id,venue_id) values ('61000000-0000-4000-8000-000000000101','61000000-0000-4000-8000-000000000301')$$,
-  '23505', null, 'duplicate follows are rejected'
+select lives_ok(
+  $$select public.follow_venue('61000000-0000-4000-8000-000000000301',null)$$,
+  'duplicate follow requests are idempotent'
 );
 delete from public.venue_follows
 where user_id = auth.uid()

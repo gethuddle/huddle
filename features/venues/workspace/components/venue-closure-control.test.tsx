@@ -29,7 +29,7 @@ describe("VenueClosureControl", () => {
     });
   });
 
-  it("explains retained history and requires the exact Venue name", async () => {
+  it("requires the exact Venue name and keeps billing recovery reachable after closure", async () => {
     const user = userEvent.setup();
     render(
       <VenueClosureControl
@@ -40,6 +40,11 @@ describe("VenueClosureControl", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Close venue" }));
+    expect(screen.getByText(/does not cancel your demo subscription/i)).toBeVisible();
+    expect(screen.getByRole("link", { name: "Billing" })).toHaveAttribute(
+      "href",
+      "/venues/match-corner/workspace/billing",
+    );
     expect(screen.getByText(/past event and attendance records/i)).toBeVisible();
     const confirm = screen.getByRole("button", { name: "Close venue permanently" });
     expect(confirm).toBeDisabled();
@@ -54,6 +59,6 @@ describe("VenueClosureControl", () => {
       venueSlug: "match-corner",
       confirmation: "Match Corner",
     });
-    expect(mocks.replace).toHaveBeenCalledWith("/");
+    expect(mocks.replace).toHaveBeenCalledWith("/venues/match-corner/billing");
   });
 });

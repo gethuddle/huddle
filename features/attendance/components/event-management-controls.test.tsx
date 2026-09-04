@@ -182,3 +182,33 @@ describe("EventManagementControls", () => {
     expect(screen.getByText(/appears in that person's Home/i)).toBeVisible();
   });
 });
+it("keeps cancellation but removes acquisition controls during grace", () => {
+  render(
+    <EventManagementControls
+      attendance={[]}
+      invitations={[]}
+      eventId={eventId}
+      eventStatus="published"
+      remainingCapacity={10}
+      canInvite={false}
+      canOperate={true}
+    />,
+  );
+  expect(screen.queryByRole("button", { name: "Invite people" })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Cancel event" })).toBeEnabled();
+});
+it("retains attendance history with no operation buttons after expiry", () => {
+  render(
+    <EventManagementControls
+      attendance={[]}
+      invitations={[]}
+      eventId={eventId}
+      eventStatus="published"
+      remainingCapacity={10}
+      canInvite={false}
+      canOperate={false}
+    />,
+  );
+  expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Attendance requests" })).toBeVisible();
+});

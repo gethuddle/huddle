@@ -11,9 +11,10 @@ import type { VenueTodaySnapshot } from "@/features/venues/workspace/types";
 type TodayDashboardProps = Readonly<{
   slug: string;
   snapshot: VenueTodaySnapshot;
+  canPrepareDrafts?: boolean;
 }>;
 
-export function TodayDashboard({ slug, snapshot }: TodayDashboardProps) {
+export function TodayDashboard({ slug, snapshot, canPrepareDrafts = false }: TodayDashboardProps) {
   const next = snapshot.nextEvent;
   const laterToday = snapshot.todayEvents.filter((event) => event.id !== next?.id);
 
@@ -26,7 +27,9 @@ export function TodayDashboard({ slug, snapshot }: TodayDashboardProps) {
             : `${snapshot.todayEvents.length} event${snapshot.todayEvents.length === 1 ? "" : "s"} today`}
         </p>
         <Button asChild size="lg">
-          <Link href={`/venues/${slug}/workspace/plan`}>Plan events</Link>
+          <Link href={`/venues/${slug}/workspace/${canPrepareDrafts ? "plan" : "billing"}`}>
+            {canPrepareDrafts ? "Plan events" : "Open Billing"}
+          </Link>
         </Button>
       </div>
 

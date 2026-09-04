@@ -6,6 +6,7 @@ import type { VenueEventCatalog } from "@/features/events/catalog";
 type VenueEventFormProps = Readonly<{
   catalog: VenueEventCatalog;
   initialMatchId?: string;
+  canPrepareDrafts?: boolean;
   venue: Readonly<{
     id: string;
     slug: string;
@@ -17,7 +18,12 @@ type VenueEventFormProps = Readonly<{
 }>;
 
 /** Compatibility surface for old imports; creation now belongs to the Venue batch planner. */
-export function VenueEventForm({ catalog, initialMatchId = "", venue }: VenueEventFormProps) {
+export function VenueEventForm({
+  catalog,
+  initialMatchId = "",
+  venue,
+  canPrepareDrafts = false,
+}: VenueEventFormProps) {
   const safeMatchId = catalog.matches.some((match) => match.id === initialMatchId)
     ? initialMatchId
     : "";
@@ -30,7 +36,15 @@ export function VenueEventForm({ catalog, initialMatchId = "", venue }: VenueEve
         atomic save.
       </p>
       <Button asChild className="mt-5">
-        <Link href={`/venues/${venue.slug}/workspace/plan${query}`}>Continue to planner</Link>
+        <Link
+          href={
+            canPrepareDrafts
+              ? `/venues/${venue.slug}/workspace/plan${query}`
+              : `/venues/${venue.slug}/workspace/billing`
+          }
+        >
+          {canPrepareDrafts ? "Continue to planner" : "Open Billing"}
+        </Link>
       </Button>
     </section>
   );

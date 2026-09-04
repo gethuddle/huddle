@@ -49,6 +49,12 @@ export default async function VenuePlanPage({ params, searchParams }: VenuePlanP
           />
         ) : (
           <FixturePlanner
+            billing={{
+              canPublish: workspace.billing.canPublish,
+              canPrepareDrafts: workspace.billing.canPrepareDrafts,
+              publishCutoffAt: workspace.billing.publishCutoffAt,
+              blockedReason: "Publishing is unavailable. You can save drafts and check Billing.",
+            }}
             catalog={catalog}
             initialMatchId={initialMatchId}
             venue={{

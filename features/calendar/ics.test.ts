@@ -3,6 +3,23 @@ import { describe, expect, it } from "vitest";
 import { escapeIcsText, foldIcsLine, formatIcsUtc, serializeCalendarEvent } from "./ics";
 
 describe("RFC 5545 calendar serialization", () => {
+  it("keeps the UID while replacing cancelled event copy with the neutral outcome", () => {
+    const output = serializeCalendarEvent({
+      id: "90000000-0000-4000-8000-000000000001",
+      status: "cancelled",
+      title: "Match huddle",
+      description: "Old scheduled description",
+      startsAt: "2026-09-08T18:00:00Z",
+      endsAt: "2026-09-08T21:00:00Z",
+      updatedAt: "2026-09-01T00:00:00Z",
+      location: null,
+      url: "https://gethuddle.app/events/90000000-0000-4000-8000-000000000001",
+    });
+    expect(output).toContain("UID:90000000-0000-4000-8000-000000000001@gethuddle.app");
+    expect(output).toContain("STATUS:CANCELLED\r\n");
+    expect(output).toContain("DESCRIPTION:This event has been cancelled.\r\n");
+    expect(output).not.toContain("Old scheduled description");
+  });
   it("escapes text and emits UTC timestamps", () => {
     expect(escapeIcsText("One, two; path\\next\nline")).toBe("One\\, two\\; path\\\\next\\nline");
     expect(formatIcsUtc("2026-08-28T18:45:30.000Z")).toBe("20260828T184530Z");
@@ -25,6 +42,7 @@ describe("RFC 5545 calendar serialization", () => {
   it("emits a stable complete VEVENT and omits unauthorized location", () => {
     const output = serializeCalendarEvent({
       id: "90000000-0000-4000-8000-000000000001",
+      status: "published",
       title: "Arsenal, together",
       description: "Bring energy; respect everyone.",
       startsAt: "2026-08-28T18:00:00.000Z",

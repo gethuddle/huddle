@@ -23,3 +23,7 @@ export type AppShellState = Readonly<{
   isSignedIn: boolean;
   workspace: WorkspaceShellContext;
 }>;
+import type { VenueWorkspace } from "@/features/venues/workspace/types";
+import type { VenueBillingContext } from "@/features/venue-billing/types";
+
+export type AuthorizedVenueWorkspace = VenueWorkspace & Readonly<{ billing: VenueBillingContext }>;

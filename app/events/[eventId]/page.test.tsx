@@ -80,11 +80,64 @@ const event = {
     displayName: "Venue",
     handle: null,
     venueSlug: "venue",
+    canOpenVenue: true,
     venueVerificationStatus: "unverified",
   },
 };
 
 describe("EventPage attendee pagination", () => {
+  it("keeps a hidden venue host as text for an existing participant without a broken public link", async () => {
+    mocks.getEventSummary.mockResolvedValue({
+      ...event,
+      canManage: false,
+      viewerAttendanceStatus: "approved",
+      viewerCanReadPrivateLocation: false,
+      host: { ...event.host, canOpenVenue: false },
+    });
+    render(
+      await EventPage({ params: Promise.resolve({ eventId }), searchParams: Promise.resolve({}) }),
+    );
+    expect(screen.getByText("Venue")).toBeVisible();
+    expect(screen.queryByRole("link", { name: "Open venue" })).not.toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/billing|grace|Polar|payment/);
+  });
+  it("retains the public link when the participant's venue is publicly available", async () => {
+    mocks.getEventSummary.mockResolvedValue({
+      ...event,
+      canManage: false,
+      viewerAttendanceStatus: "approved",
+      viewerCanReadPrivateLocation: false,
+    });
+    render(
+      await EventPage({ params: Promise.resolve({ eventId }), searchParams: Promise.resolve({}) }),
+    );
+    expect(screen.getByRole("link", { name: "Open venue" })).toHaveAttribute(
+      "href",
+      "/venues/venue",
+    );
+  });
+  it("shows a retained participant cancellation with the neutral reason", async () => {
+    mocks.getEventSummary.mockResolvedValue({
+      ...event,
+      status: "cancelled",
+      canManage: false,
+      viewerAttendanceStatus: "requested",
+      viewerCanReadPrivateLocation: false,
+    });
+    render(
+      await EventPage({ params: Promise.resolve({ eventId }), searchParams: Promise.resolve({}) }),
+    );
+    expect(screen.getByText("This event has been cancelled.")).toBeVisible();
+    expect(document.body.textContent).not.toMatch(/billing|grace|Polar|payment/);
+  });
+  it("returns ordinary not-found when a venue event is hidden from an unrelated viewer", async () => {
+    mocks.getEventSummary.mockResolvedValue(null);
+    await expect(
+      EventPage({ params: Promise.resolve({ eventId }), searchParams: Promise.resolve({}) }),
+    ).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(mocks.listApprovedEventAttendees).not.toHaveBeenCalled();
+    expect(mocks.getPrivateEventLocation).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.redirect.mockImplementation(() => {

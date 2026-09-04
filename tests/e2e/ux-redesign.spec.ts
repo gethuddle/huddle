@@ -153,7 +153,16 @@ function cleanupJourney(runKey?: string) {
       delete from public.event_attendance where event_id = any(journey_events);
       delete from public.events where id = any(journey_events);
       delete from public.groups where owner_id = any(journey_users);
+      -- Only these synthetic actors' billing rows may be removed for teardown.
+      delete from private.polar_webhook_events where venue_id in (
+        select id from public.venues where owner_id = any(journey_users)
+      );
+      delete from private.venue_billing_checkout_attempts where owner_id = any(journey_users);
+      delete from private.venue_billing_entitlements where venue_id in (
+        select id from public.venues where owner_id = any(journey_users)
+      );
       delete from public.venues where owner_id = any(journey_users);
+      delete from private.polar_account_erasure_cleanup where actor_id = any(journey_users);
       delete from auth.users where id = any(journey_users);
       delete from public.matches
       where provider = 'football-data'
@@ -1008,7 +1017,9 @@ test("complete deterministic Fan and Venue workspace journey", async ({
     await page.getByRole("checkbox", { name: /authorized to manage its Huddle listing/i }).click();
     await page.getByRole("button", { name: "Create venue account" }).click();
 
-    await expect(page).toHaveURL(new RegExp(`/venues/${identity.venueSlug}/workspace$`));
+    await expect(page).toHaveURL(new RegExp(`/venues/${identity.venueSlug}/workspace/billing$`));
+    await expect(page.getByText("Venue is private", { exact: true })).toBeVisible();
+    await page.goto(journeyUrl(page, `/venues/${identity.venueSlug}/workspace`));
     await expect(page.getByRole("button", { name: "Switch workspace" })).toContainText(
       identity.venueName,
     );
@@ -1027,6 +1038,17 @@ test("complete deterministic Fan and Venue workspace journey", async ({
       { query: venueAddressQuery, purpose: "public_address" },
     ]);
     await page.unroute("**/api/locations/search");
+
+    // This journey now deliberately continues with a public venue fixture.
+    localDatabaseQuery(`
+      update private.venue_billing_entitlements
+      set status = 'active', interval = 'month', interval_count = 1,
+          polar_customer_id = 'test-customer-' || venue_id,
+          polar_subscription_id = 'test-subscription-' || venue_id,
+          polar_product_id = 'test-product', polar_product_price_id = 'test-price',
+          amount = 1500, currency = 'ils', paid_through_at = statement_timestamp() + interval '365 days'
+      where venue_id = (select id from public.venues where slug = ${sqlLiteral(identity.venueSlug)});
+    `);
 
     await page.goto(journeyUrl(page, `/venues/${identity.venueSlug}/workspace/settings`));
     await expectNoCityControl(page);

@@ -22,6 +22,8 @@ import { eventRouteIdSchema } from "@/features/events/schemas";
 import { listPeopleHub } from "@/features/people/search";
 import { DomainError } from "@/lib/errors";
 import { collectionPageCount, collectionPageInput } from "@/lib/pagination";
+import { getAuthorizedVenueWorkspaceBySlug } from "@/features/workspaces/queries";
+import { BillingStatusBanner } from "@/features/venue-billing/components/billing-status-banner";
 
 export const metadata: Metadata = { title: "Manage event — Huddle" };
 
@@ -35,6 +37,17 @@ export default async function ManageEventPage({ params, searchParams }: Props) {
   if (!parsedId.success) notFound();
   const event = await getEventSummary(parsedId.data);
   if (event === null || !event.canManage) notFound();
+  const workspace =
+    event.host.kind === "venue" && event.host.venueSlug
+      ? await getAuthorizedVenueWorkspaceBySlug(event.host.venueSlug)
+      : null;
+  if (event.host.kind === "venue" && workspace === null) notFound();
+  const canOperate = workspace?.billing.canOperateExistingEvents ?? true;
+  const canInvite =
+    workspace === null ||
+    (workspace.billing.isPublic &&
+      (workspace.billing.publishCutoffAt === null ||
+        Date.parse(event.startsAt) < Date.parse(workspace.billing.publishCutoffAt)));
 
   const rawPage = (await searchParams).page;
   const pageInput = collectionPageInput(Array.isArray(rawPage) ? rawPage[0] : rawPage);
@@ -48,7 +61,7 @@ export default async function ManageEventPage({ params, searchParams }: Props) {
   const [invitations, attendance, people, inviteLinks] = await Promise.all([
     openDoor ? Promise.resolve([]) : listEventInvitations(event.id, page),
     openDoor ? Promise.resolve([]) : listEventAttendance(event.id, page),
-    openDoor ? Promise.resolve([]) : readInvitationPeople(),
+    openDoor || !canInvite ? Promise.resolve([]) : readInvitationPeople(),
     canShareInviteLink ? listEventInviteLinks(event.id) : Promise.resolve([]),
   ]);
   const total = Math.max(invitations.at(0)?.total_count ?? 0, attendance.at(0)?.total_count ?? 0);
@@ -80,12 +93,21 @@ export default async function ManageEventPage({ params, searchParams }: Props) {
       </h1>
       <p className="mt-4 max-w-3xl text-muted-foreground">
         {openDoor
-          ? "This fixture is public and walk-in. There is no digital guest list to manage."
-          : "Invite people, review attendance requests, and manage approved attendees."}
+          ? workspace !== null && !workspace.billing.isPublic
+            ? "This walk-in fixture is private. There is no digital guest list to manage."
+            : "This fixture is public and walk-in. There is no digital guest list to manage."
+          : canInvite
+            ? "Invite people, review attendance requests, and manage approved attendees."
+            : canOperate
+              ? "Review existing attendance requests and manage approved attendees."
+              : "Attendance and invitation history remains available. Editing is locked."}
       </p>
+      {workspace ? <BillingStatusBanner context={workspace.billing} slug={workspace.slug} /> : null}
 
       <div className="mt-10" id="event-management-queue">
         <EventManagementControls
+          canInvite={canInvite}
+          canOperate={canOperate}
           attendance={attendance}
           attendanceMode={event.attendanceMode}
           candidates={candidates}

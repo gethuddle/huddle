@@ -340,6 +340,13 @@ values
   ('aa100000-0000-4000-8000-000000000401', 'aa100000-0000-4000-8000-000000000105', 'ai-food-venue', 'AI Food Venue', '1 Hidden Public Address, Haifa', extensions.st_setsrid(extensions.st_makepoint(35.000, 32.800), 4326)::extensions.geography, 'A venue with self-reported food for assisted search.', 4, 80, array['food','drinks']::public.venue_facility[], 'unverified'),
   ('aa100000-0000-4000-8000-000000000402', 'aa100000-0000-4000-8000-000000000105', 'ai-drinks-venue', 'AI Drinks Venue', '2 Hidden Public Address, Haifa', extensions.st_setsrid(extensions.st_makepoint(35.002, 32.802), 4326)::extensions.geography, 'A venue without self-reported food for assisted search.', 4, 80, array['drinks']::public.venue_facility[], 'unverified');
 
+-- These exact synthetic venues exercise public or publishing behavior.
+update private.venue_billing_entitlements set status='active',interval='month',interval_count=1,
+  polar_customer_id='fixture-customer',polar_subscription_id='fixture-'||venue_id::text,
+  polar_product_id='fixture-product',polar_product_price_id='fixture-price',amount=1500,currency='ils',
+  paid_through_at=statement_timestamp()+interval '365 days',first_activated_at=statement_timestamp()
+where venue_id in ('aa100000-0000-4000-8000-000000000401','aa100000-0000-4000-8000-000000000402');
+
 insert into public.subscriptions (user_id, kind, team_id)
 values ('aa100000-0000-4000-8000-000000000101', 'team', 'aa100000-0000-4000-8000-000000000202');
 

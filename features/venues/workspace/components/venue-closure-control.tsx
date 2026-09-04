@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState, useTransition, type FormEvent } from "react";
 
 import {
@@ -45,9 +46,8 @@ export function VenueClosureControl({
       setState(result);
       if (result?.ok === true) {
         setOpen(false);
-        // Let the root choose the next surviving workspace. A Venue-only owner may not have a
-        // Fan dashboard, while a multi-workspace owner should recover into their next workspace.
-        router.replace("/");
+        // The archived workspace is gone; keep separate subscription recovery reachable.
+        router.replace(`/venues/${venueSlug}/billing`);
         router.refresh();
       }
     });
@@ -84,6 +84,16 @@ export function VenueClosureControl({
               confirm.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Closing this venue does not cancel your demo subscription. Manage it separately in{" "}
+            <Link
+              className="text-forest underline underline-offset-4"
+              href={`/venues/${venueSlug}/workspace/billing`}
+            >
+              Billing
+            </Link>
+            .
+          </p>
           <form className="space-y-5" onSubmit={submit}>
             <div>
               <Label htmlFor="venue-close-confirmation">Venue name</Label>

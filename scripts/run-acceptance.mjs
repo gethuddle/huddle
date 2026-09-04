@@ -2,6 +2,10 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 
 const repositoryRoot = process.cwd();
+const acceptanceEnvironment = {
+  ...process.env,
+  HUDDLE_AUTOMATION_BLOCK_POLAR_NETWORK: "true",
+};
 const npmExecutable = process.platform === "win32" ? "npm.cmd" : "npm";
 const npxExecutable = process.platform === "win32" ? "npx.cmd" : "npx";
 const supabaseExecutable = path.join(
@@ -29,7 +33,7 @@ function run(command, arguments_, label) {
   console.log(`\n[acceptance] ${label}`);
   const result = spawnSync(command, arguments_, {
     cwd: repositoryRoot,
-    env: process.env,
+    env: acceptanceEnvironment,
     stdio: "inherit",
   });
 
@@ -54,7 +58,7 @@ try {
   stackWasRunning =
     spawnSync(supabaseExecutable, ["status"], {
       cwd: repositoryRoot,
-      env: process.env,
+      env: acceptanceEnvironment,
       stdio: "ignore",
     }).status === 0;
   stackStartAttempted = true;

@@ -343,6 +343,13 @@ values (
   'A public venue used only for current-state projection tests.', 50
 );
 
+-- These exact synthetic venues exercise public or publishing behavior.
+update private.venue_billing_entitlements set status='active',interval='month',interval_count=1,
+  polar_customer_id='fixture-customer',polar_subscription_id='fixture-'||venue_id::text,
+  polar_product_id='fixture-product',polar_product_price_id='fixture-price',amount=1500,currency='ils',
+  paid_through_at=statement_timestamp()+interval '365 days',first_activated_at=statement_timestamp()
+where venue_id in ('c5000000-0000-4000-8000-000000000401');
+
 insert into public.events (
   id, created_by, host_user_id, host_venue_id, organizing_group_id,
   match_id, title, description, expected_activity, cost_description,

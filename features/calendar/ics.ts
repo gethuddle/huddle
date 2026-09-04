@@ -1,5 +1,6 @@
 export type CalendarEvent = Readonly<{
   id: string;
+  status: "draft" | "pending_group_review" | "published" | "cancelled" | "completed";
   title: string;
   description: string;
   startsAt: string;
@@ -61,7 +62,8 @@ export function serializeCalendarEvent(event: CalendarEvent): string {
     `DTSTART:${formatIcsUtc(event.startsAt)}`,
     `DTEND:${formatIcsUtc(event.endsAt)}`,
     `SUMMARY:${escapeIcsText(event.title)}`,
-    `DESCRIPTION:${escapeIcsText(event.description)}`,
+    `STATUS:${event.status === "cancelled" ? "CANCELLED" : "CONFIRMED"}`,
+    `DESCRIPTION:${escapeIcsText(event.status === "cancelled" ? "This event has been cancelled." : event.description)}`,
     `URL:${escapeIcsText(event.url)}`,
     ...(event.location === null ? [] : [`LOCATION:${escapeIcsText(event.location)}`]),
     "END:VEVENT",

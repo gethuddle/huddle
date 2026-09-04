@@ -51,6 +51,8 @@ function EventManagementControlsInner({
   inviteLinks,
   invitations,
   remainingCapacity,
+  canInvite = true,
+  canOperate = true,
 }: Readonly<{
   attendance: EventAttendance[];
   attendanceMode: "open_door" | "reservations";
@@ -61,6 +63,8 @@ function EventManagementControlsInner({
   inviteLinks: readonly EventInviteLink[];
   invitations: EventInvitation[];
   remainingCapacity: number;
+  canInvite?: boolean;
+  canOperate?: boolean;
 }>) {
   const router = useRouter();
   const mutation = useMutation<AttendanceActionState, Error, FormData>({
@@ -77,6 +81,7 @@ function EventManagementControlsInner({
   });
 
   function submit(intent: MutationIntent, formData: FormData) {
+    if (!canOperate) return;
     formData.set("mutationIntent", intent);
     formData.set("eventId", eventId);
     mutation.mutate(formData);
@@ -93,7 +98,7 @@ function EventManagementControlsInner({
             a guest list, or a capacity count for this event.
           </p>
         </section>
-        {eventStatus === "published" ? (
+        {canOperate && eventStatus === "published" ? (
           <CancelEventControl disabled={mutation.isPending} submit={submit} />
         ) : null}
       </div>
@@ -124,7 +129,7 @@ function EventManagementControlsInner({
               place is reserved.
             </p>
             <div className="mt-5">
-              {eventStatus === "published" ? (
+              {canInvite && eventStatus === "published" ? (
                 <EventInvitationPicker
                   candidates={candidates}
                   eventId={eventId}
@@ -132,7 +137,7 @@ function EventManagementControlsInner({
                 />
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Publish the event before inviting people.
+                  New invitations are unavailable for this event.
                 </p>
               )}
             </div>
@@ -158,7 +163,7 @@ function EventManagementControlsInner({
                       </Link>
                       <p className="mt-1 text-xs text-muted-foreground">{invitation.status}</p>
                     </div>
-                    {invitation.status === "pending" ? (
+                    {canOperate && invitation.status === "pending" ? (
                       <Button
                         disabled={mutation.isPending}
                         onClick={() => {
@@ -237,7 +242,7 @@ function EventManagementControlsInner({
                       </p>
                     ) : null}
                     <div className="mt-5 flex flex-wrap gap-2">
-                      {row.status === "requested" ? (
+                      {canOperate && row.status === "requested" ? (
                         <>
                           {row.can_approve ? (
                             <DecisionButton
@@ -260,7 +265,7 @@ function EventManagementControlsInner({
                           </DecisionButton>
                         </>
                       ) : null}
-                      {row.status === "approved" ? (
+                      {canOperate && row.status === "approved" ? (
                         <RemoveAttendeeControl
                           attendanceId={row.attendance_id}
                           disabled={mutation.isPending}
@@ -276,7 +281,7 @@ function EventManagementControlsInner({
         </CardContent>
       </Card>
 
-      {eventStatus === "published" ? (
+      {canOperate && eventStatus === "published" ? (
         <CancelEventControl disabled={mutation.isPending} submit={submit} />
       ) : null}
     </div>
@@ -444,6 +449,8 @@ export function EventManagementControls(
     inviteLinks?: readonly EventInviteLink[];
     invitations: EventInvitation[];
     remainingCapacity?: number;
+    canInvite?: boolean;
+    canOperate?: boolean;
   }>,
 ) {
   const [queryClient] = useState(() => new QueryClient());
