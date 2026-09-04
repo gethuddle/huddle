@@ -24,11 +24,14 @@ The live Sandbox walkthrough has not passed yet.
   expiry of 4 September 2027.
 - Saved the Sandbox organization and both product bindings in Vercel Production.
   Its network guard is temporarily `true`; checkout remains blocked during setup.
-  Verified all five saved configuration names without printing values.
-- Webhook-secret setup is pending: the observed Raw-endpoint creation form has no
-  custom-secret field, unlike the setup guide referenced by the runbook. Resolve
-  and document that initial-setup ordering before creating an endpoint or deploying;
-  do not expand the application token's scopes or weaken signature validation.
+  A high-entropy bootstrap webhook secret is also saved; verified all six
+  configuration names without printing values. The endpoint's generated secret
+  will replace the bootstrap value after the receiver is deployed.
+- Reconciled the runbook's initial setup with the observed Raw-endpoint form and
+  versioned API: the provider generates the secret. Bootstrap deployment keeps
+  checkout blocked, then installs the generated secret and verifies the receiver
+  before enabling Sandbox transport. A direct signed smoke is not represented as a
+  provider-origin delivery. No app-token scope or signature-validation change.
 - Confirmed Vercel is connected to this repository, tracks `main` for Production,
   and automatically assigns the production domains. Migrations and Production
   configuration must therefore precede merge.
@@ -37,11 +40,17 @@ The live Sandbox walkthrough has not passed yet.
   into an ignored, owner-readable-only local backup directory. All five exports
   completed and their sizes, permissions, and hashes were checked. No restore was
   performed or claimed to be tested; any restore requires separate authorization.
-- The Production webhook secret, hosted migrations, deployment, signed webhook
-  delivery, scheduler, and live checkout/activation walkthrough remain pending.
-- Publication is blocked by the configured 1Password SSH signer: the latest retry
-  after signing in exited unsuccessfully. Signing remains enabled; no commit, push,
-  pull request, merge, or deployment has occurred.
+- Repeated the logical exports immediately before rollout and prepared the same
+  private backup set for Preview. The migration dry runs show exactly eight pending
+  Preview migrations (two already-main prerequisites plus six VB01 migrations) and
+  exactly six pending Production VB01 migrations, with no seeds or roles to replay.
+  Neither dry run applied a migration.
+- The generated endpoint secret and matching deployment, hosted migrations, signed
+  provider delivery, scheduler, and live checkout/activation walkthrough remain pending.
+- The user completed signed commit `08208342`; its author and reciprocal coauthor
+  were checked. After the user authorized GitHub's required workflow scope, the
+  branch was pushed and [PR #56](https://github.com/gethuddle/huddle/pull/56) opened.
+  Its Preview build passed; required exact-head CI and hosted rollout remain pending.
 
 ## Remaining evidence
 

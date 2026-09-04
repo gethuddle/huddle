@@ -102,10 +102,13 @@ Vercel/Supabase managed secret stores.
 GitHub, or production mutation. Its exact Sandbox-only inventory, six configuration
 names, initial secret/migration/deploy/endpoint/scheduler order, recovery procedures,
 and rotation limits are in
-[`POLAR-SANDBOX-BILLING.md`](./POLAR-SANDBOX-BILLING.md). In particular, a custom
-webhook secret may be prepared privately before deployment, but the Raw Polar endpoint
-must not be created or enabled until the final HTTPS route is reachable without a
-redirect and must deliver a valid signature before checkout. Only the authorized live
+[`POLAR-SANDBOX-BILLING.md`](./POLAR-SANDBOX-BILLING.md). Initial deployment uses a
+random temporary webhook secret and a blocked network guard. Create the Raw Polar
+endpoint only after the final HTTPS route is reachable without a redirect, then
+privately install its generated secret and redeploy while checkout stays blocked.
+Verify unsigned rejection and a non-mutating signed application smoke before enabling
+Sandbox checkout; distinguish this from the first real Polar delivery during checkout.
+Only the authorized live
 `huddle.co.il` Sandbox demo may enable provider calls; Preview/local/CI retain
 synthetic configuration and `HUDDLE_AUTOMATION_BLOCK_POLAR_NETWORK=true`.
 

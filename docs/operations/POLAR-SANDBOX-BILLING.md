@@ -65,11 +65,14 @@ time-travel/test-clock facility; local tests use injected timestamps instead.
 1. Stop for authorization before each Polar, Supabase, Vercel, GitHub, deployment, or
    production mutation. Confirm a backup/recovery point, exact repository commit,
    exact Supabase project, and live host.
-2. In Polar Sandbox, create only a missing expected product, then create the
-   least-privilege token and privately prepare a matching **custom** webhook secret.
-   Polar permits a custom endpoint secret, so this safe secret preparation may occur
-   before application deployment. Store the six names in the approved managed
-   environment; do not print their values.
+2. In Polar Sandbox, create only a missing expected product and the least-privilege
+   token. The dashboard and versioned create-endpoint schema checked on 4 September
+   2026 generate the signing secret; they expose no custom-secret input, despite the
+   older general setup guide. Privately generate a high-entropy temporary bootstrap
+   webhook secret and store all six names in the approved managed environment with
+   `HUDDLE_AUTOMATION_BLOCK_POLAR_NETWORK=true`. This permits the initial build but
+   does not connect Polar or permit checkout. Transfer secrets through the managed
+   UI or directly through CLI stdin with output suppressed; never print their values.
 3. Apply, in timestamp order, the reviewed committed forward migrations:
    `20260903090000_polar_venue_billing_foundation.sql`,
    `20260903091500_polar_venue_checkout_context.sql`,
@@ -82,11 +85,21 @@ time-travel/test-clock facility; local tests use injected timestamps instead.
    direct active SQL, or a migration replay.
 4. Deploy the verified application build. Confirm the final HTTPS webhook route is
    reachable without a redirect before creating or enabling the endpoint.
-5. Create or enable the one Raw-payload endpoint with the matching custom secret and
-   these eight events: `subscription.created`, `subscription.active`,
+5. Create or enable the one Raw-payload endpoint with these eight events:
+   `subscription.created`, `subscription.active`,
    `subscription.canceled`, `subscription.uncanceled`, `subscription.cycled`,
-   `subscription.past_due`, `subscription.revoked`, and `order.paid`. Verify a signed
-   delivery before any checkout. `subscription.created` and `subscription.cycled` are
+   `subscription.past_due`, `subscription.revoked`, and `order.paid`. Privately copy
+   its generated signing secret into `POLAR_WEBHOOK_SECRET` and redeploy while the
+   network guard stays `true`. Verify the final receiver rejects an unsigned POST
+   with `403` without redirect, then accepts a correctly signed unsupported-event
+   smoke with `202` and no database/provider mutation. This proves the installed
+   application secret and receiver, **not** a Polar-originated delivery; the current
+   provider documentation does not promise a generic test/ping event. Never send
+   fabricated supported billing events. Only after these checks set the Production
+   guard to `false`, redeploy, and run the authorized Sandbox checkout. Its real
+   selected-event delivery is the provider-origin acceptance evidence. No entitlement
+   is granted before the real signed activation. `subscription.created` and
+   `subscription.cycled` are
    non-authoritative; a fully bound `subscription.active` can initially activate or
    recover `past_due`, while fully bound `order.paid` is the renewal/stale-recovery
    authority.
@@ -166,6 +179,7 @@ local tests nor resource creation alone proves the live checkout journey.
 
 Sources checked 2026-09-04: Polar's [Sandbox guide](https://polar.sh/docs/integrate/sandbox),
 [webhook endpoints](https://polar.sh/docs/integrate/webhooks/endpoints),
+[versioned endpoint creation](https://polar.sh/docs/api-reference/2026-04/webhooks/create-webhook-endpoint.md),
 [delivery behavior](https://polar.sh/docs/integrate/webhooks/delivery),
 [customer portal settings](https://polar.sh/docs/features/customer-portal/settings),
 and the versioned API references recorded in the Task 10 provider notes.

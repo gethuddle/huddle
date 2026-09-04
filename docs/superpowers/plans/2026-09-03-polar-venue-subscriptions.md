@@ -1601,7 +1601,7 @@ Both products were verified in the Sandbox catalogue on 4 September 2026. Their 
 
 - [ ] **Step 4: Prepare least-privilege credentials and matching webhook secret**
 
-Create one Sandbox organization access token with only the five runbook scopes. `customers:write` is present solely for account-erasure `deleteExternal(..., { anonymize: true })`; do not expose general customer mutation elsewhere. For initial setup, privately prepare the matching webhook secret: [Polar permits a custom secret](https://polar.sh/docs/integrate/webhooks/endpoints), so creating or enabling the endpoint need not precede route deployment. Store the access token, webhook secret, organization ID, and product IDs directly in the appropriate Vercel secret UI; never paste values into chat, terminal output, docs, screenshots, or the repository. Set the deny-only network guard explicitly per the runbook: only the authorized live host may call Sandbox, while Preview/local/CI remain blocked with synthetic configuration. Do not start demo checkout traffic before the endpoint is ready. Existing-endpoint changes and secret rotation follow the separate approved maintenance procedure, not this first-setup sequence.
+Create one Sandbox organization access token with only the five runbook scopes. `customers:write` is present solely for account-erasure `deleteExternal(..., { anonymize: true })`; do not expose general customer mutation elsewhere. The current dashboard and [2026-04 create schema](https://polar.sh/docs/api-reference/2026-04/webhooks/create-webhook-endpoint.md) generate the signing secret, superseding the older general guide's custom-secret setup assumption. Privately prepare a high-entropy temporary bootstrap secret and keep the Production network guard true for the initial deployment. After the final route exists, create the endpoint, privately install its generated secret and redeploy before enabling checkout. Store credentials/bindings through the appropriate Vercel secret UI or direct CLI stdin with output suppressed; never paste values into chat, terminal output, docs, screenshots, or the repository. Only the authorized live host may call Sandbox; Preview/local/CI remain blocked with synthetic configuration. Existing-endpoint changes and secret rotation follow the separate approved maintenance procedure, not this first-setup sequence.
 
 - [ ] **Step 5: Apply the approved hosted rollout in runbook order**
 
@@ -1611,7 +1611,7 @@ After confirming a backup/recovery point and correct project/host:
 2. apply the reviewed, committed VB01 migration inventory listed in the runbook, including the deadline migration;
 3. deploy the verified application build;
 4. confirm the webhook route is reachable without redirect;
-5. create or enable the matching webhook endpoint in **Raw** format with all eight Task5 billing events, including `order.paid`, then verify signed delivery before any demo checkout;
+5. create or enable the endpoint in **Raw** format with all eight Task5 events, privately store its generated secret, redeploy with the guard still true, and verify unsigned rejection plus a signed unsupported-event `202` with no mutation. This is application-signature evidence, not a provider test. Then enable the Production guard's Sandbox transport, redeploy, and use the real checkout delivery as provider-origin evidence;
 6. run the reviewed scheduler configuration and verification SQL; and
 7. inspect Polar webhook delivery health and application safe logs.
 
