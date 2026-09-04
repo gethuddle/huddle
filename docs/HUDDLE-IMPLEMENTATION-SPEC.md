@@ -20,7 +20,7 @@
 
 **Approved account-erasure revision:** 3 September 2026. The `/account/security` contract now covers both a current-password change and immediate, irreversible self-service account deletion. Deletion requires bounded current-password reauthentication plus exact `DELETE` confirmation, performs one canonical actor-serialized and idempotent product-data transition, retains only required pseudonymous history, and then uses a server-only Supabase Auth soft deletion. The new database migration is separate from hosted production acceptance and MUST NOT be described as deployed until that evidence exists.
 
-**Approved `VB01` revision:** 3 September 2026. Commercial venue visibility and publishing are per-venue Polar Sandbox entitlements. Tasks 1–10 passed local acceptance for this approved contract and implementation module in an isolated disposable project; separately authorized Task 11 hosted/demo evidence remains pending, so it is not deployment evidence. It deliberately supersedes the older immediate-public Venue activation rule while preserving the free Fan/private-hosting scope, membership authorization, truthful business attestation, and visible `unverified` trust label.
+**Approved `VB01` revision:** 3 September 2026. Commercial venue visibility and publishing are per-venue Polar Sandbox entitlements. Tasks 1–10 passed isolated local acceptance; the authorized hosted Sandbox happy path passed on 4 September 2026. The [acceptance record](./evidence/vb01/ACCEPTANCE.md) identifies the deployed commit and distinguishes that evidence from unrun hosted lifecycle drills and broader B13 acceptance. This revision deliberately supersedes the older immediate-public Venue activation rule while preserving the free Fan/private-hosting scope, membership authorization, truthful business attestation, and visible `unverified` trust label.
 
 The keywords **MUST**, **MUST NOT**, **SHOULD**, and **MAY** express implementation priority. A MUST is part of acceptance for the submitted MVP unless this specification is deliberately revised.
 
@@ -1460,7 +1460,7 @@ The final submission may split product, test, scale, and security material into 
 3. **Architecture (2 min):** Next.js modular monolith, Supabase Auth/PostgreSQL/RLS/PostGIS, provider sync, Vercel.
 4. **Database and permissions (2 min):** events/audiences, relationships, separate home location, atomic capacity.
 5. **Tests, security, scale (2.5 min):** one pgTAP denial, one E2E flow, CI, indexes/pagination/cache, residual risks.
-6. **Trade-offs and next steps (1 min):** why assisted discovery uses only bounded AI intent extraction, why there is no Redis, Socket.IO, real-money Stripe/payment layer, agent, RAG, or generative recommendation layer; explain that `VB01` passed isolated local acceptance but still awaits separately authorized Task 11 hosted/demo evidence, and NBA remains later.
+6. **Trade-offs and next steps (1 min):** why assisted discovery uses only bounded AI intent extraction, why there is no Redis, Socket.IO, real-money Stripe/payment layer, agent, RAG, or generative recommendation layer; explain that `VB01` passed isolated local acceptance and its authorized hosted Sandbox happy path, while broader hosted lifecycle/B13 checks and NBA remain later.
 
 The presenters MUST be able to explain each selected dependency, trace one browser action through server/database/RLS, and distinguish planned future features from the working submission.
 

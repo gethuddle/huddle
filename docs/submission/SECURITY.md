@@ -17,7 +17,7 @@ repository security audit.
 transactional entitlement checks, rather than a checkout return or browser state,
 control commercial visibility. Only the exact venue owner can begin checkout or open
 the portal; an admin's operational membership does not grant billing. Preview/local/CI
-force provider-network denial, while a later explicitly authorized live Sandbox demo is
+force provider-network denial, while the explicitly authorized live Sandbox demo is
 limited to `huddle.co.il`. The separate runbook records secret rotation, endpoint
 disable/reconciliation, and account-erasure retry boundaries without storing values.
 
@@ -31,5 +31,9 @@ invalid sync-secret denial, and hosted private-address denial before this docume
 marked complete.
 
 The isolated VB01 aggregate gate passed the local secret/artifact audit with Polar
-transport denied. That is not a hosted inspection, PR/main CI result, live Sandbox
-walkthrough, or B13 acceptance result; those checks remain pending.
+transport denied. Separately, PR #56 CI and the 4 September 2026 live Sandbox happy
+path passed. The [dated evidence](../evidence/vb01/ACCEPTANCE.md) records receiver
+denial, genuine activation, private receipts, scheduler verification, and rotation
+after a dashboard secret was exposed in tool output. The obsolete secret was
+invalidated; no credential value is retained in repository evidence. These bounded
+checks do not complete the broader B13 browser/network/log security inspection.

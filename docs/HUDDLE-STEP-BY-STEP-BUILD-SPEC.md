@@ -383,7 +383,7 @@ If an external account, paid service, production mutation, or secret is required
 
 ## 6. Historical B01–B12 delivery, current `VB01`, and B13 handoff
 
-`F00`–`F03` and B01–B12 are the completed historical delivery baseline. `VB01` is the next approved unchecked per-venue entitlement module. B13 remains the later production-acceptance, submission-evidence, and presentation handoff, and cannot begin until `VB01` has completed its separately authorized hosted/demo acceptance. The original module IDs remain the authoritative detailed checklists in §§7–14 and must be completed in their listed dependency order.
+`F00`–`F03` and B01–B12 are the completed historical delivery baseline. `VB01` is the approved per-venue entitlement module; its implementation is merged and its authorized hosted Sandbox happy path passed on 4 September 2026. B13 remains the later production-acceptance, submission-evidence, and presentation handoff, with remaining lifecycle drills explicitly tracked in production acceptance. The original module IDs remain the authoritative detailed checklists in §§7–14 and must be completed in their listed dependency order.
 
 | Milestone | Included modules | Depends on | Observable exit |
 |---|---|---|---|
@@ -1266,7 +1266,7 @@ The following checked modules describe the B01–B12 baseline. Their original ou
 
 **Outcome:** each commercial venue begins as a private Unverified draft and independently gains public presence, Explore visibility, acquisition, and commercial publishing only from a verified Polar **Sandbox** entitlement. This is a university-demo capability, not a real-payment product.
 
-**Current progress:** Tasks 1–10 passed local acceptance for the Sandbox SDK/configuration, private billing foundation, owner-bound checkout/Billing handoff, signed webhook activation/reconciliation, public/acquisition/publishing enforcement, participant-preserving grace access, private calendar caching, billing-aware account-erasure orchestration, owner controls, deadline processing, offline signed-browser fixtures, and release documentation. The isolated aggregate gate passed a clean install, six forward billing migrations, schema lint, 48 pgTAP files / 2,423 assertions, canonical generated-type parity, 223 application files / 1,308 tests plus one intentional skip (80.42% statements, 71.87% branches, 83.53% functions, 84.62% lines), production build, 37 browser tests, security audit, and diff hygiene; Polar transport was denied throughout automation. The user separately authorized Task 11 hosted configuration, publication, merge after CI, and deployment on 4 September 2026. Sandbox products and Preview guards are configured; migrations, Production secrets, deployment, signed delivery, scheduler, and live-demo acceptance remain pending. The ordinary demo database remains unchanged.
+**Current progress:** Tasks 1–10 passed local acceptance for the Sandbox SDK/configuration, private billing foundation, owner-bound checkout/Billing handoff, signed webhook activation/reconciliation, public/acquisition/publishing enforcement, participant-preserving grace access, private calendar caching, billing-aware account-erasure orchestration, owner controls, deadline processing, offline signed-browser fixtures, and release documentation. The isolated aggregate gate passed a clean install, six forward billing migrations, schema lint, 48 pgTAP files / 2,423 assertions, canonical generated-type parity, 223 application files / 1,308 tests plus one intentional skip (80.42% statements, 71.87% branches, 83.53% functions, 84.62% lines), production build, 37 browser tests, security audit, and diff hygiene; Polar transport was denied throughout automation. PR #56 merged as `83555e1c` after exact-head CI. The authorized hosted Sandbox happy path passed on 4 September 2026: 44-migration parity in both environments, isolated Preview guard, genuine signed activation of two independent demo subscriptions, owner portal, one distant event in public/Explore, scheduler, and signing-secret rotation/redelivery. The ordinary local demo database remains unchanged. See [dated acceptance evidence](./evidence/vb01/ACCEPTANCE.md) for final deployment and remaining unrun hosted lifecycle/B13 checks.
 
 **Tasks:**
 
@@ -1284,7 +1284,7 @@ The following checked modules describe the B01–B12 baseline. Their original ou
 - [x] Add saved sanitized fixtures and unit, pgTAP, component, route, and E2E coverage for signature/organization/product/customer/attempt mismatches, duplicate/delayed webhook, independent two-venue subscriptions, checkout races/reconciliation, state/deadline/cancellation/recovery, participant exceptions, cache denial, no event resurrection, archive, and account-erasure/late-checkout lock ordering. Automated tests never call Polar.
 - [x] Before hosted configuration, produce the reviewed Sandbox-only runbook and obtain separate authorization for every Polar/Supabase/Vercel mutation. Presentation evidence uses the live Sandbox happy path only, visibly says no real money is charged, and records no secrets, card data, or provider payloads.
 
-**Tests/evidence:** the complete local matrix, generated types, secret/diff checks, and the reviewed Sandbox-only runbook passed in isolated acceptance. Separately authorized hosted/demo acceptance proving hidden draft → checkout → signed webhook → public venue plus recovery/cancellation safety remains required before B13.
+**Tests/evidence:** the complete local matrix, generated types, secret/diff checks, and reviewed Sandbox-only runbook passed in isolated acceptance. The authorized hosted hidden draft → checkout → signed webhook → public/Explore/publication happy path passed on 4 September 2026. Recovery/cancellation safety remains covered by the local deterministic matrix; corresponding hosted drills remain unchecked in the broader production-acceptance record and are not implied by the happy path.
 
 ---
 
@@ -1496,7 +1496,7 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 | B12 Release candidate and automated acceptance | `D01` | done | [#32](https://github.com/gethuddle/huddle/issues/32) / [PR #33](https://github.com/gethuddle/huddle/pull/33) |
 | AI-assisted event discovery | `AI01` | done | [PR #46](https://github.com/gethuddle/huddle/pull/46) |
 | Immediate account erasure | `AE01` | done | [#53](https://github.com/gethuddle/huddle/issues/53), merged [PR #54](https://github.com/gethuddle/huddle/pull/54) |
-| VB01 Polar Sandbox venue subscriptions | `VB01` | review | [#55](https://github.com/gethuddle/huddle/issues/55); Tasks 1–10 local acceptance passed; authorized Task 11 preconfiguration in progress, with hosted runtime acceptance pending |
+| VB01 Polar Sandbox venue subscriptions | `VB01` | review | [#55](https://github.com/gethuddle/huddle/issues/55); implementation merged in [#56](https://github.com/gethuddle/huddle/pull/56), local and hosted Sandbox happy path passed; final evidence handoff in review; broader B13 lifecycle checks remain separate |
 | B13 Production acceptance and submission | `D02`–`D04` (after VB01 hosted/demo acceptance) | not started | — |
 
 ---

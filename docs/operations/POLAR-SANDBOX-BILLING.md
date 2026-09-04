@@ -1,10 +1,11 @@
 # Polar Sandbox venue billing runbook
 
-**Status:** local implementation acceptance passed in an isolated disposable project.
-The user separately authorized Task 11 configuration, publication, merge after CI,
-and deployment on 4 September 2026. Hosted preconfiguration is in progress; the
-[acceptance record](../evidence/vb01/ACCEPTANCE.md) distinguishes completed actions
-from pending checks. This document itself does not authorize a hosted mutation.
+**Status:** local implementation and the authorized hosted Sandbox happy path passed
+on 4 September 2026. The [acceptance record](../evidence/vb01/ACCEPTANCE.md) records
+the deployed commit, migrations, genuine activation, two independent subscriptions,
+future-fixture publication, and signing-secret maintenance. Remaining hosted lifecycle
+drills and whole-application B13 acceptance are not claimed complete. This document
+itself does not authorize a hosted mutation.
 
 ## Scope and fixed inventory
 
@@ -163,6 +164,14 @@ new secret to the managed environment, deploy, verify signed delivery, re-enable
 redeliver failed deliveries if required, then reconcile any delivery gap. A temporary
 mismatch fails closed. This does not promise that events sent while disabled are
 retained.
+
+Also inventory immutable deployment URLs that retain the retired secret: changing
+the current domain's environment does not update old receivers. Verify the live
+domain points to the replacement deployment, then protect or retire only the exact
+obsolete deployments under the maintenance authorization. Never remove the project,
+current deployment, or database. Verify old receivers are inaccessible and the live
+receiver still rejects unsigned requests. Rebuild historical code with current
+secrets if needed; do not roll back to a retired credential.
 
 If an application or migration defect is found, stop the rollout and make a reviewed
 forward fix. Do not roll back by exposing an unpaid venue, weakening entitlement
