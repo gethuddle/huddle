@@ -2,10 +2,19 @@
 
 import { QueryClientProvider, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { LocateFixed, Map as MapIcon, X } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { EmptyState } from "@/components/states/empty-state";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DiscoveryEventCard } from "@/features/discovery/components/discovery-event-card";
 import { DiscoveryMap } from "@/features/discovery/components/discovery-map";
@@ -201,6 +210,7 @@ function DiscoveryFeedInner({
   const events = query.data?.pages.flatMap((page) => page.items) ?? [];
   const eventGroups = groupEventsByMatch(events);
   const returnTo = `/discover?${discoverySearchParams(filters, null).toString()}`;
+  const canSearchAddress = initialPage.viewerCacheScope.startsWith("fan:");
 
   return (
     <div className="mt-7">
@@ -232,7 +242,7 @@ function DiscoveryFeedInner({
       </div>
 
       {locationState === "denied" ? (
-        <p className="mt-3 text-sm text-sand" role="status">
+        <p className="mt-3 text-sm text-foreground" role="status">
           Location was unavailable or declined. Search an address or area below to explore.
         </p>
       ) : null}
@@ -242,7 +252,25 @@ function DiscoveryFeedInner({
           Search an area or address
         </summary>
         <div className="mt-5 border-t border-border pt-5">
-          <AddressSearch onConfirm={useAddressOrigin} purpose="origin" />
+          {canSearchAddress ? (
+            <AddressSearch
+              authRecoveryHref={`/auth/sign-in?next=${encodeURIComponent(returnTo)}`}
+              onConfirm={useAddressOrigin}
+              purpose="origin"
+            />
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm leading-6 text-muted-foreground">
+                Sign in before searching an area or address. This keeps location requests tied to an
+                eligible account.
+              </p>
+              <Button asChild>
+                <Link href={`/auth/sign-in?next=${encodeURIComponent(returnTo)}`}>
+                  Sign in to search
+                </Link>
+              </Button>
+            </div>
+          )}
         </div>
       </details>
 
@@ -281,15 +309,48 @@ function DiscoveryFeedInner({
                     {events.length} watch event{events.length === 1 ? "" : "s"} nearby
                   </h2>
                 </div>
-                <Button
-                  className="min-h-11 rounded-full lg:hidden"
-                  onClick={() => setMobileMapOpen(true)}
-                  type="button"
-                  variant="outline"
-                >
-                  <MapIcon aria-hidden="true" />
-                  Show map
-                </Button>
+                <Dialog onOpenChange={setMobileMapOpen} open={mobileMapOpen && !isDesktop}>
+                  <DialogTrigger asChild>
+                    <Button
+                      className="min-h-11 rounded-full lg:hidden"
+                      type="button"
+                      variant="outline"
+                    >
+                      <MapIcon aria-hidden="true" />
+                      Show map
+                    </Button>
+                  </DialogTrigger>
+                  {!isDesktop ? (
+                    <DialogContent className="top-0 left-0 z-[70] h-dvh max-h-none w-full max-w-none translate-x-0 translate-y-0 rounded-none border-0 bg-background p-3 pb-24">
+                      <DialogTitle className="sr-only">Map of nearby places</DialogTitle>
+                      <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-4 px-1 py-3">
+                        <div>
+                          <p className="text-sm font-medium text-forest">Explore map</p>
+                          <h2 className="mt-1 text-xl font-semibold text-foreground">
+                            Places showing games nearby
+                          </h2>
+                        </div>
+                        <DialogClose asChild>
+                          <Button
+                            aria-label="Close map"
+                            className="size-11 rounded-full p-0"
+                            type="button"
+                            variant="outline"
+                          >
+                            <X aria-hidden="true" />
+                          </Button>
+                        </DialogClose>
+                      </div>
+                      <div className="mx-auto mt-2 w-full max-w-3xl">
+                        <DiscoveryMap events={events} userLocation={coordinates} />
+                        <DialogDescription className="mt-3 px-2 text-center text-xs leading-5">
+                          Only public Venues and public places are pinned. Your current location is
+                          used once and is never saved.
+                        </DialogDescription>
+                      </div>
+                    </DialogContent>
+                  ) : null}
+                </Dialog>
               </div>
 
               {events.length === 0 ? (
@@ -367,40 +428,6 @@ function DiscoveryFeedInner({
               </aside>
             ) : null}
           </div>
-
-          {mobileMapOpen && !isDesktop ? (
-            <div
-              aria-label="Map of nearby places"
-              aria-modal="true"
-              className="fixed inset-0 z-[70] overflow-y-auto bg-background p-3 pb-24 lg:hidden"
-              role="dialog"
-            >
-              <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-1 py-3">
-                <div>
-                  <p className="text-sm font-medium text-forest">Explore map</p>
-                  <h2 className="mt-1 text-xl font-semibold text-foreground">
-                    Places showing games nearby
-                  </h2>
-                </div>
-                <Button
-                  aria-label="Close map"
-                  className="size-11 rounded-full p-0"
-                  onClick={() => setMobileMapOpen(false)}
-                  type="button"
-                  variant="outline"
-                >
-                  <X aria-hidden="true" />
-                </Button>
-              </div>
-              <div className="mx-auto mt-2 max-w-3xl">
-                <DiscoveryMap events={events} userLocation={coordinates} />
-                <p className="mt-3 px-2 text-center text-xs leading-5 text-muted-foreground">
-                  Only public Venues and public places are pinned. Your current location is used
-                  once and is never saved.
-                </p>
-              </div>
-            </div>
-          ) : null}
         </>
       )}
     </div>

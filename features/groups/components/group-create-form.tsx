@@ -14,6 +14,7 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Textarea } from "@/components/ui/textarea";
 import { createGroupAction } from "@/features/groups/actions";
 import type { GroupCreationCatalog } from "@/features/groups/catalog";
+import { groupSlugFromName } from "@/features/groups/slug";
 import {
   INITIAL_GROUP_CREATION_ACTION_STATE,
   type GroupCreationActionData,
@@ -153,7 +154,7 @@ export function GroupCreateForm({ catalog }: Readonly<{ catalog: GroupCreationCa
           role={state.ok ? "status" : "alert"}
           variant={state.ok ? "default" : "destructive"}
         >
-          <AlertDescription className={state.ok ? "text-forest-hover" : "text-sand"}>
+          <AlertDescription className={state.ok ? "text-forest-hover" : "text-destructive"}>
             {state.ok ? state.data.message : state.error.message}
           </AlertDescription>
         </Alert>
@@ -228,9 +229,9 @@ function SimilarGroupReview({
 function FieldError({ id, messages }: Readonly<{ id: string; messages?: string[] }>) {
   if (messages === undefined || messages.length === 0) return null;
   return (
-    <span className="mt-2 block text-sm text-sand" id={id}>
+    <p className="mt-2 text-sm text-destructive" id={id} role="alert">
       {messages[0]}
-    </span>
+    </p>
   );
 }
 
@@ -259,21 +260,10 @@ function VisibilityChoice({
         <p className="font-semibold text-foreground">What happens next</p>
         <p className="mt-1 text-sm leading-6 text-muted-foreground">
           {visibility === "discoverable"
-            ? "People can find it and apply once the group is ready. An owner or admin reviews each application before anyone joins."
+            ? "People can find it and apply once it has a description and an active owner. An owner or admin reviews each application before anyone joins."
             : "The group stays out of search. An owner or admin creates invitation links for the people they choose, and every request is still reviewed."}
         </p>
       </div>
     </div>
   );
-}
-
-function groupSlugFromName(value: string): string {
-  return value
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60)
-    .replace(/-+$/g, "");
 }

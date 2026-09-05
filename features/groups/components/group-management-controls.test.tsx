@@ -28,6 +28,7 @@ import {
   BanMemberControl,
   EventReviewControl,
   InviteRevocationControl,
+  MemberRoleControl,
   RemoveMemberControl,
 } from "./group-management-controls";
 
@@ -59,6 +60,28 @@ describe("destructive group management confirmations", () => {
     const formData = mocks.revokeGroupInviteAction.mock.calls[0]?.[1] as FormData;
     expect(formData.get("inviteId")).toBe("52000000-0000-4000-8000-000000000301");
     expect(await screen.findByRole("status")).toHaveTextContent("Invitation revoked");
+  });
+
+  it("reconciles a member role selector with refreshed authoritative props", () => {
+    const { rerender } = render(
+      <MemberRoleControl
+        {...group}
+        currentRole="member"
+        userId="52000000-0000-4000-8000-000000000202"
+      />,
+    );
+
+    expect(screen.getByRole("combobox", { name: "Member role" })).toHaveValue("member");
+
+    rerender(
+      <MemberRoleControl
+        {...group}
+        currentRole="admin"
+        userId="52000000-0000-4000-8000-000000000202"
+      />,
+    );
+
+    expect(screen.getByRole("combobox", { name: "Member role" })).toHaveValue("admin");
   });
 
   it("requires a bounded internal reason before submitting a ban", async () => {

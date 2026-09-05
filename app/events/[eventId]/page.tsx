@@ -15,6 +15,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { requireActor } from "@/features/auth/actor";
+import { EventReviewControl } from "@/features/groups/components/group-management-controls";
 import { EventParticipationControls } from "@/features/attendance/components/event-participation-controls";
 import { getPrivateEventLocation, listApprovedEventAttendees } from "@/features/attendance/queries";
 import { EventBadges } from "@/features/events/components/event-badges";
@@ -50,7 +52,11 @@ export default async function EventPage({ params, searchParams }: EventPageProps
     viewerAttendanceStatus: event.viewerAttendanceStatus,
     viewerInvitationStatus: event.viewerInvitationStatus,
   });
-  const viewerPresentation = eventViewerPresentation(viewerRole, event.status);
+  const viewerPresentation = eventViewerPresentation(viewerRole, event.status, {
+    hostKind: event.host.kind,
+    requiresApproval: event.requiresApproval,
+    remainingCapacity: event.remainingCapacity,
+  });
   const rawQuery = await searchParams;
   const rawReturnTo = Array.isArray(rawQuery.returnTo) ? rawQuery.returnTo[0] : rawQuery.returnTo;
   const venueReturnTo = safeVenueEventReturnTo(rawReturnTo, event.host.venueSlug, event.canManage);
@@ -69,18 +75,28 @@ export default async function EventPage({ params, searchParams }: EventPageProps
     redirect(eventAttendeePageHref(event.id, attendeePageInput.page, created, returnTo));
   }
   const attendeePage = attendeePageInput.page;
-  const [privateLocation, approvedAttendees, organizingGroup] = await Promise.all([
-    event.viewerCanReadPrivateLocation ? readPrivateLocation(event.id) : Promise.resolve(null),
-    !openDoor && (event.canManage || event.viewerAttendanceStatus === "approved")
-      ? readApprovedAttendees(event.id, attendeePage)
-      : Promise.resolve([]),
-    event.audience === "group" &&
-    event.organizingGroupSlug !== null &&
-    event.viewerIsAuthenticated &&
-    !event.canManage
-      ? getGroupDetail(event.organizingGroupSlug)
-      : Promise.resolve(null),
-  ]);
+  const pendingPersonalSubmission =
+    event.status === "pending_group_review" &&
+    event.host.kind === "person" &&
+    event.organizingGroupSlug !== null;
+  const [privateLocation, approvedAttendees, organizingGroup, viewerIsSubmitter] =
+    await Promise.all([
+      event.viewerCanReadPrivateLocation ? readPrivateLocation(event.id) : Promise.resolve(null),
+      !openDoor && (event.canManage || event.viewerAttendanceStatus === "approved")
+        ? readApprovedAttendees(event.id, attendeePage)
+        : Promise.resolve([]),
+      event.audience === "group" &&
+      event.organizingGroupSlug !== null &&
+      event.viewerIsAuthenticated &&
+      (!event.canManage || pendingPersonalSubmission)
+        ? getGroupDetail(event.organizingGroupSlug)
+        : Promise.resolve(null),
+      pendingPersonalSubmission && event.viewerIsAuthenticated && event.host.handle !== null
+        ? viewerMatchesPersonalHost(event.host.handle)
+        : Promise.resolve(false),
+    ]);
+  const canWithdrawSubmission =
+    pendingPersonalSubmission && viewerIsSubmitter && organizingGroup !== null;
   const viewerNeedsGroupMembership =
     event.audience === "group" &&
     event.organizingGroupSlug !== null &&
@@ -141,6 +157,7 @@ export default async function EventPage({ params, searchParams }: EventPageProps
 
       <div className="mt-5">
         <EventBadges
+          eventStatus={event.status}
           approvedAttendeeCount={event.approvedAttendeeCount}
           attendanceMode={event.attendanceMode}
           audience={event.audience}
@@ -288,7 +305,16 @@ export default async function EventPage({ params, searchParams }: EventPageProps
               </h2>
             </CardHeader>
             <CardContent>
-              {openDoor ? (
+              {canWithdrawSubmission ? (
+                <EventReviewControl
+                  canReview={false}
+                  canWithdraw
+                  eventId={event.id}
+                  eventTitle={event.title}
+                  groupId={organizingGroup.id}
+                  groupSlug={organizingGroup.slug}
+                />
+              ) : openDoor ? (
                 <p className="text-sm leading-6 text-muted-foreground">
                   Turn up at the venue for kickoff. Availability is managed by the venue in person,
                   not through a Huddle place counter. Huddle does not collect RSVPs or a guest list.
@@ -425,6 +451,18 @@ export default async function EventPage({ params, searchParams }: EventPageProps
       </div>
     </section>
   );
+}
+
+async function viewerMatchesPersonalHost(hostHandle: string) {
+  try {
+    // Personal creation binds the creator and host to the authenticated actor.
+    // The withdrawal RPC independently rechecks both IDs and the pending lifecycle.
+    const { profile } = await requireActor("authenticated");
+    return profile.handle === hostHandle;
+  } catch (error) {
+    if (error instanceof DomainError && error.code !== "INTERNAL_ERROR") return false;
+    throw error;
+  }
 }
 
 async function readPrivateLocation(eventId: string) {

@@ -102,6 +102,27 @@ describe("DiscoveryFeed", () => {
     expect(screen.queryByText(/profile area/i)).not.toBeInTheDocument();
   });
 
+  it("offers anonymous visitors sign-in recovery without rendering authenticated address search", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <DiscoveryFeed
+        filters={filters}
+        initialPage={{ ...initialPage, viewerCacheScope: "anonymous" }}
+      />,
+    );
+
+    await user.click(screen.getByText("Search an area or address", { exact: true }));
+
+    expect(screen.queryByRole("combobox", { name: "Area or address" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Sign in to search" }).getAttribute("href")).toContain(
+      "/auth/sign-in?next=%2Fdiscover%3F",
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("asks for an Israel origin when browser coordinates are outside the pilot", async () => {
     const getCurrentPosition = vi.fn((success: PositionCallback) =>
       success({ coords: { latitude: 40.71, longitude: -74 } } as GeolocationPosition),
@@ -261,7 +282,7 @@ describe("DiscoveryFeed", () => {
     }
   });
 
-  it("offers a clear mobile map action without a desktop map mounted underneath", async () => {
+  it("contains mobile map focus, closes on Escape, and restores focus to its trigger", async () => {
     const user = userEvent.setup();
     vi.stubGlobal(
       "matchMedia",
@@ -273,12 +294,18 @@ describe("DiscoveryFeed", () => {
     );
     render(<DiscoveryFeed filters={filters} initialPage={initialPage} />);
 
-    expect(screen.getByRole("button", { name: "Show map" })).toBeVisible();
+    const trigger = screen.getByRole("button", { name: "Show map" });
+    expect(trigger).toBeVisible();
     expect(screen.queryByLabelText("Desktop discovery map")).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Show map" }));
+    await user.click(trigger);
     expect(screen.getByRole("dialog", { name: "Map of nearby places" })).toBeVisible();
-    await user.click(screen.getByRole("button", { name: "Close map" }));
+    const close = screen.getByRole("button", { name: "Close map" });
+    await waitFor(() => expect(close).toHaveFocus());
+    await user.tab();
+    expect(close).toHaveFocus();
+    await user.keyboard("{Escape}");
     expect(screen.queryByRole("dialog", { name: "Map of nearby places" })).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
   });
 
   it("mounts one desktop map instead of a hidden mobile duplicate", () => {

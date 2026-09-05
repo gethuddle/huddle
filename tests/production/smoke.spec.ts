@@ -49,7 +49,11 @@ test("@session-smoke anonymous production pages and provider attribution are pub
   await expect(page.getByLabel("To", { exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
   await page.getByText("Search an area or address", { exact: true }).click();
-  await expect(page.getByRole("combobox", { name: "Area or address" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Sign in to search" })).toHaveAttribute(
+    "href",
+    /\/auth\/sign-in\?next=%2Fdiscover%3F/,
+  );
+  await expect(page.getByRole("combobox", { name: "Area or address" })).toHaveCount(0);
 
   // Public discovery can legitimately be empty. The controlled fresh-event
   // journey below owns attendance/calendar assertions, not an arbitrary first row.
@@ -116,7 +120,7 @@ test("@session-smoke two dedicated production accounts can read every redesigned
       "aria-current",
       "page",
     );
-    await expect(host.getByRole("link", { name: "Open public venue" })).toBeVisible();
+    await expect(host.getByRole("link", { name: "View public page" })).toBeVisible();
   } finally {
     await attendee.close();
     await host.close();

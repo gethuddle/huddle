@@ -390,3 +390,44 @@ it("retains attendance history with no operation buttons after expiry", () => {
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Attendance requests" })).toBeVisible();
 });
+
+it.each(["cancelled", "completed", "published"])(
+  "retains %s history and only exposes operations while published",
+  (eventStatus) => {
+    render(
+      <EventManagementControls
+        eventId={eventId}
+        eventStatus={eventStatus}
+        attendance={[
+          attendee,
+          {
+            ...attendee,
+            attendance_id: "approved",
+            user_id: "approved-user",
+            requester_display_name: "Approved Fan",
+            status: "approved",
+          },
+        ]}
+        invitations={[
+          {
+            invitation_id: "invite",
+            invitee_id: "invitee",
+            invitee_handle: "invitee",
+            invitee_display_name: "Invited Fan",
+            status: "pending",
+            created_at: "2026-09-04T12:00:00Z",
+            responded_at: null,
+            total_count: 1,
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByText("Supporter One · @supporter")).toBeVisible();
+    expect(screen.getByText("Approved Fan · @supporter")).toBeVisible();
+    expect(screen.getByText("Invited Fan · @invitee")).toBeVisible();
+    for (const name of ["Approve", "Decline", "Remove attendee", "Revoke pending invite"]) {
+      if (eventStatus === "published") expect(screen.getByRole("button", { name })).toBeEnabled();
+      else expect(screen.queryByRole("button", { name })).not.toBeInTheDocument();
+    }
+  },
+);

@@ -7,7 +7,13 @@ import { z } from "zod";
 
 import { CURRENT_COMMUNITY_RULES_VERSION } from "@/content/community-rules";
 import { requireActor } from "@/features/auth/actor";
-import { actionFailure, actionSuccess, DomainError, domainErrorFromDatabase } from "@/lib/errors";
+import {
+  actionFailure,
+  actionSuccess,
+  DomainError,
+  domainErrorFromDatabase,
+  toActionError,
+} from "@/lib/errors";
 import { getRequestId } from "@/lib/request-id/server";
 import { createClient } from "@/lib/supabase/server";
 
@@ -21,6 +27,8 @@ import {
 } from "./schemas";
 import {
   chooseWorkspace,
+  type CommonOnboardingActionState,
+  type CommonOnboardingFormValues,
   serializeWorkspaceSelection,
   WORKSPACE_COOKIE_NAME,
   workspaceCookieOptions,
@@ -87,15 +95,25 @@ export async function selectWorkspaceAction(
 }
 
 export async function acceptCommonOnboardingAction(
-  _previousState: WorkspaceActionState,
+  previousState: CommonOnboardingActionState,
   formData: FormData,
-): Promise<WorkspaceActionState> {
+): Promise<CommonOnboardingActionState> {
+  const values: CommonOnboardingFormValues = {
+    adultAttested: formValue(formData, "adultAttested") === "on",
+    rulesAccepted: formValue(formData, "rulesAccepted") === "on",
+  };
+  const failure = (error: unknown): CommonOnboardingActionState => ({
+    ok: false,
+    error: toActionError(error),
+    values,
+    attempt: previousState?.ok === false ? previousState.attempt + 1 : 1,
+  });
   const parsed = commonOnboardingInputSchema.safeParse({
     adultAttested: formValue(formData, "adultAttested"),
     rulesAccepted: formValue(formData, "rulesAccepted"),
     rulesVersion: formValue(formData, "rulesVersion"),
   });
-  if (!parsed.success) return actionFailure(parsed.error);
+  if (!parsed.success) return failure(parsed.error);
 
   try {
     const { supabase } = await requireActor("authenticated");
@@ -135,12 +153,9 @@ export async function acceptCommonOnboardingAction(
 
     revalidatePath("/", "layout");
     revalidatePath("/onboarding/venue");
-    return actionSuccess({
-      message,
-      redirectTo,
-    });
+    return { ok: true, data: { message, redirectTo } };
   } catch (error) {
-    return actionFailure(error);
+    return failure(error);
   }
 }
 

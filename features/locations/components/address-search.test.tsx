@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ComponentProps, ComponentType } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -114,6 +114,74 @@ describe("AddressSearch", () => {
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("Address search is temporarily unavailable");
     expect(alert).not.toHaveTextContent(submitted);
+    expect(screen.getByRole("button", { name: "Try again" })).toBeVisible();
+  });
+
+  it("offers sign-in recovery when the current address-search session is no longer authenticated", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(JSON.stringify({ error: { code: "AUTH_REQUIRED" } }), { status: 401 }),
+        ),
+    );
+    const user = userEvent.setup();
+
+    render(
+      <AddressSearch
+        authRecoveryHref="/auth/sign-in?next=%2Fdiscover%3FradiusKm%3D15"
+        purpose="origin"
+        onConfirm={vi.fn()}
+      />,
+    );
+    await user.type(screen.getByRole("combobox", { name: "Area or address" }), "Tel Aviv");
+
+    expect(await screen.findByRole("link", { name: "Sign in to continue" })).toHaveAttribute(
+      "href",
+      "/auth/sign-in?next=%2Fdiscover%3FradiusKm%3D15",
+    );
+    expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
+  });
+
+  it("ignores a deferred 401 after its address request is aborted", async () => {
+    const deferred = Promise.withResolvers<Response>();
+    const fetchMock = vi.fn().mockReturnValue(deferred.promise);
+    vi.stubGlobal("fetch", fetchMock);
+    const NativeAbortController = globalThis.AbortController;
+    const controllers: AbortController[] = [];
+    vi.stubGlobal(
+      "AbortController",
+      class extends NativeAbortController {
+        constructor() {
+          super();
+          controllers.push(this);
+        }
+      },
+    );
+    const user = userEvent.setup();
+    render(
+      <AddressSearch
+        authRecoveryHref="/auth/sign-in?next=%2Fdiscover%3FradiusKm%3D15"
+        purpose="origin"
+        onConfirm={vi.fn()}
+      />,
+    );
+
+    await user.type(screen.getByRole("combobox", { name: "Area or address" }), "Tel Aviv");
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
+
+    controllers.at(-1)?.abort();
+    expect(controllers.at(-1)?.signal.aborted).toBe(true);
+    await act(async () => {
+      deferred.resolve(
+        new Response(JSON.stringify({ error: { code: "AUTH_REQUIRED" } }), { status: 401 }),
+      );
+      await deferred.promise;
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(screen.queryByRole("link", { name: "Sign in to continue" })).not.toBeInTheDocument();
   });
 
   it("does not search until three trimmed characters are present", async () => {

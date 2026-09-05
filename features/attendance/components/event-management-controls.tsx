@@ -68,6 +68,7 @@ function EventManagementControlsInner({
   canOperate?: boolean;
 }>) {
   const router = useRouter();
+  const canChangeAttendance = canOperate && eventStatus === "published";
   const mutation = useMutation<AttendanceActionState, Error, FormData>({
     mutationFn: async (formData) => {
       const intent = formData.get("mutationIntent") as MutationIntent;
@@ -84,7 +85,7 @@ function EventManagementControlsInner({
   const feedback = <AttendanceActionFeedback state={mutation.data} error={mutation.error} />;
 
   const submit: SubmitMutation = (intent, formData, onAcknowledged) => {
-    if (!canOperate || mutation.isPending) return;
+    if (!canChangeAttendance || mutation.isPending) return;
     formData.set("mutationIntent", intent);
     formData.set("eventId", eventId);
     mutation.mutate(formData, {
@@ -176,7 +177,7 @@ function EventManagementControlsInner({
                       )}
                       <p className="mt-1 text-xs text-muted-foreground">{invitation.status}</p>
                     </div>
-                    {canOperate && invitation.status === "pending" ? (
+                    {canChangeAttendance && invitation.status === "pending" ? (
                       <Button
                         disabled={mutation.isPending}
                         onClick={() => {
@@ -261,7 +262,7 @@ function EventManagementControlsInner({
                       </p>
                     ) : null}
                     <div className="mt-5 flex flex-wrap gap-2">
-                      {canOperate && row.status === "requested" ? (
+                      {canChangeAttendance && row.status === "requested" ? (
                         <>
                           {row.can_approve ? (
                             <DecisionButton
@@ -284,7 +285,7 @@ function EventManagementControlsInner({
                           </DecisionButton>
                         </>
                       ) : null}
-                      {canOperate && row.status === "approved" ? (
+                      {canChangeAttendance && row.status === "approved" ? (
                         <RemoveAttendeeControl
                           attendanceId={row.attendance_id}
                           disabled={mutation.isPending}

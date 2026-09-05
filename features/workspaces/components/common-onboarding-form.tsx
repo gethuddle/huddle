@@ -7,23 +7,32 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { CURRENT_COMMUNITY_RULES } from "@/content/community-rules";
+import { FieldError } from "@/features/auth/components/form-feedback";
 import { acceptCommonOnboardingAction } from "@/features/workspaces/actions";
-import { INITIAL_WORKSPACE_ACTION_STATE } from "@/features/workspaces/state";
+import { INITIAL_COMMON_ONBOARDING_ACTION_STATE } from "@/features/workspaces/state";
 
 export function CommonOnboardingForm({
   submitLabel = "Continue to venue details",
 }: Readonly<{ submitLabel?: string }>) {
   const [state, action, pending] = useActionState(
     acceptCommonOnboardingAction,
-    INITIAL_WORKSPACE_ACTION_STATE,
+    INITIAL_COMMON_ONBOARDING_ACTION_STATE,
   );
+  const values =
+    state?.ok === false ? state.values : { adultAttested: false, rulesAccepted: false };
+  const fieldErrors = state?.ok === false ? state.error.fields : undefined;
 
   useEffect(() => {
     if (state?.ok === true) window.location.assign(state.data.redirectTo);
   }, [state]);
 
   return (
-    <form action={action} className="space-y-6" noValidate>
+    <form
+      action={action}
+      className="space-y-6"
+      key={state?.ok === false ? state.attempt : 0}
+      noValidate
+    >
       <div className="rounded-2xl border border-border bg-muted p-5">
         <h2 className="text-lg font-semibold text-foreground">A safe account comes first</h2>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
@@ -33,11 +42,19 @@ export function CommonOnboardingForm({
       </div>
 
       <div className="flex min-h-11 items-start gap-3">
-        <Checkbox id="common-adult" name="adultAttested" value="on" />
+        <Checkbox
+          aria-describedby="common-adult-error"
+          aria-invalid={fieldErrors?.adultAttested === undefined ? undefined : true}
+          defaultChecked={values.adultAttested}
+          id="common-adult"
+          name="adultAttested"
+          value="on"
+        />
         <Label className="cursor-pointer text-sm leading-6" htmlFor="common-adult">
           I confirm that I am 18 or older.
         </Label>
       </div>
+      <FieldError id="common-adult-error" messages={fieldErrors?.adultAttested} />
 
       <section aria-labelledby="common-rules-title" className="space-y-4">
         <div>
@@ -57,11 +74,19 @@ export function CommonOnboardingForm({
 
       <input name="rulesVersion" type="hidden" value={CURRENT_COMMUNITY_RULES.version} />
       <div className="flex min-h-11 items-start gap-3">
-        <Checkbox id="common-rules" name="rulesAccepted" value="on" />
+        <Checkbox
+          aria-describedby="common-rules-error"
+          aria-invalid={fieldErrors?.rulesAccepted === undefined ? undefined : true}
+          defaultChecked={values.rulesAccepted}
+          id="common-rules"
+          name="rulesAccepted"
+          value="on"
+        />
         <Label className="cursor-pointer text-sm leading-6" htmlFor="common-rules">
           I have read and accept the current Huddle community rules.
         </Label>
       </div>
+      <FieldError id="common-rules-error" messages={fieldErrors?.rulesAccepted} />
 
       {state?.ok === false ? (
         <Alert role="alert" variant="destructive">

@@ -139,6 +139,23 @@ describe("workspace actions", () => {
     expect(mocks.cookieSet).not.toHaveBeenCalled();
   });
 
+  it("returns the current consent attempt and names a missing common confirmation", async () => {
+    const form = new FormData();
+    form.set("adultAttested", "on");
+    form.set("rulesVersion", String(CURRENT_COMMUNITY_RULES_VERSION));
+
+    await expect(acceptCommonOnboardingAction(null, form)).resolves.toMatchObject({
+      ok: false,
+      error: {
+        code: "VALIDATION_FAILED",
+        fields: { rulesAccepted: ["This confirmation is required."] },
+      },
+      values: { adultAttested: true, rulesAccepted: false },
+      attempt: 1,
+    });
+    expect(mocks.requireActor).not.toHaveBeenCalled();
+  });
+
   it.each([
     {
       label: "Fan-only",

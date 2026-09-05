@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getEventSummary: vi.fn(),
+  requireActor: vi.fn(),
   getGroupDetail: vi.fn(),
   getPrivateEventLocation: vi.fn(),
   listApprovedEventAttendees: vi.fn(),
@@ -13,6 +14,11 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("next/navigation", () => ({ notFound: mocks.notFound, redirect: mocks.redirect }));
+vi.mock("@/features/auth/actor", () => ({ requireActor: mocks.requireActor }));
+vi.mock("@/features/groups/membership-actions", () => ({
+  reviewGroupEventAction: vi.fn(),
+  withdrawGroupEventAction: vi.fn(),
+}));
 vi.mock("@/features/events/queries", () => ({ getEventSummary: mocks.getEventSummary }));
 vi.mock("@/features/groups/detail", () => ({ getGroupDetail: mocks.getGroupDetail }));
 vi.mock("@/features/attendance/queries", () => ({
@@ -36,6 +42,7 @@ vi.mock("@/features/venues/components/venue-verification-badge", () => ({
 }));
 vi.mock("@/features/sports/time", () => ({ formatIsraelKickoff: () => "Fixture time" }));
 
+import { DomainError } from "@/lib/errors";
 import EventPage from "./page";
 
 const eventId = "90000000-0000-4000-8000-000000000401";
@@ -214,6 +221,7 @@ describe("EventPage attendee pagination", () => {
       throw new Error("NEXT_NOT_FOUND");
     });
     mocks.getEventSummary.mockResolvedValue(event);
+    mocks.requireActor.mockResolvedValue({ user: { id: "author" }, profile: { handle: "author" } });
     mocks.getGroupDetail.mockResolvedValue(null);
     mocks.getPrivateEventLocation.mockResolvedValue(null);
     mocks.listApprovedEventAttendees.mockResolvedValue([]);
@@ -387,3 +395,94 @@ describe("EventPage attendee pagination", () => {
     expect(mocks.listApprovedEventAttendees).not.toHaveBeenCalled();
   });
 });
+
+it("shows Event full for an anonymous instant-join venue detail", async () => {
+  mocks.getEventSummary.mockResolvedValue({
+    ...event,
+    canManage: false,
+    viewerIsAuthenticated: false,
+    viewerCanReadPrivateLocation: false,
+    requiresApproval: false,
+    remainingCapacity: 0,
+  });
+  render(
+    await EventPage({ params: Promise.resolve({ eventId }), searchParams: Promise.resolve({}) }),
+  );
+  expect(screen.getByRole("heading", { name: "Event full" })).toBeVisible();
+  expect(screen.queryByRole("heading", { name: "Places available" })).not.toBeInTheDocument();
+});
+
+it.each([
+  ["author", false, "member", "pending_group_review", true],
+  ["author", true, "admin", "pending_group_review", true],
+  ["other", true, "admin", "pending_group_review", false],
+  ["other", false, "member", "pending_group_review", false],
+  ["author", false, "member", "published", false],
+  ["author", false, "member", "cancelled", false],
+] as const)(
+  "limits withdrawal for %s with management=%s role=%s status=%s",
+  async (handle, canManage, viewerRole, status, canWithdraw) => {
+    mocks.requireActor.mockResolvedValue({ user: { id: handle }, profile: { handle } });
+    mocks.getEventSummary.mockResolvedValue({
+      ...event,
+      status,
+      canManage,
+      audience: "group",
+      organizingGroupName: "Fan Group",
+      organizingGroupSlug: "fan-group",
+      viewerCanReadPrivateLocation: false,
+      host: { ...event.host, kind: "person", handle: "author", venueSlug: null },
+    });
+    mocks.getGroupDetail.mockResolvedValue({
+      id: "group",
+      slug: "fan-group",
+      viewerRole,
+      viewerMembershipStatus: "active",
+    });
+    render(
+      await EventPage({ params: Promise.resolve({ eventId }), searchParams: Promise.resolve({}) }),
+    );
+    if (canWithdraw)
+      expect(screen.getByRole("button", { name: "Withdraw submission" })).toBeEnabled();
+    else
+      expect(screen.queryByRole("button", { name: "Withdraw submission" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Approve event" })).not.toBeInTheDocument();
+  },
+);
+
+it.each(["missing actor", "missing host handle", "anonymous"])(
+  "withholds pending submission withdrawal for %s",
+  async (boundary) => {
+    vi.clearAllMocks();
+    mocks.requireActor.mockRejectedValue(new DomainError("AUTH_REQUIRED"));
+    mocks.getGroupDetail.mockResolvedValue({
+      id: "group",
+      slug: "fan-group",
+      viewerRole: "member",
+      viewerMembershipStatus: "active",
+    });
+    mocks.getEventSummary.mockResolvedValue({
+      ...event,
+      status: "pending_group_review",
+      canManage: false,
+      viewerIsAuthenticated: boundary !== "anonymous",
+      audience: "group",
+      organizingGroupName: "Fan Group",
+      organizingGroupSlug: "fan-group",
+      viewerCanReadPrivateLocation: false,
+      host: {
+        ...event.host,
+        kind: "person",
+        handle: boundary === "missing host handle" ? null : "author",
+        venueSlug: null,
+      },
+    });
+    render(
+      await EventPage({ params: Promise.resolve({ eventId }), searchParams: Promise.resolve({}) }),
+    );
+    expect(screen.queryByRole("button", { name: "Withdraw submission" })).not.toBeInTheDocument();
+    if (boundary === "missing actor")
+      expect(mocks.requireActor).toHaveBeenCalledWith("authenticated");
+    else expect(mocks.requireActor).not.toHaveBeenCalled();
+  },
+);

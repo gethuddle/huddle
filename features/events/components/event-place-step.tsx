@@ -367,7 +367,7 @@ export function EventPlaceStep({
 
       {placeKind === "home" ? (
         <p className="text-sm font-semibold text-sand">
-          Home events can have at most 12 registered attendees, including the host.
+          Home events can have at most 12 registered attendees.
         </p>
       ) : null}
 

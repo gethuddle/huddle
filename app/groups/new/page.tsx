@@ -64,7 +64,10 @@ export default async function NewGroupPage() {
           <p className="font-semibold text-foreground">What happens now</p>
           <ul className="mt-3 space-y-2 text-sm leading-6 text-muted-foreground">
             <li>Your group gets a page you can always find in My Huddle.</li>
-            <li>Discoverable groups appear in search after their activity and safety setup.</li>
+            <li>
+              Discoverable groups appear in search while they have an active owner and a clear
+              description.
+            </li>
             <li>Unlisted groups stay invite-only.</li>
             <li>After creation, you go straight to the group so you can invite people.</li>
           </ul>

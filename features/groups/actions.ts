@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { requireActor } from "@/features/auth/actor";
 import { groupCreationSchema } from "@/features/groups/schemas";
+import { groupSlugFromName } from "@/features/groups/slug";
 import type {
   GroupCreationActionState,
   GroupCreationFormValues,
@@ -33,10 +34,17 @@ const createdGroupRowSchema = z
   .strict();
 
 function creationInput(formData: FormData) {
+  const name = formData.get("name");
+  const submittedSlug = formData.get("slug");
   return {
     intent: formData.get("intent"),
-    name: formData.get("name"),
-    slug: formData.get("slug"),
+    name,
+    slug:
+      submittedSlug === null || submittedSlug === ""
+        ? typeof name === "string"
+          ? groupSlugFromName(name)
+          : submittedSlug
+        : submittedSlug,
     teamId: formData.get("teamId"),
     visibility: formData.get("visibility"),
     description: formData.get("description"),
@@ -48,9 +56,11 @@ function formString(value: FormDataEntryValue | null): string {
 }
 
 function submittedValues(formData: FormData): GroupCreationFormValues {
+  const name = formString(formData.get("name"));
+  const submittedSlug = formString(formData.get("slug"));
   return {
-    name: formString(formData.get("name")),
-    slug: formString(formData.get("slug")),
+    name,
+    slug: submittedSlug === "" ? groupSlugFromName(name) : submittedSlug,
     teamId: formString(formData.get("teamId")),
     visibility: formString(formData.get("visibility")),
     description: formString(formData.get("description")),

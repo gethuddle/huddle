@@ -1,5 +1,8 @@
 "use client";
 
+import Link from "next/link";
+
+import { fanRecovery } from "@/features/auth/fan-recovery";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { AttendanceActionState } from "@/features/attendance/state";
 
@@ -25,6 +28,14 @@ export function AttendanceActionFeedback({
     >
       <AlertDescription className={state.ok ? "text-forest-hover" : "text-sand"}>
         {state.ok ? state.data.message : state.error.message}
+        {!state.ok && state.error.code === "PROFILE_INCOMPLETE" ? (
+          <Link
+            className="mt-2 block font-semibold underline"
+            href={fanRecovery(state.error.code).actionHref}
+          >
+            {fanRecovery(state.error.code).actionLabel}
+          </Link>
+        ) : null}
       </AlertDescription>
     </Alert>
   );
