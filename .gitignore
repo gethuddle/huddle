@@ -1,6 +1,9 @@
 # Course roadmap working directory
 course-roadmap/
 
+# Local-only university submission materials
+/docs/submission/
+
 # dependencies
 /node_modules
 /.pnp
