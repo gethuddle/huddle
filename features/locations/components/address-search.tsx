@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import { addressSuggestionsSchema } from "@/features/locations/schemas";
 import type { AddressSuggestion, LocationSearchPurpose } from "@/features/locations/types";
 
 type AddressSearchProps = Readonly<{
+  authRecoveryHref?: string;
   error?: string;
   initialQuery?: string;
   onConfirm: (suggestion: AddressSuggestion | null) => void;
@@ -16,6 +18,7 @@ type AddressSearchProps = Readonly<{
 }>;
 
 export function AddressSearch({
+  authRecoveryHref,
   initialQuery = "",
   onConfirm,
   purpose,
@@ -26,7 +29,9 @@ export function AddressSearch({
   const [suggestions, setSuggestions] = useState<readonly AddressSuggestion[]>([]);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [retry, setRetry] = useState(0);
-  const [state, setState] = useState<"idle" | "loading" | "ready" | "empty" | "error">("idle");
+  const [state, setState] = useState<
+    "idle" | "loading" | "ready" | "empty" | "auth-required" | "error"
+  >("idle");
   const confirmed = useRef<AddressSuggestion | null>(null);
   const latestRequest = useRef(0);
 
@@ -53,6 +58,13 @@ export function AddressSearch({
           body: JSON.stringify({ query: normalizedQuery, purpose }),
           signal: controller.signal,
         });
+        if (response.status === 401 && authRecoveryHref !== undefined) {
+          if (controller.signal.aborted || latestRequest.current !== request) return;
+          setSuggestions([]);
+          setActiveIndex(-1);
+          setState("auth-required");
+          return;
+        }
         if (!response.ok) throw new Error("address-search-failed");
 
         const payload = (await response.json()) as unknown;
@@ -77,7 +89,7 @@ export function AddressSearch({
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [purpose, query, retry]);
+  }, [authRecoveryHref, purpose, query, retry]);
 
   function chooseSuggestion(suggestion: AddressSuggestion) {
     latestRequest.current += 1;
@@ -206,6 +218,16 @@ export function AddressSearch({
             variant="outline"
           >
             Try again
+          </Button>
+        </div>
+      ) : null}
+      {state === "auth-required" && authRecoveryHref !== undefined ? (
+        <div className="flex flex-wrap items-center gap-3" role="alert">
+          <p className="text-sm text-foreground">
+            Your session ended. Sign in before searching another location.
+          </p>
+          <Button asChild size="sm">
+            <Link href={authRecoveryHref}>Sign in to continue</Link>
           </Button>
         </div>
       ) : null}

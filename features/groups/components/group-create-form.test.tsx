@@ -42,6 +42,34 @@ describe("GroupCreateForm", () => {
     expect(screen.getByText(/every request is still reviewed/i)).toBeVisible();
   });
 
+  it("associates field validation feedback with an accessible alert", async () => {
+    mocks.createGroupAction.mockResolvedValue({
+      ok: false,
+      error: {
+        code: "VALIDATION_FAILED",
+        message: "Check the highlighted fields.",
+        fields: { name: ["Use at least 3 characters."] },
+      },
+      values: {
+        name: "A",
+        slug: "a",
+        teamId: "",
+        visibility: "discoverable",
+        description: "",
+      },
+      attempt: 1,
+    });
+    const user = userEvent.setup();
+    render(<GroupCreateForm catalog={catalog} />);
+
+    await user.type(screen.getByLabelText("Group name"), "A");
+    await user.click(screen.getByRole("button", { name: "Review group" }));
+
+    const name = await screen.findByLabelText("Group name");
+    expect(name).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByText("Use at least 3 characters.")).toHaveAttribute("role", "alert");
+  });
+
   it("derives the group URL without making it another creation field", async () => {
     const user = userEvent.setup();
     render(<GroupCreateForm catalog={catalog} />);

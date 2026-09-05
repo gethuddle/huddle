@@ -12,7 +12,7 @@ export function FieldError({ id, messages }: FieldErrorProps) {
   }
 
   return (
-    <span className="mt-2 block text-sm text-sand" id={id}>
+    <span className="mt-2 block text-sm text-destructive" id={id}>
       {messages[0]}
     </span>
   );
@@ -33,9 +33,7 @@ export function FormFeedback({ state }: Readonly<{ state: AuthActionState }>) {
 
   return (
     <Alert variant="destructive">
-      <AlertDescription className="text-sand">
-        {state.error.fields?._form?.[0] ?? state.error.message}
-      </AlertDescription>
+      <AlertDescription>{state.error.fields?._form?.[0] ?? state.error.message}</AlertDescription>
     </Alert>
   );
 }

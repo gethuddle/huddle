@@ -48,7 +48,7 @@ export function GroupSettingsForm({
         </Badge>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
           {visibility === "discoverable"
-            ? "People can find the group and apply once its setup tasks are complete. Every application is reviewed."
+            ? "People can find the group and apply while it has an active owner and a description. Every application is reviewed."
             : "The group stays out of search. Owners and admins share controlled invitation links."}
         </p>
       </div>

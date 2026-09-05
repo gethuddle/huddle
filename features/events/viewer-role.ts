@@ -50,12 +50,29 @@ const lifecycleStatus: Record<EventLifecycle, string> = {
   completed: "Completed",
 };
 
-export function eventViewerPresentation(role: EventViewerRole, eventStatus: EventLifecycle) {
+export function eventViewerPresentation(
+  role: EventViewerRole,
+  eventStatus: EventLifecycle,
+  capacity?: Readonly<{
+    hostKind: "person" | "venue";
+    requiresApproval: boolean;
+    remainingCapacity: number | null;
+  }>,
+) {
   if (role === "venue_operator") {
     return { status: lifecycleStatus[eventStatus], primaryAction: "Manage event" };
   }
   if (eventStatus === "cancelled" || eventStatus === "completed") {
     return { status: lifecycleStatus[eventStatus], primaryAction: null };
+  }
+  if (
+    role === "eligible" &&
+    eventStatus === "published" &&
+    capacity?.hostKind === "venue" &&
+    !capacity.requiresApproval &&
+    capacity.remainingCapacity === 0
+  ) {
+    return { status: "Event full", primaryAction: null };
   }
   return presentation[role];
 }

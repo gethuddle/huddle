@@ -17,6 +17,7 @@ import {
   BanMemberControl,
   DirectInvitationRevocationControl,
   EventReviewControl,
+  InviteRevocationControl,
   MemberRoleControl,
   RemoveMemberControl,
   RuleCreateControl,
@@ -32,7 +33,7 @@ import {
   type GroupSettings,
 } from "@/features/groups/management";
 import { groupManagementQuerySchema, groupRouteSlugSchema } from "@/features/groups/schemas";
-import { collectionPageInput } from "@/lib/pagination";
+import { collectionHasOverflow, collectionPageCount, collectionPageInput } from "@/lib/pagination";
 
 export const metadata: Metadata = {
   title: "Group settings — Huddle",
@@ -63,8 +64,11 @@ export default async function GroupManagementPage({
   const membersPage = pageValue(rawQuery.membersPage);
   const bansPage = pageValue(rawQuery.bansPage);
   const invitationsPage = pageValue(rawQuery.invitationsPage);
+  const inviteLinksPage = pageValue(rawQuery.inviteLinksPage);
   const settings = await getGroupSettings(slug.data, membersPage, bansPage, invitationsPage);
   if (settings === null) notFound();
+  const inviteLinks = await getGroupManagement(slug.data, "invites", inviteLinksPage);
+  if (inviteLinks === null || inviteLinks.section !== "invites") notFound();
 
   return (
     <section className="py-12 sm:py-16">
@@ -93,6 +97,9 @@ export default async function GroupManagementPage({
         </Button>
         <Button asChild variant="outline">
           <Link href="#visibility">Visibility</Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link href="#invite-links">Secure links</Link>
         </Button>
         {settings.directInvitations.items.length === 0 ? null : (
           <Button asChild variant="outline">
@@ -132,6 +139,55 @@ export default async function GroupManagementPage({
           groupId={settings.group.id}
           groupSlug={settings.group.slug}
           visibility={settings.group.visibility}
+        />
+      </SettingsSection>
+
+      <SettingsSection id="invite-links" title="Secure invitation links">
+        <p className="mb-5 max-w-3xl text-sm leading-6 text-muted-foreground">
+          Link secrets appear only when they are created. This private list keeps the non-secret
+          usage history and lets an owner or admin revoke an active link.
+        </p>
+        {inviteLinks.items.length === 0 ? (
+          <p className="rounded-xl border border-border p-4 text-sm text-muted-foreground">
+            No secure invitation links have been created yet.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {inviteLinks.items.map((invite) => (
+              <div
+                className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-border p-4"
+                key={invite.id}
+              >
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-semibold text-foreground">
+                      {invite.useCount} of {invite.maxUses} uses
+                    </p>
+                    <Badge variant="outline">{invite.status}</Badge>
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    Created {formatDate(invite.createdAt)} by {identityLabel(invite.creatorHandle)}
+                    {" · "}Expires {formatDate(invite.expiresAt)}
+                  </p>
+                </div>
+                {invite.status === "active" ? (
+                  <InviteRevocationControl
+                    groupId={settings.group.id}
+                    groupSlug={settings.group.slug}
+                    inviteId={invite.id}
+                  />
+                ) : null}
+              </div>
+            ))}
+          </div>
+        )}
+        <SettingsPagination
+          groupSlug={settings.group.slug}
+          hasOverflow={collectionHasOverflow(inviteLinks.totalCount)}
+          page={inviteLinks.page}
+          pageCount={collectionPageCount(inviteLinks.totalCount)}
+          parameter="inviteLinksPage"
+          target="invite-links"
         />
       </SettingsSection>
 
@@ -545,7 +601,7 @@ function SettingsPagination({
   hasOverflow?: boolean;
   page: number;
   pageCount: number;
-  parameter: "membersPage" | "bansPage" | "invitationsPage";
+  parameter: "membersPage" | "bansPage" | "invitationsPage" | "inviteLinksPage";
   target: string;
 }>) {
   if (pageCount <= 1) return null;

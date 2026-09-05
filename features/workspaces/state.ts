@@ -1,4 +1,4 @@
-import type { ActionResult } from "@/lib/errors";
+import type { ActionError, ActionResult } from "@/lib/errors";
 
 import type { WorkspaceSelection, WorkspaceSummary } from "./types";
 
@@ -11,6 +11,23 @@ export type WorkspaceActionData = Readonly<{
 
 export type WorkspaceActionState = ActionResult<WorkspaceActionData> | null;
 export const INITIAL_WORKSPACE_ACTION_STATE: WorkspaceActionState = null;
+
+export type CommonOnboardingFormValues = Readonly<{
+  adultAttested: boolean;
+  rulesAccepted: boolean;
+}>;
+
+export type CommonOnboardingActionState =
+  | Readonly<{ ok: true; data: WorkspaceActionData }>
+  | Readonly<{
+      ok: false;
+      error: ActionError;
+      values: CommonOnboardingFormValues;
+      attempt: number;
+    }>
+  | null;
+
+export const INITIAL_COMMON_ONBOARDING_ACTION_STATE: CommonOnboardingActionState = null;
 
 export function chooseWorkspace(
   available: readonly WorkspaceSummary[],

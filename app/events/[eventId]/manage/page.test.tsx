@@ -54,6 +54,55 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe("ManageEventPage pagination", () => {
+  it.each([
+    ["left", null, true],
+    ["left", "accepted", true],
+    ["left", "pending", false],
+    ["requested", null, false],
+    ["approved", null, false],
+    ["declined", null, false],
+    ["removed", null, false],
+  ] as const)(
+    "derives invitation eligibility for %s attendance with %s invitation",
+    async (status, invitationStatus, eligible) => {
+      const personId = "90000000-0000-4000-8000-000000000702";
+      mocks.listEventAttendance.mockResolvedValue([
+        {
+          attendance_id: "attendance",
+          user_id: personId,
+          requester_handle: "returning",
+          requester_display_name: "Returning Fan",
+          status,
+          review_mode: "none",
+          total_count: 1,
+        },
+      ]);
+      if (invitationStatus)
+        mocks.listEventInvitations.mockResolvedValue([
+          {
+            invitation_id: "invite",
+            invitee_id: personId,
+            invitee_handle: "returning",
+            invitee_display_name: "Returning Fan",
+            status: invitationStatus,
+            total_count: 1,
+          },
+        ]);
+      render(
+        await ManageEventPage({
+          params: Promise.resolve({ eventId }),
+          searchParams: Promise.resolve({}),
+        }),
+      );
+      await userEvent.click(screen.getByRole("button", { name: "Invite people" }));
+      const option = screen.getByRole("checkbox", { name: "Returning Fan @returning" });
+      if (eligible) {
+        expect(option).toBeEnabled();
+        await userEvent.click(option);
+        expect(screen.getByRole("button", { name: "Invite 1 person" })).toBeEnabled();
+      } else expect(option).toBeDisabled();
+    },
+  );
   it.each(["invitation", "attendance"])(
     "keeps erased %s history out of the invitation picker",
     async (kind) => {

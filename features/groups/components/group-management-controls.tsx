@@ -458,7 +458,13 @@ export function MemberRoleControl({
           <Label className="sr-only" htmlFor={`role-${userId}`}>
             Member role
           </Label>
-          <NativeSelect defaultValue={currentRole} id={`role-${userId}`} name="role" size="sm">
+          <NativeSelect
+            defaultValue={currentRole}
+            id={`role-${userId}`}
+            key={currentRole}
+            name="role"
+            size="sm"
+          >
             <NativeSelectOption value="member">Member</NativeSelectOption>
             <NativeSelectOption value="admin">Admin</NativeSelectOption>
           </NativeSelect>

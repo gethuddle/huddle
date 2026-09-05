@@ -1,3 +1,5 @@
+import type { EventLifecycle } from "@/features/events/viewer-role";
+
 export function audienceLabel(audience: string): string {
   if (audience === "invite_only") return "Invite only";
   if (audience === "team_followers") return "Team followers";
@@ -11,6 +13,7 @@ function placeLabel(placeKind: "home" | "venue" | "public_place"): string {
 }
 
 export function EventBadges({
+  eventStatus,
   audience,
   audienceTeamName,
   placeKind,
@@ -19,6 +22,7 @@ export function EventBadges({
   approvedAttendeeCount,
   requiresApproval,
 }: Readonly<{
+  eventStatus: EventLifecycle;
   audience: "public" | "team_followers" | "group" | "friends" | "invite_only";
   audienceTeamName: string | null;
   placeKind: "home" | "venue" | "public_place";
@@ -27,15 +31,22 @@ export function EventBadges({
   approvedAttendeeCount: number;
   requiresApproval: boolean;
 }>) {
+  const acquisition = requiresApproval
+    ? "Request to join"
+    : capacity !== null && approvedAttendeeCount >= capacity
+      ? "Event full"
+      : "Join instantly";
   const facts = [
     `${audienceLabel(audience)}${
       audience === "team_followers" && audienceTeamName !== null ? ` · ${audienceTeamName}` : ""
     }`,
     placeLabel(placeKind),
     attendanceMode === "open_door"
-      ? "Just come along · no RSVP"
-      : `${approvedAttendeeCount} of ${capacity} going · ${
-          requiresApproval ? "Request to join" : "Join instantly"
+      ? eventStatus === "published"
+        ? "Just come along · no RSVP"
+        : "No Huddle RSVP"
+      : `${approvedAttendeeCount} of ${capacity} going${
+          eventStatus === "published" ? ` · ${acquisition}` : ""
         }`,
   ];
 

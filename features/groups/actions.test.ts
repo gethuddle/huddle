@@ -42,6 +42,43 @@ describe("createGroupAction", () => {
     expect(mocks.requireActor).not.toHaveBeenCalled();
   });
 
+  it("derives a missing pre-hydration slug from the submitted name before review", async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: [], error: null });
+    mocks.requireActor.mockResolvedValue({ supabase: { rpc } });
+    const formData = groupForm("check");
+    formData.set("name", "Hàifa Match Night");
+    formData.set("slug", "");
+
+    const result = await createGroupAction(null, formData);
+
+    expect(result).toMatchObject({
+      ok: true,
+      data: {
+        phase: "review",
+        values: { name: "Hàifa Match Night", slug: "haifa-match-night" },
+      },
+    });
+    expect(rpc).toHaveBeenCalledWith("suggest_similar_groups", {
+      input_name: "Hàifa Match Night",
+      input_team_id: teamId,
+      input_limit: 5,
+    });
+  });
+
+  it("rejects a malformed nonempty slug instead of silently replacing it", async () => {
+    const formData = groupForm("check");
+    formData.set("slug", "Not a valid slug");
+
+    const result = await createGroupAction(null, formData);
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { code: "VALIDATION_FAILED", fields: { slug: expect.any(Array) } },
+      values: { slug: "Not a valid slug" },
+    });
+    expect(mocks.requireActor).not.toHaveBeenCalled();
+  });
+
   it("returns only bounded discoverable similarity suggestions", async () => {
     const rpc = vi.fn().mockResolvedValue({
       data: [

@@ -3,7 +3,7 @@
 import { QueryClient, QueryClientProvider, useMutation } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   AlertDialog,
@@ -49,15 +49,37 @@ function form(values: Record<string, string>) {
 function EventParticipationControlsInner(props: Props) {
   const router = useRouter();
   const [confirmingLeave, setConfirmingLeave] = useState(false);
-  const mutation = useMutation<AttendanceActionState, Error, FormData>({
-    mutationFn: async (formData) => {
+  // Only participation changes release a successful action; capacity refreshes alone do not.
+  const participationKey = JSON.stringify([
+    props.eventId,
+    props.eventStatus,
+    props.viewerInvitationId,
+    props.viewerInvitationStatus,
+    props.viewerAttendanceId,
+    props.viewerAttendanceStatus,
+  ]);
+  const submission = useRef<{ key: string; inFlight: boolean } | null>(null);
+  const mutation = useMutation<
+    AttendanceActionState,
+    Error,
+    {
+      formData: FormData;
+      participationKey: string;
+      expectedAttendanceStatus: "requested" | "approved" | "left" | null;
+    }
+  >({
+    mutationFn: async ({ formData }) => {
       const intent = formData.get("mutationIntent");
       if (intent === "respond") return respondToEventInvitationAction(formData);
       if (intent === "leave") return leaveEventAction(formData);
       return requestOrJoinEventAction(formData);
     },
-    onSuccess: (result, formData) => {
-      if (result.ok) {
+    onSuccess: (result, { formData }) => {
+      if (!result.ok) submission.current = null;
+      else {
+        if (submission.current) {
+          submission.current.inFlight = false;
+        }
         setConfirmingLeave(false);
         if (
           formData.get("mutationIntent") === "respond" &&
@@ -69,7 +91,51 @@ function EventParticipationControlsInner(props: Props) {
         router.refresh();
       }
     },
+    onError: () => {
+      submission.current = null;
+    },
   });
+  const { reset, variables, isPending, data: result } = mutation;
+  const acknowledgementMatches =
+    result?.ok === true &&
+    variables !== undefined &&
+    props.eventId === variables.formData.get("eventId") &&
+    props.eventStatus === "published" &&
+    variables.expectedAttendanceStatus !== null &&
+    props.viewerAttendanceStatus === variables.expectedAttendanceStatus &&
+    (variables.formData.get("mutationIntent") !== "respond" ||
+      (props.viewerInvitationId === variables.formData.get("invitationId") &&
+        props.viewerInvitationStatus === "accepted"));
+  useEffect(() => {
+    if (
+      !isPending &&
+      variables &&
+      (variables.participationKey !== participationKey ||
+        (result?.ok === true && submission.current === null))
+    ) {
+      submission.current = null;
+      // A matching refresh confirms the acknowledgement; it must remain readable.
+      // A later contradictory state or another event makes that feedback stale.
+      if (!acknowledgementMatches) reset();
+    }
+  }, [participationKey, isPending, variables, acknowledgementMatches, result?.ok, reset]);
+
+  function submit(data: FormData) {
+    if (submission.current?.inFlight || submission.current?.key === participationKey) return;
+    submission.current = { key: participationKey, inFlight: true };
+    const intent = data.get("mutationIntent");
+    const expectedAttendanceStatus =
+      intent === "leave"
+        ? "left"
+        : intent === "respond"
+          ? data.get("decision") === "accept"
+            ? "approved"
+            : null
+          : props.hostKind === "venue" && !props.requiresApproval
+            ? "approved"
+            : "requested";
+    mutation.mutate({ formData: data, participationKey, expectedAttendanceStatus });
+  }
 
   const viewerRole =
     props.viewerRole ??
@@ -99,6 +165,15 @@ function EventParticipationControlsInner(props: Props) {
     return <p className="text-sm text-muted-foreground">Participation is closed for this event.</p>;
   }
 
+  const immediateJoin = props.hostKind === "venue" && !props.requiresApproval;
+  const immediateJoinIsFull = immediateJoin && props.remainingCapacity === 0;
+  if (!props.viewerIsAuthenticated && immediateJoinIsFull) {
+    return (
+      <Button className="w-full" disabled>
+        Event full
+      </Button>
+    );
+  }
   if (!props.viewerIsAuthenticated) {
     return (
       <Button asChild className="w-full">
@@ -107,10 +182,19 @@ function EventParticipationControlsInner(props: Props) {
     );
   }
 
-  const pending = mutation.isPending;
-  const feedback = <AttendanceActionFeedback state={mutation.data} error={mutation.error} />;
-  const immediateJoin = props.hostKind === "venue" && !props.requiresApproval;
-  const immediateJoinIsFull = immediateJoin && props.remainingCapacity === 0;
+  const pending =
+    mutation.isPending ||
+    (mutation.isSuccess &&
+      mutation.data.ok &&
+      mutation.variables.participationKey === participationKey);
+  const feedbackIsCurrent =
+    variables?.participationKey === participationKey || acknowledgementMatches;
+  const feedback = (
+    <AttendanceActionFeedback
+      state={feedbackIsCurrent ? mutation.data : undefined}
+      error={feedbackIsCurrent ? mutation.error : undefined}
+    />
+  );
   const canLeave =
     props.viewerAttendanceId !== null &&
     (props.viewerAttendanceStatus === "requested" || props.viewerAttendanceStatus === "approved");
@@ -122,7 +206,7 @@ function EventParticipationControlsInner(props: Props) {
           <Button
             disabled={pending}
             onClick={() =>
-              mutation.mutate(
+              submit(
                 form({
                   mutationIntent: "respond",
                   eventId: props.eventId,
@@ -138,7 +222,7 @@ function EventParticipationControlsInner(props: Props) {
           <Button
             disabled={pending}
             onClick={() =>
-              mutation.mutate(
+              submit(
                 form({
                   mutationIntent: "respond",
                   eventId: props.eventId,
@@ -183,7 +267,7 @@ function EventParticipationControlsInner(props: Props) {
               <Button
                 disabled={pending}
                 onClick={() =>
-                  mutation.mutate(
+                  submit(
                     form({
                       mutationIntent: "leave",
                       eventId: props.eventId,
@@ -206,7 +290,7 @@ function EventParticipationControlsInner(props: Props) {
         <Button
           className="w-full"
           disabled={pending || immediateJoinIsFull}
-          onClick={() => mutation.mutate(form({ mutationIntent: "join", eventId: props.eventId }))}
+          onClick={() => submit(form({ mutationIntent: "join", eventId: props.eventId }))}
           type="button"
         >
           {pending

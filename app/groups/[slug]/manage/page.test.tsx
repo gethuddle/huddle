@@ -77,12 +77,124 @@ function props() {
 describe("GroupManagementPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.getGroupManagement.mockResolvedValue({
+      group,
+      section: "invites",
+      page: 1,
+      pageCount: 1,
+      totalCount: 0,
+      items: [],
+    });
   });
 
   it("does not expose the management route to a non-admin viewer", async () => {
     mocks.getGroupSettings.mockResolvedValue(null);
 
     await expect(GroupManagementPage(props())).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(mocks.getGroupManagement).not.toHaveBeenCalled();
+  });
+
+  it("renders and paginates secure invitation metadata with active-link revocation", async () => {
+    const secret = "never-render-this-plaintext-token";
+    mocks.getGroupSettings.mockResolvedValue({
+      group,
+      members: { page: 1, pageCount: 1, totalCount: 3, items: members },
+      rules: [],
+      directInvitations: { page: 1, pageCount: 1, totalCount: 0, items: [] },
+      bans: { page: 1, pageCount: 1, totalCount: 0, items: [] },
+    });
+    mocks.getGroupManagement.mockResolvedValue({
+      group,
+      section: "invites",
+      page: 2,
+      pageCount: 3,
+      totalCount: 41,
+      items: [
+        {
+          id: "52000000-0000-4000-8000-000000000601",
+          creatorHandle: "owner",
+          expiresAt: "2026-09-12T12:00:00Z",
+          maxUses: 10,
+          useCount: 2,
+          revokedAt: null,
+          status: "active",
+          createdAt: "2026-09-05T12:00:00Z",
+          token: secret,
+        },
+        {
+          id: "52000000-0000-4000-8000-000000000602",
+          creatorHandle: null,
+          expiresAt: "2026-09-10T12:00:00Z",
+          maxUses: 5,
+          useCount: 5,
+          revokedAt: null,
+          status: "exhausted",
+          createdAt: "2026-09-04T12:00:00Z",
+        },
+      ],
+    });
+
+    render(
+      await GroupManagementPage({
+        ...props(),
+        searchParams: Promise.resolve({ inviteLinksPage: "2" }),
+      }),
+    );
+
+    expect(mocks.getGroupManagement).toHaveBeenCalledWith(group.slug, "invites", 2);
+    expect(screen.getByRole("heading", { name: "Secure invitation links" })).toBeVisible();
+    expect(screen.getByText("2 of 10 uses")).toBeVisible();
+    expect(screen.getByText("5 of 5 uses")).toBeVisible();
+    expect(screen.getAllByRole("button", { name: "Revoke" })).toHaveLength(1);
+    expect(screen.getByRole("link", { name: "Go to previous page" })).toHaveAttribute(
+      "href",
+      `/groups/${group.slug}/manage?inviteLinksPage=1#invite-links`,
+    );
+    expect(screen.getByRole("link", { name: "Go to next page" })).toHaveAttribute(
+      "href",
+      `/groups/${group.slug}/manage?inviteLinksPage=3#invite-links`,
+    );
+    expect(document.body).not.toHaveTextContent(secret);
+  });
+
+  it("bounds secure invitation pagination instead of linking back into the final page", async () => {
+    mocks.getGroupSettings.mockResolvedValue({
+      group,
+      members: { page: 1, pageCount: 1, totalCount: 3, items: members },
+      rules: [],
+      directInvitations: { page: 1, pageCount: 1, totalCount: 0, items: [] },
+      bans: { page: 1, pageCount: 1, totalCount: 0, items: [] },
+    });
+    mocks.getGroupManagement.mockResolvedValue({
+      group,
+      section: "invites",
+      page: 501,
+      pageCount: 502,
+      totalCount: 10_021,
+      items: [
+        {
+          id: "52000000-0000-4000-8000-000000000603",
+          creatorHandle: "owner",
+          expiresAt: "2026-09-12T12:00:00Z",
+          maxUses: 10,
+          useCount: 1,
+          revokedAt: null,
+          status: "active",
+          createdAt: "2026-09-05T12:00:00Z",
+        },
+      ],
+    });
+
+    render(
+      await GroupManagementPage({
+        ...props(),
+        searchParams: Promise.resolve({ inviteLinksPage: "501" }),
+      }),
+    );
+
+    expect(screen.getByText("501/501")).toBeVisible();
+    expect(screen.getByText(/more invitations exist than can be shown/i)).toBeVisible();
+    expect(screen.queryByRole("link", { name: "Go to next page" })).not.toBeInTheDocument();
   });
 
   it("lets the owner manage non-owner roles and bans", async () => {

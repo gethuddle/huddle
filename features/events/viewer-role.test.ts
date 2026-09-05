@@ -78,3 +78,18 @@ describe("EventViewerRole", () => {
     ).toBe("invited");
   });
 });
+
+it("replaces acquisition promises for a full instant-join event while preserving approval requests", () => {
+  const capacity = { hostKind: "venue" as const, requiresApproval: false, remainingCapacity: 0 };
+  expect(eventViewerPresentation("eligible", "published", capacity)).toEqual({
+    status: "Event full",
+    primaryAction: null,
+  });
+  expect(
+    eventViewerPresentation("eligible", "published", { ...capacity, requiresApproval: true })
+      .primaryAction,
+  ).not.toBeNull();
+  expect(eventViewerPresentation("attending", "published", capacity).primaryAction).toBe(
+    "Leave event",
+  );
+});

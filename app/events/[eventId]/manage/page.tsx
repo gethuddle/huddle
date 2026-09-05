@@ -235,6 +235,11 @@ function invitationCandidates(
             : null,
     });
   }
+  const pendingInvitees = new Set(
+    invitations
+      .filter((invitation) => invitation.status === "pending")
+      .map((invitation) => invitation.invitee_id),
+  );
   for (const row of attendance) {
     if (row.requester_handle === null) {
       candidates.delete(row.user_id);
@@ -245,13 +250,16 @@ function invitationCandidates(
       handle: row.requester_handle,
       displayName: row.requester_display_name,
       context: "Recent authorized person",
-      eligible: false,
-      ineligibilityReason:
-        row.status === "requested"
-          ? "Attendance request already pending"
-          : row.status === "approved"
-            ? "Already attending"
-            : "Current attendance state is not eligible",
+      eligible: row.status === "left" && !pendingInvitees.has(row.user_id),
+      ineligibilityReason: pendingInvitees.has(row.user_id)
+        ? "Already invited"
+        : row.status === "left"
+          ? null
+          : row.status === "requested"
+            ? "Attendance request already pending"
+            : row.status === "approved"
+              ? "Already attending"
+              : "Current attendance state is not eligible",
     });
   }
   return [...candidates.values()];
