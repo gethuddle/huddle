@@ -118,7 +118,7 @@ export function SiteHeader({
                 <DropdownMenuTrigger asChild>
                   <Button
                     aria-label="Open public navigation"
-                    className="sm:hidden"
+                    className="lg:hidden"
                     size="icon-lg"
                     variant="ghost"
                   >

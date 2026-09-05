@@ -13,6 +13,7 @@ import {
   savedBuckets,
 } from "@/features/dashboard/queries";
 import { ProfileAccessState } from "@/features/profiles/components/profile-access-state";
+import { getAppShellState } from "@/features/workspaces/queries";
 import { DomainError } from "@/lib/errors";
 import { collectionPageInput } from "@/lib/pagination";
 import { z } from "zod";
@@ -68,6 +69,20 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         : "your-saved-heading";
     redirect(`/dashboard?${params.toString()}#${anchor}`);
   }
+
+  const shell = await getAppShellState();
+  if (!shell.isSignedIn) {
+    return (
+      <ProfileAccessState
+        actionHref="/auth/sign-in"
+        actionLabel="Sign in"
+        description="Your groups, hosted events, invitations and attendance all live in My Huddle."
+        eyebrow="Sign in required"
+        title="Sign in to open My Huddle."
+      />
+    );
+  }
+
   let overview;
   try {
     overview = await getMyHuddleOverview({

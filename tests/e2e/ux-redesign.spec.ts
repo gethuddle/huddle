@@ -425,6 +425,7 @@ async function signUpAndVerify(page: Page, email: string, accountPassword: strin
   await page.getByLabel("Confirm password").fill(accountPassword);
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByRole("status")).toContainText("a verification link is on its way");
+  await expect(page).toHaveURL(/\/auth\/verify$/);
 
   const confirmationUrl = await verificationUrlFor(email);
   expect(confirmationUrl.pathname).toBe("/auth/verify/confirm");
@@ -709,6 +710,18 @@ test("complete deterministic Fan and Venue workspace journey", async ({
   try {
     await context.grantPermissions(["geolocation"], { origin: "http://127.0.0.1:3000" });
     await context.setGeolocation({ latitude: 32.81303, longitude: 34.99928 });
+    await page.goto("/");
+    if (project.width < 1024) {
+      await page.getByRole("button", { name: "Open public navigation" }).click();
+      await expect(page.getByRole("menuitem", { name: "Explore" })).toBeVisible();
+      await page.keyboard.press("Escape");
+    } else {
+      await expect(
+        page.getByRole("navigation", { name: "Public navigation" }).getByRole("link", {
+          name: "Explore",
+        }),
+      ).toBeVisible();
+    }
     await signUpAndVerify(page, identity.ownerEmail, password);
     await completeFan(page, identity.ownerHandle, identity.ownerName);
     await signUpAndVerify(participantPage, identity.participantEmail, password);

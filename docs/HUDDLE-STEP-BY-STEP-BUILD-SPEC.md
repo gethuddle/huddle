@@ -344,7 +344,8 @@ The milestone is ready to merge only when:
 - the writer can explain why the chosen tools fit the course architecture;
 - the documentation describes what now works, not what was merely planned.
 
-Both partners must be able to give those explanations before final submission, but that shared rehearsal is not a per-PR approval gate.
+Both partners must understand those explanations before final submission. The course no longer
+requires a presentation rehearsal.
 
 ### Step I — Pull request and merge
 
@@ -383,7 +384,7 @@ If an external account, paid service, production mutation, or secret is required
 
 ## 6. Historical B01–B12 delivery, current `VB01`, and B13 handoff
 
-`F00`–`F03` and B01–B12 are the completed historical delivery baseline. `VB01` is the approved per-venue entitlement module; its implementation is merged and its authorized hosted Sandbox happy path passed on 4 September 2026. B13 remains the later production-acceptance, submission-evidence, and presentation handoff, with remaining lifecycle drills explicitly tracked in production acceptance. The original module IDs remain the authoritative detailed checklists in §§7–14 and must be completed in their listed dependency order.
+`F00`–`F03` and B01–B12 are the completed historical delivery baseline. `VB01` is the approved per-venue entitlement module; its implementation is merged and its authorized hosted Sandbox happy path passed on 4 September 2026. B13 remains the later production-acceptance and submission-evidence handoff, with remaining lifecycle drills explicitly tracked in production acceptance. The original module IDs remain the authoritative detailed checklists in §§7–14 and must be completed in their listed dependency order.
 
 | Milestone | Included modules | Depends on | Observable exit |
 |---|---|---|---|
@@ -400,7 +401,7 @@ If an external account, paid service, production mutation, or secret is required
 | `B11` Moderation, security, and accessibility | `M01`–`M04` | `B10` | Reports, moderation, appeals, hardening, accessibility, failure states, and operational evidence cover the complete product loop |
 | `B12` Release candidate and automated acceptance | `D01` | `B11` | Full automated acceptance is green and the complete application is published as a reviewable release candidate |
 | `VB01` Polar Sandbox venue subscriptions | `VB01` | `B12`, `AE01` contract | Per-venue hidden draft, verified Sandbox webhook entitlement, grace/cancellation safety, and authorized hosted/demo evidence are complete |
-| `B13` Production acceptance and submission | `D02`–`D04` | completed `VB01` hosted/demo acceptance | Isolated hosted environments, production sync/deployment, truthful submission evidence, and the presentation rehearsal are complete |
+| `B13` Production acceptance and submission | `D02`–`D04` | completed `VB01` hosted/demo acceptance | Isolated hosted environments, production sync/deployment, and truthful submission evidence are complete |
 
 The milestone grouping reduces coordination overhead only. It removes no module task, test, authorization rule, migration requirement, or definition-of-done evidence. The original `G06` dependency on an approved future event remains historical B09 evidence; the approved 31 August replacement gate depends only on an active owner and description. `AI01`, `AE01`, and `VB01` are bounded post-B12 modules rather than renumbered milestones; B13 cannot claim hosted acceptance until each applicable separately authorized gate, including completed `VB01` hosted/demo evidence, passes.
 
@@ -1246,7 +1247,7 @@ The following checked modules describe the B01–B12 baseline. Their original ou
 - [x] Review every form for labels, field errors, pending state, status announcements, keyboard operation, and focus return.
 - [x] Review dialogs/menus for focus trapping and escape behavior.
 - [x] Ensure status is not communicated only by color.
-- [x] Add responsive checks for all presentation/demo routes.
+- [x] Add responsive checks for all user-facing/demo routes.
 - [x] Cover loading, empty, retry, stale, denied, cancelled, removed, suspended, and not-found states.
 - [x] Check Israel dates around daylight-saving transitions.
 - [x] Track discovery duration, sync age/outcome, sync requests, route/action errors, quota observations, and repeated authorization failures.
@@ -1282,7 +1283,7 @@ The following checked modules describe the B01–B12 baseline. Their original ou
 - [x] Keep billing owner-only and operational membership separate. Admins may operate existing events/attendees in their permitted state but cannot open checkout/portal or manage payment. Payment never changes `unverified`; public/fan copy and DTOs never mention billing, Polar, grace, invoices, or payment failure.
 - [x] Preserve archive and account-erasure boundaries. Archive never mutates Polar and cannot be reactivated by checkout/webhook. Add the billing-aware account-erasure V2 wrapper and late-checkout cleanup path; preserve V1's boolean return and rollback-with-`UPSTREAM_UNAVAILABLE` compatibility behavior when Polar cleanup would be required.
 - [x] Add saved sanitized fixtures and unit, pgTAP, component, route, and E2E coverage for signature/organization/product/customer/attempt mismatches, duplicate/delayed webhook, independent two-venue subscriptions, checkout races/reconciliation, state/deadline/cancellation/recovery, participant exceptions, cache denial, no event resurrection, archive, and account-erasure/late-checkout lock ordering. Automated tests never call Polar.
-- [x] Before hosted configuration, produce the reviewed Sandbox-only runbook and obtain separate authorization for every Polar/Supabase/Vercel mutation. Presentation evidence uses the live Sandbox happy path only, visibly says no real money is charged, and records no secrets, card data, or provider payloads.
+- [x] Before hosted configuration, produce the reviewed Sandbox-only runbook and obtain separate authorization for every Polar/Supabase/Vercel mutation. Sandbox evidence uses the live happy path only, visibly says no real money is charged, and records no secrets, card data, or provider payloads.
 
 **Tests/evidence:** the complete local matrix, generated types, secret/diff checks, and reviewed Sandbox-only runbook passed in isolated acceptance. The authorized hosted hidden draft → checkout → signed webhook → public/Explore/publication happy path passed on 4 September 2026. Recovery/cancellation safety remains covered by the local deterministic matrix; corresponding hosted drills remain unchecked in the broader production-acceptance record and are not implied by the happy path.
 
@@ -1364,13 +1365,13 @@ evidence for merge; hosted checks remain B13 (`D02`–`D04`).
 
 - [x] Create or confirm separate local, preview/staging, and production configurations.
 - [x] Ensure previews do not mutate production by default.
-- [ ] Create/configure Supabase and Vercel only with both partners' explicit approval.
+- [x] Create/configure Supabase and Vercel only with both partners' explicit approval.
 - [x] Apply the committed 12-migration history before deploying code that requires it.
 - [x] Apply the account-erasure migration before exposing account deletion in production; matching migration/application parity was verified on 4 September 2026.
-- [ ] Configure public URLs, Auth redirects, allowed origins, and environment-specific secrets.
+- [x] Configure public URLs, Auth redirects, allowed origins, and environment-specific secrets.
 - [x] Run the separately authorized guarded production Auth configuration apply and immediate exact `npm run auth:config:check`; both passed on 3 September 2026. Fresh email/browser acceptance remains pending.
-- [ ] Verify anonymous public browse and signed-in session behavior.
-- [ ] Verify no service secret appears in browser bundles or network traffic.
+- [ ] Verify anonymous public browse and signed-in session behavior with the required two dedicated production accounts.
+- [x] Verify no service secret appears in browser bundles or network traffic.
 - [x] Record a dated pre-deployment quota/limit snapshot for the course scale deliverable; add selected-plan usage after deployment.
 
 **Tests/evidence:** production smoke test in a signed-out browser and with at least two deterministic test accounts; migration parity proof.
@@ -1386,40 +1387,42 @@ evidence for merge; hosted checks remain B13 (`D02`–`D04`).
 **Tasks:**
 
 - [x] Reverify the current provider plan, coverage, rate limit, attribution, and terms before registration/use.
-- [ ] Register/configure the football provider only with explicit partner approval.
-- [ ] Store the provider token and service role only in server secret stores.
-- [ ] Store the sync call secret in both Vercel and Supabase Vault.
+- [x] Register/configure the football provider only with explicit partner approval.
+- [x] Store the provider token and service role only in server secret stores.
+- [x] Store the sync call secret in both Vercel and Supabase Vault.
 - [x] Configure the bounded competition allowlist.
-- [ ] Configure Supabase Cron/`pg_net` for the six-hour schedule.
-- [ ] Verify one successful run and its safe `provider_sync_runs` evidence.
+- [x] Configure Supabase Cron/`pg_net` for the six-hour schedule.
+- [x] Verify one successful run and its safe `provider_sync_runs` evidence.
 - [ ] Simulate/observe a failed run and verify last-good fixtures remain browsable with stale status.
 - [ ] Exercise the token-rotation and failed-sync runbooks.
 
 **Tests/evidence:** protected-route production proof, successful run ID/counts, invalid-secret denial, no browser provider calls, cached-outage smoke test.
 
-### D04 — Final documentation, submission, and presentation rehearsal
+### D04 — Final documentation and submission
+
+**5 September scope boundary:** the course no longer requires a presentation. Final
+submission documents remain local and are deliberately deferred to a separate session;
+this B13 technical-lock release does not publish or complete them.
 
 **Depends on:** `D01`–`D03`.
 
 **Authority:** implementation spec §§16–18; architecture §9.
 
-**Outcome:** the repository, public deployment, written deliverables, and 10–15 minute presentation describe the working system truthfully.
+**Outcome:** the repository, public deployment, and written deliverables describe the working system truthfully.
 
 **Tasks:**
 
 - [x] Update README setup, environment names, commands, architecture, status, and candidate public URL; final deployment acceptance remains pending.
-- [x] Complete the official product, technical, test, scalability, and security deliverable sources in the submission index.
-- [x] Replace “specified” traceability cells with truthful actual/pending implementation, test, and presentation evidence.
+- [x] Prepare draft product, technical, test, scalability, and security source material in the local submission index; final hand-in documents remain deferred.
+- [x] Prepare draft traceability with truthful actual/pending implementation and test evidence; final hand-in review remains deferred.
 - [x] Add GitHub link, candidate live URL, data attribution, and exact local reproduction steps; final URL acceptance remains pending.
 - [ ] Fresh-clone and reproduce the application on the second computer.
-- [ ] Rehearse the core demo using deterministic accounts/data.
-- [ ] Rehearse one browser-to-server-to-database/RLS trace.
-- [ ] Rehearse one private-address denial, one atomic-capacity test, and one provider-outage result.
-- [ ] Divide speaking turns, not feature ownership; both partners must explain architecture, security, tests, and trade-offs.
-- [ ] Keep the presentation within 10–15 minutes.
 - [ ] Distinguish every deferred feature from the working MVP.
 
-**Exit evidence:** public URL, green main CI, fresh-clone success, completed traceability matrix, final repository review, and timed rehearsal completed by both partners.
+The former demo rehearsal, speaking-turn, and 10–15 minute presentation tasks were
+retired on 5 September 2026 when the course removed the presentation requirement.
+
+**Exit evidence:** public URL, green main CI, fresh-clone success, completed traceability matrix, and final repository review.
 
 ---
 
@@ -1496,20 +1499,22 @@ Valid values: `not started`, `planning`, `building`, `review`, `blocked`, `done`
 | B12 Release candidate and automated acceptance | `D01` | done | [#32](https://github.com/gethuddle/huddle/issues/32) / [PR #33](https://github.com/gethuddle/huddle/pull/33) |
 | AI-assisted event discovery | `AI01` | done | [PR #46](https://github.com/gethuddle/huddle/pull/46) |
 | Immediate account erasure | `AE01` | done | [#53](https://github.com/gethuddle/huddle/issues/53), merged [PR #54](https://github.com/gethuddle/huddle/pull/54) |
-| VB01 Polar Sandbox venue subscriptions | `VB01` | review | [#55](https://github.com/gethuddle/huddle/issues/55); implementation merged in [#56](https://github.com/gethuddle/huddle/pull/56), local and hosted Sandbox happy path passed; final evidence handoff in review; broader B13 lifecycle checks remain separate |
-| B13 Production acceptance and submission | `D02`–`D04` (after VB01 hosted/demo acceptance) | not started | — |
+| VB01 Polar Sandbox venue subscriptions | `VB01` | done | [#55](https://github.com/gethuddle/huddle/issues/55); implementation merged in [#56](https://github.com/gethuddle/huddle/pull/56), with hosted acceptance recorded in [#57](https://github.com/gethuddle/huddle/pull/57) |
+| B13 Production acceptance and submission | `D02`–`D04` (after VB01 hosted/demo acceptance) | review | [#66](https://github.com/gethuddle/huddle/issues/66) — technical lock; submission documents deferred |
 
 ---
 
 ## 18. The rule to remember
 
-**4 September submission-hardening release:** the coordinated corrective slice addresses the 17-finding audit, performance/navigation work, automatic venue addresses, availability hints, secure email changes, fixture pagination, and map-worker loading. It passed isolated acceptance and required CI, merged through [PR #58](https://github.com/gethuddle/huddle/pull/58) as [`9a485916`](https://github.com/gethuddle/huddle/commit/9a4859168201589da3d3ab2a743ab163cc620a58), and was deployed with matching production migrations and Auth configuration. [Acceptance evidence](./evidence/submission-hardening/ACCEPTANCE.md) keeps that release distinct from later production-audit corrections and the still-separate full B13 presentation rehearsal.
+**4 September submission-hardening release:** the coordinated corrective slice addresses the 17-finding audit, performance/navigation work, automatic venue addresses, availability hints, secure email changes, fixture pagination, and map-worker loading. It passed isolated acceptance and required CI, merged through [PR #58](https://github.com/gethuddle/huddle/pull/58) as [`9a485916`](https://github.com/gethuddle/huddle/commit/9a4859168201589da3d3ab2a743ab163cc620a58), and was deployed with matching production migrations and Auth configuration. [Acceptance evidence](./evidence/submission-hardening/ACCEPTANCE.md) keeps that release distinct from later production-audit corrections and B13 closeout.
 
 **5 September navigation-performance correction:** the follow-up removes the nav spinner and addresses the measured personalized-read serialization, repeated request-scoped auth work, Explore return latency, workspace-switch invalidation, and globally loaded map assets without introducing persistent private caching or changing authorization. Exact acceptance passed 1,529 application tests, 2,635 database/RLS assertions, the production build, security and diff gates, and all 41 browser journeys. It passed required CI, merged through [PR #60](https://github.com/gethuddle/huddle/pull/60) as [`6280a45a`](https://github.com/gethuddle/huddle/commit/6280a45a377d1c89cf5cd6b6a205827690fc0db6), and was deployed with matching migration `20260904170000`. The exact `fra1` production build passed anonymous smoke plus authenticated Home/Fan/Venue navigation checks with no nav spinner or browser error; [acceptance evidence](./evidence/submission-hardening/ACCEPTANCE.md) records the exact small-sample timings and limits.
 
 **5 September full Fan Router Cache and Home-read follow-up:** every non-current primary Fan destination is explicitly warmed in Next.js's private per-tab Router Cache, while Venue billing routes remain outside that policy and no account data is persisted. Fan Home uses one authenticated, actor-scoped database projection rather than five sequential/parallel network round trips. Browser regressions require zero destination RSC requests at warmed click time on desktop and mobile; database regressions cover grants, eligibility, bounded output, and cross-Fan isolation. It passed required CI, merged through [PR #62](https://github.com/gethuddle/huddle/pull/62) as [`d5115200`](https://github.com/gethuddle/huddle/commit/d5115200580668cdb245d1e9d76ef835f9100199), and was deployed with migration `20260905010000_fan_home_read_performance.sql`. Signed-in production tracing confirmed zero destination RSC requests after the private prefetches settled and 697–791 ms hard Home loads.
 
 **5 September Explore single-call follow-up:** a production trace separated navigation from event-data latency: the cached Explore shell opened without a destination RSC request, but `/api/discovery` took 3.09 seconds while repeating the same authorized geospatial page three times and then fetching team/map enrichment. The bounded correction preserves private `POST`/no-store, authorization, filters, ordering, cursors, account cache partitioning, and DTO privacy while returning the authorized feed and safe enrichment through one database RPC. Complete local acceptance passed 1,529 application tests, 2,667 database/RLS assertions, the production build, security and diff gates, and all 42 browser journeys. It passed required CI, merged through [PR #63](https://github.com/gethuddle/huddle/pull/63) as [`cf932517`](https://github.com/gethuddle/huddle/commit/cf932517bf753c92933501c2ababa73f37a852aa), and was deployed with matching migration `20260905020000_discovery_feed_performance.sql`. The comparable signed-in production request fell from 3.09 seconds to 333 ms; the six-request median was 647 ms, and warm results appeared from the private cache in 214–217 ms while refreshing. [Acceptance evidence](./evidence/submission-hardening/ACCEPTANCE.md) records the exact bounded samples and release parity.
+
+**5 September B13 technical-lock review:** the final audit found and corrected a signed-out My Huddle protected-read failure, the missing public navigation control from 640–1023 px, an overbroad production sports-host assertion, and an email-verification journey race. It also repaired one dead tracked evidence link and made fresh-clone runtime selection explicit. Exact-source local acceptance passed a clean install with zero reported vulnerabilities; formatting, lint, TypeScript, schema reset/lint, generated database types, the production build, secret and diff audits; 243 passing Vitest files / 1,530 passing tests with one opt-in live-model file/test skipped; all 58 pgTAP files / 2,667 assertions; and all 42 Playwright journeys with zero configured retries. The pre-release hosted audit reconfirmed separate Preview/Production Supabase targets, exact migration parity through `20260905020000`, a protected six-hour sports sync with current success and safe failure/recovery evidence, the billing deadline scheduler, anonymous public routes, security headers, and no client service-secret exposure. Anonymous smoke and earlier authenticated Fan/Venue tracing passed; the dedicated two-account production session smoke was not run. [Issue #66](https://github.com/gethuddle/huddle/issues/66) tracks exact-head CI, deployment, and post-deployment smoke. Presentation work is no longer required; ignored submission documents remain local for a separate session.
 
 For every delivery milestone:
 

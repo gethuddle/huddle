@@ -23,7 +23,7 @@ test("@session-smoke anonymous production pages and provider attribution are pub
 }) => {
   let providerRequestCount = 0;
   page.on("request", (request) => {
-    if (new URL(request.url()).hostname.endsWith("football-data.org")) {
+    if (new URL(request.url()).hostname === "api.football-data.org") {
       providerRequestCount += 1;
     }
   });
@@ -59,6 +59,13 @@ test("@session-smoke anonymous production pages and provider attribution are pub
   await page.goto("/groups");
   await expect(page.getByRole("heading", { name: "Find a group that fits." })).toBeVisible();
   await expect(page.getByRole("searchbox", { name: "Group name" })).toBeVisible();
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Open public navigation" }).click();
+  await expect(page.getByRole("menuitem", { name: "Explore" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.goto("/dashboard");
+  await expect(page.getByRole("heading", { name: "Sign in to open My Huddle." })).toBeVisible();
   await page.goto("/data-sources");
   await expect(page.getByRole("heading", { name: "Where fixture data comes from." })).toBeVisible();
   expect(providerRequestCount).toBe(0);

@@ -63,13 +63,13 @@ The same real browser case switches from Explore to Venue Today at 1280 and 375 
 
 The server emitted React/Next `The destination stream closed early` messages during navigation-interruption journeys. Installed React binds that message to destination-stream closure; covered browser assertions continued successfully. This is recorded rather than represented as a warning-free server run. No framework patch or global error suppression was introduced. The earlier missing React list-key warning was corrected.
 
-## Release and presentation checks still separate
+## Release checks still separate
 
 1. Explicitly authorize publication/release; run protected CI and review the final diff. No commit, push, PR, merge, or deployment is implicit in this local work.
 2. Verify target and remote migration ledger, dry-run then apply only the new forward migrations under separate authority. Deploy matching app code and confirm `fra1` placement.
 3. Apply/check the explicitly targeted Supabase Auth email-change template/redirect allowlist and secure dual-confirmation settings. Local mailbox proof does not establish hosted email delivery.
 4. Recheck deployed app/migration/Auth parity, actual Sandbox return/webhook recovery and authenticated Home/Today/Explore latency with authorized test accounts. Keep real money disabled.
-5. Partners rehearse the submitted core loop and explain the changes. No claim is made that a human rehearsal, screen-reader audit, penetration test, load test, or every browser/device has been completed.
+5. The course presentation and rehearsal requirement was retired on 5 September 2026. No claim is made that a screen-reader audit, penetration test, load test, or every browser/device has been completed.
 
 Dirty internal-link cancellation and supported browser navigation interception are tested. Browsers without a cancelable Navigation API do not gain a universal Back/Forward unsaved-change guarantee. Saved drafts remain the recovery mechanism.
 
