@@ -2572,6 +2572,24 @@ export type Database = {
         Args: { input_draft_id: string }
         Returns: boolean
       }
+      discover_event_feed: {
+        Args: {
+          input_after_distance_band?: number
+          input_after_event_id?: string
+          input_after_interest_score?: number
+          input_after_starts_at?: string
+          input_competition_id?: string
+          input_from: string
+          input_lat: number
+          input_limit?: number
+          input_lng: number
+          input_match_id?: string
+          input_radius_km: number
+          input_team_id?: string
+          input_to: string
+        }
+        Returns: Json
+      }
       discover_events: {
         Args: {
           input_after_distance_band?: number
