@@ -6,7 +6,7 @@
 
 **Companion overview:** [Huddle: Product and Architecture Vision](./HUDDLE-ARCHITECTURE.md)
 
-**Official requirements:** [project instructions](<../course-roadmap/project instructions.pdf>)
+**Official requirements:** local-only `course-roadmap/project instructions.pdf` (not published)
 
 **Planning baseline:** 23 August 2026
 
@@ -21,6 +21,11 @@
 **Approved account-erasure revision:** 3 September 2026. The `/account/security` contract now covers both a current-password change and immediate, irreversible self-service account deletion. Deletion requires bounded current-password reauthentication plus exact `DELETE` confirmation, performs one canonical actor-serialized and idempotent product-data transition, retains only required pseudonymous history, and then uses a server-only Supabase Auth soft deletion. The implementation merged through PR #54; its production migration and matching application release were verified on 4 September 2026.
 
 **Approved `VB01` revision:** 3 September 2026. Commercial venue visibility and publishing are per-venue Polar Sandbox entitlements. Tasks 1–10 passed isolated local acceptance; the authorized hosted Sandbox happy path passed on 4 September 2026. The [acceptance record](./evidence/vb01/ACCEPTANCE.md) identifies the deployed commit and distinguishes that evidence from unrun hosted lifecycle drills and broader B13 acceptance. This revision deliberately supersedes the older immediate-public Venue activation rule while preserving the free Fan/private-hosting scope, membership authorization, truthful business attestation, and visible `unverified` trust label.
+
+**Approved B13 submission-scope revision:** 5 September 2026. The course no longer
+requires a presentation. The former presentation plan is retired and is not an MVP,
+submission, or acceptance gate. Final written submission documents remain a separate
+local handoff; this revision does not treat their drafts as final.
 
 The keywords **MUST**, **MUST NOT**, **SHOULD**, and **MAY** express implementation priority. A MUST is part of acceptance for the submitted MVP unless this specification is deliberately revised.
 
@@ -1426,49 +1431,45 @@ Use separate local, preview/staging, and production configuration. Preview deplo
 ## 16. Requirements traceability matrix
 
 The design-to-requirement map below remains normative. Actual implementation,
-test, presentation, and pending hosted evidence is maintained in the team's
+test, and pending hosted evidence is maintained in the team's
 local delivery traceability record; a pending cell is never treated as
 implemented merely because this specification describes it.
 
-| Official requirement | Design location | Implementation evidence | Test evidence | Presentation proof |
-|---|---|---|---|---|
-| Clear problem, users, customer, business goals | Architecture §§1–3 | Product pages and venue loop | E2E core flows | 1-minute problem/persona/value opening |
-| Product capabilities and main processes | Spec §§1–4 | Auth, follow, discover, group, event, attendance | E2E 1–9 | Live core-loop demo |
-| System components/data flow | Architecture §4; Spec §5 | Deployed Next/Supabase integration | Build/integration tests | Architecture diagram |
-| Database/entities | Spec §6 | SQL migrations/generated types | pgTAP and reset | ER diagram/key tables |
-| Pages/components | Spec §4 | App routes/components | RTL/Playwright | Show discovery/event/admin UI |
-| API routes/server actions | Spec §7 | Route Handlers/actions/functions | Unit/integration/E2E | Trace one request end to end |
-| Permissions/users | Spec §§2–3, 6.11, 11 | RLS/functions | Denial and cross-user tests | Private-address example |
-| External libraries/services and rationale | Spec §§5, 8 | Lockfile/adapters/config | Provider fixture tests | Decision table |
-| Folder structure | Spec §5.4 | Repository tree | Dependency/lint checks | Brief code tour |
-| CRUD and business logic | Spec §§2, 7 | Domain services/actions/RPCs | State/capacity flows | Join/approve/cancel demo |
-| State management | Spec §9 | Server/Query/local/URL state | Component/E2E states | Explain ownership |
-| Error and input handling | Spec §10 | Zod/result/error boundaries | Invalid and edge cases | Show one safe failure |
-| UX planning | Spec §4 | Accessible responsive UI | RTL/manual accessibility | User-journey narration |
-| Next.js + TypeScript | Spec §5 | App and strict config | Typecheck/build | Repository/code tour |
-| Supabase DB/Auth | Spec §§5–6, 11 | Auth, migrations, RLS, PostGIS | reset/pgTAP | Auth + DB explanation |
-| Vercel deployment/public URL | Spec §15 | Production deployment | Smoke test | Open live URL |
-| Test specification and code | Spec §14 | Test suites | CI results | Test pyramid + critical tests |
-| Basic scale | Spec §12 | indexes/cursors/RPC/cache | query plans/load spot checks | Bottleneck/growth slide |
-| Basic security | Spec §11 | RLS, secrets, private table, headers | authorization matrix | Threat/control/residual-risk slide |
-| Local instructions/env vars | Spec §15 and final README | scripts/example env | fresh-clone rehearsal | Mention reproducibility |
-| GitHub link | Submission artifact | public/private course repo as required | green main CI | Open repository |
-| 10–15 minute presentation | Spec §17 | completed deck/demo data | rehearsal | Final presentation |
+| Official requirement | Design location | Implementation evidence | Test evidence |
+|---|---|---|---|
+| Clear problem, users, customer, business goals | Architecture §§1–3 | Product pages and venue loop | E2E core flows |
+| Product capabilities and main processes | Spec §§1–4 | Auth, follow, discover, group, event, attendance | E2E 1–9 |
+| System components/data flow | Architecture §4; Spec §5 | Deployed Next/Supabase integration | Build/integration tests |
+| Database/entities | Spec §6 | SQL migrations/generated types | pgTAP and reset |
+| Pages/components | Spec §4 | App routes/components | RTL/Playwright |
+| API routes/server actions | Spec §7 | Route Handlers/actions/functions | Unit/integration/E2E |
+| Permissions/users | Spec §§2–3, 6.11, 11 | RLS/functions | Denial and cross-user tests |
+| External libraries/services and rationale | Spec §§5, 8 | Lockfile/adapters/config | Provider fixture tests |
+| Folder structure | Spec §5.4 | Repository tree | Dependency/lint checks |
+| CRUD and business logic | Spec §§2, 7 | Domain services/actions/RPCs | State/capacity flows |
+| State management | Spec §9 | Server/Query/local/URL state | Component/E2E states |
+| Error and input handling | Spec §10 | Zod/result/error boundaries | Invalid and edge cases |
+| UX planning | Spec §4 | Accessible responsive UI | RTL/manual accessibility |
+| Next.js + TypeScript | Spec §5 | App and strict config | Typecheck/build |
+| Supabase DB/Auth | Spec §§5–6, 11 | Auth, migrations, RLS, PostGIS | reset/pgTAP |
+| Vercel deployment/public URL | Spec §15 | Production deployment | Smoke test |
+| Test specification and code | Spec §14 | Test suites | CI results |
+| Basic scale | Spec §12 | indexes/cursors/RPC/cache | query plans/load spot checks |
+| Basic security | Spec §11 | RLS, secrets, private table, headers | authorization matrix |
+| Local instructions/env vars | Spec §15 and final README | scripts/example env | fresh-clone reproduction |
+| GitHub link | Submission artifact | public/private course repo as required | green main CI |
 
 The final submission may split product, test, scale, and security material into separate requested deliverables, but those documents MUST remain consistent with this source specification.
 
 ---
 
-## 17. Presentation run-of-show (10–15 minutes)
+## 17. Retired presentation plan
 
-1. **Problem, users, value (1.5 min):** lonely/scattered fandom, fan and venue use cases, future venue customer.
-2. **Core demo (4 min):** follow team → discover fixture event → request/approve → protected details → calendar; briefly show group/venue.
-3. **Architecture (2 min):** Next.js modular monolith, Supabase Auth/PostgreSQL/RLS/PostGIS, provider sync, Vercel.
-4. **Database and permissions (2 min):** events/audiences, relationships, separate home location, atomic capacity.
-5. **Tests, security, scale (2.5 min):** one pgTAP denial, one E2E flow, CI, indexes/pagination/cache, residual risks.
-6. **Trade-offs and next steps (1 min):** why assisted discovery uses only bounded AI intent extraction, why there is no Redis, Socket.IO, real-money Stripe/payment layer, agent, RAG, or generative recommendation layer; explain that `VB01` passed isolated local acceptance and its authorized hosted Sandbox happy path, while broader hosted lifecycle/B13 checks and NBA remain later.
-
-The presenters MUST be able to explain each selected dependency, trace one browser action through server/database/RLS, and distinguish planned future features from the working submission.
+The course removed the presentation requirement on 5 September 2026. The former
+run-of-show is retired and is not maintained as a completion gate. Both partners still
+MUST understand the selected dependencies, trace the main browser actions through
+server/database/RLS boundaries, and distinguish future features from the working
+submission.
 
 ---
 
@@ -1486,7 +1487,7 @@ The MVP is done only when:
 - CI is green and DB types have no drift;
 - the Vercel production URL and Supabase production schema work together;
 - setup, environment, product, tests, security, and scale documentation matches reality;
-- both team members can explain the implementation and complete the presentation within 10–15 minutes.
+- both team members can explain the implementation and its main authorization boundaries.
 
 ---
 
@@ -1524,8 +1525,8 @@ There are no unresolved product decisions required before scaffolding. Exact pac
 ## 20. References
 
 - [Huddle README](../README.md)
-- [Course roadmap](../course-roadmap/ROADMAP.md)
-- [Official project instructions](<../course-roadmap/project instructions.pdf>)
+- Local-only course roadmap (`course-roadmap/ROADMAP.md`; not published)
+- Local-only official project instructions (`course-roadmap/project instructions.pdf`; not published)
 - [Next.js App Router](https://nextjs.org/docs/app)
 - [Next.js Route Handlers](https://nextjs.org/docs/app/getting-started/route-handlers)
 - [Next.js backend-for-frontend guide](https://nextjs.org/docs/app/guides/backend-for-frontend)

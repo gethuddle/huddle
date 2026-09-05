@@ -15,8 +15,8 @@
 On 4 September 2026, the user asked to consolidate the five remaining tasks into fewer steps. Tasks 1–6 remain complete. The remaining work is now delivered in these three phases; task numbers 7–11 below remain stable technical references and internal checklists, not five separate user-facing steps.
 
 - [x] **Phase 1 — Finish the feature (Tasks 7 + 8).** Complete venue-owner Billing screens, warnings and capability-aware controls together with deadline processing, retained fan history, cancelled-calendar output and safe venue closure. Implement and verify the lifecycle as one local feature batch. Prepare scheduler SQL locally; do not run it against hosted services.
-- [x] **Phase 2 — Make the demo release-ready (Tasks 9 + 10).** Complete deterministic fixtures and end-to-end journeys, run all local release/security gates, and finish the runbook, acceptance evidence and presentation documentation. No hosted changes or automatic Git publication.
-- [x] **Phase 3 — Connect the live Sandbox and demonstrate it (Task 11).** The authorized hosted happy path passed on 4 September 2026: reviewed migrations, configured Sandbox resources, signed activation, two independent subscriptions, public/Explore visibility, distant publication, scheduler, and rotated-key redelivery. Final evidence publication is the remaining handoff; broader B13 lifecycle/rehearsal checks are separately pending. It still processes no real money.
+- [x] **Phase 2 — Make the demo release-ready (Tasks 9 + 10).** Complete deterministic fixtures and end-to-end journeys, run all local release/security gates, and finish the runbook and acceptance evidence. No hosted changes or automatic Git publication.
+- [x] **Phase 3 — Connect and verify the live Sandbox (Task 11).** The authorized hosted happy path passed on 4 September 2026: reviewed migrations, configured Sandbox resources, signed activation, two independent subscriptions, public/Explore visibility, distant publication, scheduler, and rotated-key redelivery. Final evidence publication is the remaining handoff; broader B13 lifecycle checks are separately pending. It still processes no real money.
 
 Execution follows these phases in order. A request to start or continue a named phase covers its included local tasks as one batch; do not end the turn merely to ask for another confirmation between those internal tasks. Retain all detailed requirements, TDD, verification and independent-review gates below. Stop for a genuine blocker or any new authority requirement. Report completion at the phase boundary. This consolidation request itself authorizes plan/status-document edits only, not implementation, commits, publication, deployment or hosted mutations.
 
@@ -42,7 +42,7 @@ Execution follows these phases in order. A request to start or continue a named 
 - Fan copy communicates only ordinary availability or `This event has been cancelled.` It never mentions billing, payment failure, Polar, grace, invoices, or plan state.
 - Never name a billing table or module simply `subscriptions`; `public.subscriptions` and `features/subscriptions/` already represent Fan sports follows.
 - Never store or log a Polar access token, webhook secret/signature, raw webhook body, customer email from a webhook, card data, portal token/URL, or unfiltered provider error response.
-- Automated tests never access Polar. Use sanitized saved fixtures and a known test secret. Live Sandbox is reserved for the authorized presentation smoke path.
+- Automated tests never access Polar. Use sanitized saved fixtures and a known test secret. Live Sandbox is reserved for the authorized pilot smoke path.
 - Do not mutate the hosted Huddle Polar organization, Supabase, Vercel, GitHub, or production application while executing local tasks unless the current user separately authorizes that exact external action.
 - No Git commit, push, pull request, merge, or deployment is authorized by this plan.
 
@@ -81,7 +81,7 @@ Execution follows these phases in order. A request to start or continue a named 
 
 **Interfaces:**
 - Produces: one consistent normative statement that venue creation yields a private Unverified draft and that `VB01` adds Polar Sandbox per-venue entitlement before B13.
-- Preserves: free Fan/private-hosting scope, membership authorization, trust-only venue attestation, Unverified presentation, and every existing safety/privacy rule.
+- Preserves: free Fan/private-hosting scope, membership authorization, trust-only venue attestation, the visible Unverified state, and every existing safety/privacy rule.
 
 - [x] **Step 1: Inventory every contradictory statement before editing**
 
@@ -105,7 +105,7 @@ In the step-by-step build spec:
 - add `VB01 — Polar Sandbox venue subscriptions` after the approved post-B12 modules and before B13;
 - leave historical E01/B07 evidence intact but mark its immediate-public activation rule as superseded by VB01;
 - make B13 depend on completed VB01 hosted/demo acceptance without renumbering B13; and
-- add a detailed VB01 checklist for schema, RLS, checkout, webhook, visibility, grace, tests, and presentation evidence.
+- add a detailed VB01 checklist for schema, RLS, checkout, webhook, visibility, grace, tests, and Sandbox evidence.
 
 In `README.md`, distinguish the currently deployed behavior from the approved VB01 branch until implementation passes. Do not state that paid gating is live during this documentation-only step.
 
@@ -1474,7 +1474,7 @@ Record actual new test/assertion/journey counts only after these commands finish
 - Modify: `docs/operations/PRODUCTION-ACCEPTANCE.md`
 - Modify: `docs/submission/TEST-PLAN.md`
 - Modify: `docs/submission/TRACEABILITY.md`
-- Modify: `docs/submission/PRESENTATION.md`
+- Historical only: `docs/submission/PRESENTATION.md` (retired as a requirement on 5 September 2026 and not published)
 - Modify: `docs/submission/SECURITY.md`
 - Modify: `docs/submission/README.md`
 - Modify: `README.md`
@@ -1510,7 +1510,7 @@ The runbook must contain:
 
 - [x] **Step 2: Update documentation to match implemented local truth**
 
-Mark VB01 locally complete only after all local gates pass. State hosted Sandbox configuration/live walkthrough as pending until Task 11. Replace old test counts with current command output. Update the B11 security checklist's calendar route row: every venue-hosted ICS is now `private, no-store`, including active public events. Make the CI browser-test step label count-agnostic so adding or removing an E2E journey cannot leave a false hard-coded count. Update the presentation to demonstrate the free Fan versus paid-per-venue distinction and the Sandbox banner without pretending money or business verification is real.
+Mark VB01 locally complete only after all local gates pass. State hosted Sandbox configuration/live walkthrough as pending until Task 11. Replace old test counts with current command output. Update the B11 security checklist's calendar route row: every venue-hosted ICS is now `private, no-store`, including active public events. Make the CI browser-test step label count-agnostic so adding or removing an E2E journey cannot leave a false hard-coded count. The original plan also called for a presentation update demonstrating the free Fan versus paid-per-venue distinction and the Sandbox banner. The course retired that presentation requirement on 5 September 2026; product copy and acceptance evidence still must not pretend money or business verification is real.
 
 - [x] **Step 3: Run the entire repository quality sequence from the pinned runtime**
 
@@ -1630,7 +1630,7 @@ Existing hosted venues intentionally leave public/acquisition surfaces at cutove
 
 - [x] **Step 6: Run the live Sandbox happy path**
 
-With a presentation owner account:
+With a dedicated Sandbox owner account:
 
 1. create or select one hidden venue;
 2. show the no-real-money Billing screen;
@@ -1647,7 +1647,7 @@ Do not rely on an arbitrary Sandbox customer receiving email; Polar documents Sa
 
 - [x] **Step 7: Record truthful, sanitized acceptance evidence**
 
-Update `docs/evidence/vb01/ACCEPTANCE.md` with date, environment, route/outcome, webhook event names/outcomes, scheduler status, and secret-safe presentation evidence. No provider screenshot is retained: the final evidence uses allowlisted outcomes and public demo UI instead of capturing a credential-bearing dashboard. Never include a token, secret, signature, customer email, checkout URL, or full provider identifier. Mark the hosted happy path complete only after its live checks pass; retain unrun broader acceptance checks as pending.
+Update `docs/evidence/vb01/ACCEPTANCE.md` with date, environment, route/outcome, webhook event names/outcomes, scheduler status, and secret-safe Sandbox evidence. No provider screenshot is retained: the final evidence uses allowlisted outcomes and public demo UI instead of capturing a credential-bearing dashboard. Never include a token, secret, signature, customer email, checkout URL, or full provider identifier. Mark the hosted happy path complete only after its live checks pass; retain unrun broader acceptance checks as pending.
 
 - [ ] **Step 8: Complete separately authorized publication and handoff**
 
@@ -1671,4 +1671,4 @@ This plan is complete only when:
 - recovery never silently revives a cancelled event;
 - no test calls Polar and all repository gates pass with current output;
 - hosted resources, if authorized, are Sandbox-only and documented without secrets; and
-- both partners can explain the checkout → webhook → Supabase entitlement → capability enforcement path during the presentation.
+- both partners can explain the checkout → webhook → Supabase entitlement → capability enforcement path for technical review. The course presentation requirement was retired on 5 September 2026.

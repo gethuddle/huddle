@@ -654,6 +654,7 @@ async function signUpAndVerify(
   await page.getByRole("button", { name: "Create account" }).click();
 
   await expect(page.getByRole("status")).toContainText("a verification link is on its way");
+  await expect(page).toHaveURL(/\/auth\/verify$/);
 
   const confirmationUrl = await verificationUrlFor(email);
   expect(confirmationUrl.origin).toBe("http://localhost:3000");

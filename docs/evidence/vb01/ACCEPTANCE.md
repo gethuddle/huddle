@@ -107,8 +107,9 @@ deterministic local coverage where applicable; no hosted time-travel, direct act
 SQL, account deletion, or existing-venue lifecycle test was performed. Record any
 future authorized drills separately in
 [`PRODUCTION-ACCEPTANCE.md`](../../operations/PRODUCTION-ACCEPTANCE.md).
-Whole-application B13 security, accessibility, production smoke and two-person
-rehearsal remain separate, incomplete obligations. Private logical backups were
+Whole-application B13 security, accessibility, and production smoke remain
+separate obligations. The course presentation and rehearsal requirement was
+retired on 5 September 2026. Private logical backups were
 verified as exports, not restore-tested backups.
 
 ## Historical preconfiguration — 4 September 2026

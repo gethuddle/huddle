@@ -24,7 +24,10 @@
 
 **Approved `VB01` revision:** 3 September 2026. Commercial venues become public and may publish only after a per-venue Polar Sandbox entitlement. Tasks 1–10 passed isolated local acceptance; the authorized hosted happy path passed on 4 September 2026 with two independent subscriptions and one distant demo event. The [acceptance record](./evidence/vb01/ACCEPTANCE.md) separates deployed evidence from remaining hosted lifecycle drills and broader B13 acceptance. No real payments are enabled.
 
-The source of truth for the course deliverables is the [official project brief](<../course-roadmap/project instructions.pdf>). The [course roadmap](../course-roadmap/ROADMAP.md) is a wider technology menu, not a requirement to use every tool mentioned in the lectures.
+The source of truth for the course deliverables is the local-only official project brief
+(`course-roadmap/project instructions.pdf`). The local-only course roadmap is a wider
+technology menu, not a requirement to use every tool mentioned in the lectures. Neither
+course source is published in this repository.
 
 ---
 
@@ -399,13 +402,13 @@ Each phase should finish with working tests and updated documentation before the
 
 **Exit:** concurrency, private-location, and calendar tests pass.
 
-### Phase 7 — Security, testing, deployment, and presentation
+### Phase 7 — Security, testing, deployment, and submission
 
 - Complete community-guideline, report/moderation/appeal flows, audit coverage, headers/origin checks, abuse limits, accessibility, failure states, and the full test matrix.
 - Deploy preview and production environments to Vercel/Supabase.
-- Finish local setup, product, test, scale, security, and presentation material using evidence from the running system.
+- Finish local setup, product, test, scale, and security material using evidence from the running system.
 
-**Exit:** CI is green, production is reachable, migrations are reproducible, and the team can explain every important decision in a 10–15 minute presentation.
+**Exit:** CI is green, production is reachable, migrations are reproducible, and the team can explain every important decision.
 
 ---
 
@@ -428,7 +431,7 @@ This table maps the official brief to the planned evidence. “Specified” mean
 | Basic security document | authentication, authorization, RLS, input validation, secrets, residual risk | Specified in both documents |
 | Public URL and GitHub link | production Vercel URL and repository | Required at submission |
 | Local instructions and environment variables | reproducible Supabase reset and planned command/env contract | Specified in implementation spec; finalize after scaffolding |
-| 10–15 minute presentation | product, architecture, database, demo, tests, scale, security, next steps | Run-of-show specified in implementation spec |
+| Presentation | no longer required by the course as of 5 September 2026 | Retired as an acceptance gate |
 
 ---
 
@@ -439,8 +442,8 @@ This document explains the vision and boundaries. The companion [Huddle implemen
 ## 11. Reference links
 
 - [Huddle README](../README.md)
-- [Course roadmap](../course-roadmap/ROADMAP.md)
-- [Official project brief](<../course-roadmap/project instructions.pdf>)
+- Local-only course roadmap (`course-roadmap/ROADMAP.md`; not published)
+- Local-only official project brief (`course-roadmap/project instructions.pdf`; not published)
 - [football-data.org quickstart](https://www.football-data.org/documentation/quickstart)
 - [football-data.org pricing](https://www.football-data.org/pricing)
 - [football-data.org coverage](https://www.football-data.org/coverage)

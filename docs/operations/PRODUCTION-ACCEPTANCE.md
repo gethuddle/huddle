@@ -6,15 +6,15 @@ private addresses, report content, invite tokens, or raw provider payloads here.
 
 ## Deployment and authentication
 
-- [ ] Final HTTPS URL is recorded in the root README and submission index.
+- [x] Final HTTPS URL is recorded in the root README.
 - [ ] Deployed Git SHA equals the accepted `main` commit.
 - [x] Hosted migration history equals the 12 migrations in accepted B12 SHA
   `94c99156011ae20fdcdbe14b807b5884cfe77555`; generated types had no drift at
   that baseline.
-- [ ] The post-B12 account-erasure migration `20260903033000_account_erasure.sql`
-  is deployed and verified against production. It is not deployed as of 2026-09-03.
+- [x] The post-B12 account-erasure migration `20260903033000_account_erasure.sql`
+  is deployed and verified against production.
 - [x] The hosted reference catalog contains all 13 active reviewed Israel cities.
-- [ ] Signed-out home/fixtures/discovery work in a clean browser.
+- [x] Signed-out home/fixtures/discovery work in a clean browser.
 - [ ] Verification email is one branded document, survives a passive GET/prefetch, requires explicit Continue, and leaves no token in browser history or the final URL.
 - [ ] Password recovery is generic, survives passive GET/prefetch, switches an ambient different-account session only after explicit Continue, rejects direct ordinary-session reset, replaces the password through a bound grant, requests global session revocation, always clears local state, shows an honest warning if revocation is unconfirmed, sends the branded change notice, and permits a fresh sign-in.
 - [ ] Exact duplicate signup remains generic and sends no confirmation message; no privileged account lookup is used for browser copy.
@@ -34,7 +34,7 @@ private addresses, report content, invite tokens, or raw provider payloads here.
       one-time cleanup marker is consumed without erasing new anonymous state, old sessions fail,
       former public identity is absent, and retained pseudonymous history is checked without
       recording sensitive content.
-- [ ] Preview uses a different Supabase project and cannot mutate production.
+- [x] Preview uses a different Supabase project and cannot mutate production.
 - [ ] `npm run test:production:session` passes (Auth-session metadata may update; no product mutation).
 - [ ] One explicitly authorized fresh-event `npm run test:production` passes.
 
@@ -72,9 +72,9 @@ source for this section.
 
 ## Privacy and security
 
-- [ ] Production HTTPS, HSTS, CSP, frame denial, content-type and referrer headers match
+- [x] Production HTTPS, HSTS, CSP, frame denial, content-type and referrer headers match
   the B11 inventory.
-- [ ] No service-role/provider/sync/cursor secret appears in HTML, JavaScript bundles,
+- [x] No service-role/provider/sync/cursor secret appears in HTML, JavaScript bundles,
   source maps, browser storage, network responses, logs, screenshots, or artifacts.
 - [ ] Unauthorized user receives neither the private event nor address/calendar data.
 - [ ] Approved attendee receives an `.ics` location; leave/removal/block/cancel revokes it.
@@ -97,11 +97,12 @@ source for this section.
 5. Query only `supabase/production/verify-sports-sync.sql` for the job, HTTP status,
    and safe provider-run fields.
 
-- [ ] Invalid sync secret is denied and writes only safe audit evidence.
-- [ ] One scheduled call returns success and a `provider_sync_runs` ID/count summary.
-- [ ] No browser page request contacts the football-data API host; the separately allowlisted
+- [x] Invalid sync secret is denied and writes only safe audit evidence.
+- [x] One scheduled call returns success and a `provider_sync_runs` ID/count summary.
+- [x] No browser page request contacts the football-data API host; the separately allowlisted
       crest asset host may serve synchronized team artwork.
-- [ ] A controlled failed/retry run leaves last-good fixtures browsable and stale.
+- [ ] A controlled failed/retry run leaves last-good fixtures browsable and stale. One safe
+      failure and later recovery were observed, but the live stale browse was not captured.
 - [ ] Rotate sync/provider secrets using the B11 runbook and verify the new values
   before revoking the old values.
 
@@ -112,12 +113,10 @@ names, never values. Sources: [Supabase Cron](https://supabase.com/docs/guides/c
 [`pg_net`](https://supabase.com/docs/guides/database/extensions/pg_net), and
 [Vault](https://supabase.com/docs/guides/database/vault).
 
-## Quotas, rehearsal, and sign-off
+## Quotas and sign-off
 
 - [ ] Record selected Vercel/Supabase/provider plans plus current dashboard usage.
 - [ ] Second computer completes a fresh clone, environment setup, reset, and acceptance run.
-- [ ] Both partners rehearse the core demo, request trace, address denial, capacity race,
-  and provider-outage proof in 10–15 minutes.
 - [ ] Final repository/privacy review and green `main` CI are recorded.
 
 | Evidence | Value |
@@ -126,8 +125,31 @@ names, never values. Sources: [Supabase Cron](https://supabase.com/docs/guides/c
 | Production deployment ID/URL | Pending |
 | B12 migration parity timestamp | 2026-08-29 14:27 IDT; `koeqawpgxevfhuieqtcq`; all 12 versions match and a follow-up dry run is up to date |
 | Production Auth configuration | Guarded apply and immediate exact check passed 2026-09-03; fresh email/browser acceptance remains pending |
-| Account-erasure migration deployment | Not deployed as of 2026-09-03; checkbox remains open |
+| Account-erasure migration deployment | Deployed and verified with matching application parity on 2026-09-04 |
 | Session/full smoke timestamp | Pending |
-| Latest successful sync run ID | Pending |
-| Guy rehearsal duration/date | Pending |
-| Ohad rehearsal duration/date | Pending |
+| Latest successful sync run ID | `8fd46689-d754-4d62-a994-7e60a8b8228b` at 2026-09-05 06:17 UTC; 3 requests, 0 retries |
+
+## 5 September 2026 B13 technical-lock pre-release audit
+
+- Local, Preview, and Production remain isolated. Preview and Production use distinct
+  Supabase projects and environment labels; Preview keeps Polar network transport blocked.
+- Production Vercel deployment `dpl_FieKikoEZiVHsJnPUiR2LHdjMAd5` was Ready in `fra1`
+  for accepted baseline `bde88f93bd12db6fc0d0443c2ed202d28d918bdc` before this
+  corrective release. The final accepted SHA/deployment row remains pending until issue
+  [#66](https://github.com/gethuddle/huddle/issues/66) merges and deploys.
+- All 53 committed migrations through `20260905020000` matched Production; a linked dry
+  run reported the remote database up to date. No migration is added by the B13 correction.
+- `huddle-sports-sync` runs at minute 17 every sixth hour. Its latest retained success was
+  `8fd46689-d754-4d62-a994-7e60a8b8228b`; the prior safe `INVALID_RESPONSE` failure
+  recovered on later scheduled runs without replacing the last-good catalog. The catalog
+  retained 503 future fixtures through 30 May 2027.
+- The billing-deadline job remained active with 1,112 consecutive successful retained
+  executions at the audit checkpoint.
+- Anonymous route, TLS, security-header, attribution, bundle, source-map, and invalid-sync-
+  secret checks passed. The browser requested public crest assets only, never the sports API.
+- Exact-source local acceptance passed 1,530 application tests, 2,667 database assertions,
+  all 42 Playwright journeys, the production build, schema/type parity, dependency audit,
+  secret audit, and diff hygiene. Final exact-head CI, deployment parity, and post-deployment
+  production smoke remain release gates rather than inferred results.
+- The course no longer requires a presentation. Ignored submission documents remain local
+  and are deferred to a separate session.

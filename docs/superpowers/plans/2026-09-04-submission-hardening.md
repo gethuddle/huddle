@@ -96,7 +96,7 @@
 - [x] Add visible-UI E2E journeys for venue draft publish/management, private draft recovery, workspace return, validation, errors and date intent. Preserve deterministic provider fixtures and denied Polar network.
 - [x] Run clean install, formatting, lint, typecheck, full coverage, isolated database reset/lint/pgTAP/types, production build, full Playwright, security audit and diff hygiene.
 - [x] Independently review each task and the combined diff for spec compliance, security, regression gaps and scope. Address blocking findings and rerun affected gates.
-- [x] Record exact commands/results, each audit finding's resolution, performance evidence and remaining hosted/manual presentation gates. Do not claim production readiness until new migrations/code are separately deployed and verified, or claim a partner rehearsal happened when it did not.
+- [x] Record exact commands/results, each audit finding's resolution, performance evidence and remaining hosted/manual release gates. Do not claim production readiness until new migrations/code are separately deployed and verified.
 
 ## Execution record
 
@@ -121,4 +121,4 @@ Investigation of repeated populated-database browser acceptance found a fixture-
 
 ## Final local outcome
 
-Tasks 1–9 and the acceptance-discovered pagination/map corrections were implemented and independently reviewed. The recorded gates passed 1,482 unit/component tests, 2,606 database assertions after all 49 migrations, generated-type parity, production build, 41 browser journeys, formatting/lint/typecheck/security audit and diff hygiene. See [acceptance evidence](../../evidence/submission-hardening/ACCEPTANCE.md). The accepted source subsequently merged and deployed through PR #58; full B13 partner presentation rehearsal remains separate.
+Tasks 1–9 and the acceptance-discovered pagination/map corrections were implemented and independently reviewed. The recorded gates passed 1,482 unit/component tests, 2,606 database assertions after all 49 migrations, generated-type parity, production build, 41 browser journeys, formatting/lint/typecheck/security audit and diff hygiene. See [acceptance evidence](../../evidence/submission-hardening/ACCEPTANCE.md). The accepted source subsequently merged and deployed through PR #58. The course retired the presentation and rehearsal requirement on 5 September 2026.

@@ -3,7 +3,11 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ getMyHuddleOverview: vi.fn(), redirect: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  getAppShellState: vi.fn(),
+  getMyHuddleOverview: vi.fn(),
+  redirect: vi.fn(),
+}));
 
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 
@@ -11,6 +15,10 @@ vi.mock("@/features/dashboard/queries", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/features/dashboard/queries")>();
   return { ...original, getMyHuddleOverview: mocks.getMyHuddleOverview };
 });
+
+vi.mock("@/features/workspaces/queries", () => ({
+  getAppShellState: mocks.getAppShellState,
+}));
 
 import DashboardPage from "./page";
 import { DomainError } from "@/lib/errors";
@@ -21,12 +29,28 @@ describe("DashboardPage", () => {
     mocks.redirect.mockImplementation(() => {
       throw new Error("NEXT_REDIRECT");
     });
+    mocks.getAppShellState.mockResolvedValue({
+      isSignedIn: true,
+      workspace: { active: null, available: [] },
+    });
     mocks.getMyHuddleOverview.mockResolvedValue({
       events: [],
       groups: [],
       saved: [],
       pages: { events: 1, groups: 1, saved: 1 },
     });
+  });
+
+  it("stops signed-out viewers before protected dashboard reads", async () => {
+    mocks.getAppShellState.mockResolvedValue({
+      isSignedIn: false,
+      workspace: { active: null, available: [] },
+    });
+
+    render(await DashboardPage({ searchParams: Promise.resolve({}) }));
+
+    expect(screen.getByRole("heading", { name: "Sign in to open My Huddle." })).toBeVisible();
+    expect(mocks.getMyHuddleOverview).not.toHaveBeenCalled();
   });
 
   it("defaults to active current-state collections and keeps History opt-in", async () => {

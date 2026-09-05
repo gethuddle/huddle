@@ -42,7 +42,7 @@ There is one capability set with two billing intervals and no trial or tiering:
 
 Polar requires a separate recurring product for each interval because a product's recurring interval cannot be changed. The prices are represented as ILS 1,500 and ILS 15,000 minor units. Discount codes and trials are disabled.
 
-The ₪15/₪150 amounts are presentation choices, not validated production economics. A future move to real payment processing requires a new review of pricing, tax, merchant-of-record fees, refunds, consumer law, receipts, and operational support.
+The ₪15/₪150 amounts are pilot choices, not validated production economics. A future move to real payment processing requires a new review of pricing, tax, merchant-of-record fees, refunds, consumer law, receipts, and operational support.
 
 ## Current external state
 
@@ -62,7 +62,7 @@ The organization currently has no Huddle products, organization access token, we
 - Fan-facing DTOs and copy never expose payment status, grace periods, invoices, or provider names.
 - Existing attendance, invitations, events, audit records, and venue history are retained. Billing transitions never hard-delete them.
 - Account erasure is the explicit privacy exception for provider identity: Huddle locally terminalizes every owned venue, then deletes/anonymizes the Polar customer by the account's external ID before deleting Supabase Auth. No demo subscription may outlive its owner.
-- Automated tests never call Polar. Live Sandbox is used only for the presentation happy path; saved sanitized webhook fixtures cover failure and timing cases.
+- Automated tests never call Polar. Live Sandbox is used only for the authorized pilot happy path; saved sanitized webhook fixtures cover failure and timing cases.
 
 ## Venue journey
 
@@ -92,7 +92,7 @@ Existing venues receive a one-time `legacy_grace` state for seven days from the 
 - Every entitlement-granting webhook must match the configured Sandbox organization, an allowlisted Monthly/Annual product, a recorded checkout attempt, the attempt's venue and owner, the non-null external customer ID, and the current subscription binding. The erased terminal exception above can only confirm cleanup and never grants entitlement.
 - A second pending or active subscription for the same venue is rejected locally even though multiple subscriptions are allowed for the customer as a whole.
 - The checkout response must match the configured organization and exactly one expected product price, amount, `ils` currency, and monthly/yearly interval before Huddle stores the checkout/price binding or redirects. Later subscription and paid-order events must match that binding; a product ID alone is insufficient.
-- Huddle's venue-specific Billing page is the primary place for identifying a subscription. Polar does not document whether arbitrary subscription metadata is visible in its hosted portal, so identical subscriptions for several venues must be manually checked before presentation.
+- Huddle's venue-specific Billing page is the primary place for identifying a subscription. Polar does not document whether arbitrary subscription metadata is visible in its hosted portal, so identical subscriptions for several venues must be manually checked before any live Sandbox walkthrough.
 
 ## Billing lifecycle
 
@@ -313,7 +313,7 @@ An external checkout may have been accepted just before local erasure even thoug
 
 ## Demonstration and testing
 
-The live presentation happy path uses the Huddle Sandbox organization and Polar's documented successful test card `4242 4242 4242 4242`, any future expiry, and any CVC. The screen states that no real payment occurs.
+The live Sandbox happy path uses the Huddle Sandbox organization and Polar's documented successful test card `4242 4242 4242 4242`, any future expiry, and any CVC. The screen states that no real payment occurs.
 
 Saved sanitized payload fixtures and a known test webhook secret cover:
 

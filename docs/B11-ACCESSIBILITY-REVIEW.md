@@ -1,6 +1,6 @@
 # B11 accessibility and responsive review
 
-This review covers the local course-MVP presentation routes through B11. It
+This review covers the local course-MVP user-facing routes through B11. It
 records the checks performed against repository-owned components and sanitized
 Playwright users; it is not a formal WCAG conformance claim.
 
@@ -28,7 +28,7 @@ Playwright users; it is not a formal WCAG conformance claim.
   role queries and Playwright role locators exercise the same names exposed in
   the browser accessibility tree.
 
-## Responsive presentation coverage
+## Responsive UI coverage
 
 The complete Playwright journeys exercise the public and authenticated product
 loop at the desktop viewport. Milestone evidence adds phone checks at the
@@ -57,7 +57,7 @@ closes with Escape, and returns focus to the Menu trigger.
 - Sports freshness distinguishes healthy, stale, failed, and never-synced data
   with text, timestamps, and safe retry guidance.
 - Unauthorized moderation and protected-resource requests fail with the same
-  non-enumerating not-found presentation used elsewhere.
+  non-enumerating not-found treatment used elsewhere.
 - Attendance UI and journeys retain and label cancelled, left, removed,
   rejected, and approved history instead of deleting it.
 - Restricted or suspended accounts lose community mutations and
@@ -69,5 +69,6 @@ closes with Escape, and returns focus to the Menu trigger.
 ## Remaining acceptance boundary
 
 The local role/name and keyboard pass does not replace a final VoiceOver smoke
-test on the deployed URL. Production assistive-technology smoke testing, real
-Vercel/Supabase checks, and final presentation rehearsal belong to B13.
+test on the deployed URL. Production assistive-technology smoke testing and real
+Vercel/Supabase checks belong to B13. The course removed the presentation and
+rehearsal requirement on 5 September 2026, so it is not an acceptance gate.
