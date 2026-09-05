@@ -1,6 +1,5 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
 import { z } from "zod";
 
 import { cursorFilterKey, decodeEventCursor, encodeEventCursor } from "@/features/discovery/cursor";
@@ -10,7 +9,6 @@ import {
   discoveryUtcRange,
 } from "@/features/discovery/schemas";
 import type { DiscoveryPage } from "@/features/discovery/types";
-import { loadTeamVisualsByName } from "@/features/sports/team-visuals";
 import { getServerEnvironment } from "@/lib/env/server";
 import { DomainError, domainErrorFromDatabase } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
@@ -26,7 +24,11 @@ const discoveryRowSchema = z
     match_id: z.uuid(),
     competition_name: z.string(),
     home_team_name: z.string(),
+    home_team_tla: z.string().nullable(),
+    home_team_crest_url: z.url().nullable(),
     away_team_name: z.string(),
+    away_team_tla: z.string().nullable(),
+    away_team_crest_url: z.url().nullable(),
     starts_at: z.string(),
     ends_at: z.string(),
     place_kind: z.enum(["home", "venue", "public_place"]),
@@ -41,30 +43,22 @@ const discoveryRowSchema = z
     interest_score: z.number().int().nonnegative(),
     cursor_distance_band: z.number().int().min(0).max(4),
     has_more: z.boolean(),
+    map_place_name: z.string().min(1).max(120).nullable(),
+    map_latitude: z.number().min(29).max(34).nullable(),
+    map_longitude: z.number().min(34).max(36).nullable(),
   })
   .strict();
 
-const discoveryMapPointRowSchema = z
+const discoveryFeedSchema = z
   .object({
-    event_id: z.uuid(),
-    place_name: z.string().min(1).max(120),
-    latitude: z.number().min(29).max(34),
-    longitude: z.number().min(34).max(36),
+    viewer_id: z.uuid().nullable(),
+    items: z.array(discoveryRowSchema),
   })
   .strict();
 
 export async function getDiscoveryPage(filters: DiscoveryFilters): Promise<DiscoveryPage> {
   const supabase = await createClient();
   if (filters.lat === null || filters.lng === null) throw new DomainError("VALIDATION_FAILED");
-  // Verified claims are sufficient to decide whether to ask PostgreSQL for
-  // the actor's managed-Venue rows. The RPC remains the authorization source,
-  // while this avoids a separate Auth server round trip on every Explore load.
-  const authResult = await supabase.auth.getClaims();
-  const viewerId =
-    authResult.error === null && typeof authResult.data?.claims?.sub === "string"
-      ? authResult.data.claims.sub
-      : null;
-  const authenticated = viewerId !== null;
 
   const filterKey = cursorFilterKey(discoveryFilterIdentity(filters));
   const secret = getServerEnvironment().DISCOVERY_CURSOR_SECRET;
@@ -89,67 +83,17 @@ export async function getDiscoveryPage(filters: DiscoveryFilters): Promise<Disco
     input_after_event_id: decodedCursor?.id,
     input_limit: filters.limit,
   };
-  const [reservationResult, openDoorResult, ownedVenueResult] = await Promise.all([
-    supabase.rpc("discover_events", rpcInput),
-    supabase.rpc("discover_open_door_events", rpcInput),
-    authenticated
-      ? supabase.rpc("discover_owned_venue_events", rpcInput)
-      : Promise.resolve({ data: [], error: null }),
-  ]);
-  if (reservationResult.error !== null) throw domainErrorFromDatabase(reservationResult.error);
-  if (openDoorResult.error !== null) throw domainErrorFromDatabase(openDoorResult.error);
-  if (ownedVenueResult.error !== null) throw domainErrorFromDatabase(ownedVenueResult.error);
+  const result = await supabase.rpc("discover_event_feed", rpcInput);
+  if (result.error !== null) throw domainErrorFromDatabase(result.error);
 
-  let reservationRows: z.infer<typeof discoveryRowSchema>[];
-  let openDoorRows: z.infer<typeof discoveryRowSchema>[];
-  let ownedVenueRows: z.infer<typeof discoveryRowSchema>[];
+  let feed: z.infer<typeof discoveryFeedSchema>;
   try {
-    reservationRows = z.array(discoveryRowSchema).parse(reservationResult.data);
-    openDoorRows = z.array(discoveryRowSchema).parse(openDoorResult.data);
-    ownedVenueRows = z.array(discoveryRowSchema).parse(ownedVenueResult.data);
+    feed = discoveryFeedSchema.parse(result.data);
   } catch (cause) {
     throw new DomainError("INTERNAL_ERROR", { cause });
   }
-
-  const combinedRows = [
-    ...new Map(
-      [...reservationRows, ...openDoorRows, ...ownedVenueRows].map((row) => [row.event_id, row]),
-    ).values(),
-  ].sort((left, right) => {
-    if (left.interest_score !== right.interest_score) {
-      return right.interest_score - left.interest_score;
-    }
-    if (left.cursor_distance_band !== right.cursor_distance_band) {
-      return left.cursor_distance_band - right.cursor_distance_band;
-    }
-    const kickoffOrder = Date.parse(left.starts_at) - Date.parse(right.starts_at);
-    return kickoffOrder === 0 ? left.event_id.localeCompare(right.event_id) : kickoffOrder;
-  });
-  const sourceHasMore =
-    reservationRows.some((row) => row.has_more) ||
-    openDoorRows.some((row) => row.has_more) ||
-    ownedVenueRows.some((row) => row.has_more);
-  const rows = combinedRows.slice(0, filters.limit);
-  const hasMore = sourceHasMore || combinedRows.length > rows.length;
-  const [teamVisuals, mapResult] = await Promise.all([
-    loadTeamVisualsByName(
-      supabase,
-      rows.flatMap((row) => [row.home_team_name, row.away_team_name]),
-    ),
-    rows.length === 0
-      ? Promise.resolve({ data: [], error: null })
-      : supabase.rpc("get_public_event_map_points", {
-          input_event_ids: rows.map((row) => row.event_id),
-        }),
-  ]);
-  if (mapResult.error !== null) throw domainErrorFromDatabase(mapResult.error);
-  let mapPoints: z.infer<typeof discoveryMapPointRowSchema>[];
-  try {
-    mapPoints = z.array(discoveryMapPointRowSchema).parse(mapResult.data);
-  } catch (cause) {
-    throw new DomainError("INTERNAL_ERROR", { cause });
-  }
-  const mapPointsByEvent = new Map(mapPoints.map((point) => [point.event_id, point]));
+  const rows = feed.items;
+  const hasMore = rows.some((row) => row.has_more);
 
   const last = rows.at(-1);
   const nextCursor =
@@ -166,10 +110,6 @@ export async function getDiscoveryPage(filters: DiscoveryFilters): Promise<Disco
         )
       : null;
 
-  // The request JWT can still authorize an RPC when claims cannot be confirmed.
-  // Treat that uncertainty as private so a user-scoped row set never enters shared cache.
-  const requiresPrivateCache = authResult.error !== null || authenticated;
-
   return {
     items: rows.map((row) => ({
       id: row.event_id,
@@ -184,23 +124,24 @@ export async function getDiscoveryPage(filters: DiscoveryFilters): Promise<Disco
         id: row.match_id,
         competitionName: row.competition_name,
         homeTeamName: row.home_team_name,
-        homeTeamTla: teamVisuals.get(row.home_team_name)?.tla ?? null,
-        homeTeamCrestUrl: teamVisuals.get(row.home_team_name)?.crestUrl ?? null,
+        homeTeamTla: row.home_team_tla,
+        homeTeamCrestUrl: row.home_team_crest_url,
         awayTeamName: row.away_team_name,
-        awayTeamTla: teamVisuals.get(row.away_team_name)?.tla ?? null,
-        awayTeamCrestUrl: teamVisuals.get(row.away_team_name)?.crestUrl ?? null,
+        awayTeamTla: row.away_team_tla,
+        awayTeamCrestUrl: row.away_team_crest_url,
       },
       startsAt: row.starts_at,
       endsAt: row.ends_at,
       placeKind: row.place_kind,
       locationSummary: row.location_summary,
-      mapPoint: mapPointsByEvent.has(row.event_id)
-        ? {
-            placeName: mapPointsByEvent.get(row.event_id)!.place_name,
-            latitude: mapPointsByEvent.get(row.event_id)!.latitude,
-            longitude: mapPointsByEvent.get(row.event_id)!.longitude,
-          }
-        : null,
+      mapPoint:
+        row.map_place_name !== null && row.map_latitude !== null && row.map_longitude !== null
+          ? {
+              placeName: row.map_place_name,
+              latitude: row.map_latitude,
+              longitude: row.map_longitude,
+            }
+          : null,
       audience: row.audience,
       audienceGroupName: row.audience_group_name,
       audienceTeamName: row.audience_team_name,
@@ -214,12 +155,7 @@ export async function getDiscoveryPage(filters: DiscoveryFilters): Promise<Disco
     nextCursor,
     locationMode: "browser",
     generatedAt: new Date().toISOString(),
-    requiresPrivateCache,
-    viewerCacheScope:
-      viewerId !== null
-        ? `fan:${viewerId}`
-        : authResult.error === null
-          ? "anonymous"
-          : `uncertain:${randomUUID()}`,
+    requiresPrivateCache: feed.viewer_id !== null,
+    viewerCacheScope: feed.viewer_id === null ? "anonymous" : `fan:${feed.viewer_id}`,
   };
 }

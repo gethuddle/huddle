@@ -2,8 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
-  getClaims: vi.fn(),
-  loadTeamVisualsByName: vi.fn(),
   rpc: vi.fn(),
 }));
 
@@ -13,9 +11,6 @@ vi.mock("@/lib/env/server", () => ({
   }),
 }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
-vi.mock("@/features/sports/team-visuals", () => ({
-  loadTeamVisualsByName: mocks.loadTeamVisualsByName,
-}));
 
 import type { DiscoveryFilters } from "./schemas";
 import { getDiscoveryPage } from "./query";
@@ -44,7 +39,11 @@ function safeRow() {
     match_id: "52000000-0000-4000-8000-000000000402",
     competition_name: "Premier League",
     home_team_name: "Arsenal",
+    home_team_tla: "ARS",
+    home_team_crest_url: "https://crests.football-data.org/57.png",
     away_team_name: "Liverpool",
+    away_team_tla: "LIV",
+    away_team_crest_url: null,
     starts_at: "2026-08-30T17:30:00Z",
     ends_at: "2026-08-30T20:30:00Z",
     place_kind: "venue",
@@ -59,6 +58,9 @@ function safeRow() {
     interest_score: 8,
     cursor_distance_band: 1,
     has_more: true,
+    map_place_name: "The Corner",
+    map_latitude: 32.812,
+    map_longitude: 34.998,
   };
 }
 
@@ -66,7 +68,10 @@ describe("event discovery query", () => {
   it("does not retain previously visible venue results after all acquisition sources hide them", async () => {
     const first = await getDiscoveryPage(filters);
     expect(first.items).toHaveLength(1);
-    mocks.rpc.mockResolvedValue({ data: [], error: null });
+    mocks.rpc.mockResolvedValue({
+      data: { viewer_id: "52000000-0000-4000-8000-000000000403", items: [] },
+      error: null,
+    });
     const hidden = await getDiscoveryPage(filters);
     expect(hidden.items).toEqual([]);
     expect(hidden.nextCursor).toBeNull();
@@ -74,44 +79,24 @@ describe("event discovery query", () => {
   });
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.getClaims.mockResolvedValue({
-      data: { claims: { sub: "52000000-0000-4000-8000-000000000403" } },
+    mocks.rpc.mockResolvedValue({
+      data: {
+        viewer_id: "52000000-0000-4000-8000-000000000403",
+        items: [safeRow()],
+      },
       error: null,
     });
-    mocks.loadTeamVisualsByName.mockResolvedValue(
-      new Map([
-        ["Arsenal", { tla: "ARS", crestUrl: "https://crests.football-data.org/57.png" }],
-        ["Liverpool", { tla: "LIV", crestUrl: null }],
-      ]),
-    );
-    mocks.rpc.mockImplementation(async (name: string) => ({
-      data:
-        name === "discover_events"
-          ? [safeRow()]
-          : name === "get_public_event_map_points"
-            ? [
-                {
-                  event_id: safeRow().event_id,
-                  place_name: "The Corner",
-                  latitude: 32.812,
-                  longitude: 34.998,
-                },
-              ]
-            : [],
-      error: null,
-    }));
     mocks.createClient.mockResolvedValue({
-      auth: { getClaims: mocks.getClaims },
       rpc: mocks.rpc,
     });
   });
 
-  it("adds an exact point only through the bounded public map projection", async () => {
+  it("loads the authorized, enriched feed in one database round trip", async () => {
     const result = await getDiscoveryPage(filters);
 
-    expect(mocks.rpc).toHaveBeenCalledTimes(4);
+    expect(mocks.rpc).toHaveBeenCalledTimes(1);
     expect(mocks.rpc).toHaveBeenCalledWith(
-      "discover_events",
+      "discover_event_feed",
       expect.objectContaining({
         input_lat: 32.794,
         input_lng: 34.989,
@@ -119,17 +104,6 @@ describe("event discovery query", () => {
         input_limit: 20,
       }),
     );
-    expect(mocks.rpc).toHaveBeenCalledWith(
-      "discover_open_door_events",
-      expect.objectContaining({ input_limit: 20 }),
-    );
-    expect(mocks.rpc).toHaveBeenCalledWith(
-      "discover_owned_venue_events",
-      expect.objectContaining({ input_limit: 20 }),
-    );
-    expect(mocks.rpc).toHaveBeenCalledWith("get_public_event_map_points", {
-      input_event_ids: ["52000000-0000-4000-8000-000000000401"],
-    });
     expect(result).toMatchObject({
       requiresPrivateCache: true,
       viewerCacheScope: "fan:52000000-0000-4000-8000-000000000403",
@@ -153,24 +127,12 @@ describe("event discovery query", () => {
     expect(JSON.stringify(result)).not.toMatch(/address|distance_meters|private_location/i);
   });
 
-  it("starts the bounded public map projection before optional team visuals resolve", async () => {
-    const visuals = Promise.withResolvers<Map<string, { tla: string; crestUrl: string | null }>>();
-    mocks.loadTeamVisualsByName.mockReturnValue(visuals.promise);
-
-    const pending = getDiscoveryPage(filters);
-    await vi.waitFor(() => {
-      expect(mocks.rpc).toHaveBeenCalledWith("get_public_event_map_points", {
-        input_event_ids: [safeRow().event_id],
-      });
-    });
-    visuals.resolve(new Map());
-
-    await expect(pending).resolves.toMatchObject({ items: [{ mapPoint: expect.any(Object) }] });
-  });
-
   it("rejects an expanded database row that attempts to add a protected field", async () => {
     mocks.rpc.mockResolvedValue({
-      data: [{ ...safeRow(), private_address_text: "Never expose this" }],
+      data: {
+        viewer_id: "52000000-0000-4000-8000-000000000403",
+        items: [{ ...safeRow(), private_address_text: "Never expose this" }],
+      },
       error: null,
     });
 
@@ -178,23 +140,23 @@ describe("event discovery query", () => {
   });
 
   it("presents a walk-in Venue without a fabricated capacity or join policy", async () => {
-    mocks.rpc.mockImplementation(async (name: string) => ({
-      data:
-        name === "discover_open_door_events"
-          ? [
-              {
-                ...safeRow(),
-                event_id: "52000000-0000-4000-8000-000000000499",
-                capacity: null,
-                approved_attendee_count: 0,
-                remaining_capacity: null,
-                requires_approval: false,
-                has_more: false,
-              },
-            ]
-          : [],
+    mocks.rpc.mockResolvedValue({
+      data: {
+        viewer_id: "52000000-0000-4000-8000-000000000403",
+        items: [
+          {
+            ...safeRow(),
+            event_id: "52000000-0000-4000-8000-000000000499",
+            capacity: null,
+            approved_attendee_count: 0,
+            remaining_capacity: null,
+            requires_approval: false,
+            has_more: false,
+          },
+        ],
+      },
       error: null,
-    }));
+    });
 
     await expect(getDiscoveryPage(filters)).resolves.toMatchObject({
       items: [
@@ -209,22 +171,20 @@ describe("event discovery query", () => {
     });
   });
 
-  it("merges a managed Venue event into Fan discovery without duplicating another source", async () => {
+  it("accepts a managed Venue event once from the consolidated feed", async () => {
     const owned = {
       ...safeRow(),
       event_id: "52000000-0000-4000-8000-000000000498",
       title: "My Venue public screening",
       has_more: false,
     };
-    mocks.rpc.mockImplementation(async (name: string) => ({
-      data:
-        name === "discover_events"
-          ? [safeRow()]
-          : name === "discover_owned_venue_events"
-            ? [owned, safeRow()]
-            : [],
+    mocks.rpc.mockResolvedValue({
+      data: {
+        viewer_id: "52000000-0000-4000-8000-000000000403",
+        items: [safeRow(), owned],
+      },
       error: null,
-    }));
+    });
 
     const result = await getDiscoveryPage(filters);
 
@@ -237,7 +197,10 @@ describe("event discovery query", () => {
 
   it("rejects the legacy viewer attendance field instead of leaking relationship history", async () => {
     mocks.rpc.mockResolvedValue({
-      data: [{ ...safeRow(), viewer_attendance_status: "approved" }],
+      data: {
+        viewer_id: "52000000-0000-4000-8000-000000000403",
+        items: [{ ...safeRow(), viewer_attendance_status: "approved" }],
+      },
       error: null,
     });
 
@@ -246,34 +209,30 @@ describe("event discovery query", () => {
 
   it("rejects invite-only rows that violate the acquisition audience contract", async () => {
     mocks.rpc.mockResolvedValue({
-      data: [{ ...safeRow(), audience: "invite_only" }],
+      data: {
+        viewer_id: "52000000-0000-4000-8000-000000000403",
+        items: [{ ...safeRow(), audience: "invite_only" }],
+      },
       error: null,
     });
 
     await expect(getDiscoveryPage(filters)).rejects.toThrow();
   });
 
-  it("fails closed to private caching when the auth lookup is uncertain", async () => {
-    mocks.getClaims.mockResolvedValue({
-      data: null,
-      error: new Error("Auth service unavailable"),
-    });
+  it("fails closed when the consolidated database projection fails", async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: new Error("Database unavailable") });
 
-    const result = await getDiscoveryPage(filters);
-
-    expect(result.requiresPrivateCache).toBe(true);
-    expect(result.viewerCacheScope).toMatch(/^uncertain:/);
-    expect(mocks.rpc).not.toHaveBeenCalledWith("discover_owned_venue_events", expect.anything());
+    await expect(getDiscoveryPage(filters)).rejects.toThrow();
   });
 
-  it("does not call the authenticated managed-Venue projection for an anonymous visitor", async () => {
-    mocks.getClaims.mockResolvedValue({ data: { claims: null }, error: null });
+  it("keeps an anonymous result in the anonymous cache scope", async () => {
+    mocks.rpc.mockResolvedValue({ data: { viewer_id: null, items: [safeRow()] }, error: null });
 
     const result = await getDiscoveryPage(filters);
 
     expect(result.requiresPrivateCache).toBe(false);
     expect(result.viewerCacheScope).toBe("anonymous");
-    expect(mocks.rpc).not.toHaveBeenCalledWith("discover_owned_venue_events", expect.anything());
+    expect(mocks.rpc).toHaveBeenCalledTimes(1);
     expect(result.items).toHaveLength(1);
   });
 });
