@@ -909,6 +909,8 @@ test("password recovery replaces the password without revealing account state", 
   await expect(page.getByRole("heading", { name: "Reset your password" })).toBeVisible();
   await page.getByRole("textbox", { name: "Email address" }).fill(email);
   await page.getByRole("button", { name: "Send reset link" }).click();
+  await expect(page).toHaveURL(/\/auth\/forgot-password\?status=sent$/);
+  await expect(page.getByRole("heading", { name: "Check your inbox" })).toBeVisible();
   await expect(page.getByRole("status")).toContainText("If that address can receive Huddle mail");
 
   const recoveryUrl = await verificationUrlFor(email);
