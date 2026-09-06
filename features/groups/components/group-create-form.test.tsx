@@ -65,9 +65,9 @@ describe("GroupCreateForm", () => {
     await user.type(screen.getByLabelText("Group name"), "A");
     await user.click(screen.getByRole("button", { name: "Review group" }));
 
-    const name = await screen.findByLabelText("Group name");
-    expect(name).toHaveAttribute("aria-invalid", "true");
-    expect(screen.getByText("Use at least 3 characters.")).toHaveAttribute("role", "alert");
+    const error = await screen.findByText("Use at least 3 characters.");
+    expect(screen.getByLabelText("Group name")).toHaveAttribute("aria-invalid", "true");
+    expect(error).toHaveAttribute("role", "alert");
   });
 
   it("derives the group URL without making it another creation field", async () => {
