@@ -1209,6 +1209,10 @@ test("complete deterministic Fan and Venue workspace journey", async ({
     await expect(page.getByRole("link", { name: identity.draftVenueTitles[0] })).toBeVisible();
     await expect(page.getByRole("link", { name: identity.publishedVenueTitles[0] })).toHaveCount(0);
     await page.getByRole("link", { name: "All", exact: true }).click();
+    await expect(page.getByRole("link", { name: "All", exact: true })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
 
     await participantPage.goto(journeyUrl(participantPage, draftEventPath!));
     await expect(

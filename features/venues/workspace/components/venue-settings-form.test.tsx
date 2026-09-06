@@ -57,7 +57,9 @@ describe("VenueSettingsForm", () => {
     });
     render(<VenueSettingsForm venue={venue} canEdit />);
     await userEvent.click(screen.getByRole("button", { name: "Save venue" }));
-    expect(mocks.replace).toHaveBeenCalledWith("/venues/new-corner/workspace/settings");
+    await waitFor(() =>
+      expect(mocks.replace).toHaveBeenCalledWith("/venues/new-corner/workspace/settings"),
+    );
   });
   it("associates every invalid editable text field with its error and focuses the first", async () => {
     mocks.updateVenueSettingsAction.mockResolvedValue({
@@ -75,6 +77,7 @@ describe("VenueSettingsForm", () => {
     });
     render(<VenueSettingsForm venue={venue} canEdit />);
     await userEvent.click(screen.getByRole("button", { name: "Save venue" }));
+    expect(await screen.findByText("Name needed")).toBeVisible();
     for (const [label, error] of [
       ["Venue name", "Name needed"],
       ["Huddle page address", "Invalid URL"],

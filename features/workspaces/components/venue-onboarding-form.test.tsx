@@ -48,6 +48,7 @@ describe("VenueOnboardingForm", () => {
     await userEvent.type(screen.getByRole("combobox", { name: "Public address" }), "10 Herzl");
     await userEvent.click(await screen.findByRole("option", { name: suggestion.label }));
     await userEvent.click(screen.getByRole("button", { name: "Create venue account" }));
+    expect(await screen.findByText("Name needed")).toBeVisible();
     for (const [label, message] of [
       ["Venue name", "Name needed"],
       ["Public description", "Description needed"],

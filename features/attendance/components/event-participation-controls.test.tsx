@@ -124,6 +124,9 @@ describe("EventParticipationControls", () => {
     const formData = mocks.respondToEventInvitationAction.mock.calls[0]?.[0] as FormData;
     expect(formData.get("invitationId")).toBe("90000000-0000-4000-8000-000000000501");
     expect(formData.get("decision")).toBe("accept");
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Invitation accepted and your place is confirmed.",
+    );
   });
 
   it("returns a declined invitee to My Huddle with a durable confirmation", async () => {
@@ -244,7 +247,7 @@ describe("attendance repair regressions", () => {
         viewerAttendanceStatus="left"
       />,
     );
-    expect(screen.getByRole("button", { name: "Request to attend" })).toBeEnabled();
+    expect(await screen.findByRole("button", { name: "Request to attend" })).toBeEnabled();
   });
 
   it.each(["transport", "domain"])(

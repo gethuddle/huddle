@@ -123,10 +123,10 @@ describe("WorkspaceSwitcher", () => {
     await user.click(screen.getByRole("button", { name: "Switch workspace" }));
     await user.click(await screen.findByRole("menuitem", { name: /Match Corner/ }));
 
-    expect(mocks.unstableRethrow).toHaveBeenCalledWith(transportError);
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "We could not switch workspaces. Please try again.",
     );
+    expect(mocks.unstableRethrow).toHaveBeenCalledWith(transportError);
   });
 
   it("shows immediate progress while a workspace switch is waiting for the server", async () => {

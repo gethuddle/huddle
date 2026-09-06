@@ -88,7 +88,7 @@ describe("FriendshipControl", () => {
     await user.click(screen.getByRole("button", { name: "Cancel request" }));
 
     await waitFor(() => expect(mocks.updateFriendshipAction).toHaveBeenCalledOnce());
-    expect(screen.getByRole("button", { name: "Add friend" })).toBeVisible();
+    expect(await screen.findByRole("button", { name: "Add friend" })).toBeVisible();
     const submitted = mocks.updateFriendshipAction.mock.calls[0]?.[1] as FormData;
     expect(submitted.get("intent")).toBe("cancel");
     expect(submitted.get("friendshipId")).toBe(friendshipId);
@@ -115,7 +115,7 @@ describe("FriendshipControl", () => {
     await user.click(screen.getByRole("button", { name: "Decline" }));
 
     await waitFor(() => expect(mocks.updateFriendshipAction).toHaveBeenCalledOnce());
-    expect(screen.getByRole("button", { name: "Add friend" })).toBeVisible();
+    expect(await screen.findByRole("button", { name: "Add friend" })).toBeVisible();
     expect(screen.queryByText(/sent you a friend request/i)).not.toBeInTheDocument();
   });
 

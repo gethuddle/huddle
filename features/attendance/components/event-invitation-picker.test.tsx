@@ -101,9 +101,9 @@ describe("EventInvitationPicker", () => {
       }),
     );
     expect(mocks.createEventInvitationsAction).toHaveBeenCalledOnce();
-    expect(mocks.refresh).toHaveBeenCalledOnce();
     expect(
-      screen.getByText(/They'll see it in Home and My Huddle and can accept or decline/i),
+      await screen.findByText(/They'll see it in Home and My Huddle and can accept or decline/i),
     ).toBeVisible();
+    expect(mocks.refresh).toHaveBeenCalledOnce();
   });
 });
