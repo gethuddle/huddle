@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -33,7 +33,8 @@ describe("CommonOnboardingForm", () => {
     await user.click(age);
     await user.click(screen.getByRole("button", { name: "Continue to venue details" }));
 
-    await waitFor(() => expect(mocks.acceptCommonOnboardingAction).toHaveBeenCalledOnce());
+    expect(await screen.findByText("This confirmation is required.")).toBeVisible();
+    expect(mocks.acceptCommonOnboardingAction).toHaveBeenCalledOnce();
     expect(screen.getByRole("checkbox", { name: /18 or older/i })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: /accept the current/i })).toHaveAttribute(
       "aria-invalid",

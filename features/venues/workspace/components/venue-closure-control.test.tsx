@@ -59,6 +59,6 @@ describe("VenueClosureControl", () => {
       venueSlug: "match-corner",
       confirmation: "Match Corner",
     });
-    expect(mocks.replace).toHaveBeenCalledWith("/venues/match-corner/billing");
+    await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/venues/match-corner/billing"));
   });
 });

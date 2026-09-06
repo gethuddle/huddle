@@ -90,6 +90,7 @@ describe("FixturePlanner", () => {
     await userEvent.click(screen.getByRole("button", { name: "Review events" }));
     await userEvent.type(screen.getByLabelText("Custom title (optional)"), "ab");
     await userEvent.click(screen.getByRole("button", { name: "Save batch as drafts" }));
+    expect(await screen.findByText("Use at least 3 characters.")).toBeVisible();
     expect(screen.getByLabelText("Custom title (optional)")).toHaveAttribute(
       "aria-invalid",
       "true",
@@ -135,6 +136,7 @@ describe("FixturePlanner", () => {
     await userEvent.click(screen.getByRole("button", { name: "Review events" }));
     await userEvent.type(screen.getAllByLabelText("Custom title (optional)")[1], "ab");
     await userEvent.click(screen.getByRole("button", { name: "Save batch as drafts" }));
+    expect(await screen.findByText("Title too short")).toBeVisible();
     expect(screen.getAllByLabelText("Custom title (optional)")[0]).not.toHaveAttribute(
       "aria-invalid",
     );
