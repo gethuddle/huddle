@@ -88,38 +88,73 @@ describe("activateFanWorkspaceAction", () => {
     });
   });
 
-  it("lands completed onboarding in Fan Home", async () => {
+  it.each(["fan_one", "_fan_one_"])(
+    "lands completed onboarding for %s in Fan Home",
+    async (handle) => {
+      const userId = "e4000000-0000-4000-8000-000000000101";
+      const rpc = vi.fn().mockImplementation(async (name: string) =>
+        name === "activate_fan_workspace"
+          ? {
+              data: [{ handle, profile_completed_at: "2026-08-25T00:00:00Z" }],
+              error: null,
+            }
+          : {
+              data: [
+                {
+                  workspace_kind: "fan",
+                  workspace_id: userId,
+                  slug: handle,
+                  name: "Fan One",
+                  role: "fan",
+                },
+              ],
+              error: null,
+            },
+      );
+      mocks.requireActor.mockResolvedValue({ supabase: { rpc }, user: { id: userId } });
+
+      const formData = validFormData();
+      formData.set("handle", handle);
+      const result = await activateFanOnboardingAction(null, formData);
+
+      expect(result).toMatchObject({ ok: true, data: { redirectTo: "/" } });
+      expect(rpc).toHaveBeenNthCalledWith(2, "list_my_workspaces");
+      expect(mocks.cookieSet).toHaveBeenCalledWith(
+        "huddle-workspace",
+        `fan:${userId}`,
+        expect.objectContaining({ httpOnly: true, sameSite: "lax" }),
+      );
+    },
+  );
+
+  it("does not label a failed workspace response as a profile field error after saving", async () => {
     const userId = "e4000000-0000-4000-8000-000000000101";
-    const rpc = vi.fn().mockImplementation(async (name: string) =>
-      name === "activate_fan_workspace"
-        ? {
-            data: [{ handle: "fan_one", profile_completed_at: "2026-08-25T00:00:00Z" }],
-            error: null,
-          }
-        : {
-            data: [
+    const rpc = vi.fn().mockImplementation(async (name: string) => ({
+      error: null,
+      data:
+        name === "activate_fan_workspace"
+          ? [{ handle: "fan_one", profile_completed_at: "2026-08-25T00:00:00Z" }]
+          : [
               {
                 workspace_kind: "fan",
                 workspace_id: userId,
-                slug: "fan_one",
+                slug: "invalid/route",
                 name: "Fan One",
                 role: "fan",
               },
             ],
-            error: null,
-          },
-    );
+    }));
     mocks.requireActor.mockResolvedValue({ supabase: { rpc }, user: { id: userId } });
 
     const result = await activateFanOnboardingAction(null, validFormData());
 
-    expect(result).toMatchObject({ ok: true, data: { redirectTo: "/" } });
-    expect(rpc).toHaveBeenNthCalledWith(2, "list_my_workspaces");
-    expect(mocks.cookieSet).toHaveBeenCalledWith(
-      "huddle-workspace",
-      `fan:${userId}`,
-      expect.objectContaining({ httpOnly: true, sameSite: "lax" }),
-    );
+    expect(result).toMatchObject({
+      ok: false,
+      error: { code: "INTERNAL_ERROR" },
+      values: { handle: "Fan_One", displayName: "Fan One" },
+    });
+    if (result?.ok === false) expect(result.error.fields).toBeUndefined();
+    expect(mocks.cookieSet).not.toHaveBeenCalled();
   });
 
   it("maps reviewed database failures without exposing SQL detail", async () => {

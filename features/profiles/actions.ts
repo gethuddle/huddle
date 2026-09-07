@@ -83,11 +83,15 @@ async function activateFanWorkspace(
       const { data: currentWorkspaces, error: workspaceError } =
         await supabase.rpc("list_my_workspaces");
       if (workspaceError !== null) throw domainErrorFromDatabase(workspaceError);
-      const fan = workspaceRowsSchema
-        .parse(currentWorkspaces)
-        .find(
-          (workspace) => workspace.workspace_kind === "fan" && workspace.workspace_id === user.id,
-        );
+      const workspaces = workspaceRowsSchema.safeParse(currentWorkspaces);
+      if (!workspaces.success) {
+        // Profile activation has already committed. Invalid response data is an
+        // internal failure, not a field the person can correct in this form.
+        throw new DomainError("INTERNAL_ERROR", { cause: workspaces.error });
+      }
+      const fan = workspaces.data.find(
+        (workspace) => workspace.workspace_kind === "fan" && workspace.workspace_id === user.id,
+      );
       if (fan === undefined) throw new DomainError("NOT_ALLOWED");
 
       const cookieStore = await cookies();

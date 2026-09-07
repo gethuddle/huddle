@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { CURRENT_COMMUNITY_RULES_VERSION } from "@/content/community-rules";
 import { addressSuggestionSchema } from "@/features/locations/schemas";
+import { profileHandleSchema } from "@/features/profiles/schemas";
 import { venueWorkspaceActivationBaseSchema } from "@/features/venues/workspace/schemas";
 
 const checkedSchema = z.preprocess(
@@ -15,26 +16,29 @@ const routeSlugSchema = z
   .max(120)
   .regex(/^[a-z0-9][a-z0-9_-]*$/);
 
-export const workspaceRowSchema = z
-  .object({
-    workspace_kind: z.enum(["fan", "venue"]),
-    workspace_id: z.uuid(),
-    slug: routeSlugSchema.nullable(),
-    name: z.string().trim().min(1).max(120),
-    role: z.enum(["fan", "owner", "admin"]),
-  })
-  .strict()
-  .superRefine((row, context) => {
-    if (row.workspace_kind === "fan" && row.role !== "fan") {
-      context.addIssue({ code: "custom", path: ["role"], message: "Invalid Fan role." });
-    }
-    if (row.workspace_kind === "venue" && row.role === "fan") {
-      context.addIssue({ code: "custom", path: ["role"], message: "Invalid Venue role." });
-    }
-    if (row.workspace_kind === "venue" && row.slug === null) {
-      context.addIssue({ code: "custom", path: ["slug"], message: "Venue URL is missing." });
-    }
-  });
+const workspaceIdentityFields = {
+  workspace_id: z.uuid(),
+  name: z.string().trim().min(1).max(120),
+};
+
+export const workspaceRowSchema = z.discriminatedUnion("workspace_kind", [
+  z
+    .object({
+      ...workspaceIdentityFields,
+      workspace_kind: z.literal("fan"),
+      slug: profileHandleSchema,
+      role: z.literal("fan"),
+    })
+    .strict(),
+  z
+    .object({
+      ...workspaceIdentityFields,
+      workspace_kind: z.literal("venue"),
+      slug: routeSlugSchema,
+      role: z.enum(["owner", "admin"]),
+    })
+    .strict(),
+]);
 
 export const workspaceRowsSchema = z.array(workspaceRowSchema).max(100);
 

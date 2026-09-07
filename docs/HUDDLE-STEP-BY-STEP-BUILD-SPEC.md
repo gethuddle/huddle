@@ -574,6 +574,7 @@ The milestone grouping reduces coordination overhead only. It removes no module 
 - [x] Create `profiles` with all constraints and indexes.
 - [x] Create the Auth-to-profile lifecycle/trigger deliberately.
 - [x] Implement unique normalized handle validation.
+- [x] Preserve leading underscores across Fan activation, sign-in, and workspace recovery; use the existing Fan handle rules when reading workspace rows and retain Account access after a failed setup lookup. Regression coverage: workspace schemas/queries, profile/auth actions, the onboarding page, and the signup browser journey.
 - [x] Record `adult_attested_at`; do not collect date of birth.
 - [x] Add repository-owned versioned community rules content.
 - [x] Record current `rules_version` and `rules_accepted_at`.

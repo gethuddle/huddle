@@ -76,6 +76,37 @@ describe("workspace shell query", () => {
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
 
+  it("restores an existing Fan with a leading underscore through both workspace lookups", async () => {
+    mocks.getClaims.mockResolvedValue({ data: { claims: { sub: fanId } }, error: null });
+    mocks.rpc.mockResolvedValue({
+      error: null,
+      data: [
+        {
+          workspace_kind: "fan",
+          workspace_id: fanId,
+          slug: "_matchday_fan_",
+          name: "Matchday Fan",
+          role: "fan",
+        },
+      ],
+    });
+    const fan = {
+      kind: "fan",
+      id: fanId,
+      slug: "_matchday_fan_",
+      label: "Matchday Fan",
+      role: "fan",
+    };
+
+    await expect(getAppShellState()).resolves.toEqual({
+      isSignedIn: true,
+      workspace: { active: fan, available: [fan] },
+    });
+    await expect(listMyRecoverableWorkspaces()).resolves.toEqual([fan]);
+    expect(mocks.rpc).toHaveBeenCalledWith("list_my_workspaces");
+    expect(mocks.rpc).toHaveBeenCalledWith("list_my_workspace_recovery");
+  });
+
   it("drops a revoked remembered Venue and falls back to Fan", async () => {
     mocks.getClaims.mockResolvedValue({ data: { claims: { sub: fanId } }, error: null });
     mocks.getUser.mockResolvedValue({ data: { user: { id: fanId } }, error: null });

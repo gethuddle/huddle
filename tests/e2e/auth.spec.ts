@@ -852,7 +852,7 @@ async function planSingleVenueEvent(
   await expect(page.getByRole("status")).toContainText("Batch saved");
 }
 
-test("01 signup, verification, required onboarding, and a team follow", async ({
+test("01 signup, verification, underscore-handle onboarding, and a team follow", async ({
   context,
   page,
 }) => {
@@ -862,13 +862,18 @@ test("01 signup, verification, required onboarding, and a team follow", async ({
   const suffix = uniqueSuffix();
   const email = `b02-${suffix}@example.com`;
   const password = "matchday-local-test";
-  const handle = `fan_${suffix}`;
+  const handle = `_fan_${suffix}_`;
 
   await signUpAndVerify(page, context, email, password);
   await completeProfile(page, handle, "Local Fan", true);
 
   await expect(page.getByText("This is your public profile.")).toBeVisible();
   await expect(page.getByText(email)).not.toBeVisible();
+  await page.reload();
+  await expectProfileNavigation(page);
+
+  await page.goto(new URL("/onboarding", page.url()).toString());
+  await expect(page).toHaveURL(/^http:\/\/(?:localhost|127\.0\.0\.1):3000\/$/);
   await page.reload();
   await expectProfileNavigation(page);
 
@@ -1066,7 +1071,7 @@ test("username availability is immediate in Fan setup and editing while final sa
   const suffix = uniqueSuffix();
   const taken = `taken_${suffix}`;
   const own = `handle_${suffix}`;
-  const next = `renamed_${suffix}`;
+  const next = `_renamed_${suffix}_`;
   const email = `handle-${suffix}@example.com`;
   const password = "matchday-local-test";
   await seedCompletedUser(`occupied-${suffix}@example.com`, password, taken, "Occupied Handle");
@@ -1094,6 +1099,8 @@ test("username availability is immediate in Fan setup and editing while final sa
   await page.getByRole("button", { name: "Save profile" }).click();
   await expect(page).toHaveURL(new RegExp(`/people/${next}$`));
   await expect(page.getByRole("heading", { name: "Username Fan" })).toBeVisible();
+  await page.goto(new URL("/", page.url()).toString());
+  await expectProfileNavigation(page);
 });
 
 test("account email changes require both passive email links and never sign in from a confirmation", async ({

@@ -63,6 +63,19 @@ describe("OnboardingPage", () => {
     expect(screen.getByRole("link", { name: "Open Account" })).toHaveAttribute("href", "/account");
   });
 
+  it("offers Account as a way out when workspace recovery cannot load", async () => {
+    mocks.listMyRecoverableWorkspaces.mockRejectedValue(new Error("workspace unavailable"));
+
+    render(await OnboardingPage());
+
+    expect(
+      screen.getByRole("heading", { name: "We couldn’t prepare account setup." }),
+    ).toBeVisible();
+    expect(screen.getByRole("link", { name: "Open Account" })).toHaveAttribute("href", "/account");
+    expect(screen.queryByRole("link", { name: "Try again" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Set up Fan" })).not.toBeInTheDocument();
+  });
+
   it("asks an existing stale Venue account to reaccept rules instead of creating a duplicate", async () => {
     mocks.listMyRecoverableWorkspaces.mockResolvedValue([
       {

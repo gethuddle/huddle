@@ -34,9 +34,9 @@ export default async function OnboardingPage() {
   if (recoverable === null) {
     return (
       <ProfileAccessState
-        actionHref="/onboarding"
-        actionLabel="Try again"
-        description="Your existing workspace state could not be checked. No setup changes were made."
+        actionHref="/account"
+        actionLabel="Open Account"
+        description="We couldn’t load your workspaces. Open Account to reach account settings or sign out."
         eyebrow="Temporarily unavailable"
         title="We couldn’t prepare account setup."
         warning
