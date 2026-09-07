@@ -413,37 +413,40 @@ describe("auth Server Actions", () => {
     });
   });
 
-  it("returns a Fan account to Fan Home", async () => {
-    mocks.signInWithPassword.mockResolvedValue({
-      data: { session: {}, user: { id: "complete-user-id" } },
-      error: null,
-    });
-    mocks.rpc.mockResolvedValue({
-      data: [
-        {
-          workspace_kind: "fan",
-          workspace_id: "e4000000-0000-4000-8000-000000000101",
-          slug: "complete_fan",
-          name: "Complete Fan",
-          role: "fan",
-        },
-      ],
-      error: null,
-    });
+  it.each(["complete_fan", "_complete_fan_"])(
+    "returns the Fan account %s to Fan Home",
+    async (handle) => {
+      mocks.signInWithPassword.mockResolvedValue({
+        data: { session: {}, user: { id: "complete-user-id" } },
+        error: null,
+      });
+      mocks.rpc.mockResolvedValue({
+        data: [
+          {
+            workspace_kind: "fan",
+            workspace_id: "e4000000-0000-4000-8000-000000000101",
+            slug: handle,
+            name: "Complete Fan",
+            role: "fan",
+          },
+        ],
+        error: null,
+      });
 
-    const result = await signInAction(
-      null,
-      formData({ email: "fan@example.com", password: "matchday-strong" }),
-    );
+      const result = await signInAction(
+        null,
+        formData({ email: "fan@example.com", password: "matchday-strong" }),
+      );
 
-    expect(result).toMatchObject({ ok: true, data: { redirectTo: "/" } });
-    expect(mocks.cookieSet).toHaveBeenCalledWith(
-      "huddle-workspace",
-      "fan:e4000000-0000-4000-8000-000000000101",
-      expect.objectContaining({ httpOnly: true, sameSite: "lax" }),
-    );
-    expect(mocks.revalidatePath).toHaveBeenCalledWith("/", "layout");
-  });
+      expect(result).toMatchObject({ ok: true, data: { redirectTo: "/" } });
+      expect(mocks.cookieSet).toHaveBeenCalledWith(
+        "huddle-workspace",
+        "fan:e4000000-0000-4000-8000-000000000101",
+        expect.objectContaining({ httpOnly: true, sameSite: "lax" }),
+      );
+      expect(mocks.revalidatePath).toHaveBeenCalledWith("/", "layout");
+    },
+  );
 
   it("returns an active Fan to a safe invite path after sign-in", async () => {
     mocks.signInWithPassword.mockResolvedValue({
